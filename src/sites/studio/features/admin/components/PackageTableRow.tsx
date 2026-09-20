@@ -269,7 +269,7 @@ export function PackageTableRow({
 			</TableCell>
 			<TableCell className={inactiveCellClassName}>
 				<div className="flex flex-col gap-1 whitespace-normal">
-					<p className="break-all font-medium">
+					<p className="font-medium break-all">
 						<PrivacySensitiveText
 							rowId={packageRow.id}
 							value={packageRow.customerEmail}
@@ -304,7 +304,7 @@ export function PackageTableRow({
 					isPastDue={isDashboardDatePastDue}
 				/>
 			</TableCell>
-			<TableCell className={cn("tabular-nums text-right", amountCellClassName)}>
+			<TableCell className={cn("text-right tabular-nums", amountCellClassName)}>
 				<PackageAmountCell
 					packageRow={packageRow}
 					rowId={packageRow.id}

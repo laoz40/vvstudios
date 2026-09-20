@@ -93,10 +93,7 @@ export function BookingPackageSection() {
 														<label
 															htmlFor={`package-size-${option.packageSize}`}
 															className={cn(
-																"pressable flex cursor-pointer flex-col rounded-lg border bg-input/30",
-																"p-4 shadow-lg shadow-background/25",
-																"peer-focus-visible:border-primary peer-focus-visible:ring-2 peer-focus-visible:ring-ring",
-																"peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-background",
+																"pressable flex cursor-pointer flex-col rounded-lg border bg-input/30 p-4 shadow-lg shadow-background/25 peer-focus-visible:border-primary peer-focus-visible:ring-2 peer-focus-visible:ring-ring peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-background",
 																transitionClassName,
 																getCardStateClassName(isSelected),
 																isSelected && "shadow-primary/20"
@@ -117,7 +114,7 @@ export function BookingPackageSection() {
 												);
 											})}
 										</RadioGroup>
-										<ul className="list-disc space-y-1 pl-5 text-sm italic text-muted-foreground">
+										<ul className="list-disc space-y-1 pl-5 text-sm text-muted-foreground italic">
 											<li>Scheduling is available after full payment.</li>
 											<li>Session duration and addons do not change between sessions.</li>
 											<li>{packageSizeNote}</li>

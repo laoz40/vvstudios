@@ -23,11 +23,8 @@ export function ContactActions({ className, layout = "default" }: ContactActions
 			)}>
 			<AnimatedIconButton
 				className={cn(
-					"h-auto min-w-56 justify-center",
-					isInline ? "shrink-0" : "flex-1 basis-full md:basis-0",
-					"gap-1.5 px-8 py-3",
-					"text-base font-medium",
-					"shadow-lg shadow-primary/45"
+					"h-auto min-w-56 justify-center gap-1.5 px-8 py-3 text-base font-medium shadow-lg shadow-primary/45",
+					isInline ? "shrink-0" : "flex-1 basis-full md:basis-0"
 				)}
 				renderIcon={(iconRef) => (
 					<ArrowNarrowRightIcon
@@ -42,11 +39,8 @@ export function ContactActions({ className, layout = "default" }: ContactActions
 			<FreeTourModalButton
 				label={contactActionCopy.tourCta}
 				className={cn(
-					"h-auto min-w-56",
-					isInline ? "shrink-0" : "flex-1 basis-full md:basis-0",
-					"px-8 py-3",
-					"text-base font-medium!",
-					"border-0 shadow-md shadow-background/25"
+					"h-auto min-w-56 border-0 px-8 py-3 text-base font-medium! shadow-md shadow-background/25",
+					isInline ? "shrink-0" : "flex-1 basis-full md:basis-0"
 				)}
 			/>
 		</div>

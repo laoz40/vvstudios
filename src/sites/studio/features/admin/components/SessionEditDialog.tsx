@@ -21,7 +21,6 @@ import { Input } from "#/components/ui/input";
 import { Label } from "#/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "#/components/ui/radio-group";
 import { Textarea } from "#/components/ui/textarea";
-import { cn } from "#/lib/utils";
 import type { Doc } from "#convex/_generated/dataModel";
 import {
 	DURATION_OPTIONS,
@@ -132,7 +131,7 @@ export function SessionEditDialog({
 				onOpenChange(nextOpen);
 			}}>
 			<DialogContent
-				className={cn("flex max-h-dvh flex-col", "gap-4", "overflow-hidden", "sm:max-w-3xl")}
+				className="flex max-h-dvh flex-col gap-4 overflow-hidden sm:max-w-3xl"
 				onInteractOutside={(event) => {
 					if (isSaving) {
 						event.preventDefault();
@@ -164,11 +163,7 @@ export function SessionEditDialog({
 				</DialogHeader>
 
 				<form
-					className={cn(
-						"flex min-h-0 flex-col gap-3",
-						"overflow-y-auto overscroll-contain",
-						"pr-1"
-					)}
+					className="flex min-h-0 flex-col gap-3 overflow-y-auto overscroll-contain pr-1"
 					data-lenis-prevent
 					onSubmit={(event) => {
 						event.preventDefault();

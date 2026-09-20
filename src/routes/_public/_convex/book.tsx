@@ -109,8 +109,7 @@ function BookingPage() {
 	};
 
 	return (
-		<main
-			className={cn("mx-auto flex min-h-dvh max-w-4xl flex-col", "gap-8 px-4 pt-8 pb-12 sm:pt-10")}>
+		<main className="mx-auto flex min-h-dvh max-w-4xl flex-col gap-8 px-4 pt-8 pb-12 sm:pt-10">
 			<div>
 				<h1 className={cn(landingSectionHeadingClassName, "text-center")}>Studio Hire Booking</h1>
 			</div>
@@ -191,11 +190,7 @@ function BookingPage() {
 						<BookingSummary />
 						<Button
 							type="submit"
-							className={cn(
-								"mb-20 h-12 w-full rounded-lg",
-								"text-base font-bold! tracking-wider",
-								"shadow-lg shadow-primary/45"
-							)}
+							className="mb-20 h-12 w-full rounded-lg text-base font-bold! tracking-wider shadow-lg shadow-primary/45"
 							disabled={bookingSubmit.isSubmitting}>
 							{bookingSubmit.isSubmitting ? "PROCESSING" : "COMPLETE BOOKING"}
 						</Button>
@@ -210,11 +205,7 @@ function BookingPage() {
 
 			{completeBookingShortcut.showScrollToCompleteBooking &&
 			!completeBookingShortcut.hasReachedCompleteBooking ? (
-				<div
-					className={cn(
-						"fixed right-4 bottom-16 z-50 sm:right-6 sm:bottom-6",
-						"animate-in fade-in zoom-in-150 duration-200 motion-reduce:zoom-in-100"
-					)}>
+				<div className="fixed right-4 bottom-16 z-50 animate-in duration-200 fade-in zoom-in-150 motion-reduce:zoom-in-100 sm:right-6 sm:bottom-6">
 					<Button
 						type="button"
 						size="icon-lg"

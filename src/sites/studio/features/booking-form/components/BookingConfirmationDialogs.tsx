@@ -69,7 +69,7 @@ export function PackageUnscheduleConfirmation({
 				</div>
 			}>
 			<div className="space-y-3 text-center">
-				<p className="text-muted-foreground text-balance leading-6">
+				<p className="leading-6 text-balance text-muted-foreground">
 					This will remove this session from the calendar. You can pick a new date again later.
 				</p>
 			</div>
@@ -119,7 +119,7 @@ export function RescheduleConfirmation({
 				</div>
 			}>
 			<div className="space-y-2 text-center">
-				<p className="text-foreground text-3xl font-semibold tracking-tight">
+				<p className="text-3xl font-semibold tracking-tight text-foreground">
 					{modalState.dateSummary}
 				</p>
 				<p className="text-xl font-medium">{modalState.timeSummary}</p>

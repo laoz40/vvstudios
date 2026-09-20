@@ -2,7 +2,6 @@ import { useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { X } from "lucide-react";
 import { Button } from "#/components/ui/button";
-import { cn } from "#/lib/utils";
 import { getRevealMotionProps } from "#studio/features/booking-form/lib/booking-form-styles";
 
 const sectionCopy = {
@@ -30,23 +29,13 @@ export function BookingSavedInfoBanner({ onRemove, onReuse }: BookingSavedInfoBa
 					transition={{ ...revealMotionProps.transition, duration: 0.3, ease: "easeOut" }}
 					className="overflow-hidden">
 					<div className="relative pt-3 pr-3">
-						<section
-							className={cn(
-								"flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between",
-								"rounded-lg bg-card",
-								"px-4 py-4 sm:px-6",
-								"shadow-lg shadow-background/25"
-							)}>
+						<section className="flex flex-col gap-4 rounded-lg bg-card px-4 py-4 shadow-lg shadow-background/25 sm:flex-row sm:items-center sm:justify-between sm:px-6">
 							<p className="text-sm text-foreground">
 								{sectionCopy.description}{" "}
 								<Button
 									type="button"
 									variant="link"
-									className={cn(
-										"accent-link",
-										"inline h-auto p-0 align-baseline",
-										"text-sm text-muted-foreground underline-offset-4"
-									)}
+									className="accent-link inline h-auto p-0 align-baseline text-sm text-muted-foreground underline-offset-4"
 									onClick={onRemove}>
 									{sectionCopy.removeAction}
 								</Button>
@@ -54,12 +43,7 @@ export function BookingSavedInfoBanner({ onRemove, onReuse }: BookingSavedInfoBa
 							<Button
 								type="button"
 								size="default"
-								className={cn(
-									"w-full sm:w-auto",
-									"px-6",
-									"text-sm! font-semibold",
-									"shadow-lg shadow-primary/45"
-								)}
+								className="w-full px-6 text-sm! font-semibold shadow-lg shadow-primary/45 sm:w-auto"
 								onClick={onReuse}>
 								{sectionCopy.reuseAction}
 							</Button>

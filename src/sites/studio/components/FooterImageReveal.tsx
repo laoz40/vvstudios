@@ -4,7 +4,6 @@ import { Link } from "@tanstack/react-router";
 import ArrowNarrowRightIcon from "#/components/ui/arrow-narrow-right-icon";
 import { AnimatedIconButton } from "#/components/AnimatedIconButton";
 import { studioSite } from "#/config/sites";
-import { cn } from "#/lib/utils";
 
 export type FooterImageRevealProps = { showCta?: boolean };
 
@@ -24,13 +23,7 @@ export function FooterImageReveal({ showCta = true }: FooterImageRevealProps) {
 					style={{ scale: prefersReducedMotion ? 1 : scale }}>
 					<AnimatedIconButton
 						variant="ghost"
-						className={cn(
-							"font-brand h-auto gap-3 uppercase tracking-tight",
-							"border-0 bg-transparent text-foreground shadow-none",
-							"hover:bg-transparent! hover:text-primary",
-							"px-6 py-2 text-5xl sm:text-6xl",
-							"md:gap-4 md:px-10 md:py-3 md:text-9xl"
-						)}
+						className="font-brand h-auto gap-3 border-0 bg-transparent px-6 py-2 text-5xl tracking-tight text-foreground uppercase shadow-none hover:bg-transparent! hover:text-primary sm:text-6xl md:gap-4 md:px-10 md:py-3 md:text-9xl"
 						renderIcon={(iconRef) => (
 							<ArrowNarrowRightIcon
 								ref={iconRef}

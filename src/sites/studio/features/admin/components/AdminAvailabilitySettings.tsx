@@ -16,7 +16,6 @@ import {
 } from "#/components/ui/dialog";
 import { Input } from "#/components/ui/input";
 import { Label } from "#/components/ui/label";
-import { cn } from "#/lib/utils";
 import {
 	bookingDayLabels,
 	bookingTimeOptions,
@@ -39,13 +38,7 @@ function TimeSelect({ value, onChange }: TimeSelectProps) {
 			<select
 				value={value}
 				onChange={(event) => onChange(event.target.value)}
-				className={cn(
-					"h-9 rounded-md",
-					"border border-input bg-background",
-					"px-3",
-					"text-sm text-foreground",
-					"outline-none focus-visible:ring-2 focus-visible:ring-ring"
-				)}>
+				className="h-9 rounded-md border border-input bg-background px-3 text-sm text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring">
 				{bookingTimeOptions.map((time) => (
 					<option
 						key={time}
@@ -206,10 +199,7 @@ export function AdminAvailabilitySettings() {
 							return (
 								<div
 									key={label}
-									className={cn(
-										"grid gap-3 md:grid-cols-[80px_1fr_1fr] md:items-center",
-										"border-b p-3 last:border-b-0"
-									)}>
+									className="grid gap-3 border-b p-3 last:border-b-0 md:grid-cols-[80px_1fr_1fr] md:items-center">
 									<p className="text-sm font-medium">{label}</p>
 									<TimeSelect
 										value={daySchedule.startTime}

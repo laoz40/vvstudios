@@ -11,7 +11,6 @@ import {
 	FieldTitle
 } from "#/components/ui/field";
 import { RadioGroup, RadioGroupItem } from "#/components/ui/radio-group";
-import { cn } from "#/lib/utils";
 import { BookingAddonCard } from "#studio/features/booking-form/components/BookingAddonCard";
 import { BookingAddonSectionDescription } from "#studio/features/booking-form/components/BookingAddonSectionDescription";
 import { useBookingFormContext } from "#studio/features/booking-form/lib/booking-form-context";
@@ -85,20 +84,10 @@ function BookingAddonQuantityField({
 									{DELIVERABLE_COUNT_OPTIONS.map((count) => (
 										<FieldLabel
 											key={count}
-											className={cn(
-												"flex cursor-pointer items-center gap-2",
-												"text-sm font-medium",
-												"has-data-[state=checked]:bg-transparent",
-												"dark:has-data-[state=checked]:bg-transparent"
-											)}>
+											className="flex cursor-pointer items-center gap-2 text-sm font-medium has-data-[state=checked]:bg-transparent dark:has-data-[state=checked]:bg-transparent">
 											<RadioGroupItem
 												value={count}
-												className={cn(
-													"size-5",
-													"data-[state=checked]:border-primary",
-													"data-[state=checked]:bg-primary",
-													"data-[state=checked]:text-primary-foreground"
-												)}
+												className="size-5 data-[state=checked]:border-primary data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
 											/>
 											<span>{count}</span>
 										</FieldLabel>

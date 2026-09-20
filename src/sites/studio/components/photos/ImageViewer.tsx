@@ -53,8 +53,7 @@ export function ImageViewerTrigger({
 			type="button"
 			aria-label={`View larger image of ${image.caption ?? image.alt}`}
 			className={cn(
-				"group relative block w-full cursor-zoom-in overflow-hidden rounded-lg text-left",
-				"focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
+				"group relative block w-full cursor-zoom-in overflow-hidden rounded-lg text-left focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-inset",
 				className
 			)}
 			onClick={() => {
@@ -134,7 +133,7 @@ export function ImageViewer({ image, onClose }: ImageViewerProps) {
 		<dialog
 			ref={dialogRef}
 			aria-labelledby={titleId}
-			className="fixed inset-0 m-0 h-dvh w-dvw max-h-none max-w-none overflow-hidden bg-black/80 p-0 text-inherit backdrop:bg-black/80"
+			className="fixed inset-0 m-0 h-dvh max-h-none w-dvw max-w-none overflow-hidden bg-black/80 p-0 text-inherit backdrop:bg-black/80"
 			data-lenis-prevent
 			onClose={() => {
 				onClose();

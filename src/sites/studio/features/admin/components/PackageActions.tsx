@@ -13,7 +13,6 @@ import {
 	DropdownMenuTrigger
 } from "#/components/ui/dropdown-menu";
 import type { AnimatedIconHandle } from "#/components/ui/types";
-import { cn } from "#/lib/utils";
 import { AnimatedDropdownMenuItem } from "#studio/features/admin/components/AnimatedDropdownMenuItem";
 import { PackageActionDialogs } from "#studio/features/admin/components/PackageActionDialogs";
 import { PackageOtherActionsMenu } from "#studio/features/admin/components/PackageOtherActionsMenu";
@@ -61,13 +60,7 @@ export function PackageActions({ packageRow }: { packageRow: AdminPackageRow }) 
 								href={`mailto:${packageRow.customerEmail}`}
 								aria-label="Email customer"
 								title="Email customer"
-								className={cn(
-									"flex size-8 items-center justify-center",
-									"rounded-sm",
-									"text-muted-foreground",
-									"hover:bg-accent hover:text-accent-foreground",
-									"focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-								)}
+								className="flex size-8 items-center justify-center rounded-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
 								onPointerEnter={() => emailIconRef.current?.startAnimation()}
 								onPointerLeave={() => emailIconRef.current?.stopAnimation()}
 								onFocus={() => emailIconRef.current?.startAnimation()}
@@ -82,13 +75,7 @@ export function PackageActions({ packageRow }: { packageRow: AdminPackageRow }) 
 								href={`tel:${packageRow.customerPhone}`}
 								aria-label="Call customer"
 								title="Call customer"
-								className={cn(
-									"flex size-8 items-center justify-center",
-									"rounded-sm",
-									"text-muted-foreground",
-									"hover:bg-accent hover:text-accent-foreground",
-									"focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-								)}
+								className="flex size-8 items-center justify-center rounded-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
 								onPointerEnter={() => phoneIconRef.current?.startAnimation()}
 								onPointerLeave={() => phoneIconRef.current?.stopAnimation()}
 								onFocus={() => phoneIconRef.current?.startAnimation()}

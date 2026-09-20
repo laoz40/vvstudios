@@ -108,7 +108,7 @@ export function Modal({
 			ref={dialogRef}
 			aria-labelledby={titleId}
 			aria-describedby={description ? descriptionId : undefined}
-			className="fixed inset-0 m-0 h-dvh w-dvw max-h-none max-w-none overflow-y-auto bg-transparent p-4 text-inherit backdrop:bg-black/80"
+			className="fixed inset-0 m-0 h-dvh max-h-none w-dvw max-w-none overflow-y-auto bg-transparent p-4 text-inherit backdrop:bg-black/80"
 			data-lenis-prevent
 			onCancel={(event) => {
 				if (preventClose) {
@@ -172,7 +172,7 @@ export function Modal({
 					</Button>
 					<div
 						className={cn(
-							"bg-background text-foreground ring-foreground/10 grid w-full gap-4 rounded-xl p-4 text-sm shadow-2xl outline-none ring-1 sm:p-6",
+							"grid w-full gap-4 rounded-xl bg-background p-4 text-sm text-foreground shadow-2xl ring-1 ring-foreground/10 outline-none sm:p-6",
 							className
 						)}>
 						<div className={cn("flex flex-col gap-2 text-left", hideHeader && "sr-only")}>
@@ -184,7 +184,7 @@ export function Modal({
 							{description ? (
 								<div
 									id={descriptionId}
-									className="text-muted-foreground text-sm leading-6">
+									className="text-sm leading-6 text-muted-foreground">
 									{description}
 								</div>
 							) : null}

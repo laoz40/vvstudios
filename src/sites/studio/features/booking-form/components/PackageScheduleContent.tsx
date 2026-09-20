@@ -203,7 +203,7 @@ export function PackageScheduleContent({
 			showActions={false}
 			className="max-w-4xl justify-start pt-16 sm:pt-20">
 			<div>
-				<h1 className="text-left font-brand text-5xl leading-none uppercase md:text-center md:text-6xl">
+				<h1 className="font-brand text-left text-5xl leading-none uppercase md:text-center md:text-6xl">
 					Schedule your package sessions
 				</h1>
 

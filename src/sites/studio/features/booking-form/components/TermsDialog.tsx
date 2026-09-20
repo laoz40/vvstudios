@@ -83,13 +83,13 @@ export function TermsDialog({ isSubmitting, onConfirm, open, onOpenChange }: Ter
 					</Button>
 				</>
 			}>
-			<div className="bg-card space-y-4 rounded-lg border p-4 text-sm">
+			<div className="space-y-4 rounded-lg border bg-card p-4 text-sm">
 				{terms.map((item) => (
 					<section
 						key={item.title}
 						className="space-y-1.5">
-						<h3 className="text-foreground font-semibold">{item.title}</h3>
-						<p className="text-muted-foreground leading-6">{item.body}</p>
+						<h3 className="font-semibold text-foreground">{item.title}</h3>
+						<p className="leading-6 text-muted-foreground">{item.body}</p>
 					</section>
 				))}
 			</div>

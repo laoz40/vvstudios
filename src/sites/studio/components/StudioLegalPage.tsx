@@ -10,7 +10,7 @@ export function StudioLegalPage({ lastUpdated, sections, title }: StudioLegalPag
 	return (
 		<main className="px-4 py-12 md:px-10 md:py-16">
 			<div className="mx-auto max-w-4xl space-y-10">
-				<h1 className="text-center text-4xl font-brand font-black tracking-tight md:text-6xl uppercase">
+				<h1 className="font-brand text-center text-4xl font-black tracking-tight uppercase md:text-6xl">
 					{title}
 				</h1>
 
@@ -20,12 +20,12 @@ export function StudioLegalPage({ lastUpdated, sections, title }: StudioLegalPag
 							key={section.title}
 							className="space-y-2">
 							<h2 className="text-xl font-bold tracking-tight">{section.title}</h2>
-							<p className="text-muted-foreground leading-relaxed">{section.body}</p>
+							<p className="leading-relaxed text-muted-foreground">{section.body}</p>
 						</section>
 					))}
 				</div>
 
-				<p className="text-muted-foreground text-sm">Last updated: {lastUpdated}</p>
+				<p className="text-sm text-muted-foreground">Last updated: {lastUpdated}</p>
 			</div>
 		</main>
 	);

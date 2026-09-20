@@ -5,7 +5,6 @@ import { CircleX } from "lucide-react";
 import { toast } from "sonner";
 import CheckedIcon from "#/components/ui/checked-icon";
 import { exhaustiveCheck, tryCatch } from "#/lib/result";
-import { cn } from "#/lib/utils";
 import { api } from "#convex/_generated/api";
 import type { Id } from "#convex/_generated/dataModel";
 import type { BookingStatus } from "#studio/components/booking/BookingCompleteDevScenarioPanel";
@@ -165,7 +164,7 @@ function BookingResultHeading({
 	const showSuccessIcon = hasConfirmedBooking || isPackageBooking;
 
 	return (
-		<h1 className="font-brand text-2xl font-semibold leading-tight sm:text-3xl md:text-5xl uppercase">
+		<h1 className="font-brand text-2xl leading-tight font-semibold uppercase sm:text-3xl md:text-5xl">
 			{showSuccessIcon ? (
 				<CheckedIcon
 					className="mr-3 inline size-7 -translate-y-1 text-primary sm:size-8 md:size-9"
@@ -214,12 +213,7 @@ function DocumentDownloadButton({
 	return (
 		<button
 			type="button"
-			className={cn(
-				"accent-link",
-				"inline bg-transparent p-0",
-				"text-base font-medium leading-normal text-foreground",
-				"disabled:pointer-events-none disabled:opacity-50"
-			)}
+			className="accent-link inline bg-transparent p-0 text-base leading-normal font-medium text-foreground disabled:pointer-events-none disabled:opacity-50"
 			disabled={isDownloading}
 			onClick={onDownload}>
 			{isDownloading ? loadingLabel : idleLabel}

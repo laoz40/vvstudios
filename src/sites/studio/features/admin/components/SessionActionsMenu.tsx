@@ -12,7 +12,6 @@ import PhoneVolume from "#/components/ui/phone-volume";
 import Stack3Icon from "#/components/ui/stack-3-icon";
 import TrashIcon from "#/components/ui/trash-icon";
 import type { AnimatedIconHandle } from "#/components/ui/types";
-import { cn } from "#/lib/utils";
 import { Tabs, TabsList, TabsTrigger } from "#/components/ui/tabs";
 import {
 	DropdownMenu,
@@ -134,7 +133,7 @@ function DeliverablesControls({
 
 	return (
 		<>
-			<DropdownMenuLabel className="pb-1 text-muted-foreground text-sm">
+			<DropdownMenuLabel className="pb-1 text-sm text-muted-foreground">
 				Deliverables
 			</DropdownMenuLabel>
 			<div className="px-2 pb-2">
@@ -262,13 +261,7 @@ export function SessionActionsMenu({
 							href={`mailto:${session.email}`}
 							aria-label="Email customer"
 							title="Email customer"
-							className={cn(
-								"flex size-8 items-center justify-center",
-								"rounded-sm",
-								"text-muted-foreground",
-								"hover:bg-accent hover:text-accent-foreground",
-								"focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-							)}
+							className="flex size-8 items-center justify-center rounded-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
 							onPointerEnter={() => emailIconRef.current?.startAnimation()}
 							onPointerLeave={() => emailIconRef.current?.stopAnimation()}
 							onFocus={() => emailIconRef.current?.startAnimation()}
@@ -284,13 +277,7 @@ export function SessionActionsMenu({
 								href={`tel:${session.phone}`}
 								aria-label="Call customer"
 								title="Call customer"
-								className={cn(
-									"flex size-8 items-center justify-center",
-									"rounded-sm",
-									"text-muted-foreground",
-									"hover:bg-accent hover:text-accent-foreground",
-									"focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-								)}
+								className="flex size-8 items-center justify-center rounded-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
 								onPointerEnter={() => phoneIconRef.current?.startAnimation()}
 								onPointerLeave={() => phoneIconRef.current?.stopAnimation()}
 								onFocus={() => phoneIconRef.current?.startAnimation()}
@@ -514,7 +501,7 @@ export function SessionActionsMenu({
 					</AnimatedDropdownMenuItem>
 				) : null}
 				<AnimatedDropdownMenuItem
-					className="focus:text-destructive hover:text-destructive"
+					className="hover:text-destructive focus:text-destructive"
 					onSelect={() => editAction.setIsEditDialogOpen(true)}
 					renderIcon={(iconRef) => (
 						<PenIcon
@@ -527,7 +514,7 @@ export function SessionActionsMenu({
 					Edit session
 				</AnimatedDropdownMenuItem>
 				<AnimatedDropdownMenuItem
-					className="focus:text-destructive hover:text-destructive"
+					className="hover:text-destructive focus:text-destructive"
 					onSelect={() => deleteAction.setIsDeleteDialogOpen(true)}
 					renderIcon={(iconRef) => (
 						<TrashIcon

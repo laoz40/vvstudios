@@ -105,22 +105,13 @@ export function BookingRecordingSpaceDurationSection() {
 											<label
 												htmlFor={`duration-${toOptionId(option.value)}`}
 												className={cn(
-													"pressable relative flex cursor-pointer items-center justify-between rounded-lg border bg-input/30",
-													"gap-3 p-4 shadow-lg shadow-background/25",
-													"peer-focus-visible:border-primary peer-focus-visible:ring-2 peer-focus-visible:ring-ring",
-													"peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-background",
+													"pressable relative flex cursor-pointer items-center justify-between gap-3 rounded-lg border bg-input/30 p-4 shadow-lg shadow-background/25 peer-focus-visible:border-primary peer-focus-visible:ring-2 peer-focus-visible:ring-ring peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-background",
 													transitionClassName,
 													getCardStateClassName(isSelected),
 													isSelected && "shadow-primary/20"
 												)}>
 												{option.badgeLabel ? (
-													<span
-														className={cn(
-															"absolute -top-2 -right-2 rounded-full",
-															"px-3 py-1",
-															"text-[10px] leading-none font-semibold",
-															"bg-primary text-primary-foreground"
-														)}>
+													<span className="absolute -top-2 -right-2 rounded-full bg-primary px-3 py-1 text-[10px] leading-none font-semibold text-primary-foreground">
 														{option.badgeLabel}
 													</span>
 												) : null}

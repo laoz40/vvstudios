@@ -46,20 +46,14 @@ export function FaqSection({ fadeIn = true }: FaqSectionProps) {
 
 				<div
 					className={cn(
-						"grid md:grid-cols-2 md:items-start gap-10",
-						landingSectionHeadingAfterClassName,
-						"w-full"
+						"grid w-full gap-10 md:grid-cols-2 md:items-start",
+						landingSectionHeadingAfterClassName
 					)}>
-					<div className={cn("order-2 flex flex-col md:order-1", "w-full")}>
+					<div className="order-2 flex w-full flex-col md:order-1">
 						<ImageViewerTrigger
 							image={faqImage}
 							onSelect={setPreviewImage}
-							className={cn(
-								"overflow-hidden",
-								"h-80 md:h-128",
-								"rounded-lg bg-card",
-								"shadow-xl shadow-background/40"
-							)}
+							className="h-80 overflow-hidden rounded-lg bg-card shadow-xl shadow-background/40 md:h-128"
 							imageClassName="h-full w-full object-cover"
 						/>
 

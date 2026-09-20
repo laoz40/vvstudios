@@ -26,7 +26,7 @@ export function FaqItemsAccordion({
 						{item.answerParts.map((part) => (
 							<p
 								key={`${item.question}-${part.heading ?? part.value}`}
-								className="first:mt-0 mt-4">
+								className="mt-4 first:mt-0">
 								{part.heading ? <strong className="text-foreground">{part.heading} </strong> : null}
 								{part.value}
 							</p>

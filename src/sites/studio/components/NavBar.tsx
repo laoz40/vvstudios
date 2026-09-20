@@ -55,7 +55,7 @@ function BrandLink({ className, logoClassName }: { className?: string; logoClass
 			to={studioSite.routes.home}
 			aria-label={HOME_ARIA_LABEL}
 			className={cn(
-				"inline-flex h-full items-center gap-2 rounded-md no-underline outline-none transition-opacity hover:opacity-90 focus-visible:ring-[3px] focus-visible:ring-ring/50",
+				"inline-flex h-full items-center gap-2 rounded-md no-underline transition-opacity outline-none hover:opacity-90 focus-visible:ring-[3px] focus-visible:ring-ring/50",
 				className
 			)}>
 			<Image
@@ -114,7 +114,7 @@ function NavCta({
 	if (href === BOOK_LINK.href) {
 		return (
 			<AnimatedIconButton
-				className="site-nav-cta gap-1.5 shadow-lg shadow-primary/45 leading-0"
+				className="site-nav-cta gap-1.5 leading-0 shadow-lg shadow-primary/45"
 				renderIcon={(iconRef) => (
 					<ArrowNarrowRightIcon
 						ref={iconRef}

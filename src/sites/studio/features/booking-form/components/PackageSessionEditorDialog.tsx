@@ -10,7 +10,6 @@ import { PackageSessionRecordingSpaceField } from "#studio/features/booking-form
 import { PackageSessionRemotePodcastField } from "#studio/features/booking-form/components/PackageSessionRemotePodcastField";
 import type { BookingFormValues } from "#studio/features/booking-form/lib/booking-form-model";
 import { isAddonAvailableForService } from "#studio/features/booking-form/lib/booking-form-model";
-import { cn } from "#/lib/utils";
 import type { FunctionReturnType } from "convex/server";
 import { api } from "#convex/_generated/api";
 
@@ -137,11 +136,7 @@ export function PackageSessionEditorDialog({
 			<div className="mt-6">
 				<Button
 					type="button"
-					className={cn(
-						"h-12 w-full rounded-lg",
-						"text-base! font-bold! tracking-wider",
-						"shadow-lg shadow-primary/45"
-					)}
+					className="h-12 w-full rounded-lg text-base! font-bold! tracking-wider shadow-lg shadow-primary/45"
 					disabled={isSaveDisabled}
 					onClick={onRequestSaveSession}>
 					{savingSessionKey === sessionKey ? (

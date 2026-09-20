@@ -2,7 +2,6 @@ import { useUser } from "@clerk/clerk-react";
 import { usePaginatedQuery } from "convex/react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "#/components/ui/tabs";
 import { api } from "#convex/_generated/api";
-import { cn } from "#/lib/utils";
 import { DashboardSignOutButton } from "#studio/components/DashboardSignOutButton";
 import { InfiniteScrollSentinel } from "#studio/components/InfiniteScrollSentinel";
 import { DashboardLoadingState } from "#studio/features/auth/components/DashboardLoadingState";
@@ -36,12 +35,7 @@ export function EditorDashboardShell({ dashboardRole }: { dashboardRole: Dashboa
 	}
 
 	return (
-		<main
-			className={cn(
-				"relative flex min-h-screen flex-col gap-5 md:gap-6",
-				"bg-background",
-				"p-3 pb-8 md:p-4 lg:px-6"
-			)}>
+		<main className="relative flex min-h-screen flex-col gap-5 bg-background p-3 pb-8 md:gap-6 md:p-4 lg:px-6">
 			<Tabs
 				defaultValue="edits"
 				className="contents">

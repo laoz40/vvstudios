@@ -10,7 +10,7 @@ export function SessionCustomerSummary({ bookingEmail, bookingName }: SessionCus
 				</div>
 				<div className="grid gap-1">
 					<dt className="text-muted-foreground">Email</dt>
-					<dd className="break-all font-medium">{bookingEmail}</dd>
+					<dd className="font-medium break-all">{bookingEmail}</dd>
 				</div>
 			</dl>
 		</div>

@@ -20,10 +20,8 @@ import {
 
 const setupParallaxTravelPx = 90;
 
-const setupPanelTitleClassName = cn(
-	"font-brand text-2xl leading-none tracking-tight uppercase text-balance",
-	"md:text-8xl"
-);
+const setupPanelTitleClassName =
+	"font-brand text-2xl leading-none tracking-tight uppercase text-balance md:text-8xl";
 
 function SetupShowcasePanel({
 	fadeInAnimation,
@@ -54,7 +52,7 @@ function SetupShowcasePanel({
 		<motion.figure
 			ref={panelRef}
 			{...fadeInAnimation}
-			className="@container group relative w-full px-4 md:px-0">
+			className="group @container relative w-full px-4 md:px-0">
 			<div
 				className="relative w-full overflow-hidden rounded-2xl md:rounded-none"
 				style={
@@ -80,12 +78,7 @@ function SetupShowcasePanel({
 					aria-hidden
 					className="absolute inset-0 bg-linear-to-t from-background/90 via-background/25 to-background/10"
 				/>
-				<div
-					className={cn(
-						"absolute inset-x-4 bottom-2 text-left",
-						"md:inset-x-0 md:bottom-16",
-						"md:px-6 lg:px-12 xl:px-16 2xl:px-24"
-					)}>
+				<div className="absolute inset-x-4 bottom-2 text-left md:inset-x-0 md:bottom-16 md:px-6 lg:px-12 xl:px-16 2xl:px-24">
 					<div className="flex flex-col items-start gap-4">
 						{image.caption ? (
 							<figcaption className={setupPanelTitleClassName}>{image.caption}</figcaption>
