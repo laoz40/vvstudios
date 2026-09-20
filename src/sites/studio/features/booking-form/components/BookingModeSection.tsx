@@ -73,10 +73,7 @@ export function BookingModeSection() {
 									<label
 										htmlFor={`booking-mode-${option.value}`}
 										className={cn(
-											"pressable flex cursor-pointer items-center justify-between gap-3 rounded-lg border bg-input/30",
-											"p-4 shadow-lg shadow-background/25",
-											"peer-focus-visible:border-primary peer-focus-visible:ring-2 peer-focus-visible:ring-ring",
-											"peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-background",
+											"pressable flex cursor-pointer items-center justify-between gap-3 rounded-lg border bg-input/30 p-4 shadow-lg shadow-background/25 peer-focus-visible:border-primary peer-focus-visible:ring-2 peer-focus-visible:ring-ring peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-background",
 											transitionClassName,
 											getCardStateClassName(isSelected),
 											isSelected && "shadow-primary/20"

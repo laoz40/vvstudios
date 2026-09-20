@@ -30,7 +30,6 @@ import {
 import { useRescheduleAvailability } from "#studio/features/booking-form/hooks/useRescheduleAvailability";
 import { tryCatch } from "#/lib/result";
 import { buildNoIndexHead } from "#/lib/seo";
-import { cn } from "#/lib/utils";
 import { getRescheduleUpdateToastMessage } from "#studio/features/booking-form/lib/reschedule-errors";
 
 export const Route = createFileRoute("/_public/_convex/reschedule/$token")({
@@ -205,7 +204,7 @@ function ReschedulePage() {
 			className="max-w-4xl"
 			devPanel={<RescheduleDevScenarioPanel token={token} />}>
 			<div>
-				<h1 className="text-left font-brand text-5xl leading-none uppercase md:text-center md:text-6xl">
+				<h1 className="font-brand text-left text-5xl leading-none uppercase md:text-center md:text-6xl">
 					Reschedule your booking
 				</h1>
 
@@ -235,11 +234,7 @@ function ReschedulePage() {
 				<div className="mt-6">
 					<Button
 						type="button"
-						className={cn(
-							"h-12 w-full rounded-lg",
-							"text-base font-bold! tracking-wider",
-							"shadow-lg shadow-primary/45"
-						)}
+						className="h-12 w-full rounded-lg text-base font-bold! tracking-wider shadow-lg shadow-primary/45"
 						disabled={!hasCompleteSelection || isUpdatingBooking}
 						onClick={handleRequestUpdateBooking}>
 						UPDATE BOOKING

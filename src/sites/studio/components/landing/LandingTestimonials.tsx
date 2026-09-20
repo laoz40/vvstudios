@@ -75,9 +75,7 @@ function TestimonialReviewCard({
 	return (
 		<Card
 			className={cn(
-				"h-full gap-2 py-4",
-				"rounded-lg border-border/80 bg-card/80",
-				"shadow-lg shadow-background/20",
+				"h-full gap-2 rounded-lg border-border/80 bg-card/80 py-4 shadow-lg shadow-background/20",
 				className
 			)}>
 			<CardContent className="px-4">
@@ -85,12 +83,7 @@ function TestimonialReviewCard({
 					“{review.quote}”
 				</blockquote>
 			</CardContent>
-			<CardFooter
-				className={cn(
-					"flex items-center gap-3",
-					"px-4 pt-0",
-					"text-sm font-medium text-muted-foreground md:text-base"
-				)}>
+			<CardFooter className="flex items-center gap-3 px-4 pt-0 text-sm font-medium text-muted-foreground md:text-base">
 				<span>- {review.author}</span>
 				<StarRating />
 			</CardFooter>
@@ -113,10 +106,8 @@ export function LandingTestimonials() {
 			className={cn(marketingPageHorizontalPaddingClassName, "pt-20 pb-16 md:pt-40 md:pb-20")}>
 			<motion.div
 				className={cn(
-					"flex flex-col items-start md:items-center",
-					landingSectionIntroGapClassName,
-					"w-full",
-					"text-left md:text-center"
+					"flex w-full flex-col items-start text-left md:items-center md:text-center",
+					landingSectionIntroGapClassName
 				)}
 				{...fadeInAnimation}>
 				<h2
@@ -125,17 +116,12 @@ export function LandingTestimonials() {
 					{testimonialCopy.title}
 				</h2>
 
-				<div className={cn("flex flex-col", "w-full text-left")}>
+				<div className="flex w-full flex-col text-left">
 					<div className="grid gap-4 md:grid-cols-2 md:items-stretch md:gap-6">
 						<ImageViewerTrigger
 							image={testimonialImage}
 							onSelect={setPreviewImage}
-							className={cn(
-								"relative overflow-hidden",
-								"h-72 w-full md:h-full",
-								"rounded-lg bg-card",
-								"shadow-xl shadow-background/40"
-							)}
+							className="relative h-72 w-full overflow-hidden rounded-lg bg-card shadow-xl shadow-background/40 md:h-full"
 							imageClassName="h-full w-full object-cover"
 						/>
 

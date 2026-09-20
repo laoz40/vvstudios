@@ -104,10 +104,7 @@ export function RecordingSpaceField({
 								/>
 								<div
 									className={cn(
-										"pressable group relative block cursor-pointer overflow-hidden rounded-lg border",
-										"shadow-lg shadow-background/25",
-										"peer-focus-visible:border-primary peer-focus-visible:ring-2 peer-focus-visible:ring-ring",
-										"peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-background",
+										"pressable group relative block cursor-pointer overflow-hidden rounded-lg border shadow-lg shadow-background/25 peer-focus-visible:border-primary peer-focus-visible:ring-2 peer-focus-visible:ring-ring peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-background",
 										transitionClassName,
 										getCardStateClassName(value === option.value),
 										value === option.value && "shadow-primary/20",
@@ -137,7 +134,7 @@ export function RecordingSpaceField({
 											<p className="inline-flex items-center gap-2 text-base font-semibold text-foreground">
 												{option.title}
 												{"capacity" in option ? (
-													<span className="inline-flex items-center gap-0.5 text-muted-foreground font-light">
+													<span className="inline-flex items-center gap-0.5 font-light text-muted-foreground">
 														<Users
 															aria-hidden="true"
 															className="size-4"
@@ -154,10 +151,7 @@ export function RecordingSpaceField({
 											) : (
 												<span
 													className={cn(
-														"inline-flex items-center justify-center rounded-lg border",
-														"px-3 py-0.5",
-														"text-xs font-medium tracking-wider",
-														"shadow-md transition-all duration-200 ease-in",
+														"inline-flex items-center justify-center rounded-lg border px-3 py-0.5 text-xs font-medium tracking-wider shadow-md transition-all duration-200 ease-in",
 														getPillStateClassName(false),
 														selectionIndicatorVisibility === "mobile" && "md:hidden"
 													)}>

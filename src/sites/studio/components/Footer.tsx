@@ -31,15 +31,13 @@ export function Footer() {
 	return (
 		<footer
 			className={cn(
-				"relative z-20",
-				marketingPageHorizontalPaddingClassName,
-				"py-10 sm:py-12",
-				"bg-neutral-950"
+				"relative z-20 bg-neutral-950 py-10 sm:py-12",
+				marketingPageHorizontalPaddingClassName
 			)}>
 			<div className="flex w-full flex-col gap-6">
 				<div className="flex flex-col gap-6 text-left">
 					<div className="space-y-2">
-						<p className="text-foreground text-xl font-black tracking-wide">
+						<p className="text-xl font-black tracking-wide text-foreground">
 							{footerContent.studioName}
 						</p>
 						<p className="max-w-md text-sm leading-relaxed text-muted-foreground">

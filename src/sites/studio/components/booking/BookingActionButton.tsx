@@ -15,11 +15,7 @@ type BookingActionButtonProps = {
 	icon: "arrow" | "home" | "phone";
 };
 
-const bookingActionButtonClassName = cn(
-	"h-auto w-full sm:w-auto",
-	"px-8 py-3",
-	"text-base font-medium"
-);
+const bookingActionButtonClassName = "h-auto w-full sm:w-auto px-8 py-3 text-base font-medium";
 
 function renderBookingActionIcon(
 	icon: BookingActionButtonProps["icon"],

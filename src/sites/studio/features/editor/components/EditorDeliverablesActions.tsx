@@ -91,7 +91,7 @@ export function EditorDeliverablesActions({
 						{canManageDeliverables ? (
 							<>
 								<AnimatedDropdownMenuItem
-									className="hover:text-primary hover:[&_svg]:text-primary focus:text-primary focus:[&_svg]:text-primary"
+									className="hover:text-primary focus:text-primary hover:[&_svg]:text-primary focus:[&_svg]:text-primary"
 									disabled={session.editStatus === "editing"}
 									onSelect={() => void handleStatusChange("editing")}
 									renderIcon={(iconRef) => (

@@ -119,10 +119,8 @@ export function ContactCard() {
 				/>
 				<div
 					className={cn(
-						// Contact card content overlay
-						"contact-card__content",
-						"absolute inset-x-0 bottom-0",
-						"px-6 py-6 sm:px-8 sm:py-8"
+						"absolute inset-x-0 bottom-0 px-6 py-6 sm:px-8 sm:py-8", // Contact card content overlay
+						"contact-card__content"
 					)}>
 					<h1 className="font-brand text-4xl tracking-tight uppercase md:text-6xl">
 						{contactCardCopy.title}
@@ -142,10 +140,8 @@ export function ContactCard() {
 									<a
 										href={item.href}
 										className={cn(
-											// Contact link underline animation
-											"contact-link",
-											"block wrap-break-word",
-											"text-base font-medium md:text-lg"
+											"block text-base font-medium wrap-break-word md:text-lg", // Contact link underline animation
+											"contact-link"
 										)}>
 										{item.value}
 									</a>

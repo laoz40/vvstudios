@@ -20,7 +20,7 @@ export function PackageSessionRemotePodcastField({
 		<label
 			htmlFor={id}
 			className={cn(
-				"flex cursor-pointer items-center justify-between gap-3 rounded-lg py-4 px-1 transition-colors",
+				"flex cursor-pointer items-center justify-between gap-3 rounded-lg px-1 py-4 transition-colors",
 				disabled && "cursor-not-allowed opacity-50"
 			)}>
 			<span className="grid gap-1">

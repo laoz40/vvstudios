@@ -12,7 +12,7 @@ export function RescheduleConfirmation({ booking }: RescheduleConfirmationProps)
 	return (
 		<section className="flex flex-col gap-8">
 			<div className="space-y-4">
-				<h1 className="font-brand text-2xl font-semibold leading-tight sm:text-3xl md:text-5xl uppercase">
+				<h1 className="font-brand text-2xl leading-tight font-semibold uppercase sm:text-3xl md:text-5xl">
 					<CheckedIcon
 						className="mr-3 inline size-7 -translate-y-1 text-primary sm:size-8 md:size-9"
 						aria-hidden="true"

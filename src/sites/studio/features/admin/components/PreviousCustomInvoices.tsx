@@ -1,7 +1,6 @@
 import { LoaderCircle } from "lucide-react";
 import type { Id } from "#convex/_generated/dataModel";
 import { Button } from "#/components/ui/button";
-import { cn } from "#/lib/utils";
 
 export type PreviousCustomInvoiceItem = {
 	id: Id<"customInvoices">;
@@ -29,10 +28,7 @@ export function PreviousCustomInvoices({
 				return (
 					<li
 						key={invoice.id}
-						className={cn(
-							"flex flex-col gap-2 rounded-lg border bg-muted/40 p-3 text-sm",
-							"sm:flex-row sm:items-center sm:justify-between"
-						)}>
+						className="flex flex-col gap-2 rounded-lg border bg-muted/40 p-3 text-sm sm:flex-row sm:items-center sm:justify-between">
 						<div className="grid gap-1">
 							<span className="font-medium">{invoice.invoiceNumber}</span>
 							<span className="text-muted-foreground">

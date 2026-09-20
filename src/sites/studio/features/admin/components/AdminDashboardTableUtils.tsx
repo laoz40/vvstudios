@@ -58,7 +58,7 @@ export function SortHeaderButton({
 	return (
 		<Button
 			variant="ghost"
-			className={cn("px-0!", "text-foreground")}
+			className="px-0! text-foreground"
 			disabled={isLoading}
 			onClick={onClick}>
 			<span>{label}</span>
@@ -97,13 +97,7 @@ export function CopyableText({ value, label, children, onTextClick }: CopyableTe
 				size="icon-sm"
 				variant="ghost"
 				aria-label={`Copy ${label}`}
-				className={cn(
-					"inline-flex size-5 shrink-0 items-center justify-center",
-					"rounded-sm",
-					"text-muted-foreground",
-					"hover:text-foreground",
-					"focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-				)}
+				className="inline-flex size-5 shrink-0 items-center justify-center rounded-sm text-muted-foreground hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
 				renderIcon={(iconRef) => (
 					<CopyIcon
 						ref={iconRef}

@@ -47,7 +47,7 @@ function BookingSummaryTotal({
 					<p>Total</p>
 					<p>{formatBookingPriceWithCents(packageAmounts.totalDueAmount)}</p>
 				</div>
-				<p className="pt-1 text-sm italic leading-snug text-muted-foreground">
+				<p className="pt-1 text-sm leading-snug text-muted-foreground italic">
 					You can schedule session dates after payment.
 				</p>
 			</>
@@ -56,7 +56,7 @@ function BookingSummaryTotal({
 
 	if (isWaitingForPackage) {
 		return (
-			<p className="text-sm italic leading-snug text-muted-foreground">
+			<p className="text-sm leading-snug text-muted-foreground italic">
 				Select a package size to see your package total.
 			</p>
 		);

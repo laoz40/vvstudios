@@ -81,19 +81,11 @@ export function LandingHero() {
 					</video>
 				</motion.div>
 
-				<div
-					className={cn(
-						"absolute inset-0 -z-10",
-						"bg-linear-to-br from-background/60 via-background/40 to-background/80"
-					)}
-				/>
+				<div className="absolute inset-0 -z-10 bg-linear-to-br from-background/60 via-background/40 to-background/80" />
 
 				<div className="absolute inset-0 z-10">
 					<motion.div
-						className={cn(
-							"absolute inset-x-4 bottom-6 sm:bottom-12 md:right-auto md:bottom-32 md:left-10 lg:left-12 xl:left-25 xl:bottom-60",
-							"max-w-xl md:max-w-3xl will-change-transform"
-						)}
+						className="absolute inset-x-4 bottom-6 max-w-xl will-change-transform sm:bottom-12 md:right-auto md:bottom-32 md:left-10 md:max-w-3xl lg:left-12 xl:bottom-60 xl:left-25"
 						style={{
 							filter: prefersReducedMotion || !isDesktopViewport ? "blur(0px)" : heroTextBlur,
 							opacity: prefersReducedMotion ? 1 : heroTextOpacity,
@@ -102,7 +94,7 @@ export function LandingHero() {
 						<div className="landing-hero-reveal flex flex-col">
 							<h1
 								id="landing-hero-title"
-								className="font-brand text-[2.9rem] leading-11 tracking-tight uppercase text-balance md:text-8xl md:leading-none">
+								className="font-brand text-[2.9rem] leading-11 tracking-tight text-balance uppercase md:text-8xl md:leading-none">
 								<span className="block">
 									{heroCopy.titleLineOne}
 									<span className="hidden md:inline"> in</span>
@@ -112,23 +104,13 @@ export function LandingHero() {
 									{heroCopy.titleLineTwo}
 								</span>
 							</h1>
-							<p
-								className={cn(
-									"mt-2",
-									"text-muted-foreground text-sm leading-relaxed text-pretty md:text-base"
-								)}>
+							<p className="mt-2 text-sm leading-relaxed text-pretty text-muted-foreground md:text-base">
 								{heroCopy.lead}
 							</p>
 
 							<div className="mt-6 flex w-full flex-wrap gap-3">
 								<AnimatedIconButton
-									className={cn(
-										"flex-1 gap-1.5 md:flex-none",
-										"h-auto",
-										"px-6! py-3",
-										"text-base font-medium",
-										"shadow-lg shadow-primary/45"
-									)}
+									className="h-auto flex-1 gap-1.5 px-6! py-3 text-base font-medium shadow-lg shadow-primary/45 md:flex-none"
 									renderIcon={(iconRef) => (
 										<ArrowNarrowRightIcon
 											ref={iconRef}
@@ -142,14 +124,7 @@ export function LandingHero() {
 
 								<FreeTourModalButton
 									label={heroCopy.tourCta}
-									className={cn(
-										"flex-1 md:flex-none",
-										"h-auto",
-										"px-8 py-3",
-										"text-base font-medium!",
-										"border-0 bg-card/50! hover:bg-accent/80!",
-										"shadow-md shadow-background/25"
-									)}
+									className="h-auto flex-1 border-0 bg-card/50! px-8 py-3 text-base font-medium! shadow-md shadow-background/25 hover:bg-accent/80! md:flex-none"
 								/>
 							</div>
 							{/*
@@ -166,11 +141,7 @@ export function LandingHero() {
 								<Button
 									asChild
 									variant="link"
-									className={cn(
-										"h-auto",
-										"px-0 py-0",
-										"text-left whitespace-normal text-muted-foreground hover:text-foreground"
-									)}>
+									className="h-auto px-0 py-0 text-left whitespace-normal text-muted-foreground hover:text-foreground">
 									<a href={STUDIO_ADDRESS_URL}>{heroCopy.addressLabel}</a>
 								</Button>
 							</div>
@@ -179,12 +150,8 @@ export function LandingHero() {
 
 					<motion.div
 						className={cn(
-							// Hero reveal animation
-							"landing-hero-reveal landing-hero-reveal--delayed",
-							"absolute right-4 bottom-8 left-auto",
-							"hidden items-center gap-2 md:inline-flex",
-							"py-2",
-							"text-sm text-muted-foreground md:text-base"
+							"absolute right-4 bottom-8 left-auto hidden items-center gap-2 py-2 text-sm text-muted-foreground md:inline-flex md:text-base", // Hero reveal animation
+							"landing-hero-reveal landing-hero-reveal--delayed"
 						)}
 						style={{
 							filter: prefersReducedMotion ? "blur(0px)" : heroTextBlur,

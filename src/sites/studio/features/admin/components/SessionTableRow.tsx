@@ -91,7 +91,7 @@ function SessionCustomerCell({ rowId, session }: { rowId: string; session: Sessi
 function SessionContactCell({ rowId, session }: { rowId: string; session: SessionRecord }) {
 	return (
 		<div className="flex flex-col gap-1 whitespace-normal">
-			<p className="break-all font-medium">
+			<p className="font-medium break-all">
 				<PrivacySensitiveText
 					rowId={rowId}
 					value={session.email}
@@ -164,7 +164,7 @@ function SessionNotesCell({
 
 	if (!canToggleNotes) {
 		return (
-			<p className="whitespace-normal text-sm text-muted-foreground">
+			<p className="text-sm whitespace-normal text-muted-foreground">
 				{visibleNotes ? <span className="font-medium text-foreground">{notesLabel}: </span> : null}
 				{notesText}
 			</p>
@@ -180,7 +180,7 @@ function SessionNotesCell({
 	return (
 		<button
 			type="button"
-			className="w-full whitespace-normal text-left text-sm text-muted-foreground"
+			className="w-full text-left text-sm whitespace-normal text-muted-foreground"
 			onClick={toggleNotesView}>
 			{visibleNotes ? <span className="font-medium text-foreground">{notesLabel}: </span> : null}
 			{notesText}

@@ -179,9 +179,7 @@ function PricingAddonFeatureSection({
 			<ImageViewerTrigger
 				image={image}
 				className={cn(
-					"relative h-80 w-full overflow-hidden md:h-full",
-					"rounded-lg bg-card",
-					"shadow-xl shadow-background/40",
+					"relative h-80 w-full overflow-hidden rounded-lg bg-card shadow-xl shadow-background/40 md:h-full",
 					imageOnLeft ? "md:order-1" : "md:order-2"
 				)}
 				imageClassName="absolute inset-0 size-full object-cover object-center"
@@ -193,7 +191,7 @@ function PricingAddonFeatureSection({
 					"flex w-full flex-col gap-8 text-left md:gap-12",
 					imageOnLeft ? "md:order-2" : "md:order-1"
 				)}>
-				<h2 className="ml-0 font-brand text-3xl leading-none uppercase md:ml-16 md:text-5xl">
+				<h2 className="font-brand ml-0 text-3xl leading-none uppercase md:ml-16 md:text-5xl">
 					{title}
 				</h2>
 
@@ -214,7 +212,7 @@ function PricingAddonFeatureSection({
 								<div className="flex min-w-0 flex-1 flex-col gap-1">
 									<div className="flex items-start justify-between gap-2 md:justify-start">
 										<h3 className="text-base font-medium">{addOn.label}</h3>
-										<p className="text-primary text-base font-medium">{addOn.price}</p>
+										<p className="text-base font-medium text-primary">{addOn.price}</p>
 									</div>
 									<p className="text-sm leading-relaxed text-muted-foreground sm:text-base">
 										{addOn.description}
@@ -257,12 +255,7 @@ export function PricingSection({
 			<motion.div
 				className="flex w-full flex-col items-center gap-8 md:gap-12"
 				{...fadeInAnimation}>
-				<div
-					className={cn(
-						"flex w-full flex-col items-start md:items-center",
-						"gap-4 pb-2 md:gap-5",
-						"text-left md:text-center"
-					)}>
+				<div className="flex w-full flex-col items-start gap-4 pb-2 text-left md:items-center md:gap-5 md:text-center">
 					<HeadingTag className={landingSectionHeadingClassName}>
 						{pricingPageCopy.title}
 					</HeadingTag>
@@ -274,20 +267,11 @@ export function PricingSection({
 						<article
 							key={session.label}
 							className={cn(
-								"relative flex h-full flex-col rounded-lg border bg-card",
-								"p-4 sm:px-5 sm:py-6",
-								"shadow-xl",
+								"relative flex h-full flex-col rounded-lg border bg-card p-4 shadow-xl sm:px-5 sm:py-6",
 								session.isMostPopular ? "border-primary" : "border-border"
 							)}>
 							{session.isMostPopular ? (
-								<span
-									className={cn(
-										"absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2",
-										"inline-flex items-center rounded-md",
-										"px-3 py-1",
-										"text-xs font-bold tracking-wide whitespace-nowrap uppercase",
-										"bg-primary text-primary-foreground"
-									)}>
+								<span className="absolute top-0 left-1/2 inline-flex -translate-x-1/2 -translate-y-1/2 items-center rounded-md bg-primary px-3 py-1 text-xs font-bold tracking-wide whitespace-nowrap text-primary-foreground uppercase">
 									Most popular
 								</span>
 							) : null}
@@ -303,10 +287,10 @@ export function PricingSection({
 												<span className="line-through">{session.baseRatePrice}</span>
 												<span> standard rate</span>
 											</p>
-											<p className="text-primary font-semibold">{session.savings}</p>
+											<p className="font-semibold text-primary">{session.savings}</p>
 										</div>
 									) : (
-										<p className="text-muted-foreground text-sm">Standard rate</p>
+										<p className="text-sm text-muted-foreground">Standard rate</p>
 									)}
 								</div>
 
@@ -316,11 +300,7 @@ export function PricingSection({
 
 								<div className="mt-auto pt-6 sm:pt-8">
 									<AnimatedIconButton
-										className={cn(
-											"w-full justify-center gap-1.5 py-5",
-											"text-base font-medium",
-											"shadow-lg shadow-primary/45"
-										)}
+										className="w-full justify-center gap-1.5 py-5 text-base font-medium shadow-lg shadow-primary/45"
 										renderIcon={(iconRef) => (
 											<ArrowNarrowRightIcon
 												ref={iconRef}

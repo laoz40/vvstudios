@@ -5,7 +5,6 @@ import { BookingOutcomeActions } from "#studio/components/booking/BookingOutcome
 import { formatBookingInvoiceNumber } from "#studio/features/booking-invoice/lib/build-booking-invoice-data";
 import { api } from "#convex/_generated/api";
 import { buildNoIndexHead } from "#/lib/seo";
-import { cn } from "#/lib/utils";
 
 const bookingExpiredSearchSchema = z.object({ session_id: z.string().min(1) });
 
@@ -34,14 +33,10 @@ function BookingExpiredPage() {
 		: null;
 
 	return (
-		<main
-			className={cn(
-				"mx-auto flex min-h-screen w-full max-w-3xl flex-1 flex-col justify-center",
-				"gap-6 px-4 py-8 sm:gap-8 sm:px-6 sm:py-10"
-			)}>
+		<main className="mx-auto flex min-h-screen w-full max-w-3xl flex-1 flex-col justify-center gap-6 px-4 py-8 sm:gap-8 sm:px-6 sm:py-10">
 			<section className="flex flex-col gap-8">
 				<div className="space-y-4">
-					<h1 className="text-2xl font-semibold leading-tight sm:text-3xl md:text-4xl">
+					<h1 className="text-2xl leading-tight font-semibold sm:text-3xl md:text-4xl">
 						Your payment session expired
 					</h1>
 					<p className="max-w-2xl text-base text-muted-foreground">

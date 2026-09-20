@@ -35,7 +35,7 @@ function ChangedFieldList({ fields, title, description }: ChangedFieldListProps)
 
 	return (
 		<section className="grid gap-2 rounded-lg border border-destructive/30 bg-destructive/5 p-3">
-			<h3 className="font-bold text-sm">{title}</h3>
+			<h3 className="text-sm font-bold">{title}</h3>
 			<ul className="list-disc space-y-1 pl-5 text-sm">
 				{fields.map((field) => (
 					<li
@@ -45,7 +45,7 @@ function ChangedFieldList({ fields, title, description }: ChangedFieldListProps)
 					</li>
 				))}
 			</ul>
-			{description ? <p className="text-foreground text-sm">{description}</p> : null}
+			{description ? <p className="text-sm text-foreground">{description}</p> : null}
 		</section>
 	);
 }

@@ -90,9 +90,7 @@ export function PackageSessionListItem({
 		<div
 			data-slot="package-session-item"
 			className={cn(
-				"rounded-xl border bg-surface-subtle px-4 last:border-b sm:px-6",
-				"text-card-foreground",
-				"shadow-lg transition-colors duration-500",
+				"rounded-xl border bg-surface-subtle px-4 text-card-foreground shadow-lg transition-colors duration-500 last:border-b sm:px-6",
 				session.status === "completed" && "border-muted bg-background opacity-70 shadow-none!",
 				isHighlighted && "border-primary"
 			)}>
@@ -111,7 +109,7 @@ export function PackageSessionListItem({
 				</span>
 				<span className="ml-auto flex shrink-0 items-center justify-end gap-2">
 					{session.status === "upcoming" && isSessionLocked ? (
-						<span className="hidden whitespace-nowrap text-right text-xs text-muted-foreground md:inline">
+						<span className="hidden text-right text-xs whitespace-nowrap text-muted-foreground md:inline">
 							This session can no longer be edited.
 						</span>
 					) : null}
@@ -175,7 +173,7 @@ function PackageSessionBookingDetails({
 }) {
 	if (!booking) {
 		return (
-			<span className="block select-text! text-left text-base text-muted-foreground transition-colors duration-500">
+			<span className="block text-left text-base text-muted-foreground transition-colors duration-500 select-text!">
 				<span className="md:hidden">Set your session date</span>
 				<span className="hidden md:inline">Pick a date to confirm your session</span>
 			</span>
@@ -183,7 +181,7 @@ function PackageSessionBookingDetails({
 	}
 
 	return (
-		<span className="block select-text! text-left text-base text-muted-foreground transition-colors duration-500">
+		<span className="block text-left text-base text-muted-foreground transition-colors duration-500 select-text!">
 			<span className="font-semibold text-foreground">
 				<span className="md:hidden">{formatBookingDateCompact(booking.date)}</span>
 				<span className="hidden md:inline">
@@ -244,11 +242,7 @@ function PackageSessionActions({
 							role="button"
 							tabIndex={0}
 							aria-label={`Open session ${sessionNumber} actions`}
-							className={cn(
-								"inline-flex size-9 items-center justify-center rounded-lg border md:hidden",
-								"border-foreground/15 bg-background/30 text-foreground/85 shadow-md",
-								"hover:text-primary focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring"
-							)}
+							className="inline-flex size-9 items-center justify-center rounded-lg border border-foreground/15 bg-background/30 text-foreground/85 shadow-md hover:text-primary focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-hidden md:hidden"
 							onClick={(event) => {
 								event.stopPropagation();
 							}}
@@ -286,9 +280,8 @@ function PackageSessionActions({
 					role="button"
 					tabIndex={0}
 					className={cn(
-						"peer/unschedule hidden min-h-8 min-w-16 items-center justify-center px-3 py-1 md:inline-flex",
-						selectablePillButtonClassName,
-						"outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
+						"peer/unschedule hidden min-h-8 min-w-16 items-center justify-center px-3 py-1 outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 md:inline-flex",
+						selectablePillButtonClassName
 					)}
 					onClick={(event) => {
 						event.preventDefault();
@@ -311,9 +304,8 @@ function PackageSessionActions({
 				role="button"
 				tabIndex={0}
 				className={cn(
+					"min-h-8 min-w-16 cursor-pointer items-center justify-center px-3 py-1 outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50",
 					booking ? "hidden md:inline-flex" : "inline-flex",
-					"min-h-8 min-w-16 cursor-pointer items-center justify-center px-3 py-1",
-					"outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50",
 					!booking && !isActive
 						? "rounded-lg border border-primary bg-primary text-sm font-medium text-primary-foreground shadow-md transition-all duration-200 ease-in hover:darker-bg-primary"
 						: cn(selectablePillButtonClassName, "peer-hover/unschedule:text-foreground/85")

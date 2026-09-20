@@ -85,12 +85,12 @@ export function EditorSessionTableRow({
 				<SessionServiceCell session={session} />
 			</TableCell>
 			<TableCell>
-				<p className="whitespace-normal text-sm text-muted-foreground">
+				<p className="text-sm whitespace-normal text-muted-foreground">
 					{session.adminNotes?.trim() || "-"}
 				</p>
 			</TableCell>
 			<TableCell>
-				<p className="whitespace-normal text-sm text-muted-foreground">
+				<p className="text-sm whitespace-normal text-muted-foreground">
 					{session.editorNotes?.trim() || "-"}
 				</p>
 			</TableCell>
