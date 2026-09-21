@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import type { BookingFormApi } from "#studio/features/booking-form/lib/booking-form-context";
 import {
 	isPackageUnavailableAddon,
@@ -18,22 +18,21 @@ export function useSavedBookingInfo({
 	formApi,
 	onReuseSavedBookingInfo
 }: UseSavedBookingInfoParams) {
-	const [savedBookingInfo, setSavedBookingInfo] = useState<SavedBookingInfo | null>(null);
-	const [shouldSaveBookingInfo, setShouldSaveBookingInfo] = useState(false);
-
-	// Load saved booking info from local storage.
-	useEffect(() => {
+	const [savedBookingInfo, setSavedBookingInfo] = useState<SavedBookingInfo | null>(() => {
 		const nextSavedBookingInfo = getStoredSavedBookingInfo();
 
 		if (!nextSavedBookingInfo) {
 			removeStoredSavedBookingInfo();
 
-			return;
+			return null;
 		}
 
-		setSavedBookingInfo(nextSavedBookingInfo);
-		setShouldSaveBookingInfo(true);
-	}, []);
+		return nextSavedBookingInfo;
+	});
+
+	const [shouldSaveBookingInfo, setShouldSaveBookingInfo] = useState(
+		() => getStoredSavedBookingInfo() !== null
+	);
 
 	const persistBookingInfoFromForm = useCallback(
 		(parsedValue: BookingFormValues) => {
