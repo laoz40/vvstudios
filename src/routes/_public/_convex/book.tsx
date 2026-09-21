@@ -20,7 +20,7 @@ import { BookingModalHost } from "#studio/features/booking-form/components/Booki
 import { BookingSavedInfoBanner } from "#studio/features/booking-form/components/BookingSavedInfoBanner";
 import { BookingSummary } from "#studio/features/booking-form/components/BookingSummary";
 import {
-	bookingFormContext,
+	BookingFormContext,
 	type BookingFormApi
 } from "#studio/features/booking-form/lib/booking-form-context";
 import {
@@ -121,7 +121,7 @@ function BookingPage() {
 				/>
 			) : null}
 
-			<bookingFormContext.Provider value={formApi}>
+			<BookingFormContext value={formApi}>
 				<form
 					ref={formRef}
 					onSubmit={(event) => {
@@ -196,7 +196,7 @@ function BookingPage() {
 						</Button>
 					</div>
 				</form>
-			</bookingFormContext.Provider>
+			</BookingFormContext>
 			<BookingModalHost
 				isSubmitting={bookingSubmit.isSubmitting}
 				onPaymentClose={handlePaymentModalClose}

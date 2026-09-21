@@ -47,9 +47,7 @@ export function AdminPrivacyModeProvider({ children }: { children: ReactNode }) 
 		[isPrivacyModeEnabled, isRowRevealed, setPrivacyModeEnabled, toggleRowPrivacy]
 	);
 
-	return (
-		<AdminPrivacyModeContext.Provider value={value}>{children}</AdminPrivacyModeContext.Provider>
-	);
+	return <AdminPrivacyModeContext value={value}>{children}</AdminPrivacyModeContext>;
 }
 
 export function useAdminPrivacyMode() {

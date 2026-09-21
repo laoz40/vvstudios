@@ -22,13 +22,13 @@ export type BookingFormApi = ReactFormExtendedApi<
 	unknown
 >;
 
-export const bookingFormContext = createContext<BookingFormApi | null>(null);
+export const BookingFormContext = createContext<BookingFormApi | null>(null);
 
 export function useBookingFormContext() {
-	const formApi = useContext(bookingFormContext);
+	const formApi = useContext(BookingFormContext);
 
 	if (!formApi) {
-		throw new Error("useBookingFormContext must be used within bookingFormContext.Provider");
+		throw new Error("useBookingFormContext must be used within BookingFormContext");
 	}
 
 	return formApi;
