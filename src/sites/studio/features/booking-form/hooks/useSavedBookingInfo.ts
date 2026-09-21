@@ -4,6 +4,7 @@ import {
 	isPackageUnavailableAddon,
 	type BookingFormValues
 } from "#studio/features/booking-form/lib/booking-form-model";
+import { syncAddonsForService } from "#studio/features/booking-form/lib/sync-addons-for-service";
 import {
 	getStoredSavedBookingInfo,
 	removeStoredSavedBookingInfo,
@@ -67,6 +68,10 @@ export function useSavedBookingInfo({
 			savedBookingInfo.bookingMode === "package"
 				? savedBookingInfo.addons.filter((addon) => !isPackageUnavailableAddon(addon))
 				: [...savedBookingInfo.addons]
+		);
+		syncAddonsForService(
+			formApi,
+			savedBookingInfo.bookingMode === "package" ? "" : savedBookingInfo.service
 		);
 		formApi.setFieldValue("essentialEditQuantity", savedBookingInfo.essentialEditQuantity);
 		formApi.setFieldValue("completeEditQuantity", savedBookingInfo.completeEditQuantity);

@@ -18,6 +18,7 @@ import {
 	DURATION_PRICES,
 	formatBookingPrice
 } from "#studio/features/booking-form/lib/booking-pricing";
+import { syncAddonsForService } from "#studio/features/booking-form/lib/sync-addons-for-service";
 import { toOptionId } from "#studio/lib/bookingdatetime";
 import { cn } from "#/lib/utils";
 
@@ -152,6 +153,7 @@ export function BookingRecordingSpaceDurationSection() {
 						onChange={(value) => {
 							field.handleChange(value);
 							field.handleBlur();
+							syncAddonsForService(formApi, value);
 						}}>
 						<FieldDescription className="mt-2! text-pretty italic">
 							{isPackageBooking

@@ -1,4 +1,3 @@
-import { useEffect } from "react";
 import { useSelector } from "@tanstack/react-store";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import {
@@ -118,23 +117,6 @@ export function BookingAddonsSection() {
 	);
 
 	const FormField = formApi.Field;
-
-	// Remove add-ons that become unavailable when the recording space changes.
-	useEffect(() => {
-		const availableAddons = formValues.addons.filter((addon) =>
-			isAddonAvailableForService(formValues.service, addon)
-		);
-
-		if (availableAddons.length === formValues.addons.length) {
-			return;
-		}
-
-		formApi.setFieldValue("addons", availableAddons);
-
-		forEachClearedAddonQuantityField(availableAddons, (fieldName, value) => {
-			formApi.setFieldValue(fieldName, value);
-		});
-	}, [formApi, formValues.addons, formValues.service]);
 
 	return (
 		<FormField name="addons">

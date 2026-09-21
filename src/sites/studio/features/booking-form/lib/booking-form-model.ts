@@ -177,6 +177,13 @@ export function isAddonAvailableForService(service: BookingService | "", addon: 
 	return addon === "4K UHD Recording" || addon === "Essential Edit";
 }
 
+export function filterAddonsAvailableForService(
+	service: BookingService | "",
+	addons: readonly BookingAddon[]
+) {
+	return addons.filter((addon) => isAddonAvailableForService(service, addon));
+}
+
 export function getPackageSessionAddons(
 	packageAddons: readonly BookingAddon[],
 	hasRemotePodcast: boolean
