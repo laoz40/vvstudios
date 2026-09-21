@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { LoaderCircleIcon } from "lucide-react";
 import { useMutation } from "convex/react";
 import { toast } from "sonner";
@@ -26,15 +26,12 @@ type EditorNotesDialogProps = {
 	open: boolean;
 };
 
-export function EditorNotesDialog({ editor, onOpenChange, open }: EditorNotesDialogProps) {
+type EditorNotesDialogFormProps = { editor: ManagedEditor; onOpenChange: (open: boolean) => void };
+
+function EditorNotesDialogForm({ editor, onOpenChange }: EditorNotesDialogFormProps) {
 	const updateEmployeeNotes = useMutation(api.employees.updateEmployeeNotes);
 	const [notes, setNotes] = useState(editor.notes ?? "");
 	const [isSaving, setIsSaving] = useState(false);
-
-	// Reset the draft whenever an editor's notes dialog opens.
-	useEffect(() => {
-		if (open) setNotes(editor.notes ?? "");
-	}, [editor.notes, editor.tokenIdentifier, open]);
 
 	async function handleSave() {
 		setIsSaving(true);
@@ -56,44 +53,58 @@ export function EditorNotesDialog({ editor, onOpenChange, open }: EditorNotesDia
 	}
 
 	return (
+		<>
+			<DialogHeader>
+				<DialogTitle>Edit notes</DialogTitle>
+			</DialogHeader>
+			<Field>
+				<FieldLabel htmlFor="editor-notes">
+					Notes for {editor.displayName || editor.email}.
+				</FieldLabel>
+				<Textarea
+					id="editor-notes"
+					value={notes}
+					disabled={isSaving}
+					onChange={(event) => setNotes(event.target.value)}
+				/>
+			</Field>
+			<DialogFooter>
+				<DialogClose asChild>
+					<Button
+						variant="outline"
+						disabled={isSaving}>
+						Cancel
+					</Button>
+				</DialogClose>
+				<Button
+					disabled={isSaving}
+					onClick={() => void handleSave()}>
+					{isSaving ? (
+						<LoaderCircleIcon
+							data-icon="inline-start"
+							className="animate-spin"
+						/>
+					) : null}
+					{isSaving ? "Saving" : "Save notes"}
+				</Button>
+			</DialogFooter>
+		</>
+	);
+}
+
+export function EditorNotesDialog({ editor, onOpenChange, open }: EditorNotesDialogProps) {
+	return (
 		<Dialog
 			open={open}
 			onOpenChange={onOpenChange}>
 			<DialogContent className="sm:max-w-lg">
-				<DialogHeader>
-					<DialogTitle>Edit notes</DialogTitle>
-				</DialogHeader>
-				<Field>
-					<FieldLabel htmlFor="editor-notes">
-						Notes for {editor.displayName || editor.email}.
-					</FieldLabel>
-					<Textarea
-						id="editor-notes"
-						value={notes}
-						disabled={isSaving}
-						onChange={(event) => setNotes(event.target.value)}
+				{open ? (
+					<EditorNotesDialogForm
+						key={editor.tokenIdentifier}
+						editor={editor}
+						onOpenChange={onOpenChange}
 					/>
-				</Field>
-				<DialogFooter>
-					<DialogClose asChild>
-						<Button
-							variant="outline"
-							disabled={isSaving}>
-							Cancel
-						</Button>
-					</DialogClose>
-					<Button
-						disabled={isSaving}
-						onClick={() => void handleSave()}>
-						{isSaving ? (
-							<LoaderCircleIcon
-								data-icon="inline-start"
-								className="animate-spin"
-							/>
-						) : null}
-						{isSaving ? "Saving" : "Save notes"}
-					</Button>
-				</DialogFooter>
+				) : null}
 			</DialogContent>
 		</Dialog>
 	);
