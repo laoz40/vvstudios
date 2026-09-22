@@ -2,8 +2,8 @@ import { useReducedMotion } from "motion/react";
 
 export function useFadeInAnimation(enabled = false) {
 	const prefersReducedMotion = useReducedMotion();
-	const shouldFadeIn = enabled && prefersReducedMotion === false;
-	const shouldShowImmediately = enabled && prefersReducedMotion !== false;
+	const shouldShowImmediately = enabled && prefersReducedMotion === true;
+	const shouldFadeIn = enabled && !shouldShowImmediately;
 
 	if (shouldShowImmediately) {
 		return {
