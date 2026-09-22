@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { LoaderCircle } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "#/components/ui/button";
@@ -29,27 +29,27 @@ type SessionNotesDialogProps = {
 	title: string;
 };
 
-export function SessionNotesDialog({
+type SessionNotesDialogFormProps = Omit<SessionNotesDialogProps, "open"> & {
+	isSaving: boolean;
+	setIsSaving: (isSaving: boolean) => void;
+};
+
+function SessionNotesDialogForm({
 	bookingId,
 	description,
 	fieldIdPrefix,
 	fieldLabel,
+	isSaving,
 	onOpenChange,
 	onSave,
-	open,
+	setIsSaving,
 	saveErrorMessage,
 	saveSuccessMessage,
 	savedNotes,
 	title
-}: SessionNotesDialogProps) {
+}: SessionNotesDialogFormProps) {
 	const [notes, setNotes] = useState(savedNotes ?? "");
-	const [isSaving, setIsSaving] = useState(false);
 	const fieldId = `${fieldIdPrefix}-${bookingId}`;
-
-	// Reset the unsaved notes to the latest stored value whenever this dialog opens.
-	useEffect(() => {
-		if (open) setNotes(savedNotes ?? "");
-	}, [savedNotes, open]);
 
 	async function handleSave() {
 		setIsSaving(true);
@@ -67,47 +67,85 @@ export function SessionNotesDialog({
 	}
 
 	return (
+		<>
+			<DialogHeader>
+				<DialogTitle>{title}</DialogTitle>
+				<DialogDescription>{description}</DialogDescription>
+			</DialogHeader>
+			<Field>
+				<FieldLabel htmlFor={fieldId}>{fieldLabel}</FieldLabel>
+				<Textarea
+					id={fieldId}
+					value={notes}
+					disabled={isSaving}
+					placeholder="Write anything..."
+					onChange={(event) => setNotes(event.target.value)}
+				/>
+			</Field>
+			<DialogFooter>
+				<Button
+					type="button"
+					variant="outline"
+					disabled={isSaving}
+					onClick={() => onOpenChange(false)}>
+					Cancel
+				</Button>
+				<Button
+					type="button"
+					disabled={isSaving}
+					onClick={() => void handleSave()}>
+					{isSaving ? (
+						<LoaderCircle
+							data-icon="inline-start"
+							className="animate-spin"
+						/>
+					) : null}
+					{isSaving ? "Saving" : "Save notes"}
+				</Button>
+			</DialogFooter>
+		</>
+	);
+}
+
+export function SessionNotesDialog({
+	bookingId,
+	description,
+	fieldIdPrefix,
+	fieldLabel,
+	onOpenChange,
+	onSave,
+	open,
+	saveErrorMessage,
+	saveSuccessMessage,
+	savedNotes,
+	title
+}: SessionNotesDialogProps) {
+	const [isSaving, setIsSaving] = useState(false);
+
+	return (
 		<Dialog
 			open={open}
 			onOpenChange={(nextOpen) => {
 				if (!isSaving) onOpenChange(nextOpen);
 			}}>
 			<DialogContent className="sm:max-w-lg">
-				<DialogHeader>
-					<DialogTitle>{title}</DialogTitle>
-					<DialogDescription>{description}</DialogDescription>
-				</DialogHeader>
-				<Field>
-					<FieldLabel htmlFor={fieldId}>{fieldLabel}</FieldLabel>
-					<Textarea
-						id={fieldId}
-						value={notes}
-						disabled={isSaving}
-						placeholder="Write anything..."
-						onChange={(event) => setNotes(event.target.value)}
+				{open ? (
+					<SessionNotesDialogForm
+						key={bookingId}
+						bookingId={bookingId}
+						description={description}
+						fieldIdPrefix={fieldIdPrefix}
+						fieldLabel={fieldLabel}
+						isSaving={isSaving}
+						onOpenChange={onOpenChange}
+						onSave={onSave}
+						setIsSaving={setIsSaving}
+						saveErrorMessage={saveErrorMessage}
+						saveSuccessMessage={saveSuccessMessage}
+						savedNotes={savedNotes}
+						title={title}
 					/>
-				</Field>
-				<DialogFooter>
-					<Button
-						type="button"
-						variant="outline"
-						disabled={isSaving}
-						onClick={() => onOpenChange(false)}>
-						Cancel
-					</Button>
-					<Button
-						type="button"
-						disabled={isSaving}
-						onClick={() => void handleSave()}>
-						{isSaving ? (
-							<LoaderCircle
-								data-icon="inline-start"
-								className="animate-spin"
-							/>
-						) : null}
-						{isSaving ? "Saving" : "Save notes"}
-					</Button>
-				</DialogFooter>
+				) : null}
 			</DialogContent>
 		</Dialog>
 	);

@@ -4,7 +4,10 @@ import { Input } from "#/components/ui/input";
 import { BookingNotesField } from "#studio/features/booking-form/components/BookingNotesField";
 import { useBookingFormContext } from "#studio/features/booking-form/lib/booking-form-context";
 import { sectionHeadingClassName } from "#studio/features/booking-form/lib/booking-form-styles";
-import { toFieldErrorObjects } from "#studio/features/booking-form/lib/booking-form-model";
+import {
+	bookingFieldBlurValidator,
+	toFieldErrorObjects
+} from "#studio/features/booking-form/lib/booking-form-model";
 
 const fieldSetClassName = "gap-5 md:gap-6";
 
@@ -42,7 +45,9 @@ export function BookingContactSection() {
 					{sectionCopy.contactDetailsLegend}
 				</FieldLegend>
 				<div className="grid gap-4 md:grid-cols-2">
-					<formApi.Field name="name">
+					<formApi.Field
+						name="name"
+						validators={bookingFieldBlurValidator("name")}>
 						{(field) => (
 							<Field
 								className={fieldStackClassName}
@@ -66,7 +71,9 @@ export function BookingContactSection() {
 						)}
 					</formApi.Field>
 
-					<formApi.Field name="phone">
+					<formApi.Field
+						name="phone"
+						validators={bookingFieldBlurValidator("phone")}>
 						{(field) => (
 							<Field
 								className={fieldStackClassName}
@@ -91,7 +98,9 @@ export function BookingContactSection() {
 						)}
 					</formApi.Field>
 
-					<formApi.Field name="email">
+					<formApi.Field
+						name="email"
+						validators={bookingFieldBlurValidator("email")}>
 						{(field) => (
 							<Field
 								className={fieldStackClassName}
@@ -123,7 +132,9 @@ export function BookingContactSection() {
 					{sectionCopy.billingInformationLegend}
 				</FieldLegend>
 				<div className="grid gap-4 md:grid-cols-2">
-					<formApi.Field name="accountName">
+					<formApi.Field
+						name="accountName"
+						validators={bookingFieldBlurValidator("accountName")}>
 						{(field) => (
 							<Field
 								className={fieldStackClassName}
@@ -147,7 +158,9 @@ export function BookingContactSection() {
 						)}
 					</formApi.Field>
 
-					<formApi.Field name="abn">
+					<formApi.Field
+						name="abn"
+						validators={bookingFieldBlurValidator("abn")}>
 						{(field) => (
 							<Field
 								className={fieldStackClassName}
@@ -176,7 +189,9 @@ export function BookingContactSection() {
 			</FieldSet>
 
 			{bookingMode === "single" ? (
-				<formApi.Field name="notes">
+				<formApi.Field
+					name="notes"
+					validators={bookingFieldBlurValidator("notes")}>
 					{(field) => (
 						<BookingNotesField
 							value={field.state.value}

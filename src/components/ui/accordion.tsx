@@ -102,11 +102,16 @@ type AccordionContentProps = Omit<
 	React.ComponentProps<typeof AccordionPrimitive.Content>,
 	"asChild" | "forceMount"
 > &
-	HTMLMotionProps<"div"> & { transition?: Transition; keepRendered?: boolean };
+	HTMLMotionProps<"div"> & {
+		keepRendered?: boolean;
+		layout?: boolean;
+		transition?: Transition;
+	};
 
 function AccordionContent({
 	className,
 	children,
+	layout = true,
 	transition = defaultAccordionContentTransition,
 	keepRendered = false,
 	...props
@@ -118,7 +123,7 @@ function AccordionContent({
 			className="overflow-hidden data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down">
 			<motion.div
 				data-slot="accordion-content-inner"
-				layout
+				layout={layout}
 				transition={transition}
 				className={cn(
 					"max-w-5xl pb-5 text-sm leading-7 text-pretty text-muted-foreground md:pb-6 md:text-base",

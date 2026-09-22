@@ -177,6 +177,13 @@ export function isAddonAvailableForService(service: BookingService | "", addon: 
 	return addon === "4K UHD Recording" || addon === "Essential Edit";
 }
 
+export function filterAddonsAvailableForService(
+	service: BookingService | "",
+	addons: readonly BookingAddon[]
+) {
+	return addons.filter((addon) => isAddonAvailableForService(service, addon));
+}
+
 export function getPackageSessionAddons(
 	packageAddons: readonly BookingAddon[],
 	hasRemotePodcast: boolean
@@ -439,6 +446,28 @@ export const bookingSchema = z
 export type BookingFormValues = z.input<typeof bookingSchema>;
 
 export const publicBookingSchema = bookingSchema;
+
+function getBookingFieldBlurError(
+	fieldName: keyof BookingFormValues,
+	formValues: BookingFormValues
+): string | undefined {
+	const validationResult = publicBookingSchema.safeParse(formValues);
+
+	if (validationResult.success) {
+		return undefined;
+	}
+
+	const issue = validationResult.error.issues.find((entry) => entry.path[0] === fieldName);
+
+	return issue?.message;
+}
+
+export function bookingFieldBlurValidator(fieldName: keyof BookingFormValues) {
+	return {
+		onBlur: ({ fieldApi }: { fieldApi: { form: { state: { values: BookingFormValues } } } }) =>
+			getBookingFieldBlurError(fieldName, fieldApi.form.state.values)
+	};
+}
 
 export const packageFormSchema = z
 	.object({ ...sharedBookingFields, packageSize: requiredPackageSize })

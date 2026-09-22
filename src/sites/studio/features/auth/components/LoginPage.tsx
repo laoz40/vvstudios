@@ -1,6 +1,5 @@
 import { SignIn, SignUp, useAuth } from "@clerk/clerk-react";
 import { Link, Navigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
 
 import { Card, CardContent, CardHeader } from "#/components/ui/card";
 import { studioSite } from "#/config/sites";
@@ -46,12 +45,7 @@ function hasClerkInvitationTicket() {
 
 export function LoginPage() {
 	const { isLoaded, userId } = useAuth();
-	const [authView, setAuthView] = useState<"sign-in" | "sign-up">("sign-in");
-
-	// Invitation links include a Clerk ticket that must complete sign-up, not sign-in.
-	useEffect(() => {
-		if (hasClerkInvitationTicket()) setAuthView("sign-up");
-	}, []);
+	const isInvitationSignUp = hasClerkInvitationTicket();
 
 	if (!isLoaded) {
 		return (
@@ -64,8 +58,6 @@ export function LoginPage() {
 	if (userId) {
 		return <Navigate to={studioSite.routes.dashboard} />;
 	}
-
-	const isInvitationSignUp = authView === "sign-up";
 
 	return (
 		<main className="login-page grid min-h-dvh place-items-center px-4 py-12">

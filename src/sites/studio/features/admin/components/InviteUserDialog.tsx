@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { LoaderCircleIcon } from "lucide-react";
 import { useAction } from "convex/react";
 import { toast } from "sonner";
@@ -23,20 +23,13 @@ import {
 
 type InviteUserDialogProps = { onOpenChange: (open: boolean) => void; open: boolean };
 
-export function InviteUserDialog({ onOpenChange, open }: InviteUserDialogProps) {
+type InviteUserDialogFormProps = { onOpenChange: (open: boolean) => void };
+
+function InviteUserDialogForm({ onOpenChange }: InviteUserDialogFormProps) {
 	const inviteUser = useAction(api.employeeInvitations.inviteUser);
 	const [email, setEmail] = useState("");
 	const [fieldError, setFieldError] = useState<string | null>(null);
 	const [isSubmitting, setIsSubmitting] = useState(false);
-
-	// Clear the draft whenever the invite dialog opens.
-	useEffect(() => {
-		if (open) {
-			setEmail("");
-			setFieldError(null);
-			setIsSubmitting(false);
-		}
-	}, [open]);
 
 	async function handleSubmit() {
 		const parsedEmail = inviteEmailSchema.safeParse(email);
@@ -63,52 +56,65 @@ export function InviteUserDialog({ onOpenChange, open }: InviteUserDialogProps) 
 	}
 
 	return (
+		<>
+			<DialogHeader>
+				<DialogTitle>Invite editor</DialogTitle>
+				<DialogDescription>
+					This will send an invitation email for the editor to create an account.
+				</DialogDescription>
+			</DialogHeader>
+			<Field data-invalid={fieldError !== null || undefined}>
+				<FieldLabel htmlFor="invite-user-email">Email</FieldLabel>
+				<Input
+					id="invite-user-email"
+					type="email"
+					autoComplete="email"
+					value={email}
+					disabled={isSubmitting}
+					onChange={(event) => {
+						setEmail(event.target.value);
+
+						if (fieldError !== null) setFieldError(null);
+					}}
+				/>
+				{fieldError !== null ? <FieldError>{fieldError}</FieldError> : null}
+			</Field>
+			<DialogFooter>
+				<DialogClose asChild>
+					<Button
+						variant="outline"
+						disabled={isSubmitting}>
+						Cancel
+					</Button>
+				</DialogClose>
+				<Button
+					disabled={isSubmitting}
+					onClick={() => void handleSubmit()}>
+					{isSubmitting ? (
+						<LoaderCircleIcon
+							data-icon="inline-start"
+							className="animate-spin"
+						/>
+					) : null}
+					{isSubmitting ? "Sending" : "Send invitation"}
+				</Button>
+			</DialogFooter>
+		</>
+	);
+}
+
+export function InviteUserDialog({ onOpenChange, open }: InviteUserDialogProps) {
+	return (
 		<Dialog
 			open={open}
 			onOpenChange={onOpenChange}>
 			<DialogContent className="sm:max-w-lg">
-				<DialogHeader>
-					<DialogTitle>Invite editor</DialogTitle>
-					<DialogDescription>
-						This will send an invitation email for the editor to create an account.
-					</DialogDescription>
-				</DialogHeader>
-				<Field data-invalid={fieldError !== null || undefined}>
-					<FieldLabel htmlFor="invite-user-email">Email</FieldLabel>
-					<Input
-						id="invite-user-email"
-						type="email"
-						autoComplete="email"
-						value={email}
-						disabled={isSubmitting}
-						onChange={(event) => {
-							setEmail(event.target.value);
-
-							if (fieldError !== null) setFieldError(null);
-						}}
+				{open ? (
+					<InviteUserDialogForm
+						key="invite-user"
+						onOpenChange={onOpenChange}
 					/>
-					{fieldError !== null ? <FieldError>{fieldError}</FieldError> : null}
-				</Field>
-				<DialogFooter>
-					<DialogClose asChild>
-						<Button
-							variant="outline"
-							disabled={isSubmitting}>
-							Cancel
-						</Button>
-					</DialogClose>
-					<Button
-						disabled={isSubmitting}
-						onClick={() => void handleSubmit()}>
-						{isSubmitting ? (
-							<LoaderCircleIcon
-								data-icon="inline-start"
-								className="animate-spin"
-							/>
-						) : null}
-						{isSubmitting ? "Sending" : "Send invitation"}
-					</Button>
-				</DialogFooter>
+				) : null}
 			</DialogContent>
 		</Dialog>
 	);

@@ -10,6 +10,7 @@ import {
 	transitionClassName
 } from "#studio/features/booking-form/lib/booking-form-styles";
 import {
+	bookingFieldBlurValidator,
 	isDurationOption,
 	toFieldErrorObjects,
 	type BookingFormValues
@@ -18,6 +19,7 @@ import {
 	DURATION_PRICES,
 	formatBookingPrice
 } from "#studio/features/booking-form/lib/booking-pricing";
+import { syncAddonsForService } from "#studio/features/booking-form/lib/sync-addons-for-service";
 import { toOptionId } from "#studio/lib/bookingdatetime";
 import { cn } from "#/lib/utils";
 
@@ -73,7 +75,9 @@ export function BookingRecordingSpaceDurationSection() {
 
 	return (
 		<>
-			<formApi.Field name="duration">
+			<formApi.Field
+				name="duration"
+				validators={bookingFieldBlurValidator("duration")}>
 				{(field) => (
 					<section
 						data-field-name="duration"
@@ -142,7 +146,9 @@ export function BookingRecordingSpaceDurationSection() {
 				)}
 			</formApi.Field>
 
-			<formApi.Field name="service">
+			<formApi.Field
+				name="service"
+				validators={bookingFieldBlurValidator("service")}>
 				{(field) => (
 					<RecordingSpaceField
 						disabled={isPackageBooking}
@@ -152,6 +158,7 @@ export function BookingRecordingSpaceDurationSection() {
 						onChange={(value) => {
 							field.handleChange(value);
 							field.handleBlur();
+							syncAddonsForService(formApi, value);
 						}}>
 						<FieldDescription className="mt-2! text-pretty italic">
 							{isPackageBooking

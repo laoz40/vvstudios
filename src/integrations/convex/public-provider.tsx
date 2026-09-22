@@ -19,10 +19,10 @@ export function usePublicConvexAvailable() {
 
 export default function PublicConvexProvider({ children }: { children: React.ReactNode }) {
 	return (
-		<PublicConvexAvailableContext.Provider value={true}>
+		<PublicConvexAvailableContext value={true}>
 			<ConvexProvider client={convex}>
 				<QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
 			</ConvexProvider>
-		</PublicConvexAvailableContext.Provider>
+		</PublicConvexAvailableContext>
 	);
 }

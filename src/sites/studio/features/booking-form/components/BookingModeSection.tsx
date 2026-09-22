@@ -5,6 +5,7 @@ import { cn } from "#/lib/utils";
 import { useBookingFormContext } from "#studio/features/booking-form/lib/booking-form-context";
 import {
 	BOOKING_MODES,
+	bookingFieldBlurValidator,
 	isPackageUnavailableAddon,
 	toFieldErrorObjects
 } from "#studio/features/booking-form/lib/booking-form-model";
@@ -34,7 +35,9 @@ export function BookingModeSection() {
 	const shouldShowFieldError = submissionAttempts > 0;
 
 	return (
-		<formApi.Field name="bookingMode">
+		<formApi.Field
+			name="bookingMode"
+			validators={bookingFieldBlurValidator("bookingMode")}>
 			{(field) => (
 				<FieldSet
 					data-field-name="bookingMode"

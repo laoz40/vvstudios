@@ -5,7 +5,7 @@ import { RadioGroup, RadioGroupItem } from "#/components/ui/radio-group";
 import { cn } from "#/lib/utils";
 import { useBookingFormContext } from "#studio/features/booking-form/lib/booking-form-context";
 import {
-	bookingSchema,
+	bookingFieldBlurValidator,
 	toFieldErrorObjects
 } from "#studio/features/booking-form/lib/booking-form-model";
 import { isPackageSize, PACKAGE_PLANS } from "#studio/features/booking-form/lib/booking-pricing";
@@ -33,11 +33,11 @@ const packageSizeOptions = Object.entries(PACKAGE_PLANS).map(([packageSize, plan
 
 export function BookingPackageSection() {
 	const formApi = useBookingFormContext();
-	const formValues = useSelector(formApi.store, (state) => state.values);
+	const bookingMode = useSelector(formApi.store, (state) => state.values.bookingMode);
 	const submissionAttempts = useSelector(formApi.store, (state) => state.submissionAttempts);
 	const shouldShowFieldError = submissionAttempts > 0;
 
-	const isPackageBooking = formValues.bookingMode === "package";
+	const isPackageBooking = bookingMode === "package";
 	const shouldReduceMotion = useReducedMotion();
 	const revealMotionProps = getRevealMotionProps(shouldReduceMotion === true);
 
@@ -49,7 +49,9 @@ export function BookingPackageSection() {
 					{...revealMotionProps}
 					className="overflow-hidden">
 					<div className="pt-8 md:pt-12">
-						<formApi.Field name="packageSize">
+						<formApi.Field
+							name="packageSize"
+							validators={bookingFieldBlurValidator("packageSize")}>
 							{(field) => {
 								const selectedPackageOption = packageSizeOptions.find(
 									(option) => option.packageSize === field.state.value
@@ -58,12 +60,6 @@ export function BookingPackageSection() {
 								const packageSizeNote = selectedPackageOption
 									? `The ${selectedPackageOption.packageSize} session package will be valid for ${selectedPackageOption.validityMonths} months.`
 									: "Package size affects how long you have to select and use your session dates.";
-
-								const zodErrors = shouldShowFieldError
-									? (bookingSchema
-											.safeParse(formValues)
-											.error?.issues.filter((issue) => issue.path[0] === "packageSize") ?? [])
-									: [];
 
 								return (
 									<FieldSet data-field-name="packageSize">
@@ -120,9 +116,7 @@ export function BookingPackageSection() {
 											<li>{packageSizeNote}</li>
 										</ul>
 										{field.state.meta.isBlurred || shouldShowFieldError ? (
-											<FieldError
-												errors={toFieldErrorObjects([...field.state.meta.errors, ...zodErrors])}
-											/>
+											<FieldError errors={toFieldErrorObjects(field.state.meta.errors)} />
 										) : null}
 									</FieldSet>
 								);

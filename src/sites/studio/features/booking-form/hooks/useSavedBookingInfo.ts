@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
 import type { BookingFormApi } from "#studio/features/booking-form/lib/booking-form-context";
 import {
 	isPackageUnavailableAddon,
 	type BookingFormValues
 } from "#studio/features/booking-form/lib/booking-form-model";
+import { syncAddonsForService } from "#studio/features/booking-form/lib/sync-addons-for-service";
 import {
 	getStoredSavedBookingInfo,
 	removeStoredSavedBookingInfo,
@@ -18,40 +19,36 @@ export function useSavedBookingInfo({
 	formApi,
 	onReuseSavedBookingInfo
 }: UseSavedBookingInfoParams) {
-	const [savedBookingInfo, setSavedBookingInfo] = useState<SavedBookingInfo | null>(null);
-	const [shouldSaveBookingInfo, setShouldSaveBookingInfo] = useState(false);
-
-	// Load saved booking info from local storage.
-	useEffect(() => {
+	const [savedBookingInfo, setSavedBookingInfo] = useState<SavedBookingInfo | null>(() => {
 		const nextSavedBookingInfo = getStoredSavedBookingInfo();
 
 		if (!nextSavedBookingInfo) {
 			removeStoredSavedBookingInfo();
 
+			return null;
+		}
+
+		return nextSavedBookingInfo;
+	});
+
+	const [shouldSaveBookingInfo, setShouldSaveBookingInfo] = useState(
+		() => getStoredSavedBookingInfo() !== null
+	);
+
+	function persistBookingInfoFromForm(parsedValue: BookingFormValues) {
+		if (shouldSaveBookingInfo) {
+			const nextSavedBookingInfo = toSavedBookingInfo(parsedValue);
+			storeSavedBookingInfo(nextSavedBookingInfo);
+			setSavedBookingInfo(nextSavedBookingInfo);
+
 			return;
 		}
 
-		setSavedBookingInfo(nextSavedBookingInfo);
-		setShouldSaveBookingInfo(true);
-	}, []);
+		removeStoredSavedBookingInfo();
+		setSavedBookingInfo(null);
+	}
 
-	const persistBookingInfoFromForm = useCallback(
-		(parsedValue: BookingFormValues) => {
-			if (shouldSaveBookingInfo) {
-				const nextSavedBookingInfo = toSavedBookingInfo(parsedValue);
-				storeSavedBookingInfo(nextSavedBookingInfo);
-				setSavedBookingInfo(nextSavedBookingInfo);
-
-				return;
-			}
-
-			removeStoredSavedBookingInfo();
-			setSavedBookingInfo(null);
-		},
-		[shouldSaveBookingInfo]
-	);
-
-	const handleReuseSavedBookingInfo = useCallback(() => {
+	function handleReuseSavedBookingInfo() {
 		if (!savedBookingInfo) {
 			return;
 		}
@@ -69,6 +66,10 @@ export function useSavedBookingInfo({
 				? savedBookingInfo.addons.filter((addon) => !isPackageUnavailableAddon(addon))
 				: [...savedBookingInfo.addons]
 		);
+		syncAddonsForService(
+			formApi,
+			savedBookingInfo.bookingMode === "package" ? "" : savedBookingInfo.service
+		);
 		formApi.setFieldValue("essentialEditQuantity", savedBookingInfo.essentialEditQuantity);
 		formApi.setFieldValue("completeEditQuantity", savedBookingInfo.completeEditQuantity);
 		formApi.setFieldValue("clipsPackageQuantity", savedBookingInfo.clipsPackageQuantity);
@@ -83,22 +84,22 @@ export function useSavedBookingInfo({
 			savedBookingInfo.bookingMode === "single" ? savedBookingInfo.notes : ""
 		);
 		onReuseSavedBookingInfo();
-	}, [formApi, onReuseSavedBookingInfo, savedBookingInfo]);
+	}
 
-	const handleRemoveSavedBookingInfo = useCallback(() => {
+	function handleRemoveSavedBookingInfo() {
 		removeStoredSavedBookingInfo();
 		setSavedBookingInfo(null);
 		setShouldSaveBookingInfo(false);
-	}, []);
+	}
 
-	const handleSaveBookingInfoChange = useCallback((checked: boolean) => {
+	function handleSaveBookingInfoChange(checked: boolean) {
 		setShouldSaveBookingInfo(checked);
 
 		if (!checked) {
 			removeStoredSavedBookingInfo();
 			setSavedBookingInfo(null);
 		}
-	}, []);
+	}
 
 	return {
 		handleRemoveSavedBookingInfo,

@@ -1,9 +1,7 @@
-import { useCallback, useRef } from "react";
-import { useSelector } from "@tanstack/react-store";
+import { useRef } from "react";
 import { useForm } from "@tanstack/react-form";
 import { createFileRoute } from "@tanstack/react-router";
 import { useAction } from "convex/react";
-import { ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 import {
 	BookDevErrorPanel,
@@ -13,14 +11,15 @@ import { Label } from "#/components/ui/label";
 import { BookingModeSection } from "#studio/features/booking-form/components/BookingModeSection";
 import { BookingPackageSection } from "#studio/features/booking-form/components/BookingPackageSection";
 import { BookingContactSection } from "#studio/features/booking-form/components/BookingContactSection";
-import { BookingDateTimeSection } from "#studio/features/booking-form/components/BookingDateTimeSection.tsx";
 import { BookingRecordingSpaceDurationSection } from "#studio/features/booking-form/components/BookingRecordingSpaceDurationSection.tsx";
 import { BookingAddonsSection } from "#studio/features/booking-form/components/BookingAddonsSection.tsx";
 import { BookingModalHost } from "#studio/features/booking-form/components/BookingModalHost";
 import { BookingSavedInfoBanner } from "#studio/features/booking-form/components/BookingSavedInfoBanner";
+import { BookingDateTimeSection } from "#studio/features/booking-form/components/BookingDateTimeSection";
+import { CompleteBookingScrollShortcut } from "#studio/features/booking-form/components/CompleteBookingScrollShortcut";
 import { BookingSummary } from "#studio/features/booking-form/components/BookingSummary";
 import {
-	bookingFormContext,
+	BookingFormContext,
 	type BookingFormApi
 } from "#studio/features/booking-form/lib/booking-form-context";
 import {
@@ -36,10 +35,8 @@ import { Checkbox } from "#/components/ui/checkbox";
 import { Field, FieldContent, FieldGroup } from "#/components/ui/field";
 import { api } from "#convex/_generated/api";
 import { devBookingErrorMessages } from "#studio/features/booking-form/lib/booking-page-errors";
-import { useBookingAvailability } from "#studio/features/booking-form/hooks/useBookingAvailability";
 import { buildSeoHead, seoMetadata } from "#/lib/seo";
 import { useBookingCheckoutClose } from "#studio/features/booking-form/hooks/useBookingCheckoutClose";
-import { useCompleteBookingShortcut } from "#studio/features/booking-form/hooks/useCompleteBookingShortcut";
 import { useSavedBookingInfo } from "#studio/features/booking-form/hooks/useSavedBookingInfo";
 import { scrollToFirstBookingFormError } from "#studio/features/booking-form/lib/form-error-scroll";
 import { cn } from "#/lib/utils";
@@ -58,37 +55,22 @@ function BookingPage() {
 
 	// Form and scroll targets
 	const formRef = useRef<HTMLFormElement>(null);
+	const dateTimeSectionRef = useRef<HTMLDivElement>(null);
+	const showScrollToCompleteBookingRef = useRef<(() => void) | null>(null);
+	const setAvailabilityErrorRef = useRef<((message: string) => void) | null>(null);
+	const completeBookingButtonRef = useRef<HTMLDivElement>(null);
 
 	const formApi: BookingFormApi = useForm({
 		defaultValues: INITIAL_FORM,
-		validators: { onBlur: publicBookingSchema, onSubmit: publicBookingSchema },
+		validators: { onSubmit: publicBookingSchema },
 		onSubmit: async ({ value }) => {
 			await bookingSubmit.handleSubmit(value);
 		}
 	});
 
-	// Derived form values and availability
-	const formValues = useSelector(formApi.store, (state) => state.values);
-
-	const isDateTimeIncomplete =
-		formValues.bookingMode === "single" && (!formValues.date || !formValues.time);
-
-	const handleSelectedTimeInvalidated = useCallback(() => {
-		formApi.setFieldValue("time", "");
-	}, [formApi]);
-
-	const availability = useBookingAvailability({
-		date: formValues.date,
-		duration: formValues.duration,
-		onSelectedTimeInvalidated: handleSelectedTimeInvalidated,
-		selectedTime: formValues.time
-	});
-
-	const completeBookingShortcut = useCompleteBookingShortcut(isDateTimeIncomplete);
-
 	const savedBookingInfo = useSavedBookingInfo({
 		formApi,
-		onReuseSavedBookingInfo: () => completeBookingShortcut.setShowScrollToCompleteBooking(true)
+		onReuseSavedBookingInfo: () => showScrollToCompleteBookingRef.current?.()
 	});
 
 	const bookingSubmit = useBookingSubmit({
@@ -102,7 +84,7 @@ function BookingPage() {
 		const errorMessage = devBookingErrorMessages[code];
 
 		if (code === "GOOGLE_CALENDAR_AVAILABILITY_FAILED") {
-			availability.setAvailabilityError(errorMessage);
+			setAvailabilityErrorRef.current?.(errorMessage);
 		}
 
 		toast.error(errorMessage);
@@ -121,7 +103,7 @@ function BookingPage() {
 				/>
 			) : null}
 
-			<bookingFormContext.Provider value={formApi}>
+			<BookingFormContext value={formApi}>
 				<form
 					ref={formRef}
 					onSubmit={(event) => {
@@ -154,13 +136,10 @@ function BookingPage() {
 						</div>
 						<BookingRecordingSpaceDurationSection />
 						<BookingAddonsSection />
-						{formValues.bookingMode === "single" ? (
-							<div
-								ref={completeBookingShortcut.dateTimeSectionRef}
-								className="scroll-mt-32 sm:scroll-mt-40">
-								<BookingDateTimeSection availability={availability} />
-							</div>
-						) : null}
+						<BookingDateTimeSection
+							dateTimeSectionRef={dateTimeSectionRef}
+							setAvailabilityErrorRef={setAvailabilityErrorRef}
+						/>
 						<BookingContactSection />
 					</FieldGroup>
 
@@ -185,7 +164,7 @@ function BookingPage() {
 					</Field>
 
 					<div
-						ref={completeBookingShortcut.completeBookingButtonRef}
+						ref={completeBookingButtonRef}
 						className="space-y-12">
 						<BookingSummary />
 						<Button
@@ -196,30 +175,17 @@ function BookingPage() {
 						</Button>
 					</div>
 				</form>
-			</bookingFormContext.Provider>
+				<CompleteBookingScrollShortcut
+					dateTimeSectionRef={dateTimeSectionRef}
+					completeBookingTargetRef={completeBookingButtonRef}
+					showScrollToCompleteBookingRef={showScrollToCompleteBookingRef}
+				/>
+			</BookingFormContext>
 			<BookingModalHost
 				isSubmitting={bookingSubmit.isSubmitting}
 				onPaymentClose={handlePaymentModalClose}
 				onTermsConfirm={bookingSubmit.handleTermsConfirm}
 			/>
-
-			{completeBookingShortcut.showScrollToCompleteBooking &&
-			!completeBookingShortcut.hasReachedCompleteBooking ? (
-				<div className="fixed right-4 bottom-16 z-50 animate-in duration-200 fade-in zoom-in-150 motion-reduce:zoom-in-100 sm:right-6 sm:bottom-6">
-					<Button
-						type="button"
-						size="icon-lg"
-						aria-label={
-							isDateTimeIncomplete
-								? "Scroll to date and time section"
-								: "Scroll to complete booking"
-						}
-						className="rounded-full shadow-md active:scale-95 motion-reduce:transition-none"
-						onClick={completeBookingShortcut.handleScrollToCompleteBooking}>
-						<ChevronDown className="size-6" />
-					</Button>
-				</div>
-			) : null}
 		</main>
 	);
 }

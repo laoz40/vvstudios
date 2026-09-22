@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { LoaderCircle, Plus, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "#/components/ui/button";
@@ -34,8 +34,17 @@ type StripeInvoiceDialogProps = {
 	onSend: (input: { lineItems: ParsedStripeInvoiceLineItem[]; requestId: string }) => Promise<void>;
 };
 
-export function StripeInvoiceDialog({
-	open,
+type StripeInvoiceDialogFormProps = {
+	customerEmail: string;
+	customerName: string;
+	hasStripeCustomer: boolean;
+	invoiceContext: StripeInvoiceContext;
+	isSending: boolean;
+	onOpenChange: (open: boolean) => void;
+	onSend: (input: { lineItems: ParsedStripeInvoiceLineItem[]; requestId: string }) => Promise<void>;
+};
+
+function StripeInvoiceDialogForm({
 	customerEmail,
 	customerName,
 	hasStripeCustomer,
@@ -43,17 +52,10 @@ export function StripeInvoiceDialog({
 	isSending,
 	onOpenChange,
 	onSend
-}: StripeInvoiceDialogProps) {
+}: StripeInvoiceDialogFormProps) {
 	const [lineItemDrafts, setLineItemDrafts] = useState<StripeInvoiceLineItemDraft[]>([
 		createStripeInvoiceLineItemDraft()
 	]);
-
-	// Reset line items each time the dialog opens.
-	useEffect(() => {
-		if (open) {
-			setLineItemDrafts([createStripeInvoiceLineItemDraft()]);
-		}
-	}, [open]);
 
 	const totalAmount = sumStripeInvoiceLineItemDrafts(lineItemDrafts, invoiceContext);
 	const canSubmit = hasStripeCustomer && totalAmount !== null && totalAmount > 0 && !isSending;
@@ -89,6 +91,95 @@ export function StripeInvoiceDialog({
 
 		await onSend({ lineItems, requestId: crypto.randomUUID() });
 	}
+
+	return (
+		<>
+			<SessionCustomerSummary
+				bookingEmail={customerEmail}
+				bookingName={customerName}
+			/>
+
+			{!hasStripeCustomer ? (
+				<p className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
+					This record has no Stripe customer ID. Stripe invoices are only available for bookings and
+					packages paid through Stripe checkout.
+				</p>
+			) : null}
+
+			<form
+				className="grid gap-3"
+				data-lenis-prevent
+				onSubmit={(event) => {
+					event.preventDefault();
+					void handleSendInvoice();
+				}}>
+				<div className="grid gap-2">
+					<Label>Items</Label>
+					<div className="grid gap-2">
+						{lineItemDrafts.map((lineItemDraft, index) => (
+							<StripeInvoiceLineItemRow
+								key={lineItemDraft.id}
+								context={invoiceContext}
+								draft={lineItemDraft}
+								index={index}
+								isDisabled={isSending || !hasStripeCustomer}
+								canRemove
+								onChange={(update) => updateLineItemDraft(lineItemDraft.id, update)}
+								onRemove={() => removeLineItemDraft(lineItemDraft.id)}
+							/>
+						))}
+						<div className="flex justify-center">
+							<Button
+								type="button"
+								variant="ghost"
+								size="sm"
+								disabled={isSending || !hasStripeCustomer}
+								onClick={addLineItemDraft}>
+								<Plus className="size-4" />
+								Add item
+							</Button>
+						</div>
+					</div>
+				</div>
+
+				<div className="flex items-center justify-between rounded-lg border bg-muted/40 px-3 py-2 text-sm">
+					<span className="font-medium">Total</span>
+					<span className="font-medium tabular-nums">
+						{totalAmount === null ? "-" : formatAudAmount(totalAmount)}
+					</span>
+				</div>
+
+				<DialogFooter>
+					<Button
+						type="button"
+						variant="outline"
+						disabled={isSending}
+						onClick={() => onOpenChange(false)}>
+						Cancel
+					</Button>
+					<Button
+						type="submit"
+						disabled={!canSubmit}>
+						{isSending ? <LoaderCircle className="size-4 animate-spin" /> : null}
+						{isSending ? "Sending" : "Send invoice"}
+					</Button>
+				</DialogFooter>
+			</form>
+		</>
+	);
+}
+
+export function StripeInvoiceDialog({
+	open,
+	customerEmail,
+	customerName,
+	hasStripeCustomer,
+	invoiceContext,
+	isSending,
+	onOpenChange,
+	onSend
+}: StripeInvoiceDialogProps) {
+	const invoiceKey = `${customerEmail}-${invoiceContext.currentDuration}-${invoiceContext.sessionCount}`;
 
 	return (
 		<Dialog
@@ -129,77 +220,18 @@ export function StripeInvoiceDialog({
 					<DialogTitle>Send Stripe invoice</DialogTitle>
 				</DialogHeader>
 
-				<SessionCustomerSummary
-					bookingEmail={customerEmail}
-					bookingName={customerName}
-				/>
-
-				{!hasStripeCustomer ? (
-					<p className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
-						This record has no Stripe customer ID. Stripe invoices are only available for bookings
-						and packages paid through Stripe checkout.
-					</p>
+				{open ? (
+					<StripeInvoiceDialogForm
+						key={invoiceKey}
+						customerEmail={customerEmail}
+						customerName={customerName}
+						hasStripeCustomer={hasStripeCustomer}
+						invoiceContext={invoiceContext}
+						isSending={isSending}
+						onOpenChange={onOpenChange}
+						onSend={onSend}
+					/>
 				) : null}
-
-				<form
-					className="grid gap-3"
-					data-lenis-prevent
-					onSubmit={(event) => {
-						event.preventDefault();
-						void handleSendInvoice();
-					}}>
-					<div className="grid gap-2">
-						<Label>Items</Label>
-						<div className="grid gap-2">
-							{lineItemDrafts.map((lineItemDraft, index) => (
-								<StripeInvoiceLineItemRow
-									key={lineItemDraft.id}
-									context={invoiceContext}
-									draft={lineItemDraft}
-									index={index}
-									isDisabled={isSending || !hasStripeCustomer}
-									canRemove
-									onChange={(update) => updateLineItemDraft(lineItemDraft.id, update)}
-									onRemove={() => removeLineItemDraft(lineItemDraft.id)}
-								/>
-							))}
-							<div className="flex justify-center">
-								<Button
-									type="button"
-									variant="ghost"
-									size="sm"
-									disabled={isSending || !hasStripeCustomer}
-									onClick={addLineItemDraft}>
-									<Plus className="size-4" />
-									Add item
-								</Button>
-							</div>
-						</div>
-					</div>
-
-					<div className="flex items-center justify-between rounded-lg border bg-muted/40 px-3 py-2 text-sm">
-						<span className="font-medium">Total</span>
-						<span className="font-medium tabular-nums">
-							{totalAmount === null ? "-" : formatAudAmount(totalAmount)}
-						</span>
-					</div>
-
-					<DialogFooter>
-						<Button
-							type="button"
-							variant="outline"
-							disabled={isSending}
-							onClick={() => onOpenChange(false)}>
-							Cancel
-						</Button>
-						<Button
-							type="submit"
-							disabled={!canSubmit}>
-							{isSending ? <LoaderCircle className="size-4 animate-spin" /> : null}
-							{isSending ? "Sending" : "Send invoice"}
-						</Button>
-					</DialogFooter>
-				</form>
 			</DialogContent>
 		</Dialog>
 	);

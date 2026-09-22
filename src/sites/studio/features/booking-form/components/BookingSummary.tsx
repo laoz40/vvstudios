@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { useSelector } from "@tanstack/react-store";
 import {
 	Accordion,
 	AccordionContent,
@@ -15,7 +14,7 @@ import {
 	getBookingTotal,
 	isPackageSize
 } from "#studio/features/booking-form/lib/booking-pricing";
-import { useBookingFormContext } from "#studio/features/booking-form/lib/booking-form-context";
+import { useBookingPricingValues } from "#studio/features/booking-form/hooks/useBookingPricingValues";
 import { getCustomerAddonDisplayLabel } from "#studio/features/booking-form/lib/booking-form-model";
 import { sectionHeadingClassName } from "#studio/features/booking-form/lib/booking-form-styles";
 
@@ -72,8 +71,7 @@ function BookingSummaryTotal({
 
 export function BookingSummary() {
 	const [openSummaryItem, setOpenSummaryItem] = useState<string | undefined>();
-	const formApi = useBookingFormContext();
-	const values = useSelector(formApi.store, (state) => state.values);
+	const values = useBookingPricingValues();
 	const isPackageBooking = values.bookingMode === "package";
 	const durationCost = values.duration ? DURATION_PRICES[values.duration] : 0;
 	const total = getBookingTotal(values);
@@ -111,7 +109,9 @@ export function BookingSummary() {
 							</span>
 						</span>
 					</AccordionTrigger>
-					<AccordionContent className="border-b pb-3 text-sm md:text-sm">
+					<AccordionContent
+						layout={false}
+						className="border-b pb-3 text-sm md:text-sm">
 						<div className="space-y-2">
 							{showBookingLine && !isWaitingForPackage ? (
 								<div className="flex items-start justify-between gap-4">
