@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { Button } from "#/components/ui/button";
 import ClockIcon from "#/components/ui/clock-icon";
 import DownloadIcon from "#/components/ui/download-icon";
@@ -28,10 +28,7 @@ import { AnimatedDropdownMenuItem } from "#studio/features/admin/components/Anim
 import { copyText } from "#studio/features/admin/components/AdminDashboardTableUtils";
 import { LegacyInvoicesSubmenu } from "#studio/features/admin/components/LegacyInvoicesSubmenu";
 import { StripeIdCopyMenuItems } from "#studio/features/admin/components/StripeIdCopyMenuItems";
-import {
-	SessionEditorAssignment,
-	type ActiveEditor
-} from "#studio/features/admin/components/SessionEditorAssignment";
+import { SessionEditorAssignment } from "#studio/features/admin/components/SessionEditorAssignment";
 import {
 	EDIT_STATUS_OPTIONS,
 	deliverableStatusIconMap,
@@ -51,7 +48,6 @@ import type { useRescheduleAction } from "#studio/features/admin/hooks/useResche
 import type { useStatusActions } from "#studio/features/admin/hooks/useStatusActions";
 
 type SessionActionsMenuProps = {
-	activeEditors: ActiveEditor[];
 	session: SessionRecord;
 	details: SessionActionDetails;
 	deleteAction: ReturnType<typeof useDeleteAction>;
@@ -112,7 +108,7 @@ function getSessionArchiveActionLabel(isUpdatingArchive: boolean, isArchived: bo
 }
 
 function DeliverablesControls({
-	activeEditors,
+	isMenuOpen,
 	session,
 	details,
 	deliverablesEmailAction,
@@ -120,13 +116,8 @@ function DeliverablesControls({
 	onEditAdminNotes
 }: Pick<
 	SessionActionsMenuProps,
-	| "activeEditors"
-	| "session"
-	| "details"
-	| "deliverablesEmailAction"
-	| "statusActions"
-	| "onEditAdminNotes"
->) {
+	"session" | "details" | "deliverablesEmailAction" | "statusActions" | "onEditAdminNotes"
+> & { isMenuOpen: boolean }) {
 	const adminNotesIconRef = useRef<AnimatedIconHandle | null>(null);
 
 	if (!details.canManageConfirmedSession || !details.isPastSession) return null;
@@ -180,7 +171,7 @@ function DeliverablesControls({
 			</div>
 			<div className="flex flex-col gap-2 px-2 pb-2">
 				<SessionEditorAssignment
-					activeEditors={activeEditors}
+					isMenuOpen={isMenuOpen}
 					session={session}
 				/>
 				<Button
@@ -206,7 +197,6 @@ function DeliverablesControls({
 }
 
 export function SessionActionsMenu({
-	activeEditors,
 	session,
 	details,
 	deleteAction,
@@ -220,6 +210,7 @@ export function SessionActionsMenu({
 	onOpenDrive,
 	onEditAdminNotes
 }: SessionActionsMenuProps) {
+	const [isMenuOpen, setIsMenuOpen] = useState(false);
 	const showSessionBillingActions = session.packageId === undefined;
 
 	// Menu icon animation refs
@@ -235,7 +226,10 @@ export function SessionActionsMenu({
 	);
 
 	return (
-		<DropdownMenu modal={false}>
+		<DropdownMenu
+			modal={false}
+			open={isMenuOpen}
+			onOpenChange={setIsMenuOpen}>
 			<DropdownMenuTrigger asChild>
 				<Button
 					variant="ghost"
@@ -294,7 +288,7 @@ export function SessionActionsMenu({
 				<DropdownMenuSeparator />
 				{/* Editors are assigned only after a session ends, alongside the deliverables workflow. */}
 				<DeliverablesControls
-					activeEditors={activeEditors}
+					isMenuOpen={isMenuOpen}
 					session={session}
 					details={details}
 					deliverablesEmailAction={deliverablesEmailAction}

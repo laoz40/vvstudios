@@ -90,11 +90,8 @@ function BookingsDashboardView({
 		sessions.status === "LoadingFirstPage"
 	);
 
-	const activeEditors = useQuery(api.sessions.listActiveEditors, {});
-
 	return (
 		<SessionsTable
-			activeEditors={activeEditors ?? []}
 			sessions={sessionsForTable}
 			canLoadMoreSessions={sessions.status === "CanLoadMore"}
 			isLoadingMoreSessions={sessions.status === "LoadingMore"}

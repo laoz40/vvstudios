@@ -5,6 +5,7 @@ import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
 import { requirePermission } from "#convex/lib/auth";
 import {
 	buildActiveEditorProjection,
+	getEditorDisplayNamesByToken,
 	listActiveEditorProfiles,
 	updateSessionEditorAssignment
 } from "#convex/lib/editorAssignments";
@@ -151,8 +152,25 @@ export async function listSessionsService(ctx: QueryCtx, args: ListSessionsArgs)
 					.order(sortDirection)
 					.paginate(args.paginationOpts);
 
+	const assignedEditorTokens = [
+		...new Set(
+			bookingsPage.page
+				.map((session) => session.assignedEditorTokenIdentifier)
+				.filter((tokenIdentifier): tokenIdentifier is string => tokenIdentifier !== undefined)
+		)
+	];
+
+	const assignedEditorDisplayNamesByToken = await getEditorDisplayNamesByToken(
+		ctx,
+		assignedEditorTokens
+	);
+
 	const page = await Promise.all(
 		bookingsPage.page.map(async (session) => {
+			const assignedEditorDisplayName = session.assignedEditorTokenIdentifier
+				? assignedEditorDisplayNamesByToken.get(session.assignedEditorTokenIdentifier)
+				: undefined;
+
 			const [hasDriveWorkflowFailure, stripeInvoicesResult] = await Promise.all([
 				getDriveWorkflowFailureForBooking(ctx, session),
 				listStripeInvoicesForBooking(ctx, session._id)
@@ -161,13 +179,23 @@ export async function listSessionsService(ctx: QueryCtx, args: ListSessionsArgs)
 			const stripeInvoicesSummary = summarizeStripeInvoices(stripeInvoicesResult.unwrapOr([]));
 
 			if (!session.packageId) {
-				return { ...session, hasDriveWorkflowFailure, stripeInvoicesSummary };
+				return {
+					...session,
+					assignedEditorDisplayName,
+					hasDriveWorkflowFailure,
+					stripeInvoicesSummary
+				};
 			}
 
 			const packageRecord = await ctx.db.get(session.packageId);
 
 			if (!packageRecord) {
-				return { ...session, hasDriveWorkflowFailure, stripeInvoicesSummary };
+				return {
+					...session,
+					assignedEditorDisplayName,
+					hasDriveWorkflowFailure,
+					stripeInvoicesSummary
+				};
 			}
 
 			const packageSessions = await getCapacityConsumingPackageSessions(
@@ -178,6 +206,7 @@ export async function listSessionsService(ctx: QueryCtx, args: ListSessionsArgs)
 
 			return {
 				...session,
+				assignedEditorDisplayName,
 				hasDriveWorkflowFailure,
 				stripeInvoicesSummary,
 				packageInvoiceNumber: formatBookingInvoiceNumber(

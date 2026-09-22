@@ -6,7 +6,6 @@ import { TableCell, TableRow } from "#/components/ui/table";
 import { toast } from "sonner";
 import { cn } from "#/lib/utils";
 import { SessionActions } from "#studio/features/admin/components/SessionActions";
-import type { ActiveEditor } from "#studio/features/admin/components/SessionEditorAssignment";
 import { StatusIcon } from "#studio/features/admin/components/StatusIcon";
 import {
 	CopyableText,
@@ -45,8 +44,6 @@ import {
 } from "#studio/lib/bookingdatetime";
 
 type SessionTableRowProps = {
-	activeEditors: ActiveEditor[];
-	assignedEditorDisplayName: string | null;
 	session: SessionRecord;
 	onPackageFilterClick: (invoiceNumber: string) => void;
 };
@@ -275,16 +272,12 @@ function PackageSessionProgress({
 	);
 }
 
-export function SessionTableRow({
-	activeEditors,
-	assignedEditorDisplayName,
-	session,
-	onPackageFilterClick
-}: SessionTableRowProps) {
+export function SessionTableRow({ session, onPackageFilterClick }: SessionTableRowProps) {
 	const isPastSession = !isUpcomingBooking(session.date, session.time);
 	const relativeDateLabel = formatBookingRelativeDate(session.date);
 	const packageSessionProgressLabel = getPackageSessionProgressLabel(session);
 	const packageInvoiceNumber = session.packageInvoiceNumber;
+	const assignedEditorDisplayName = session.assignedEditorDisplayName ?? null;
 	const deliverablesEmailAction = useDeliverablesEmailAction(session);
 	const deliverableStatus = isDeliverableSession(session) ? getDeliverableStatus(session) : null;
 	const pastCellClassName = isPastSession ? "opacity-70" : undefined;
@@ -415,7 +408,6 @@ export function SessionTableRow({
 			</TableCell>
 			<TableCell>
 				<SessionActions
-					activeEditors={activeEditors}
 					deliverablesEmailAction={deliverablesEmailAction}
 					session={session}
 				/>

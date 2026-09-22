@@ -1,6 +1,6 @@
 import type { FunctionReturnType } from "convex/server";
 import { useEffect, useState } from "react";
-import { useMutation } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import { LoaderCircle } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "#/components/ui/button";
@@ -28,7 +28,7 @@ import type { SessionRecord } from "#studio/features/admin/lib/admin-sessions";
 
 export type ActiveEditor = FunctionReturnType<typeof api.sessions.listActiveEditors>[number];
 
-type SessionEditorAssignmentProps = { activeEditors: ActiveEditor[]; session: SessionRecord };
+type SessionEditorAssignmentProps = { isMenuOpen: boolean; session: SessionRecord };
 
 type AssignmentConfirmation =
 	| { status: "closed" }
@@ -95,16 +95,25 @@ function EditorDetails({ editor, label }: { editor: ActiveEditor; label: string 
 
 type EditorSelectProps = {
 	activeEditors: ActiveEditor[];
+	assignedEditorDisplayName: string | null;
+	isLoadingEditors: boolean;
 	session: SessionRecord;
 	isSaving: boolean;
 	onSelect: (value: string) => void;
 };
 
-function EditorSelect({ activeEditors, session, isSaving, onSelect }: EditorSelectProps) {
+function EditorSelect({
+	activeEditors,
+	assignedEditorDisplayName,
+	isLoadingEditors,
+	session,
+	isSaving,
+	onSelect
+}: EditorSelectProps) {
 	return (
 		<Select
 			value={session.assignedEditorTokenIdentifier ?? UNASSIGNED_VALUE}
-			disabled={isSaving}
+			disabled={isSaving || isLoadingEditors}
 			onValueChange={onSelect}>
 			<SelectTrigger
 				size="sm"
@@ -115,6 +124,13 @@ function EditorSelect({ activeEditors, session, isSaving, onSelect }: EditorSele
 						<LoaderCircle className="animate-spin" />
 						Assigning
 					</>
+				) : isLoadingEditors ? (
+					<>
+						<LoaderCircle className="animate-spin" />
+						Loading editors
+					</>
+				) : assignedEditorDisplayName ? (
+					<span>{assignedEditorDisplayName}</span>
 				) : (
 					<SelectValue placeholder="No editor assigned" />
 				)}
@@ -135,8 +151,11 @@ function EditorSelect({ activeEditors, session, isSaving, onSelect }: EditorSele
 	);
 }
 
-export function SessionEditorAssignment({ activeEditors, session }: SessionEditorAssignmentProps) {
+export function SessionEditorAssignment({ isMenuOpen, session }: SessionEditorAssignmentProps) {
 	const assignSessionEditor = useMutation(api.sessions.assignSessionEditor);
+	const activeEditorsResult = useQuery(api.sessions.listActiveEditors, isMenuOpen ? {} : "skip");
+	const activeEditors = activeEditorsResult ?? [];
+	const isLoadingEditors = isMenuOpen && activeEditorsResult === undefined;
 	const [isSaving, setIsSaving] = useState(false);
 	const [adminNotes, setAdminNotes] = useState(session.adminNotes ?? "");
 	const [confirmation, setConfirmation] = useState<AssignmentConfirmation>({ status: "closed" });
@@ -198,6 +217,8 @@ export function SessionEditorAssignment({ activeEditors, session }: SessionEdito
 		<>
 			<EditorSelect
 				activeEditors={activeEditors}
+				assignedEditorDisplayName={session.assignedEditorDisplayName ?? null}
+				isLoadingEditors={isLoadingEditors}
 				session={session}
 				isSaving={isSaving}
 				onSelect={requestAssignment}

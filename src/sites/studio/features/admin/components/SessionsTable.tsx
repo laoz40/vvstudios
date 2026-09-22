@@ -7,8 +7,10 @@ import {
 	TableHeader,
 	TableRow
 } from "#/components/ui/table";
-import { SortHeaderButton, AdminTableLoadingRow } from "#studio/features/admin/components/AdminDashboardTableUtils";
-import type { ActiveEditor } from "#studio/features/admin/components/SessionEditorAssignment";
+import {
+	SortHeaderButton,
+	AdminTableLoadingRow
+} from "#studio/features/admin/components/AdminDashboardTableUtils";
 import { SessionTableRow } from "#studio/features/admin/components/SessionTableRow";
 import { SessionsTableFilters } from "#studio/features/admin/components/SessionsTableFilters";
 import { SessionsTableFooter } from "#studio/features/admin/components/SessionsTableFooter";
@@ -25,7 +27,6 @@ import {
 import { InfiniteScrollSentinel } from "#studio/components/InfiniteScrollSentinel";
 
 type SessionsTableProps = {
-	activeEditors: ActiveEditor[];
 	sessions: SessionRecord[];
 	canLoadMoreSessions: boolean;
 	isLoadingMoreSessions: boolean;
@@ -38,7 +39,6 @@ type SessionsTableProps = {
 };
 
 export function SessionsTable({
-	activeEditors,
 	sessions,
 	canLoadMoreSessions,
 	isLoadingMoreSessions,
@@ -80,14 +80,6 @@ export function SessionsTable({
 			showUpcomingOnly
 		});
 	}, [sessions, searchQuery, showArchived, showStaleSessions, showUpcomingOnly]);
-
-	const editorDisplayNameByToken = useMemo(
-		() =>
-			new Map(
-				activeEditors.map((editor) => [editor.tokenIdentifier, editor.displayName || editor.email])
-			),
-		[activeEditors]
-	);
 
 	// Prefetch another page when client-side filters hide every loaded session.
 	useEffect(() => {
@@ -182,13 +174,6 @@ export function SessionsTable({
 							filteredSessions.map((session) => (
 								<SessionTableRow
 									key={session._id}
-									activeEditors={activeEditors}
-									assignedEditorDisplayName={
-										session.assignedEditorTokenIdentifier
-											? (editorDisplayNameByToken.get(session.assignedEditorTokenIdentifier) ??
-												null)
-											: null
-									}
 									session={session}
 									onPackageFilterClick={onSearchQueryChange}
 								/>
