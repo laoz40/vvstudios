@@ -447,6 +447,28 @@ export type BookingFormValues = z.input<typeof bookingSchema>;
 
 export const publicBookingSchema = bookingSchema;
 
+export function getBookingFieldBlurError(
+	fieldName: keyof BookingFormValues,
+	formValues: BookingFormValues
+): string | undefined {
+	const validationResult = publicBookingSchema.safeParse(formValues);
+
+	if (validationResult.success) {
+		return undefined;
+	}
+
+	const issue = validationResult.error.issues.find((entry) => entry.path[0] === fieldName);
+
+	return issue?.message;
+}
+
+export function bookingFieldBlurValidator(fieldName: keyof BookingFormValues) {
+	return {
+		onBlur: ({ fieldApi }: { fieldApi: { form: { state: { values: BookingFormValues } } } }) =>
+			getBookingFieldBlurError(fieldName, fieldApi.form.state.values)
+	};
+}
+
 export const packageFormSchema = z
 	.object({ ...sharedBookingFields, packageSize: requiredPackageSize })
 	.superRefine((values, ctx) => {

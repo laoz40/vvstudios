@@ -10,6 +10,7 @@ import {
 	transitionClassName
 } from "#studio/features/booking-form/lib/booking-form-styles";
 import {
+	bookingFieldBlurValidator,
 	isDurationOption,
 	toFieldErrorObjects,
 	type BookingFormValues
@@ -74,7 +75,9 @@ export function BookingRecordingSpaceDurationSection() {
 
 	return (
 		<>
-			<formApi.Field name="duration">
+			<formApi.Field
+				name="duration"
+				validators={bookingFieldBlurValidator("duration")}>
 				{(field) => (
 					<section
 						data-field-name="duration"
@@ -143,7 +146,9 @@ export function BookingRecordingSpaceDurationSection() {
 				)}
 			</formApi.Field>
 
-			<formApi.Field name="service">
+			<formApi.Field
+				name="service"
+				validators={bookingFieldBlurValidator("service")}>
 				{(field) => (
 					<RecordingSpaceField
 						disabled={isPackageBooking}

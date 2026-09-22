@@ -3,6 +3,7 @@ import { FieldError } from "#/components/ui/field";
 import { BookingDateTimePicker } from "#studio/features/booking-form/components/BookingDateTimePicker";
 import { useBookingFormContext } from "#studio/features/booking-form/lib/booking-form-context";
 import {
+	bookingFieldBlurValidator,
 	getBookingTimeSelectionMessage,
 	toFieldErrorObjects
 } from "#studio/features/booking-form/lib/booking-form-model";
@@ -14,21 +15,26 @@ export interface BookingDateTimeSectionProps {
 
 export function BookingDateTimeSection({ availability }: BookingDateTimeSectionProps) {
 	const formApi = useBookingFormContext();
-	const formValues = useSelector(formApi.store, (state) => state.values);
+	const date = useSelector(formApi.store, (state) => state.values.date);
+	const duration = useSelector(formApi.store, (state) => state.values.duration);
 	const submissionAttempts = useSelector(formApi.store, (state) => state.submissionAttempts);
 	const shouldShowFieldError = submissionAttempts > 0;
 
 	const timeSelectionMessage = getBookingTimeSelectionMessage({
-		hasDate: Boolean(formValues.date),
-		hasDuration: Boolean(formValues.duration),
+		hasDate: Boolean(date),
+		hasDuration: Boolean(duration),
 		isViewingSelectedMonth: availability.isViewingSelectedMonth
 	});
 
 	return (
 		<section className="mt-0 flex flex-col gap-4">
-			<formApi.Field name="date">
+			<formApi.Field
+				name="date"
+				validators={bookingFieldBlurValidator("date")}>
 				{(dateField) => (
-					<formApi.Field name="time">
+					<formApi.Field
+						name="time"
+						validators={bookingFieldBlurValidator("time")}>
 						{(timeField) => (
 							<BookingDateTimePicker
 								availability={availability}
@@ -37,7 +43,7 @@ export function BookingDateTimeSection({ availability }: BookingDateTimeSectionP
 										<FieldError errors={toFieldErrorObjects(dateField.state.meta.errors)} />
 									) : null
 								}
-								duration={formValues.duration}
+								duration={duration}
 								onDateChange={(dateValue) => {
 									dateField.handleChange(dateValue);
 									dateField.handleBlur();
