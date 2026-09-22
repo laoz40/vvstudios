@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useMemo } from "react";
+import { Store, useSelector } from "@tanstack/react-store";
 import { LoaderCircle, X } from "lucide-react";
 import {
 	Accordion,
@@ -23,42 +24,33 @@ import { RadioGroup, RadioGroupItem } from "#/components/ui/radio-group";
 import { Textarea } from "#/components/ui/textarea";
 import {
 	DURATION_OPTIONS,
-	toDeliverableCountOption,
-	pickBookingAddonQuantities,
-	type BookingAddonQuantities,
-	type BookingFormValues
+	pickBookingAddonQuantities
 } from "#studio/features/booking-form/lib/booking-form-model";
 import {
 	calculatePackageAmounts,
 	isPackageSize,
-	PACKAGE_PLANS,
-	type PackageSize
+	PACKAGE_PLANS
 } from "#studio/features/booking-form/lib/booking-pricing";
 import {
 	adminOptionButtonClassName,
 	adminOptionRowClassName
 } from "#studio/features/admin/lib/admin-form-styles";
-import { toAdminSessionDuration } from "#studio/features/admin/lib/admin-sessions";
 import {
 	formatAudAmount,
 	getAudAmountRowShowCents
 } from "#studio/features/admin/lib/remaining-balance";
 import type { AdminPackageRow } from "#studio/features/admin/lib/admin-packages";
-import { getSydneyDateValue, getSydneyTimeValue, toOptionId } from "#studio/lib/bookingdatetime";
+import { usePackageEditPricingValues } from "#studio/features/admin/hooks/usePackageEditPricingValues";
+import {
+	PackageEditDraftStoreContext,
+	buildPackageEditDraft,
+	setPackageEditDraftField,
+	usePackageEditDraftStore,
+	type PackageEditDraft
+} from "#studio/features/admin/lib/package-edit-draft-store";
+import { toOptionId } from "#studio/lib/bookingdatetime";
 
-export type PackageEditDraft = {
-	accountName: string;
-	addons: BookingFormValues["addons"];
-	abn: string;
-	customerEmail: string;
-	customerName: string;
-	customerPhone: string;
-	duration: BookingFormValues["duration"];
-	expiresDate: string;
-	expiresTime: string;
-	notes: string;
-	packageSize: PackageSize;
-} & BookingAddonQuantities;
+export type { PackageEditDraft } from "#studio/features/admin/lib/package-edit-draft-store";
 
 type PackageEditDialogProps = {
 	open: boolean;
@@ -80,27 +72,6 @@ function formatSignedPriceDifference(diff: number, showCents: boolean) {
 	return `(${sign}${formatAudAmount(Math.abs(diff), { showCents })})`;
 }
 
-function buildPackageEditDraft(packageRow: AdminPackageRow): PackageEditDraft {
-	return {
-		accountName: packageRow.accountName,
-		addons: [...packageRow.addons],
-		abn: packageRow.abn ?? "",
-		clipsPackageQuantity: toDeliverableCountOption(packageRow.clipsPackageQuantity),
-		completeEditQuantity: toDeliverableCountOption(packageRow.completeEditQuantity),
-		customerEmail: packageRow.customerEmail,
-		customerName: packageRow.customerName,
-		customerPhone: packageRow.customerPhone,
-		duration: toAdminSessionDuration(packageRow.duration),
-		essentialEditQuantity: toDeliverableCountOption(packageRow.essentialEditQuantity),
-		handcraftedClipsQuantity: toDeliverableCountOption(packageRow.handcraftedClipsQuantity),
-		expiresDate:
-			packageRow.expiresAt === undefined ? "" : getSydneyDateValue(new Date(packageRow.expiresAt)),
-		expiresTime: packageRow.expiresAt === undefined ? "" : getSydneyTimeValue(packageRow.expiresAt),
-		notes: packageRow.notes ?? "",
-		packageSize: packageRow.packageSize
-	};
-}
-
 function getPackageDraftTotal(draft: PackageEditDraft) {
 	return calculatePackageAmounts({
 		addons: draft.addons,
@@ -108,6 +79,372 @@ function getPackageDraftTotal(draft: PackageEditDraft) {
 		packageSize: draft.packageSize,
 		...pickBookingAddonQuantities(draft)
 	}).totalDueAmount;
+}
+
+type PackageEditFieldProps = { isSaving: boolean };
+
+function PackageEditCustomerNameField({ isSaving }: PackageEditFieldProps) {
+	const store = usePackageEditDraftStore();
+	const customerName = useSelector(store, (draft) => draft.customerName);
+
+	return (
+		<div className={compactFieldClassName}>
+			<Label htmlFor="edit-package-name">Customer name</Label>
+			<Input
+				id="edit-package-name"
+				name="customerName"
+				autoComplete="name"
+				value={customerName}
+				onChange={(event) => {
+					setPackageEditDraftField(store, "customerName", event.target.value);
+				}}
+				required
+				disabled={isSaving}
+			/>
+		</div>
+	);
+}
+
+function PackageEditAccountNameField({ isSaving }: PackageEditFieldProps) {
+	const store = usePackageEditDraftStore();
+	const accountName = useSelector(store, (draft) => draft.accountName);
+
+	return (
+		<div className={compactFieldClassName}>
+			<Label htmlFor="edit-package-account-name">Account name</Label>
+			<Input
+				id="edit-package-account-name"
+				name="accountName"
+				autoComplete="organization"
+				value={accountName}
+				onChange={(event) => {
+					setPackageEditDraftField(store, "accountName", event.target.value);
+				}}
+				required
+				disabled={isSaving}
+			/>
+		</div>
+	);
+}
+
+function PackageEditAbnField({ isSaving }: PackageEditFieldProps) {
+	const store = usePackageEditDraftStore();
+	const abn = useSelector(store, (draft) => draft.abn);
+
+	return (
+		<div className={compactFieldClassName}>
+			<Label htmlFor="edit-package-abn">ABN</Label>
+			<Input
+				id="edit-package-abn"
+				name="abn"
+				autoComplete="off"
+				spellCheck={false}
+				value={abn}
+				onChange={(event) => {
+					setPackageEditDraftField(store, "abn", event.target.value);
+				}}
+				inputMode="numeric"
+				placeholder="Optional"
+				disabled={isSaving}
+			/>
+		</div>
+	);
+}
+
+function PackageEditEmailField({ isSaving }: PackageEditFieldProps) {
+	const store = usePackageEditDraftStore();
+	const customerEmail = useSelector(store, (draft) => draft.customerEmail);
+
+	return (
+		<div className={compactFieldClassName}>
+			<Label htmlFor="edit-package-email">Email</Label>
+			<Input
+				id="edit-package-email"
+				name="customerEmail"
+				type="email"
+				autoComplete="email"
+				spellCheck={false}
+				value={customerEmail}
+				onChange={(event) => {
+					setPackageEditDraftField(store, "customerEmail", event.target.value);
+				}}
+				required
+				disabled={isSaving}
+			/>
+		</div>
+	);
+}
+
+function PackageEditPhoneField({ isSaving }: PackageEditFieldProps) {
+	const store = usePackageEditDraftStore();
+	const customerPhone = useSelector(store, (draft) => draft.customerPhone);
+
+	return (
+		<div className={compactFieldClassName}>
+			<Label htmlFor="edit-package-phone">Phone number</Label>
+			<Input
+				id="edit-package-phone"
+				name="customerPhone"
+				type="tel"
+				autoComplete="tel"
+				inputMode="tel"
+				value={customerPhone}
+				onChange={(event) => {
+					setPackageEditDraftField(store, "customerPhone", event.target.value);
+				}}
+				required
+				disabled={isSaving}
+			/>
+		</div>
+	);
+}
+
+function PackageEditNotesField({ isSaving }: PackageEditFieldProps) {
+	const store = usePackageEditDraftStore();
+	const notes = useSelector(store, (draft) => draft.notes);
+
+	return (
+		<div className={compactFieldClassName}>
+			<Label htmlFor="edit-package-notes">Client notes</Label>
+			<Textarea
+				id="edit-package-notes"
+				name="notes"
+				autoComplete="off"
+				rows={2}
+				value={notes}
+				onChange={(event) => {
+					setPackageEditDraftField(store, "notes", event.target.value);
+				}}
+				placeholder="Optional"
+				disabled={isSaving}
+			/>
+		</div>
+	);
+}
+
+function PackageEditExpiresDateField({ isSaving }: PackageEditFieldProps) {
+	const store = usePackageEditDraftStore();
+	const expiresDate = useSelector(store, (draft) => draft.expiresDate);
+
+	return (
+		<div className={compactFieldClassName}>
+			<Label htmlFor="edit-package-expires-date">Package expiry date</Label>
+			<Input
+				id="edit-package-expires-date"
+				name="expiresDate"
+				type="date"
+				autoComplete="off"
+				value={expiresDate}
+				onChange={(event) => {
+					setPackageEditDraftField(store, "expiresDate", event.target.value);
+				}}
+				required
+				disabled={isSaving}
+			/>
+		</div>
+	);
+}
+
+function PackageEditExpiresTimeField({ isSaving }: PackageEditFieldProps) {
+	const store = usePackageEditDraftStore();
+	const expiresTime = useSelector(store, (draft) => draft.expiresTime);
+
+	return (
+		<div className={compactFieldClassName}>
+			<Label htmlFor="edit-package-expires-time">Package expiry time</Label>
+			<Input
+				id="edit-package-expires-time"
+				name="expiresTime"
+				type="time"
+				autoComplete="off"
+				value={expiresTime}
+				onChange={(event) => {
+					setPackageEditDraftField(store, "expiresTime", event.target.value);
+				}}
+				required
+				disabled={isSaving}
+			/>
+		</div>
+	);
+}
+
+function PackageEditPackageSizeField({ isSaving }: PackageEditFieldProps) {
+	const store = usePackageEditDraftStore();
+	const packageSize = useSelector(store, (draft) => draft.packageSize);
+
+	return (
+		<div className="grid gap-2">
+			<Label>Package sessions</Label>
+			<RadioGroup
+				value={String(packageSize)}
+				onValueChange={(value) => {
+					const nextPackageSize = Number(value);
+
+					if (isPackageSize(nextPackageSize)) {
+						setPackageEditDraftField(store, "packageSize", nextPackageSize);
+					}
+				}}
+				className={adminOptionRowClassName}>
+				{Object.keys(PACKAGE_PLANS)
+					.map(Number)
+					.filter(isPackageSize)
+					.map((optionPackageSize) => {
+						const optionId = `edit-package-size-${optionPackageSize}`;
+
+						return (
+							<label
+								key={optionPackageSize}
+								htmlFor={optionId}
+								className={adminOptionButtonClassName}>
+								<RadioGroupItem
+									id={optionId}
+									value={String(optionPackageSize)}
+									disabled={isSaving}
+									className="sr-only"
+								/>
+								{optionPackageSize} sessions
+							</label>
+						);
+					})}
+			</RadioGroup>
+		</div>
+	);
+}
+
+function PackageEditDurationField({ isSaving }: PackageEditFieldProps) {
+	const store = usePackageEditDraftStore();
+	const duration = useSelector(store, (draft) => draft.duration);
+
+	return (
+		<div className="grid gap-2">
+			<Label>Session duration</Label>
+			<RadioGroup
+				value={duration}
+				onValueChange={(value) => {
+					const nextDuration = DURATION_OPTIONS.find((option) => option === value);
+
+					if (nextDuration) {
+						setPackageEditDraftField(store, "duration", nextDuration);
+					}
+				}}
+				className={adminOptionRowClassName}>
+				{DURATION_OPTIONS.map((option) => {
+					const optionId = `edit-package-duration-${toOptionId(option)}`;
+
+					return (
+						<label
+							key={option}
+							htmlFor={optionId}
+							className={adminOptionButtonClassName}>
+							<RadioGroupItem
+								id={optionId}
+								value={option}
+								disabled={isSaving}
+								className="sr-only"
+							/>
+							{option}
+						</label>
+					);
+				})}
+			</RadioGroup>
+		</div>
+	);
+}
+
+type PackageEditAddonValues = Pick<
+	PackageEditDraft,
+	| "addons"
+	| "clipsPackageQuantity"
+	| "completeEditQuantity"
+	| "essentialEditQuantity"
+	| "handcraftedClipsQuantity"
+>;
+
+function getPackageEditAddonValues(draft: PackageEditDraft): PackageEditAddonValues {
+	return {
+		addons: draft.addons,
+		essentialEditQuantity: draft.essentialEditQuantity,
+		completeEditQuantity: draft.completeEditQuantity,
+		clipsPackageQuantity: draft.clipsPackageQuantity,
+		handcraftedClipsQuantity: draft.handcraftedClipsQuantity
+	};
+}
+
+function getPackageEditAddonValuesKey(values: PackageEditAddonValues): string {
+	return [
+		values.addons.join("\0"),
+		values.essentialEditQuantity,
+		values.completeEditQuantity,
+		values.clipsPackageQuantity,
+		values.handcraftedClipsQuantity
+	].join("|");
+}
+
+function arePackageEditAddonValuesEqual(
+	left: PackageEditAddonValues,
+	right: PackageEditAddonValues
+) {
+	return getPackageEditAddonValuesKey(left) === getPackageEditAddonValuesKey(right);
+}
+
+function PackageEditAddonsSection({
+	packageId,
+	isSaving
+}: {
+	packageId: string;
+	isSaving: boolean;
+}) {
+	const store = usePackageEditDraftStore();
+
+	const addonValues = useSelector(store, (draft) => getPackageEditAddonValues(draft), {
+		compare: arePackageEditAddonValuesEqual
+	});
+
+	return (
+		<AdminAddonOptions
+			key={packageId}
+			addons={addonValues.addons}
+			essentialEditQuantity={addonValues.essentialEditQuantity}
+			completeEditQuantity={addonValues.completeEditQuantity}
+			clipsPackageQuantity={addonValues.clipsPackageQuantity}
+			handcraftedClipsQuantity={addonValues.handcraftedClipsQuantity}
+			disabled={isSaving}
+			idPrefix="edit-package-addon"
+			showLabel={false}
+			onChange={(nextValues) => {
+				store.setState((current) => ({ ...current, ...nextValues }));
+			}}
+		/>
+	);
+}
+
+function PackageEditPriceSummary({ originalPrice }: { originalPrice: number }) {
+	const pricingValues = usePackageEditPricingValues();
+	const newPrice = calculatePackageAmounts(pricingValues).totalDueAmount;
+	const priceDifference = newPrice - originalPrice;
+	const showPriceCents = getAudAmountRowShowCents([originalPrice, newPrice, priceDifference]);
+
+	return (
+		<div className="flex flex-wrap items-center gap-x-6 gap-y-1 border-t pt-3 text-sm tabular-nums">
+			<p>
+				Total:{" "}
+				<span className="font-medium">
+					{formatAudAmount(originalPrice, { showCents: showPriceCents })}
+				</span>
+			</p>
+			{priceDifference !== 0 ? (
+				<p>
+					New:{" "}
+					<span className="font-medium">
+						{formatAudAmount(newPrice, { showCents: showPriceCents })}
+					</span>{" "}
+					<span className="text-muted-foreground">
+						{formatSignedPriceDifference(priceDifference, showPriceCents)}
+					</span>
+				</p>
+			) : null}
+		</div>
+	);
 }
 
 type PackageEditDialogFormProps = {
@@ -123,291 +460,86 @@ function PackageEditDialogForm({
 	onOpenChange,
 	onSave
 }: PackageEditDialogFormProps) {
-	const [draft, setDraft] = useState<PackageEditDraft>(() => buildPackageEditDraft(packageRow));
-
-	const originalPrice = packageRow.totalDueAmount;
-	const newPrice = getPackageDraftTotal(draft);
-	const priceDifference = newPrice - originalPrice;
-	const showPriceCents = getAudAmountRowShowCents([originalPrice, newPrice, priceDifference]);
+	const draftStore = useMemo(() => new Store(buildPackageEditDraft(packageRow)), [packageRow]);
+	const originalPrice = getPackageDraftTotal(buildPackageEditDraft(packageRow));
 
 	return (
-		<form
-			className="flex min-h-0 flex-col gap-3 overflow-y-auto overscroll-contain pr-1"
-			data-lenis-prevent
-			onSubmit={(event) => {
-				event.preventDefault();
-				void onSave(draft);
-			}}>
-			<Accordion
-				type="single"
-				collapsible
-				className="w-full">
-				<AccordionItem value="client-details">
-					<AccordionTrigger className={accordionTriggerClassName}>Client details</AccordionTrigger>
-					<AccordionContent className={accordionContentClassName}>
-						<div className="grid gap-3 sm:grid-cols-2">
-							<div className={compactFieldClassName}>
-								<Label htmlFor="edit-package-name">Customer name</Label>
-								<Input
-									id="edit-package-name"
-									name="customerName"
-									autoComplete="name"
-									value={draft.customerName}
-									onChange={(event) => {
-										setDraft((current) => ({ ...current, customerName: event.target.value }));
-									}}
-									required
-									disabled={isSaving}
-								/>
+		<PackageEditDraftStoreContext value={draftStore}>
+			<form
+				className="flex min-h-0 flex-col gap-3 overflow-y-auto overscroll-contain pr-1"
+				data-lenis-prevent
+				onSubmit={(event) => {
+					event.preventDefault();
+					void onSave(draftStore.state);
+				}}>
+				<Accordion
+					type="single"
+					collapsible
+					className="w-full">
+					<AccordionItem value="client-details">
+						<AccordionTrigger className={accordionTriggerClassName}>
+							Client details
+						</AccordionTrigger>
+						<AccordionContent className={accordionContentClassName}>
+							<div className="grid gap-3 sm:grid-cols-2">
+								<PackageEditCustomerNameField isSaving={isSaving} />
+								<PackageEditAccountNameField isSaving={isSaving} />
+								<PackageEditAbnField isSaving={isSaving} />
+								<PackageEditEmailField isSaving={isSaving} />
+								<PackageEditPhoneField isSaving={isSaving} />
 							</div>
-							<div className={compactFieldClassName}>
-								<Label htmlFor="edit-package-account-name">Account name</Label>
-								<Input
-									id="edit-package-account-name"
-									name="accountName"
-									autoComplete="organization"
-									value={draft.accountName}
-									onChange={(event) => {
-										setDraft((current) => ({ ...current, accountName: event.target.value }));
-									}}
-									required
-									disabled={isSaving}
-								/>
+							<PackageEditNotesField isSaving={isSaving} />
+						</AccordionContent>
+					</AccordionItem>
+
+					<AccordionItem value="package-details">
+						<AccordionTrigger className={accordionTriggerClassName}>
+							Package details
+						</AccordionTrigger>
+						<AccordionContent className={accordionContentClassName}>
+							<div className="grid gap-3 sm:grid-cols-2">
+								<PackageEditExpiresDateField isSaving={isSaving} />
+								<PackageEditExpiresTimeField isSaving={isSaving} />
 							</div>
-							<div className={compactFieldClassName}>
-								<Label htmlFor="edit-package-abn">ABN</Label>
-								<Input
-									id="edit-package-abn"
-									name="abn"
-									autoComplete="off"
-									spellCheck={false}
-									value={draft.abn}
-									onChange={(event) => {
-										setDraft((current) => ({ ...current, abn: event.target.value }));
-									}}
-									inputMode="numeric"
-									placeholder="Optional"
-									disabled={isSaving}
-								/>
+
+							<div className="grid gap-3 sm:grid-cols-2">
+								<PackageEditPackageSizeField isSaving={isSaving} />
+								<PackageEditDurationField isSaving={isSaving} />
 							</div>
-							<div className={compactFieldClassName}>
-								<Label htmlFor="edit-package-email">Email</Label>
-								<Input
-									id="edit-package-email"
-									name="customerEmail"
-									type="email"
-									autoComplete="email"
-									spellCheck={false}
-									value={draft.customerEmail}
-									onChange={(event) => {
-										setDraft((current) => ({ ...current, customerEmail: event.target.value }));
-									}}
-									required
-									disabled={isSaving}
-								/>
-							</div>
-							<div className={compactFieldClassName}>
-								<Label htmlFor="edit-package-phone">Phone number</Label>
-								<Input
-									id="edit-package-phone"
-									name="customerPhone"
-									type="tel"
-									autoComplete="tel"
-									inputMode="tel"
-									value={draft.customerPhone}
-									onChange={(event) => {
-										setDraft((current) => ({ ...current, customerPhone: event.target.value }));
-									}}
-									required
-									disabled={isSaving}
-								/>
-							</div>
-						</div>
-						<div className={compactFieldClassName}>
-							<Label htmlFor="edit-package-notes">Client notes</Label>
-							<Textarea
-								id="edit-package-notes"
-								name="notes"
-								autoComplete="off"
-								rows={2}
-								value={draft.notes}
-								onChange={(event) => {
-									setDraft((current) => ({ ...current, notes: event.target.value }));
-								}}
-								placeholder="Optional"
-								disabled={isSaving}
+						</AccordionContent>
+					</AccordionItem>
+
+					<AccordionItem value="addons">
+						<AccordionTrigger className={accordionTriggerClassName}>Add-ons</AccordionTrigger>
+						<AccordionContent className={accordionContentClassName}>
+							<PackageEditAddonsSection
+								packageId={packageRow.id}
+								isSaving={isSaving}
 							/>
-						</div>
-					</AccordionContent>
-				</AccordionItem>
+						</AccordionContent>
+					</AccordionItem>
+				</Accordion>
 
-				<AccordionItem value="package-details">
-					<AccordionTrigger className={accordionTriggerClassName}>Package details</AccordionTrigger>
-					<AccordionContent className={accordionContentClassName}>
-						<div className="grid gap-3 sm:grid-cols-2">
-							<div className={compactFieldClassName}>
-								<Label htmlFor="edit-package-expires-date">Package expiry date</Label>
-								<Input
-									id="edit-package-expires-date"
-									name="expiresDate"
-									type="date"
-									autoComplete="off"
-									value={draft.expiresDate}
-									onChange={(event) => {
-										setDraft((current) => ({ ...current, expiresDate: event.target.value }));
-									}}
-									required
-									disabled={isSaving}
-								/>
-							</div>
-							<div className={compactFieldClassName}>
-								<Label htmlFor="edit-package-expires-time">Package expiry time</Label>
-								<Input
-									id="edit-package-expires-time"
-									name="expiresTime"
-									type="time"
-									autoComplete="off"
-									value={draft.expiresTime}
-									onChange={(event) => {
-										setDraft((current) => ({ ...current, expiresTime: event.target.value }));
-									}}
-									required
-									disabled={isSaving}
-								/>
-							</div>
-						</div>
+				<PackageEditPriceSummary originalPrice={originalPrice} />
 
-						<div className="grid gap-3 sm:grid-cols-2">
-							<div className="grid gap-2">
-								<Label>Package sessions</Label>
-								<RadioGroup
-									value={String(draft.packageSize)}
-									onValueChange={(value) => {
-										const packageSize = Number(value);
-
-										if (isPackageSize(packageSize)) {
-											setDraft((current) => ({ ...current, packageSize }));
-										}
-									}}
-									className={adminOptionRowClassName}>
-									{Object.keys(PACKAGE_PLANS)
-										.map(Number)
-										.filter(isPackageSize)
-										.map((packageSize) => {
-											const optionId = `edit-package-size-${packageSize}`;
-
-											return (
-												<label
-													key={packageSize}
-													htmlFor={optionId}
-													className={adminOptionButtonClassName}>
-													<RadioGroupItem
-														id={optionId}
-														value={String(packageSize)}
-														disabled={isSaving}
-														className="sr-only"
-													/>
-													{packageSize} sessions
-												</label>
-											);
-										})}
-								</RadioGroup>
-							</div>
-
-							<div className="grid gap-2">
-								<Label>Session duration</Label>
-								<RadioGroup
-									value={draft.duration}
-									onValueChange={(value) => {
-										const duration = DURATION_OPTIONS.find((option) => option === value);
-
-										if (duration) {
-											setDraft((current) => ({ ...current, duration }));
-										}
-									}}
-									className={adminOptionRowClassName}>
-									{DURATION_OPTIONS.map((duration) => {
-										const optionId = `edit-package-duration-${toOptionId(duration)}`;
-
-										return (
-											<label
-												key={duration}
-												htmlFor={optionId}
-												className={adminOptionButtonClassName}>
-												<RadioGroupItem
-													id={optionId}
-													value={duration}
-													disabled={isSaving}
-													className="sr-only"
-												/>
-												{duration}
-											</label>
-										);
-									})}
-								</RadioGroup>
-							</div>
-						</div>
-					</AccordionContent>
-				</AccordionItem>
-
-				<AccordionItem value="addons">
-					<AccordionTrigger className={accordionTriggerClassName}>Add-ons</AccordionTrigger>
-					<AccordionContent className={accordionContentClassName}>
-						<AdminAddonOptions
-							key={packageRow.id}
-							addons={draft.addons}
-							essentialEditQuantity={draft.essentialEditQuantity}
-							completeEditQuantity={draft.completeEditQuantity}
-							clipsPackageQuantity={draft.clipsPackageQuantity}
-							handcraftedClipsQuantity={draft.handcraftedClipsQuantity}
-							disabled={isSaving}
-							idPrefix="edit-package-addon"
-							showLabel={false}
-							onChange={(nextValues) => {
-								setDraft((current) => ({ ...current, ...nextValues }));
-							}}
-						/>
-					</AccordionContent>
-				</AccordionItem>
-			</Accordion>
-
-			<div className="flex flex-wrap items-center gap-x-6 gap-y-1 border-t pt-3 text-sm tabular-nums">
-				<p>
-					Total:{" "}
-					<span className="font-medium">
-						{formatAudAmount(originalPrice, { showCents: showPriceCents })}
-					</span>
-				</p>
-				{priceDifference !== 0 ? (
-					<p>
-						New:{" "}
-						<span className="font-medium">
-							{formatAudAmount(newPrice, { showCents: showPriceCents })}
-						</span>{" "}
-						<span className="text-muted-foreground">
-							{formatSignedPriceDifference(priceDifference, showPriceCents)}
-						</span>
-					</p>
-				) : null}
-			</div>
-
-			<DialogFooter className="gap-2">
-				<Button
-					type="button"
-					variant="outline"
-					onClick={() => onOpenChange(false)}
-					disabled={isSaving}>
-					Discard changes
-				</Button>
-				<Button
-					type="submit"
-					variant="destructive"
-					disabled={isSaving}>
-					{isSaving ? <LoaderCircle className="size-4 animate-spin" /> : null}
-					{isSaving ? "Saving" : "I am sure I want to make permanent changes"}
-				</Button>
-			</DialogFooter>
-		</form>
+				<DialogFooter className="gap-2">
+					<Button
+						type="button"
+						variant="outline"
+						onClick={() => onOpenChange(false)}
+						disabled={isSaving}>
+						Discard changes
+					</Button>
+					<Button
+						type="submit"
+						variant="destructive"
+						disabled={isSaving}>
+						{isSaving ? <LoaderCircle className="size-4 animate-spin" /> : null}
+						{isSaving ? "Saving" : "I am sure I want to make permanent changes"}
+					</Button>
+				</DialogFooter>
+			</form>
+		</PackageEditDraftStoreContext>
 	);
 }
 

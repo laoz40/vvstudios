@@ -1,5 +1,5 @@
 import type { AdminPackageRow } from "#studio/features/admin/lib/admin-packages";
-import type { PackageEditDraft } from "#studio/features/admin/components/PackageEditDialog";
+import type { PackageEditDraft } from "#studio/features/admin/lib/package-edit-draft-store";
 import { getSydneyDateValue, getSydneyTimeValue } from "#studio/lib/bookingdatetime";
 
 type PackageEditWarningField = keyof PackageEditDraft;
