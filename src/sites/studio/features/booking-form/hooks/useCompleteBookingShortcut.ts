@@ -1,25 +1,33 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type RefObject } from "react";
 
-export function useCompleteBookingShortcut(isDateTimeIncomplete: boolean) {
+export function useCompleteBookingShortcut(
+	isDateTimeIncomplete: boolean,
+	completeBookingTargetRef: RefObject<HTMLElement | null>
+) {
 	const dateTimeSectionRef = useRef<HTMLDivElement>(null);
-	const completeBookingButtonRef = useRef<HTMLDivElement>(null);
 	const [showScrollToCompleteBooking, setShowScrollToCompleteBooking] = useState(false);
 	const [hasReachedCompleteBooking, setHasReachedCompleteBooking] = useState(false);
 
-	// Hide the complete booking shortcut once its target is visible.
+	// Track whether the submit section is visible only while the scroll cue is shown.
 	useEffect(() => {
-		const updateHasReachedCompleteBooking = () => {
-			const completeBookingButton = completeBookingButtonRef.current;
+		if (!showScrollToCompleteBooking) {
+			setHasReachedCompleteBooking(false);
 
-			if (!completeBookingButton) {
+			return undefined;
+		}
+
+		const updateHasReachedCompleteBooking = () => {
+			const completeBookingTarget = completeBookingTargetRef.current;
+
+			if (!completeBookingTarget) {
 				setHasReachedCompleteBooking(false);
 
 				return;
 			}
 
-			setHasReachedCompleteBooking(
-				completeBookingButton.getBoundingClientRect().top <= window.innerHeight
-			);
+			const hasReached = completeBookingTarget.getBoundingClientRect().top <= window.innerHeight;
+
+			setHasReachedCompleteBooking((current) => (current === hasReached ? current : hasReached));
 		};
 
 		updateHasReachedCompleteBooking();
@@ -30,21 +38,20 @@ export function useCompleteBookingShortcut(isDateTimeIncomplete: boolean) {
 			window.removeEventListener("scroll", updateHasReachedCompleteBooking);
 			window.removeEventListener("resize", updateHasReachedCompleteBooking);
 		};
-	}, []);
+	}, [completeBookingTargetRef, showScrollToCompleteBooking]);
 
-	const handleScrollToCompleteBooking = useCallback(() => {
+	function handleScrollToCompleteBooking() {
 		const scrollTarget = isDateTimeIncomplete
 			? dateTimeSectionRef.current
-			: completeBookingButtonRef.current;
+			: completeBookingTargetRef.current;
 
 		scrollTarget?.scrollIntoView({
 			behavior: "smooth",
 			block: isDateTimeIncomplete ? "start" : "center"
 		});
-	}, [isDateTimeIncomplete]);
+	}
 
 	return {
-		completeBookingButtonRef,
 		dateTimeSectionRef,
 		handleScrollToCompleteBooking,
 		hasReachedCompleteBooking,
