@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { use, useState } from "react";
+import { browser } from "react-dom";
 import type { BookingFormApi } from "#studio/features/booking-form/lib/booking-form-context";
 import {
 	isPackageUnavailableAddon,
@@ -19,6 +20,8 @@ export function useSavedBookingInfo({
 	formApi,
 	onReuseSavedBookingInfo
 }: UseSavedBookingInfoParams) {
+	use(browser());
+
 	const [savedBookingInfo, setSavedBookingInfo] = useState<SavedBookingInfo | null>(() => {
 		const nextSavedBookingInfo = getStoredSavedBookingInfo();
 

@@ -1,4 +1,5 @@
-import { createContext, useContext, useState, type ReactNode } from "react";
+import { createContext, use, useContext, useState, type ReactNode } from "react";
+import { browser } from "react-dom";
 import {
 	readStoredPrivacyMode,
 	storePrivacyMode
@@ -14,6 +15,8 @@ type AdminPrivacyModeContextValue = {
 const AdminPrivacyModeContext = createContext<AdminPrivacyModeContextValue | null>(null);
 
 export function AdminPrivacyModeProvider({ children }: { children: ReactNode }) {
+	use(browser());
+
 	const [isPrivacyModeEnabled, setIsPrivacyModeEnabled] = useState(readStoredPrivacyMode);
 	const [revealedRowIds, setRevealedRowIds] = useState<ReadonlySet<string>>(() => new Set());
 

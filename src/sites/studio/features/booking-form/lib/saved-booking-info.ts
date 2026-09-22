@@ -99,21 +99,22 @@ export function removeStoredSavedBookingInfo() {
 }
 
 export function getAvailabilityRateLimitKey() {
-	if (typeof window === "undefined") {
+	const localStorage = getLocalStorage();
+
+	if (!localStorage) {
 		return "";
 	}
 
 	const nextKey = window.crypto.randomUUID();
 
 	try {
-		const localStorage = getLocalStorage();
-		const existingKey = localStorage?.getItem(availabilityRateLimitKeyStorageKey);
+		const existingKey = localStorage.getItem(availabilityRateLimitKeyStorageKey);
 
 		if (existingKey) {
 			return existingKey;
 		}
 
-		localStorage?.setItem(availabilityRateLimitKeyStorageKey, nextKey);
+		localStorage.setItem(availabilityRateLimitKeyStorageKey, nextKey);
 	} catch {
 		// Ignore storage failures so availability can still load without persistence.
 	}

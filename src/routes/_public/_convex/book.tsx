@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { Suspense, useRef, useState } from "react";
 import { useForm } from "@tanstack/react-form";
 import { createFileRoute } from "@tanstack/react-router";
 import { useAction } from "convex/react";
@@ -7,14 +7,13 @@ import {
 	BookDevErrorPanel,
 	type BookDevErrorCode
 } from "#studio/components/booking/BookDevErrorPanel";
-import { Label } from "#/components/ui/label";
 import { BookingModeSection } from "#studio/features/booking-form/components/BookingModeSection";
 import { BookingPackageSection } from "#studio/features/booking-form/components/BookingPackageSection";
 import { BookingContactSection } from "#studio/features/booking-form/components/BookingContactSection";
 import { BookingRecordingSpaceDurationSection } from "#studio/features/booking-form/components/BookingRecordingSpaceDurationSection.tsx";
 import { BookingAddonsSection } from "#studio/features/booking-form/components/BookingAddonsSection.tsx";
 import { BookingModalHost } from "#studio/features/booking-form/components/BookingModalHost";
-import { BookingSavedInfoBanner } from "#studio/features/booking-form/components/BookingSavedInfoBanner";
+import { BookingSavedInfoControls } from "#studio/features/booking-form/components/BookingSavedInfoControls";
 import { BookingDateTimeSection } from "#studio/features/booking-form/components/BookingDateTimeSection";
 import { CompleteBookingScrollShortcut } from "#studio/features/booking-form/components/CompleteBookingScrollShortcut";
 import { BookingSummary } from "#studio/features/booking-form/components/BookingSummary";
@@ -24,20 +23,19 @@ import {
 } from "#studio/features/booking-form/lib/booking-form-context";
 import {
 	INITIAL_FORM,
-	publicBookingSchema
+	publicBookingSchema,
+	type BookingFormValues
 } from "#studio/features/booking-form/lib/booking-form-model";
 import {
 	termsDialogPendingError,
 	useBookingSubmit
 } from "#studio/features/booking-form/hooks/useBookingSubmit";
 import { Button } from "#/components/ui/button";
-import { Checkbox } from "#/components/ui/checkbox";
-import { Field, FieldContent, FieldGroup } from "#/components/ui/field";
+import { FieldGroup } from "#/components/ui/field";
 import { api } from "#convex/_generated/api";
 import { devBookingErrorMessages } from "#studio/features/booking-form/lib/booking-page-errors";
 import { buildSeoHead, seoMetadata } from "#/lib/seo";
 import { useBookingCheckoutClose } from "#studio/features/booking-form/hooks/useBookingCheckoutClose";
-import { useSavedBookingInfo } from "#studio/features/booking-form/hooks/useSavedBookingInfo";
 import { scrollToFirstBookingFormError } from "#studio/features/booking-form/lib/form-error-scroll";
 import { cn } from "#/lib/utils";
 import { landingSectionHeadingClassName } from "#studio/lib/landing-styles";
@@ -48,17 +46,17 @@ export const Route = createFileRoute("/_public/_convex/book")({
 });
 
 function BookingPage() {
-	// Convex actions
 	const createEmbeddedCheckoutSession = useAction(api.stripe.createEmbeddedCheckoutSession);
 	const createPackageCheckoutSession = useAction(api.packagePayment.createPackageCheckoutSession);
 	const { handlePaymentModalClose } = useBookingCheckoutClose();
 
-	// Form and scroll targets
 	const formRef = useRef<HTMLFormElement>(null);
 	const dateTimeSectionRef = useRef<HTMLDivElement>(null);
 	const showScrollToCompleteBookingRef = useRef<(() => void) | null>(null);
 	const setAvailabilityErrorRef = useRef<((message: string) => void) | null>(null);
 	const completeBookingButtonRef = useRef<HTMLDivElement>(null);
+	const [savedInfoBannerMount, setSavedInfoBannerMount] = useState<HTMLDivElement | null>(null);
+	const persistBookingInfoRef = useRef<(value: BookingFormValues) => void>(() => {});
 
 	const formApi: BookingFormApi = useForm({
 		defaultValues: INITIAL_FORM,
@@ -68,16 +66,11 @@ function BookingPage() {
 		}
 	});
 
-	const savedBookingInfo = useSavedBookingInfo({
-		formApi,
-		onReuseSavedBookingInfo: () => showScrollToCompleteBookingRef.current?.()
-	});
-
 	const bookingSubmit = useBookingSubmit({
 		createEmbeddedCheckoutSession,
 		createPackageCheckoutSession,
 		formRef,
-		persistBookingInfoFromForm: savedBookingInfo.persistBookingInfoFromForm
+		persistBookingInfoFromForm: (value) => persistBookingInfoRef.current(value)
 	});
 
 	const handleDevErrorTrigger = (code: BookDevErrorCode) => {
@@ -96,12 +89,7 @@ function BookingPage() {
 				<h1 className={cn(landingSectionHeadingClassName, "text-center")}>Studio Hire Booking</h1>
 			</div>
 			{import.meta.env.DEV ? <BookDevErrorPanel onTriggerError={handleDevErrorTrigger} /> : null}
-			{savedBookingInfo.savedBookingInfo ? (
-				<BookingSavedInfoBanner
-					onRemove={savedBookingInfo.handleRemoveSavedBookingInfo}
-					onReuse={savedBookingInfo.handleReuseSavedBookingInfo}
-				/>
-			) : null}
+			<div ref={setSavedInfoBannerMount} />
 
 			<BookingFormContext value={formApi}>
 				<form
@@ -143,25 +131,14 @@ function BookingPage() {
 						<BookingContactSection />
 					</FieldGroup>
 
-					<Field
-						orientation="horizontal"
-						className="items-center! gap-2">
-						<Checkbox
-							id="save-booking-info"
-							checked={savedBookingInfo.shouldSaveBookingInfo}
-							className="size-5 rounded-full data-[state=checked]:border-transparent"
-							onCheckedChange={(checked) =>
-								savedBookingInfo.handleSaveBookingInfoChange(checked === true)
-							}
+					<Suspense fallback={null}>
+						<BookingSavedInfoControls
+							bannerMount={savedInfoBannerMount}
+							formApi={formApi}
+							persistBookingInfoRef={persistBookingInfoRef}
+							onReuseSavedBookingInfo={() => showScrollToCompleteBookingRef.current?.()}
 						/>
-						<FieldContent className="justify-center gap-0">
-							<Label
-								htmlFor="save-booking-info"
-								className="cursor-pointer text-sm">
-								Save booking information on this device for next time
-							</Label>
-						</FieldContent>
-					</Field>
+					</Suspense>
 
 					<div
 						ref={completeBookingButtonRef}
