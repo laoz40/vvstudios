@@ -26,7 +26,7 @@ import { Textarea } from "#/components/ui/textarea";
 import { exhaustiveCheck, tryCatch, type UnexpectedError } from "#/lib/result";
 import type { SessionRecord } from "#studio/features/admin/lib/admin-sessions";
 
-export type ActiveEditor = FunctionReturnType<typeof api.sessions.listActiveEditors>[number];
+type ActiveEditor = FunctionReturnType<typeof api.sessions.listActiveEditors>[number];
 
 type SessionEditorAssignmentProps = { isMenuOpen: boolean; session: SessionRecord };
 

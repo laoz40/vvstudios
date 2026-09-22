@@ -50,8 +50,6 @@ import {
 } from "#studio/features/admin/lib/package-edit-draft-store";
 import { toOptionId } from "#studio/lib/bookingdatetime";
 
-export type { PackageEditDraft } from "#studio/features/admin/lib/package-edit-draft-store";
-
 type PackageEditDialogProps = {
 	open: boolean;
 	isSaving: boolean;
