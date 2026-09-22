@@ -1,4 +1,3 @@
-import { useCallback, useMemo } from "react";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { useAuth } from "@clerk/clerk-react";
 import { ConvexProviderWithAuth, ConvexReactClient } from "convex/react";
@@ -15,21 +14,15 @@ const queryClient = createQueryClient();
 function useConvexClerkAuth() {
 	const { getToken, isLoaded, isSignedIn } = useAuth();
 
-	const fetchAccessToken = useCallback(
-		async ({ forceRefreshToken }: { forceRefreshToken: boolean }) => {
-			try {
-				return await getToken({ skipCache: forceRefreshToken, template: "convex" });
-			} catch {
-				return null;
-			}
-		},
-		[getToken]
-	);
+	async function fetchAccessToken({ forceRefreshToken }: { forceRefreshToken: boolean }) {
+		try {
+			return await getToken({ skipCache: forceRefreshToken, template: "convex" });
+		} catch {
+			return null;
+		}
+	}
 
-	return useMemo(
-		() => ({ fetchAccessToken, isAuthenticated: isSignedIn ?? false, isLoading: !isLoaded }),
-		[fetchAccessToken, isLoaded, isSignedIn]
-	);
+	return { fetchAccessToken, isAuthenticated: isSignedIn ?? false, isLoading: !isLoaded };
 }
 
 export default function AppConvexProvider({ children }: { children: React.ReactNode }) {
