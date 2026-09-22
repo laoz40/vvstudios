@@ -13,7 +13,6 @@ import { EmployeesTable } from "#studio/features/admin/components/EmployeesTable
 import type { AdminEditorProfile } from "#studio/features/admin/lib/editor-management";
 import { PackagesTable } from "#studio/features/admin/components/PackagesTable";
 import { SessionsTable } from "#studio/features/admin/components/SessionsTable";
-import { StudioLoadingState } from "#studio/components/StudioLoadingState";
 import { BackendAuthErrorPage } from "#studio/features/auth/components/BackendAuthErrorPage";
 import { DashboardForbiddenPage } from "#studio/features/auth/components/DashboardForbiddenPage";
 import {
@@ -147,20 +146,19 @@ function EmployeesDashboardView({
 }) {
 	const editorsResult = useQuery(api.employees.listEmployees, {});
 
-	if (editorsResult === undefined) {
-		return <StudioLoadingState label="Loading employees" />;
-	}
+	if (editorsResult !== undefined) {
+		const [editorsError] = editorsResult;
 
-	const [editorsError, editors] = editorsResult;
-
-	if (editorsError !== null) {
-		return renderEmployeeListError(editorsError);
+		if (editorsError !== null) {
+			return renderEmployeeListError(editorsError);
+		}
 	}
 
 	return (
 		<EmployeesTable
-			editors={editors}
 			adminEditorProfile={adminEditorProfile}
+			editors={editorsResult?.[1] ?? []}
+			isLoadingEmployees={editorsResult === undefined}
 		/>
 	);
 }

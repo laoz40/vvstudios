@@ -88,7 +88,7 @@ export function getEditorAccessErrorMessage(reason: EditorAccessErrorReason) {
 		case "EDITOR_NOT_FOUND":
 			return "This editor no longer exists.";
 		case "EDITOR_PROFILE_INACTIVE":
-			return "Your editor profile is retired. Reactivate it from the employees table.";
+			return "Your editor profile is retired. Reactivate it from the contractors table.";
 		case "NOT_AUTHENTICATED":
 			return "Your session has expired. Sign in again.";
 		case "NOT_AUTHORIZED":

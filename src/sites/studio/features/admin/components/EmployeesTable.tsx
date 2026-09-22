@@ -31,6 +31,7 @@ import {
 	TableRow
 } from "#/components/ui/table";
 import { api } from "#convex/_generated/api";
+import { AdminTableLoadingRow } from "#studio/features/admin/components/AdminDashboardTableUtils";
 import { EditorNotesDialog } from "#studio/features/admin/components/EditorNotesDialog";
 import { InviteUserDialog } from "#studio/features/admin/components/InviteUserDialog";
 import { PrivacySensitiveText } from "#studio/features/admin/components/PrivacySensitiveText";
@@ -46,6 +47,7 @@ import {
 type EmployeesTableProps = {
 	adminEditorProfile: AdminEditorProfile | null;
 	editors: ManagedEditor[];
+	isLoadingEmployees: boolean;
 };
 
 type NotesDialogState = { status: "closed" } | { status: "open"; editor: ManagedEditor };
@@ -61,7 +63,7 @@ function showEnrollAdminAsEditorError(error: EnrollAdminAsEditorError) {
 
 	switch (reason) {
 		case "EDITOR_PROFILE_INACTIVE":
-			toast.error("Your editor profile is retired. Reactivate it from the employees table.");
+			toast.error("Your editor profile is retired. Reactivate it from the contractors table.");
 
 			return;
 		case "NOT_AUTHENTICATED":
@@ -81,7 +83,11 @@ function showEnrollAdminAsEditorError(error: EnrollAdminAsEditorError) {
 	}
 }
 
-export function EmployeesTable({ adminEditorProfile, editors }: EmployeesTableProps) {
+export function EmployeesTable({
+	adminEditorProfile,
+	editors,
+	isLoadingEmployees
+}: EmployeesTableProps) {
 	const enrollAdminAsEditor = useMutation(api.auth.enrollAdminAsEditor);
 	const updateEmployeeAccess = useMutation(api.employees.updateEmployeeAccess);
 	const [showRetired, setShowRetired] = useState(false);
@@ -123,7 +129,7 @@ export function EmployeesTable({ adminEditorProfile, editors }: EmployeesTablePr
 			return;
 		}
 
-		toast.success(editor.isActive ? "Employee retired" : "Employee reactivated");
+		toast.success(editor.isActive ? "Contractor retired" : "Contractor reactivated");
 	}
 
 	return (
@@ -201,22 +207,14 @@ export function EmployeesTable({ adminEditorProfile, editors }: EmployeesTablePr
 							</TableRow>
 						</TableHeader>
 						<TableBody>
-							{visibleEditors.length === 0 ? (
-								<TableRow>
-									<TableCell
-										colSpan={7}
-										className="h-24 text-center text-muted-foreground">
-										No employees to show.
-									</TableCell>
-								</TableRow>
-							) : (
+							{visibleEditors.length > 0 ? (
 								visibleEditors.map((editor) => {
 									const isUpdatingThisEditor = updatingEditorToken === editor.tokenIdentifier;
 									let accessActionIcon = editor.isActive ? <UserRoundXIcon /> : <CheckIcon />;
 
 									let accessActionLabel = editor.isActive
-										? "Retire employee"
-										: "Reactivate employee";
+										? "Retire contractor"
+										: "Reactivate contractor";
 
 									if (isUpdatingThisEditor) {
 										accessActionIcon = <LoaderCircleIcon className="animate-spin" />;
@@ -233,10 +231,10 @@ export function EmployeesTable({ adminEditorProfile, editors }: EmployeesTablePr
 											<TableCell className="font-medium">
 												<PrivacySensitiveText
 													rowId={editor.tokenIdentifier}
-													value={editor.displayName || "Unnamed employee"}
-													label="employee name"
+													value={editor.displayName || "Unnamed contractor"}
+													label="contractor name"
 													copyable={false}>
-													{editor.displayName || "Unnamed employee"}
+													{editor.displayName || "Unnamed contractor"}
 												</PrivacySensitiveText>
 											</TableCell>
 											<TableCell>
@@ -268,7 +266,7 @@ export function EmployeesTable({ adminEditorProfile, editors }: EmployeesTablePr
 															variant="ghost"
 															size="icon-sm"
 															disabled={updatingEditorToken !== null}>
-															<span className="sr-only">Open employee actions</span>
+															<span className="sr-only">Open contractor actions</span>
 															<MoreHorizontalIcon aria-hidden />
 														</Button>
 													</DropdownMenuTrigger>
@@ -299,6 +297,19 @@ export function EmployeesTable({ adminEditorProfile, editors }: EmployeesTablePr
 										</TableRow>
 									);
 								})
+							) : isLoadingEmployees ? (
+								<AdminTableLoadingRow
+									colSpan={7}
+									label="Loading contractors"
+								/>
+							) : (
+								<TableRow>
+									<TableCell
+										colSpan={7}
+										className="h-24 text-center text-muted-foreground">
+										No contractors to show.
+									</TableCell>
+								</TableRow>
 							)}
 						</TableBody>
 					</Table>
