@@ -1,4 +1,3 @@
-import type { ReactNode } from "react";
 import { DashboardSignOutButton } from "#studio/components/DashboardSignOutButton";
 import { AdminAvailabilitySettings } from "#studio/features/admin/components/AdminAvailabilitySettings";
 import { AdminPrivacyToggle } from "#studio/features/admin/components/AdminPrivacyToggle";
@@ -10,19 +9,17 @@ import {
 
 type AdminDashboardShellProps = {
 	activeView: AdminDashboardView;
-	children: ReactNode;
 	email: string | null;
 	onActiveViewChange: (view: AdminDashboardView) => void;
 };
 
 export function AdminDashboardShell({
 	activeView,
-	children,
 	email,
 	onActiveViewChange
 }: AdminDashboardShellProps) {
 	return (
-		<main className="relative flex min-h-screen flex-col gap-5 bg-background p-3 pb-8 md:gap-6 md:p-4 lg:px-6">
+		<>
 			<div className="absolute top-3 right-3 md:hidden">
 				<AdminDashboardMenu email={email} />
 			</div>
@@ -44,7 +41,6 @@ export function AdminDashboardShell({
 					</div>
 				</div>
 			</section>
-			{children}
-		</main>
+		</>
 	);
 }
