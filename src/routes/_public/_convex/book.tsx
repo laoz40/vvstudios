@@ -15,7 +15,8 @@ import { BookingRecordingSpaceDurationSection } from "#studio/features/booking-f
 import { BookingAddonsSection } from "#studio/features/booking-form/components/BookingAddonsSection.tsx";
 import { BookingModalHost } from "#studio/features/booking-form/components/BookingModalHost";
 import { BookingSavedInfoBanner } from "#studio/features/booking-form/components/BookingSavedInfoBanner";
-import { BookingSingleSessionScheduling } from "#studio/features/booking-form/components/BookingSingleSessionScheduling";
+import { BookingDateTimeSection } from "#studio/features/booking-form/components/BookingDateTimeSection";
+import { CompleteBookingScrollShortcut } from "#studio/features/booking-form/components/CompleteBookingScrollShortcut";
 import { BookingSummary } from "#studio/features/booking-form/components/BookingSummary";
 import {
 	BookingFormContext,
@@ -54,6 +55,7 @@ function BookingPage() {
 
 	// Form and scroll targets
 	const formRef = useRef<HTMLFormElement>(null);
+	const dateTimeSectionRef = useRef<HTMLDivElement>(null);
 	const showScrollToCompleteBookingRef = useRef<(() => void) | null>(null);
 	const setAvailabilityErrorRef = useRef<((message: string) => void) | null>(null);
 	const completeBookingButtonRef = useRef<HTMLDivElement>(null);
@@ -134,10 +136,9 @@ function BookingPage() {
 						</div>
 						<BookingRecordingSpaceDurationSection />
 						<BookingAddonsSection />
-						<BookingSingleSessionScheduling
-							completeBookingTargetRef={completeBookingButtonRef}
+						<BookingDateTimeSection
+							dateTimeSectionRef={dateTimeSectionRef}
 							setAvailabilityErrorRef={setAvailabilityErrorRef}
-							showScrollToCompleteBookingRef={showScrollToCompleteBookingRef}
 						/>
 						<BookingContactSection />
 					</FieldGroup>
@@ -174,6 +175,11 @@ function BookingPage() {
 						</Button>
 					</div>
 				</form>
+				<CompleteBookingScrollShortcut
+					dateTimeSectionRef={dateTimeSectionRef}
+					completeBookingTargetRef={completeBookingButtonRef}
+					showScrollToCompleteBookingRef={showScrollToCompleteBookingRef}
+				/>
 			</BookingFormContext>
 			<BookingModalHost
 				isSubmitting={bookingSubmit.isSubmitting}

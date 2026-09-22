@@ -1,10 +1,16 @@
-import { useEffect, useRef, useState, type RefObject } from "react";
+import { useEffect, useState, type RefObject } from "react";
 
-export function useCompleteBookingShortcut(
-	isDateTimeIncomplete: boolean,
-	completeBookingTargetRef: RefObject<HTMLElement | null>
-) {
-	const dateTimeSectionRef = useRef<HTMLDivElement>(null);
+type UseCompleteBookingShortcutParams = {
+	completeBookingTargetRef: RefObject<HTMLElement | null>;
+	dateTimeSectionRef: RefObject<HTMLElement | null>;
+	isDateTimeIncomplete: boolean;
+};
+
+export function useCompleteBookingShortcut({
+	completeBookingTargetRef,
+	dateTimeSectionRef,
+	isDateTimeIncomplete
+}: UseCompleteBookingShortcutParams) {
 	const [showScrollToCompleteBooking, setShowScrollToCompleteBooking] = useState(false);
 	const [hasReachedCompleteBooking, setHasReachedCompleteBooking] = useState(false);
 
@@ -52,7 +58,6 @@ export function useCompleteBookingShortcut(
 	}
 
 	return {
-		dateTimeSectionRef,
 		handleScrollToCompleteBooking,
 		hasReachedCompleteBooking,
 		setShowScrollToCompleteBooking,
