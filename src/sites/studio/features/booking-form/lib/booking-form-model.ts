@@ -447,7 +447,7 @@ export type BookingFormValues = z.input<typeof bookingSchema>;
 
 export const publicBookingSchema = bookingSchema;
 
-export function getBookingFieldBlurError(
+function getBookingFieldBlurError(
 	fieldName: keyof BookingFormValues,
 	formValues: BookingFormValues
 ): string | undefined {

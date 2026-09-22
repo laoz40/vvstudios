@@ -53,9 +53,7 @@ function areBookingPricingFieldsEqual(
 export function useBookingPricingValues(): BookingPricingFields {
 	const formApi = useBookingFormContext();
 
-	return useSelector(
-		formApi.store,
-		(state) => getBookingPricingFields(state.values),
-		{ compare: areBookingPricingFieldsEqual }
-	);
+	return useSelector(formApi.store, (state) => getBookingPricingFields(state.values), {
+		compare: areBookingPricingFieldsEqual
+	});
 }

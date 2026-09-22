@@ -53,9 +53,7 @@ export function CompleteBookingScrollShortcut({
 				type="button"
 				size="icon-lg"
 				aria-label={
-					isDateTimeIncomplete
-						? "Scroll to date and time section"
-						: "Scroll to complete booking"
+					isDateTimeIncomplete ? "Scroll to date and time section" : "Scroll to complete booking"
 				}
 				className="rounded-full shadow-md active:scale-95 motion-reduce:transition-none"
 				onClick={completeBookingShortcut.handleScrollToCompleteBooking}>
