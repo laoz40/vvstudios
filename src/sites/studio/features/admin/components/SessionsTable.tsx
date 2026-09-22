@@ -7,7 +7,7 @@ import {
 	TableHeader,
 	TableRow
 } from "#/components/ui/table";
-import { SortHeaderButton } from "#studio/features/admin/components/AdminDashboardTableUtils";
+import { SortHeaderButton, AdminTableLoadingRow } from "#studio/features/admin/components/AdminDashboardTableUtils";
 import type { ActiveEditor } from "#studio/features/admin/components/SessionEditorAssignment";
 import { SessionTableRow } from "#studio/features/admin/components/SessionTableRow";
 import { SessionsTableFilters } from "#studio/features/admin/components/SessionsTableFilters";
@@ -193,6 +193,11 @@ export function SessionsTable({
 									onPackageFilterClick={onSearchQueryChange}
 								/>
 							))
+						) : isLoadingSessions ? (
+							<AdminTableLoadingRow
+								colSpan={11}
+								label="Loading sessions"
+							/>
 						) : (
 							<TableRow>
 								<TableCell
@@ -206,10 +211,12 @@ export function SessionsTable({
 				</Table>
 			</div>
 
-			<SessionsTableFooter
-				filteredSessionsCount={filteredSessions.length}
-				totalSessionsCount={sessions.length}
-			/>
+			{isLoadingSessions && filteredSessions.length === 0 ? null : (
+				<SessionsTableFooter
+					filteredSessionsCount={filteredSessions.length}
+					totalSessionsCount={sessions.length}
+				/>
+			)}
 
 			<InfiniteScrollSentinel
 				canLoadMore={!isLoadingSessions && canLoadMoreSessions}

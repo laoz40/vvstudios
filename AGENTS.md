@@ -43,7 +43,7 @@ Writing code is cheap for you, which makes over-engineering easy. Counter it by 
 - Avoid arbitrary values: clamp, min(...), custom pixel brackets, and custom breakpoints.
 - Use theme-token color utilities (background, foreground, primary, etc.) over standard palette classes (white, gray, black).
 - Do not add classes that already exist in the parent component
-- For loading, show animated Lucide spinner alongside concise state label (eg. `Saving`), not just trailing-ellipsis label eg. `Saving...`.
+- For loading, show animated spinner icon alongside concise state label (eg. `Saving`), not just trailing-ellipsis label eg. `Saving...`.
 
 ### Good Practices
 
