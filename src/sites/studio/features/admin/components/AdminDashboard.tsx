@@ -13,6 +13,7 @@ import { EmployeesTable } from "#studio/features/admin/components/EmployeesTable
 import type { AdminEditorProfile } from "#studio/features/admin/lib/editor-management";
 import { PackagesTable } from "#studio/features/admin/components/PackagesTable";
 import { SessionsTable } from "#studio/features/admin/components/SessionsTable";
+import { StudioLoadingState } from "#studio/components/StudioLoadingState";
 import { BackendAuthErrorPage } from "#studio/features/auth/components/BackendAuthErrorPage";
 import { DashboardForbiddenPage } from "#studio/features/auth/components/DashboardForbiddenPage";
 import {
@@ -32,8 +33,6 @@ import { DASHBOARD_PAGE_SIZE } from "#studio/features/auth/lib/dashboard-loading
 type EmployeeListResult = FunctionReturnType<typeof api.employees.listEmployees>;
 
 type EmployeeListError = NonNullable<EmployeeListResult[0]>;
-
-type Employees = NonNullable<EmployeeListResult[1]>;
 
 function useDisplayedWhileRefetching<T>(results: T[], isLoadingFirstPage: boolean) {
 	const displayedResultsRef = useRef(results);
@@ -141,12 +140,23 @@ function PackagesDashboardView({
 	);
 }
 
-type EmployeesDashboardViewProps = {
+function EmployeesDashboardView({
+	adminEditorProfile
+}: {
 	adminEditorProfile: AdminEditorProfile | null;
-	editors: Employees;
-};
+}) {
+	const editorsResult = useQuery(api.employees.listEmployees, {});
 
-function EmployeesDashboardView({ adminEditorProfile, editors }: EmployeesDashboardViewProps) {
+	if (editorsResult === undefined) {
+		return <StudioLoadingState label="Loading employees" />;
+	}
+
+	const [editorsError, editors] = editorsResult;
+
+	if (editorsError !== null) {
+		return renderEmployeeListError(editorsError);
+	}
+
 	return (
 		<EmployeesTable
 			editors={editors}
@@ -156,7 +166,6 @@ function EmployeesDashboardView({ adminEditorProfile, editors }: EmployeesDashbo
 }
 
 export function AdminDashboard({ dashboardRole }: { dashboardRole: DashboardRole }) {
-	const editorsResult = useQuery(api.employees.listEmployees, {});
 	const accessResult = useQuery(api.auth.getCurrentUserAccess, {});
 	const { user } = useUser();
 	const [activeView, setActiveView] = useState<AdminDashboardView>("bookings");
@@ -191,19 +200,13 @@ export function AdminDashboard({ dashboardRole }: { dashboardRole: DashboardRole
 		setInitialSessionSearchQuery(null);
 	}, [initialSessionSearchQuery]);
 
-	if (editorsResult === undefined || accessResult === undefined) {
+	if (accessResult === undefined) {
 		return (
 			<DashboardLoadingState
 				dashboardRole={dashboardRole}
 				stage="loading-data"
 			/>
 		);
-	}
-
-	const [editorsError, editors] = editorsResult;
-
-	if (editorsError !== null) {
-		return renderEmployeeListError(editorsError);
 	}
 
 	const [accessError, access] = accessResult;
@@ -239,10 +242,7 @@ export function AdminDashboard({ dashboardRole }: { dashboardRole: DashboardRole
 						/>
 					) : null}
 					{activeView === "employees" ? (
-						<EmployeesDashboardView
-							editors={editors}
-							adminEditorProfile={adminEditorProfile}
-						/>
+						<EmployeesDashboardView adminEditorProfile={adminEditorProfile} />
 					) : null}
 				</main>
 			</AdminPrivacyModeProvider>
