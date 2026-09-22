@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useState } from "react";
 import type { BookingFormApi } from "#studio/features/booking-form/lib/booking-form-context";
 import {
 	isPackageUnavailableAddon,
@@ -35,23 +35,20 @@ export function useSavedBookingInfo({
 		() => getStoredSavedBookingInfo() !== null
 	);
 
-	const persistBookingInfoFromForm = useCallback(
-		(parsedValue: BookingFormValues) => {
-			if (shouldSaveBookingInfo) {
-				const nextSavedBookingInfo = toSavedBookingInfo(parsedValue);
-				storeSavedBookingInfo(nextSavedBookingInfo);
-				setSavedBookingInfo(nextSavedBookingInfo);
+	function persistBookingInfoFromForm(parsedValue: BookingFormValues) {
+		if (shouldSaveBookingInfo) {
+			const nextSavedBookingInfo = toSavedBookingInfo(parsedValue);
+			storeSavedBookingInfo(nextSavedBookingInfo);
+			setSavedBookingInfo(nextSavedBookingInfo);
 
-				return;
-			}
+			return;
+		}
 
-			removeStoredSavedBookingInfo();
-			setSavedBookingInfo(null);
-		},
-		[shouldSaveBookingInfo]
-	);
+		removeStoredSavedBookingInfo();
+		setSavedBookingInfo(null);
+	}
 
-	const handleReuseSavedBookingInfo = useCallback(() => {
+	function handleReuseSavedBookingInfo() {
 		if (!savedBookingInfo) {
 			return;
 		}
@@ -87,22 +84,22 @@ export function useSavedBookingInfo({
 			savedBookingInfo.bookingMode === "single" ? savedBookingInfo.notes : ""
 		);
 		onReuseSavedBookingInfo();
-	}, [formApi, onReuseSavedBookingInfo, savedBookingInfo]);
+	}
 
-	const handleRemoveSavedBookingInfo = useCallback(() => {
+	function handleRemoveSavedBookingInfo() {
 		removeStoredSavedBookingInfo();
 		setSavedBookingInfo(null);
 		setShouldSaveBookingInfo(false);
-	}, []);
+	}
 
-	const handleSaveBookingInfoChange = useCallback((checked: boolean) => {
+	function handleSaveBookingInfoChange(checked: boolean) {
 		setShouldSaveBookingInfo(checked);
 
 		if (!checked) {
 			removeStoredSavedBookingInfo();
 			setSavedBookingInfo(null);
 		}
-	}, []);
+	}
 
 	return {
 		handleRemoveSavedBookingInfo,
