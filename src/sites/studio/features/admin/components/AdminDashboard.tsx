@@ -1,6 +1,6 @@
 import { useUser } from "@clerk/clerk-react";
 import { exhaustiveCheck } from "#/lib/result";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { usePaginatedQuery, useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { api } from "#convex/_generated/api";
@@ -211,22 +211,24 @@ export function AdminDashboard({ dashboardRole }: { dashboardRole: DashboardRole
 	const adminEditorProfile = access.role === "admin" ? access.editorProfile : null;
 
 	return (
-		<AdminPrivacyModeProvider>
-			<main className="relative flex min-h-screen flex-col gap-5 bg-background p-3 pb-8 md:gap-6 md:p-4 lg:px-6">
-				<AdminDashboardShell
-					activeView={activeView}
-					email={email ?? null}
-					onActiveViewChange={setActiveView}
-				/>
-				<AdminDashboardTables
-					activeView={activeView}
-					adminEditorProfile={adminEditorProfile}
-					editors={editors}
-					initialSessionSearchQuery={initialSessionSearchQuery}
-					onInitialSessionSearchApplied={() => setInitialSessionSearchQuery(null)}
-					onViewPackageSessions={viewPackageSessions}
-				/>
-			</main>
-		</AdminPrivacyModeProvider>
+		<Suspense fallback={null}>
+			<AdminPrivacyModeProvider>
+				<main className="relative flex min-h-screen flex-col gap-5 bg-background p-3 pb-8 md:gap-6 md:p-4 lg:px-6">
+					<AdminDashboardShell
+						activeView={activeView}
+						email={email ?? null}
+						onActiveViewChange={setActiveView}
+					/>
+					<AdminDashboardTables
+						activeView={activeView}
+						adminEditorProfile={adminEditorProfile}
+						editors={editors}
+						initialSessionSearchQuery={initialSessionSearchQuery}
+						onInitialSessionSearchApplied={() => setInitialSessionSearchQuery(null)}
+						onViewPackageSessions={viewPackageSessions}
+					/>
+				</main>
+			</AdminPrivacyModeProvider>
+		</Suspense>
 	);
 }
