@@ -9,6 +9,7 @@ import {
 import { isUpcomingBooking } from "#studio/lib/bookingdatetime";
 
 export type SessionRecord = Doc<"bookings"> & {
+	assignedEditorDisplayName?: string;
 	hasDriveWorkflowFailure?: boolean;
 	packageInvoiceNumber?: string;
 	linkedPackageSize?: 4 | 8 | 12;

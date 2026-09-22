@@ -4,7 +4,7 @@ import type { FunctionReturnType } from "convex/server";
 import { toast } from "sonner";
 import { api } from "#convex/_generated/api";
 import { exhaustiveCheck, tryCatch, type UnexpectedError } from "#/lib/result";
-import type { PackageEditDraft } from "#studio/features/admin/components/PackageEditDialog";
+import type { PackageEditDraft } from "#studio/features/admin/lib/package-edit-draft-store";
 import type { AdminPackageRow } from "#studio/features/admin/lib/admin-packages";
 import { getPackageEditWarningState } from "#studio/features/admin/lib/package-edit-warnings";
 import {

@@ -17,6 +17,27 @@ export function listActiveEditorProfiles(ctx: QueryCtx) {
 	);
 }
 
+export async function getEditorDisplayNamesByToken(ctx: QueryCtx, tokenIdentifiers: string[]) {
+	const displayNamesByToken = new Map<string, string>();
+
+	await Promise.all(
+		tokenIdentifiers.map(async (tokenIdentifier) => {
+			const editor = await ctx.db
+				.query("editorProfiles")
+				.withIndex("by_tokenIdentifier", (query) => query.eq("tokenIdentifier", tokenIdentifier))
+				.unique();
+
+			if (editor === null) {
+				return;
+			}
+
+			displayNamesByToken.set(tokenIdentifier, editor.displayName || editor.email);
+		})
+	);
+
+	return displayNamesByToken;
+}
+
 // TODO(scale): This indexed lookup runs once per active editor; persist workload counters if that becomes inefficient at scale.
 export async function buildActiveEditorProjection(ctx: QueryCtx, editor: Doc<"editorProfiles">) {
 	return {

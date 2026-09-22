@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { AnimatedIconButton } from "#/components/AnimatedIconButton";
 import { Button } from "#/components/ui/button";
 import CopyIcon from "#/components/ui/copy-icon";
+import { TableCell, TableRow } from "#/components/ui/table";
 import { cn } from "#/lib/utils";
 import { formatBookingInvoiceNumber } from "#studio/features/booking-invoice/lib/build-booking-invoice-data";
 import type { SessionRecord } from "#studio/features/admin/lib/admin-sessions";
@@ -75,6 +76,24 @@ export function SortHeaderButton({
 				/>
 			)}
 		</Button>
+	);
+}
+
+export function AdminTableLoadingRow({ colSpan, label }: { colSpan: number; label: string }) {
+	return (
+		<TableRow>
+			<TableCell
+				colSpan={colSpan}
+				className="h-24 text-center text-muted-foreground">
+				<span className="inline-flex items-center gap-2">
+					<LoaderCircle
+						className="size-4 animate-spin"
+						aria-hidden
+					/>
+					{label}
+				</span>
+			</TableCell>
+		</TableRow>
 	);
 }
 

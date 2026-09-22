@@ -19,7 +19,10 @@ import {
 	toPackageListQuerySort,
 	type AdminPackageSort
 } from "#studio/features/admin/lib/admin-packages";
-import { toSessionListQuerySort } from "#studio/features/admin/lib/admin-sessions";
+import {
+	toSessionListQuerySort,
+	type SessionSorting
+} from "#studio/features/admin/lib/admin-sessions";
 import {
 	readStoredPackagesTablePreferences,
 	readStoredSessionsTablePreferences
@@ -29,32 +32,6 @@ import { DASHBOARD_PAGE_SIZE } from "#studio/features/auth/lib/dashboard-loading
 type EmployeeListResult = FunctionReturnType<typeof api.employees.listEmployees>;
 
 type EmployeeListError = NonNullable<EmployeeListResult[0]>;
-
-type Employees = NonNullable<EmployeeListResult[1]>;
-
-type AdminDashboardTablesProps = {
-	activeView: AdminDashboardView;
-	adminEditorProfile: AdminEditorProfile | null;
-	editors: Employees;
-	initialSessionSearchQuery: string | null;
-	onInitialSessionSearchApplied: () => void;
-	onViewPackageSessions: (invoiceNumber: string) => void;
-};
-
-function usePaginatedPackagesTable(packageSorting: AdminPackageSort) {
-	const packageListSort = toPackageListQuerySort(packageSorting);
-
-	const packages = usePaginatedQuery(api.packages.listPackages, packageListSort, {
-		initialNumItems: DASHBOARD_PAGE_SIZE
-	});
-
-	const packagesForTable = useDisplayedWhileRefetching(
-		packages.results,
-		packages.status === "LoadingFirstPage"
-	);
-
-	return { packages, packagesForTable };
-}
 
 function useDisplayedWhileRefetching<T>(results: T[], isLoadingFirstPage: boolean) {
 	const displayedResultsRef = useRef(results);
@@ -87,14 +64,111 @@ function renderEmployeeListError(error: EmployeeListError) {
 	}
 }
 
-function AdminDashboardTables({
-	activeView,
-	adminEditorProfile,
-	editors,
-	initialSessionSearchQuery,
-	onInitialSessionSearchApplied,
+type BookingsDashboardViewProps = {
+	sessionSearchQuery: string;
+	sessionSorting: SessionSorting;
+	onSessionSearchQueryChange: (searchQuery: string) => void;
+	onSessionSortingChange: (sorting: SessionSorting) => void;
+};
+
+function BookingsDashboardView({
+	sessionSearchQuery,
+	sessionSorting,
+	onSessionSearchQueryChange,
+	onSessionSortingChange
+}: BookingsDashboardViewProps) {
+	const sessionListSort = toSessionListQuerySort(sessionSorting);
+
+	const sessions = usePaginatedQuery(api.sessions.listSessions, sessionListSort, {
+		initialNumItems: DASHBOARD_PAGE_SIZE
+	});
+
+	const sessionsForTable = useDisplayedWhileRefetching(
+		sessions.results,
+		sessions.status === "LoadingFirstPage"
+	);
+
+	return (
+		<SessionsTable
+			sessions={sessionsForTable}
+			canLoadMoreSessions={sessions.status === "CanLoadMore"}
+			isLoadingMoreSessions={sessions.status === "LoadingMore"}
+			isLoadingSessions={sessions.status === "LoadingFirstPage"}
+			loadMoreSessions={() => sessions.loadMore(DASHBOARD_PAGE_SIZE)}
+			searchQuery={sessionSearchQuery}
+			sorting={sessionSorting}
+			onSearchQueryChange={onSessionSearchQueryChange}
+			onSortingChange={onSessionSortingChange}
+		/>
+	);
+}
+
+type PackagesDashboardViewProps = {
+	packageSorting: AdminPackageSort;
+	onPackageSortingChange: (sorting: AdminPackageSort) => void;
+	onViewPackageSessions: (invoiceNumber: string) => void;
+};
+
+function PackagesDashboardView({
+	packageSorting,
+	onPackageSortingChange,
 	onViewPackageSessions
-}: AdminDashboardTablesProps) {
+}: PackagesDashboardViewProps) {
+	const packageListSort = toPackageListQuerySort(packageSorting);
+
+	const packages = usePaginatedQuery(api.packages.listPackages, packageListSort, {
+		initialNumItems: DASHBOARD_PAGE_SIZE
+	});
+
+	const packagesForTable = useDisplayedWhileRefetching(
+		packages.results,
+		packages.status === "LoadingFirstPage"
+	);
+
+	return (
+		<PackagesTable
+			packages={packagesForTable}
+			canLoadMorePackages={packages.status === "CanLoadMore"}
+			isLoadingMorePackages={packages.status === "LoadingMore"}
+			isLoadingPackages={packages.status === "LoadingFirstPage"}
+			loadMorePackages={() => packages.loadMore(DASHBOARD_PAGE_SIZE)}
+			sorting={packageSorting}
+			onSortingChange={onPackageSortingChange}
+			onViewPackageSessions={onViewPackageSessions}
+		/>
+	);
+}
+
+function EmployeesDashboardView({
+	adminEditorProfile
+}: {
+	adminEditorProfile: AdminEditorProfile | null;
+}) {
+	const editorsResult = useQuery(api.employees.listEmployees, {});
+
+	if (editorsResult !== undefined) {
+		const [editorsError] = editorsResult;
+
+		if (editorsError !== null) {
+			return renderEmployeeListError(editorsError);
+		}
+	}
+
+	return (
+		<EmployeesTable
+			adminEditorProfile={adminEditorProfile}
+			editors={editorsResult?.[1] ?? []}
+			isLoadingEmployees={editorsResult === undefined}
+		/>
+	);
+}
+
+export function AdminDashboard({ dashboardRole }: { dashboardRole: DashboardRole }) {
+	const accessResult = useQuery(api.auth.getCurrentUserAccess, {});
+	const { user } = useUser();
+	const [activeView, setActiveView] = useState<AdminDashboardView>("bookings");
+	const [initialSessionSearchQuery, setInitialSessionSearchQuery] = useState<string | null>(null);
+
 	const initialTablePreferences = useMemo(
 		() => ({
 			sessions: readStoredSessionsTablePreferences(),
@@ -107,20 +181,12 @@ function AdminDashboardTables({
 	const [packageSorting, setPackageSorting] = useState(initialTablePreferences.packages.sorting);
 	const [sessionSearchQuery, setSessionSearchQuery] = useState("");
 
-	const sessionListSort = toSessionListQuerySort(sessionSorting);
+	const email = user?.primaryEmailAddress?.emailAddress ?? user?.emailAddresses[0]?.emailAddress;
 
-	const sessions = usePaginatedQuery(api.sessions.listSessions, sessionListSort, {
-		initialNumItems: DASHBOARD_PAGE_SIZE
-	});
-
-	const { packages, packagesForTable } = usePaginatedPackagesTable(packageSorting);
-
-	const sessionsForTable = useDisplayedWhileRefetching(
-		sessions.results,
-		sessions.status === "LoadingFirstPage"
-	);
-
-	const activeEditors = useQuery(api.sessions.listActiveEditors, {});
+	function viewPackageSessions(invoiceNumber: string) {
+		setInitialSessionSearchQuery(invoiceNumber);
+		setActiveView("bookings");
+	}
 
 	// Apply cross-tab search when navigating from a package row.
 	useEffect(() => {
@@ -129,77 +195,16 @@ function AdminDashboardTables({
 		}
 
 		setSessionSearchQuery(initialSessionSearchQuery);
-		onInitialSessionSearchApplied();
-	}, [initialSessionSearchQuery, onInitialSessionSearchApplied]);
+		setInitialSessionSearchQuery(null);
+	}, [initialSessionSearchQuery]);
 
-	if (activeEditors === undefined) {
-		return null;
-	}
-
-	return (
-		<>
-			{activeView === "bookings" ? (
-				<SessionsTable
-					activeEditors={activeEditors}
-					sessions={sessionsForTable}
-					canLoadMoreSessions={sessions.status === "CanLoadMore"}
-					isLoadingMoreSessions={sessions.status === "LoadingMore"}
-					isLoadingSessions={sessions.status === "LoadingFirstPage"}
-					loadMoreSessions={() => sessions.loadMore(DASHBOARD_PAGE_SIZE)}
-					searchQuery={sessionSearchQuery}
-					sorting={sessionSorting}
-					onSearchQueryChange={setSessionSearchQuery}
-					onSortingChange={setSessionSorting}
-				/>
-			) : null}
-			{activeView === "packages" ? (
-				<PackagesTable
-					packages={packagesForTable}
-					canLoadMorePackages={packages.status === "CanLoadMore"}
-					isLoadingMorePackages={packages.status === "LoadingMore"}
-					isLoadingPackages={packages.status === "LoadingFirstPage"}
-					loadMorePackages={() => packages.loadMore(DASHBOARD_PAGE_SIZE)}
-					sorting={packageSorting}
-					onSortingChange={setPackageSorting}
-					onViewPackageSessions={onViewPackageSessions}
-				/>
-			) : null}
-			{activeView === "employees" ? (
-				<EmployeesTable
-					editors={editors}
-					adminEditorProfile={adminEditorProfile}
-				/>
-			) : null}
-		</>
-	);
-}
-
-export function AdminDashboard({ dashboardRole }: { dashboardRole: DashboardRole }) {
-	const editorsResult = useQuery(api.employees.listEmployees, {});
-	const accessResult = useQuery(api.auth.getCurrentUserAccess, {});
-	const { user } = useUser();
-	const [activeView, setActiveView] = useState<AdminDashboardView>("bookings");
-	const [initialSessionSearchQuery, setInitialSessionSearchQuery] = useState<string | null>(null);
-	const email = user?.primaryEmailAddress?.emailAddress ?? user?.emailAddresses[0]?.emailAddress;
-
-	function viewPackageSessions(invoiceNumber: string) {
-		setInitialSessionSearchQuery(invoiceNumber);
-		setActiveView("bookings");
-	}
-
-	if (editorsResult === undefined || accessResult === undefined) {
+	if (accessResult === undefined) {
 		return (
 			<DashboardLoadingState
 				dashboardRole={dashboardRole}
 				stage="loading-data"
 			/>
 		);
-	}
-
-	const [editorsError, editors] = editorsResult;
-
-	if (editorsError !== null) {
-		return renderEmployeeListError(editorsError);
 	}
 
 	const [accessError, access] = accessResult;
@@ -219,14 +224,24 @@ export function AdminDashboard({ dashboardRole }: { dashboardRole: DashboardRole
 						email={email ?? null}
 						onActiveViewChange={setActiveView}
 					/>
-					<AdminDashboardTables
-						activeView={activeView}
-						adminEditorProfile={adminEditorProfile}
-						editors={editors}
-						initialSessionSearchQuery={initialSessionSearchQuery}
-						onInitialSessionSearchApplied={() => setInitialSessionSearchQuery(null)}
-						onViewPackageSessions={viewPackageSessions}
-					/>
+					{activeView === "bookings" ? (
+						<BookingsDashboardView
+							sessionSearchQuery={sessionSearchQuery}
+							sessionSorting={sessionSorting}
+							onSessionSearchQueryChange={setSessionSearchQuery}
+							onSessionSortingChange={setSessionSorting}
+						/>
+					) : null}
+					{activeView === "packages" ? (
+						<PackagesDashboardView
+							packageSorting={packageSorting}
+							onPackageSortingChange={setPackageSorting}
+							onViewPackageSessions={viewPackageSessions}
+						/>
+					) : null}
+					{activeView === "employees" ? (
+						<EmployeesDashboardView adminEditorProfile={adminEditorProfile} />
+					) : null}
 				</main>
 			</AdminPrivacyModeProvider>
 		</Suspense>

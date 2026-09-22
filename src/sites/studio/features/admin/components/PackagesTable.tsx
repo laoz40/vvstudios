@@ -1,7 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { TableCell, TableRow } from "#/components/ui/table";
 import { FixedDataTable } from "#studio/components/FixedDataTable";
-import { SortHeaderButton } from "#studio/features/admin/components/AdminDashboardTableUtils";
+import {
+	SortHeaderButton,
+	AdminTableLoadingRow
+} from "#studio/features/admin/components/AdminDashboardTableUtils";
 import { PackageTableRow } from "#studio/features/admin/components/PackageTableRow";
 import { PackagesTableFilters } from "#studio/features/admin/components/PackagesTableFilters";
 import {
@@ -137,6 +140,11 @@ export function PackagesTable({
 								packageRow={packageRow}
 							/>
 						))
+					) : isLoadingPackages ? (
+						<AdminTableLoadingRow
+							colSpan={9}
+							label="Loading packages"
+						/>
 					) : (
 						<TableRow>
 							<TableCell
