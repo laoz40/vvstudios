@@ -111,6 +111,7 @@
 				"react/no-render-return-value": "error",
 				"react/no-string-refs": "error",
 				"react/no-unescaped-entities": "error",
+				"react/jsx-no-constructed-context-values": "off",
 				"react/jsx-no-useless-fragment": "error",
 				"react/self-closing-comp": "error",
 				"react/no-unstable-nested-components": "error",
