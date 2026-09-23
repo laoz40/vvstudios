@@ -78,14 +78,14 @@ export function EditorAssignmentEmail({
 							working on the files. This lets the team know editing has begun.
 						</Text>
 						<Text style={step}>
-							<strong>3. Get the files.</strong> You will now see a Google Drive button on the
-							right side of the dashboard. Click it to open the folders, then open &quot;
+							<strong>3. Get the files.</strong> You will now see a Google Drive button on the right
+							side of the dashboard. Click it to open the folders, then open &quot;
 							{rawMediaFolderName}&quot; and download the recorded footage you need for the edit.
 						</Text>
 						<Text style={lastSubstep}>
 							<strong>Note:</strong> Only if the Service column shows &quot;Full Edit&quot; or
-							&quot;HC Clips&quot; (Handcrafted Clips) do you need to check the &quot;_Assets&quot; folder for brand
-							guidelines, logos, and other supporting files.
+							&quot;HC Clips&quot; (Handcrafted Clips) do you need to check the &quot;_Assets&quot;
+							folder for brand guidelines, logos, and other supporting files.
 						</Text>
 						<Text style={step}>
 							<strong>4. Make the edit.</strong> This is the fun part. Take your time and make it
