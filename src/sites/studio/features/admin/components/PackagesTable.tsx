@@ -49,20 +49,19 @@ export function PackagesTable({
 
 		return {
 			showArchived: storedPreferences.showArchived,
-			showOverdue: storedPreferences.showOverdue,
-			showPaid: storedPreferences.showPaid,
-			showUpcoming: storedPreferences.showUpcoming
+			showDueOnly: storedPreferences.showDueOnly,
+			showStalePackages: storedPreferences.showStalePackages
 		};
 	});
 
 	const [searchQuery, setSearchQuery] = useState("");
 
-	const { showArchived, showOverdue, showPaid, showUpcoming } = filters;
+	const { showArchived, showDueOnly, showStalePackages } = filters;
 
 	// Persist table preferences.
 	useEffect(() => {
-		storePackagesTableFilters({ sorting, showArchived, showOverdue, showPaid, showUpcoming });
-	}, [sorting, showArchived, showOverdue, showPaid, showUpcoming]);
+		storePackagesTableFilters({ sorting, showArchived, showDueOnly, showStalePackages });
+	}, [sorting, showArchived, showDueOnly, showStalePackages]);
 
 	// Visible package rows after dashboard-level filters.
 	const visiblePackages = useMemo(() => {
@@ -75,17 +74,7 @@ export function PackagesTable({
 	}
 
 	function updateFilter(key: PackageCheckboxFilterKey, checked: boolean) {
-		setFilters((currentFilters) => {
-			if (key === "showOverdue" && checked) {
-				return { ...currentFilters, showOverdue: true, showUpcoming: false };
-			}
-
-			if (key === "showUpcoming" && checked) {
-				return { ...currentFilters, showOverdue: false, showUpcoming: true };
-			}
-
-			return { ...currentFilters, [key]: checked };
-		});
+		setFilters((currentFilters) => ({ ...currentFilters, [key]: checked }));
 	}
 
 	return (
@@ -108,7 +97,7 @@ export function PackagesTable({
 						},
 						{ key: "customer", colClassName: "w-42 md:w-36", header: "Customer" },
 						{ key: "package", colClassName: "w-20 md:w-16", header: "Package" },
-						{ key: "addons", colClassName: "w-36 md:w-28", header: "Add-ons (Fixed)" },
+						{ key: "addons", colClassName: "w-36 md:w-28", header: "Addons" },
 						{ key: "contact", colClassName: "w-48", header: "Contact" },
 						{ key: "due", colClassName: "w-16 md:w-12", header: "Due / Expiry" },
 						{

@@ -96,7 +96,7 @@ export type AdminSessionFilters = {
 // filters hide every loaded row. Won't scale as bookings grow.
 //
 // Server-side filtering probably needed in the future. Idea to explore:
-// - Split upcoming (future sessions) and needs action (unpaid or deliverables
+// - Split upcoming (future sessions) and needs action (unpaid invoices, deliverables
 //   not sent) into separate views instead of one toggle
 // - Upfront payment may simplify the unpaid case
 // - might not be necessary to even filter for unpaid as deliverables won't be sent until payment is received
@@ -114,10 +114,13 @@ export function filterAdminSessions(sessions: SessionRecord[], filters: AdminSes
 			return false;
 		}
 
+		const hasUnpaidStripeInvoices = session.stripeInvoicesSummary?.paymentStatus === "unpaid";
+
 		if (
 			filters.showUpcomingOnly &&
 			!isUpcomingBooking(session.date, session.time) &&
-			!hasUnsentDeliverables(session)
+			!hasUnsentDeliverables(session) &&
+			!hasUnpaidStripeInvoices
 		) {
 			return false;
 		}

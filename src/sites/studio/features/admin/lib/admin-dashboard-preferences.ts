@@ -7,9 +7,8 @@ const ADMIN_DASHBOARD_PREFERENCES_KEY = "vvstudios.adminDashboard.preferences";
 const DEFAULT_PACKAGES_TABLE_PREFERENCES: PackagesTablePreferences = {
 	sorting: { isDescending: true },
 	showArchived: false,
-	showOverdue: false,
-	showPaid: false,
-	showUpcoming: false
+	showDueOnly: false,
+	showStalePackages: false
 };
 
 const DEFAULT_SESSIONS_TABLE_PREFERENCES: SessionsTablePreferences = {
@@ -31,8 +30,9 @@ const storedPackageSortingSchema = z.object({ isDescending: z.boolean().optional
 const storedPackagesTablePreferencesSchema = z.object({
 	sorting: storedPackageSortingSchema.optional(),
 	showArchived: z.boolean().optional(),
+	showDueOnly: z.boolean().optional(),
 	showOverdue: z.boolean().optional(),
-	showPaid: z.boolean().optional(),
+	showStalePackages: z.boolean().optional(),
 	showUpcoming: z.boolean().optional()
 });
 
@@ -52,9 +52,8 @@ const adminDashboardPreferencesSchema = z.object({
 type PackagesTablePreferences = {
 	sorting: AdminPackageSort;
 	showArchived: boolean;
-	showOverdue: boolean;
-	showPaid: boolean;
-	showUpcoming: boolean;
+	showDueOnly: boolean;
+	showStalePackages: boolean;
 };
 
 type SessionsTablePreferences = {
@@ -117,9 +116,12 @@ export function readStoredPackagesTablePreferences(): PackagesTablePreferences {
 				DEFAULT_PACKAGES_TABLE_PREFERENCES.sorting.isDescending
 		},
 		showArchived: storedPreferences.showArchived ?? false,
-		showOverdue: storedPreferences.showOverdue ?? false,
-		showPaid: storedPreferences.showPaid ?? false,
-		showUpcoming: storedPreferences.showUpcoming ?? false
+		showDueOnly:
+			storedPreferences.showDueOnly ??
+			storedPreferences.showOverdue ??
+			storedPreferences.showUpcoming ??
+			false,
+		showStalePackages: storedPreferences.showStalePackages ?? false
 	};
 }
 
