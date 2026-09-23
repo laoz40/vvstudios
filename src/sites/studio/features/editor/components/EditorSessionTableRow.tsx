@@ -13,7 +13,11 @@ import { SessionServiceCell } from "#studio/features/sessions/components/Session
 import {
 	formatBookingDateMedium,
 	formatBookingTimeLabel,
+	formatEditorEditDueLabel,
 	getBookingDayDifference,
+	getBookingStartTimestamp,
+	getEditorEditDueDayDifference,
+	getEditorEditDueSubtitleClassName,
 	isUpcomingBooking
 } from "#studio/lib/bookingdatetime";
 
@@ -26,23 +30,17 @@ function getSessionDateSubtitle(date: string, time: string, view: EditorSessions
 		return { label: formatBookingTimeLabel(time), className: "text-muted-foreground" };
 	}
 
-	const daysAgo = Math.abs(dayDifference);
-	const label = `${daysAgo} ${daysAgo === 1 ? "day" : "days"} ago`;
+	const sessionStartAt = getBookingStartTimestamp(date, time);
+	const daysUntilDue = getEditorEditDueDayDifference(sessionStartAt);
 
-	if (view === "history") {
-		return { label, className: "text-muted-foreground" };
+	if (daysUntilDue === null) {
+		return { label: formatBookingTimeLabel(time), className: "text-muted-foreground" };
 	}
 
-	switch (daysAgo) {
-		case 1:
-		case 2:
-			return { label, className: "text-primary" };
-		case 3:
-		case 4:
-			return { label, className: "text-orange" };
-		default:
-			return { label, className: "text-destructive" };
-	}
+	return {
+		label: formatEditorEditDueLabel(daysUntilDue),
+		className: getEditorEditDueSubtitleClassName(daysUntilDue, view)
+	};
 }
 
 export function EditorSessionTableRow({

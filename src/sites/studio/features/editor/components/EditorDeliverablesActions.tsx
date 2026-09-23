@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useMutation } from "convex/react";
-import { Ellipsis, LoaderCircle } from "lucide-react";
+import { CircleX, Ellipsis, LoaderCircle } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "#/components/ui/button";
 import {
@@ -34,7 +34,7 @@ export function EditorDeliverablesActions({
 	const [isUpdating, setIsUpdating] = useState(false);
 	const [dialog, setDialog] = useState<DeliverablesDialogState>({ status: "closed" });
 
-	async function handleStatusChange(editStatus: "editing" | "review") {
+	async function handleStatusChange(editStatus: "to_edit" | "editing" | "review") {
 		setIsUpdating(true);
 		const [error] = await tryCatch(updateSessionEditStatus({ bookingId: session._id, editStatus }));
 		setIsUpdating(false);
@@ -104,6 +104,19 @@ export function EditorDeliverablesActions({
 									)}>
 									{session.editStatus === "completed" ? "Set status to editing" : "Start editing"}
 								</AnimatedDropdownMenuItem>
+								{session.editStatus === "editing" ? (
+									<AnimatedDropdownMenuItem
+										onSelect={() => void handleStatusChange("to_edit")}
+										renderIcon={() => (
+											<CircleX
+												size={16}
+												aria-hidden
+												className="shrink-0 text-current"
+											/>
+										)}>
+										Mark as not sent
+									</AnimatedDropdownMenuItem>
+								) : null}
 								<AnimatedDropdownMenuItem
 									className="hover:text-green focus:text-green"
 									disabled={session.editStatus === "review"}

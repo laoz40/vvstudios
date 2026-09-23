@@ -18,7 +18,7 @@ import { getUtcDateForZonedParts } from "#studio/lib/zonedDateTime";
 
 const BOOKING_TIME_ZONE = "Australia/Sydney";
 
-const EDITOR_EDIT_DUE_DAYS_AFTER_SESSION = 5;
+export const EDITOR_EDIT_DUE_DAYS_AFTER_SESSION = 6;
 
 export interface BusyPeriod {
 	calendarId?: string;
@@ -205,6 +205,40 @@ export function getEditorEditDueAt(sessionStartAt: number) {
 		(dueAt) => dueAt.getTime(),
 		() => sessionStartAt + EDITOR_EDIT_DUE_DAYS_AFTER_SESSION * 24 * 60 * 60 * 1000
 	);
+}
+
+export function getEditorEditDueDayDifference(sessionStartAt: number, now = new Date()) {
+	const dueDateValue = getSydneyDateValue(new Date(getEditorEditDueAt(sessionStartAt)));
+
+	return getBookingDayDifference(dueDateValue, now);
+}
+
+export function formatEditorEditDueLabel(daysUntilDue: number) {
+	if (daysUntilDue <= 0) {
+		return "Overdue";
+	}
+
+	if (daysUntilDue === 1) {
+		return "Due in 1 day";
+	}
+
+	return `Due in ${daysUntilDue} days`;
+}
+
+export function getEditorEditDueSubtitleClassName(daysUntilDue: number, view: "edits" | "history") {
+	if (view === "history") {
+		return "text-muted-foreground";
+	}
+
+	if (daysUntilDue >= 4) {
+		return "text-primary";
+	}
+
+	if (daysUntilDue >= 2) {
+		return "text-orange";
+	}
+
+	return "text-destructive";
 }
 
 function getDateUtcTimestamp(dateValue: string) {
