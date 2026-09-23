@@ -130,7 +130,7 @@ function DeliverablesControls({
 			</DropdownMenuLabel>
 			<div className="px-2 pb-2">
 				<Tabs value={statusActions.deliverableStatus}>
-					<TabsList className="h-auto w-full gap-0 bg-background/60 p-1">
+					<TabsList className="h-auto w-full gap-0 bg-background/60 p-0.5">
 						{EDIT_STATUS_OPTIONS.map((option) => {
 							const Icon = deliverableStatusIconMap[option];
 
@@ -153,7 +153,7 @@ function DeliverablesControls({
 									value={option}
 									className={cn(
 										deliverableStatusTabClassNameMap[option],
-										"h-7 px-2.5 data-[state=active]:shadow-none"
+										"h-7 gap-1 px-1.5 py-0 data-[state=active]:shadow-none"
 									)}
 									disabled={isDisabled}
 									onClick={() => {
@@ -252,7 +252,7 @@ export function SessionActionsMenu({
 			</DropdownMenuTrigger>
 			<DropdownMenuContent
 				align="end"
-				className="w-96 touch-manipulation">
+				className="w-86 touch-manipulation">
 				<DropdownMenuGroup>
 					<div className="flex items-center gap-2 px-2 py-1">
 						<a
