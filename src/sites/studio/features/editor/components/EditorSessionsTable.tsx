@@ -50,12 +50,7 @@ export function EditorSessionsTable({
 					{ key: "service", colClassName: "w-60 md:w-48", header: "Service" },
 					{ key: "admin-notes", colClassName: "w-84", header: "Admin Notes" },
 					{ key: "editor-notes", colClassName: "w-84", header: "Editor Notes" },
-					{
-						key: "actions",
-						colClassName: "md:w-12",
-						header: "Actions",
-						headerClassName: "text-right"
-					}
+					{ key: "drive", colClassName: "md:w-12", header: "Drive", headerClassName: "text-right" }
 				]}>
 				{sessions.map((session) => (
 					<EditorSessionTableRow

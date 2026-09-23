@@ -1,7 +1,11 @@
+import { useState } from "react";
+import { Pencil } from "lucide-react";
+import { Button } from "#/components/ui/button";
 import { TableCell, TableRow } from "#/components/ui/table";
 import { cn } from "#/lib/utils";
 import { EditorDeliverableStatusBadge } from "#studio/features/editor/components/EditorDeliverableStatusBadge";
-import { EditorDeliverablesActions } from "#studio/features/editor/components/EditorDeliverablesActions";
+import { EditorSessionDriveCell } from "#studio/features/editor/components/EditorSessionDriveCell";
+import { SessionEditorNotesDialog } from "#studio/features/editor/components/SessionEditorNotesDialog";
 import type { EditorSession } from "#studio/features/editor/lib/editor-sessions";
 import { SessionServiceCell } from "#studio/features/sessions/components/SessionServiceCell";
 import {
@@ -44,48 +48,76 @@ export function EditorSessionTableRow({
 	session: EditorSession;
 	view: EditorSessionsView;
 }) {
+	const [isEditorNotesOpen, setIsEditorNotesOpen] = useState(false);
 	const dateSubtitle = getSessionDateSubtitle(session.date, session.time, view);
 	const isPastSession = !isUpcomingBooking(session.date, session.time);
+	const editorNotesText = session.editorNotes?.trim() ?? "";
 
 	return (
-		<TableRow>
-			<TableCell className="text-left">
-				<EditorDeliverableStatusBadge
-					session={session}
-					canManageDeliverables={isPastSession}
+		<>
+			<TableRow>
+				<TableCell className="text-left">
+					<EditorDeliverableStatusBadge
+						session={session}
+						canManageDeliverables={isPastSession}
+					/>
+				</TableCell>
+				<TableCell>
+					<div className="flex flex-col gap-1 whitespace-normal">
+						<p className="font-medium">{session.name}</p>
+						<p className="text-sm text-muted-foreground">{session.accountName}</p>
+					</div>
+				</TableCell>
+				<TableCell>
+					<div className="flex flex-col gap-1 whitespace-normal">
+						<p className="font-medium">{formatBookingDateMedium(session.date)}</p>
+						<p className={cn("text-sm", dateSubtitle.className)}>{dateSubtitle.label}</p>
+					</div>
+				</TableCell>
+				<TableCell>
+					<SessionServiceCell
+						duration={session.duration}
+						session={session}
+					/>
+				</TableCell>
+				<TableCell>
+					<p className="text-sm whitespace-normal text-muted-foreground">
+						{session.adminNotes?.trim() || "-"}
+					</p>
+				</TableCell>
+				<TableCell>
+					<div className="text-sm whitespace-normal text-muted-foreground">
+						{editorNotesText ? <span>{editorNotesText}</span> : null}
+						<Button
+							type="button"
+							variant="ghost"
+							size="icon-sm"
+							className={cn(
+								"inline-flex h-5 w-5 align-text-bottom text-muted-foreground",
+								editorNotesText && "ml-1"
+							)}
+							onClick={() => setIsEditorNotesOpen(true)}>
+							<Pencil
+								size={14}
+								aria-hidden
+							/>
+							<span className="sr-only">Edit editor notes for {session.name}</span>
+						</Button>
+					</div>
+				</TableCell>
+				<TableCell className="text-right">
+					<EditorSessionDriveCell session={session} />
+				</TableCell>
+			</TableRow>
+			{isEditorNotesOpen ? (
+				<SessionEditorNotesDialog
+					bookingId={session._id}
+					bookingName={session.name}
+					savedNotes={session.editorNotes}
+					open
+					onOpenChange={setIsEditorNotesOpen}
 				/>
-			</TableCell>
-			<TableCell>
-				<div className="flex flex-col gap-1 whitespace-normal">
-					<p className="font-medium">{session.name}</p>
-					<p className="text-sm text-muted-foreground">{session.accountName}</p>
-				</div>
-			</TableCell>
-			<TableCell>
-				<div className="flex flex-col gap-1 whitespace-normal">
-					<p className="font-medium">{formatBookingDateMedium(session.date)}</p>
-					<p className={cn("text-sm", dateSubtitle.className)}>{dateSubtitle.label}</p>
-				</div>
-			</TableCell>
-			<TableCell>
-				<SessionServiceCell
-					duration={session.duration}
-					session={session}
-				/>
-			</TableCell>
-			<TableCell>
-				<p className="text-sm whitespace-normal text-muted-foreground">
-					{session.adminNotes?.trim() || "-"}
-				</p>
-			</TableCell>
-			<TableCell>
-				<p className="text-sm whitespace-normal text-muted-foreground">
-					{session.editorNotes?.trim() || "-"}
-				</p>
-			</TableCell>
-			<TableCell className="text-right">
-				<EditorDeliverablesActions session={session} />
-			</TableCell>
-		</TableRow>
+			) : null}
+		</>
 	);
 }
