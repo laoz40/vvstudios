@@ -34,7 +34,6 @@ export function SessionEditorNotesDialog({
 					to the client.
 				</>
 			}
-			fieldLabel="Editor notes"
 			saveErrorMessage="Unable to save editor notes for this session."
 			saveSuccessMessage="Editor notes saved."
 			onSave={(notes) => updateSessionNotes({ bookingId, editorNotes: notes })}
