@@ -6,6 +6,11 @@ import type { EditorSession } from "#studio/features/editor/lib/editor-sessions"
 
 export function EditorSessionDriveCell({ session }: { session: EditorSession }) {
 	const [isDriveDialogOpen, setIsDriveDialogOpen] = useState(false);
+	const editStatus = session.editStatus ?? "to_edit";
+
+	if (editStatus === "to_edit") {
+		return null;
+	}
 
 	return (
 		<>
