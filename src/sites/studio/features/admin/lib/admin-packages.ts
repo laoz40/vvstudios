@@ -87,11 +87,26 @@ const PACKAGE_EXPIRY_REMINDER_DAYS_PER_REMAINING_SESSION = 7;
 
 export type AdminPackageFilters = {
 	showArchived: boolean;
-	showOverdue: boolean;
-	showPaid: boolean;
-	showUpcoming: boolean;
+	showDueOnly: boolean;
+	showStalePackages: boolean;
 	searchQuery: string;
 };
+
+const STRIPE_CHECKOUT_SESSION_EXPIRY_MS = 24 * 60 * 60 * 1000;
+
+function isStaleCleanupPackage(
+	packageRow: Pick<AdminPackageRow, "createdAt" | "status">,
+	now = Date.now()
+) {
+	if (packageRow.status === "expired" || packageRow.status === "abandoned") {
+		return true;
+	}
+
+	return (
+		packageRow.status === "pending_payment" &&
+		packageRow.createdAt < now - STRIPE_CHECKOUT_SESSION_EXPIRY_MS
+	);
+}
 
 function getAdminPackageStatusLabel(status: AdminPackageStatus) {
 	switch (status) {
@@ -218,18 +233,41 @@ export function isAdminPackageExpiryClose(
 	);
 }
 
-function isAdminPackageUpcoming(
-	packageRow: Pick<AdminPackageRow, "adjustment" | "expiresAt" | "isPaid">
+function hasUnpaidPackageBill(
+	packageRow: Pick<AdminPackageRow, "adjustment" | "customStripeInvoices">
 ) {
-	if (packageRow.adjustment) {
-		return Date.now() <= packageRow.adjustment.invoiceDueAt;
-	}
+	return (
+		packageRow.adjustment?.paymentStatus === "unpaid" ||
+		packageRow.customStripeInvoices?.paymentStatus === "unpaid"
+	);
+}
 
-	if (!packageRow.isPaid) {
+function hasPackageSessionsLeftBeforeExpiry(
+	packageRow: Pick<AdminPackageRow, "bookedSessions" | "expiresAt" | "isPaid" | "packageSize">
+) {
+	if (!packageRow.isPaid || packageRow.expiresAt === undefined) {
 		return false;
 	}
 
-	return packageRow.expiresAt !== undefined && Date.now() <= packageRow.expiresAt;
+	if (Date.now() > packageRow.expiresAt) {
+		return false;
+	}
+
+	return packageRow.bookedSessions < packageRow.packageSize;
+}
+
+function isAdminPackageDue(
+	packageRow: Pick<
+		AdminPackageRow,
+		| "adjustment"
+		| "bookedSessions"
+		| "customStripeInvoices"
+		| "expiresAt"
+		| "isPaid"
+		| "packageSize"
+	>
+) {
+	return hasUnpaidPackageBill(packageRow) || hasPackageSessionsLeftBeforeExpiry(packageRow);
 }
 
 export function getAdminPackageDashboardDate(
@@ -343,15 +381,11 @@ export function filterAdminPackages(rows: AdminPackageRow[], filters: AdminPacka
 			return false;
 		}
 
-		if (filters.showPaid && packageRow.status !== "paid") {
+		if (!filters.showStalePackages && isStaleCleanupPackage(packageRow)) {
 			return false;
 		}
 
-		if (filters.showOverdue && !isAdminPackageOverdue(packageRow)) {
-			return false;
-		}
-
-		if (filters.showUpcoming && !isAdminPackageUpcoming(packageRow)) {
+		if (filters.showDueOnly && !isAdminPackageDue(packageRow)) {
 			return false;
 		}
 

@@ -49,22 +49,16 @@ export function PackagesTableFilters({
 						<DropdownMenuContent align="end">
 							<DropdownMenuGroup>
 								<DropdownMenuCheckboxItem
-									checked={filters.showPaid}
-									onCheckedChange={(checked) => onFilterChange("showPaid", checked)}
+									checked={filters.showDueOnly}
+									onCheckedChange={(checked) => onFilterChange("showDueOnly", checked)}
 									onSelect={(event) => event.preventDefault()}>
-									Paid only
+									Show due
 								</DropdownMenuCheckboxItem>
 								<DropdownMenuCheckboxItem
-									checked={filters.showOverdue}
-									onCheckedChange={(checked) => onFilterChange("showOverdue", checked)}
+									checked={filters.showStalePackages}
+									onCheckedChange={(checked) => onFilterChange("showStalePackages", checked)}
 									onSelect={(event) => event.preventDefault()}>
-									Overdue only
-								</DropdownMenuCheckboxItem>
-								<DropdownMenuCheckboxItem
-									checked={filters.showUpcoming}
-									onCheckedChange={(checked) => onFilterChange("showUpcoming", checked)}
-									onSelect={(event) => event.preventDefault()}>
-									Upcoming only
+									Show unconfirmed
 								</DropdownMenuCheckboxItem>
 								<DropdownMenuCheckboxItem
 									checked={filters.showArchived}
@@ -79,22 +73,16 @@ export function PackagesTableFilters({
 			</div>
 			<div className="hidden flex-col gap-3 md:flex md:flex-row md:flex-wrap md:items-center md:justify-end">
 				<PackageFilterCheckbox
-					checked={filters.showPaid}
-					id="show-paid-packages"
-					label="Paid only"
-					onCheckedChange={(checked) => onFilterChange("showPaid", checked)}
+					checked={filters.showDueOnly}
+					id="show-due-packages"
+					label="Show due"
+					onCheckedChange={(checked) => onFilterChange("showDueOnly", checked)}
 				/>
 				<PackageFilterCheckbox
-					checked={filters.showOverdue}
-					id="show-overdue-packages"
-					label="Overdue only"
-					onCheckedChange={(checked) => onFilterChange("showOverdue", checked)}
-				/>
-				<PackageFilterCheckbox
-					checked={filters.showUpcoming}
-					id="show-upcoming-packages"
-					label="Upcoming only"
-					onCheckedChange={(checked) => onFilterChange("showUpcoming", checked)}
+					checked={filters.showStalePackages}
+					id="show-stale-packages"
+					label="Show unconfirmed"
+					onCheckedChange={(checked) => onFilterChange("showStalePackages", checked)}
 				/>
 				<PackageFilterCheckbox
 					checked={filters.showArchived}
