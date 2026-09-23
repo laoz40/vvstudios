@@ -19,7 +19,7 @@ type SessionNotesDialogProps = {
 	bookingId: Id<"bookings">;
 	description: ReactNode;
 	fieldIdPrefix: string;
-	fieldLabel: string;
+	fieldLabel?: string;
 	onOpenChange: (open: boolean) => void;
 	onSave: (notes: string) => Promise<Result<null, { reason: string }>>;
 	open: boolean;
@@ -73,7 +73,7 @@ function SessionNotesDialogForm({
 				<DialogDescription>{description}</DialogDescription>
 			</DialogHeader>
 			<Field>
-				<FieldLabel htmlFor={fieldId}>{fieldLabel}</FieldLabel>
+				{fieldLabel ? <FieldLabel htmlFor={fieldId}>{fieldLabel}</FieldLabel> : null}
 				<Textarea
 					id={fieldId}
 					value={notes}

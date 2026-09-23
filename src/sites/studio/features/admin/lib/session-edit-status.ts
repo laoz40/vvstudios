@@ -56,7 +56,7 @@ export const sessionStatusIconClassNameMap: Record<SessionStatus, string> = {
 };
 
 export const deliverableStatusLabelMap: Record<DeliverableStatus, string> = {
-	to_edit: "Not Sent",
+	to_edit: "Not Started",
 	editing: "Editing",
 	review: "Review",
 	completed: "Sent"

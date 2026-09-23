@@ -13,6 +13,7 @@ import Stack3Icon from "#/components/ui/stack-3-icon";
 import TrashIcon from "#/components/ui/trash-icon";
 import type { AnimatedIconHandle } from "#/components/ui/types";
 import { Tabs, TabsList, TabsTrigger } from "#/components/ui/tabs";
+import { cn } from "#/lib/utils";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -129,7 +130,7 @@ function DeliverablesControls({
 			</DropdownMenuLabel>
 			<div className="px-2 pb-2">
 				<Tabs value={statusActions.deliverableStatus}>
-					<TabsList className="w-full bg-background/60">
+					<TabsList className="h-auto w-full gap-0 bg-background/60 p-0.5">
 						{EDIT_STATUS_OPTIONS.map((option) => {
 							const Icon = deliverableStatusIconMap[option];
 
@@ -150,7 +151,10 @@ function DeliverablesControls({
 								<TabsTrigger
 									key={option}
 									value={option}
-									className={deliverableStatusTabClassNameMap[option]}
+									className={cn(
+										deliverableStatusTabClassNameMap[option],
+										"h-7 gap-1 px-1.5 py-0 data-[state=active]:shadow-none"
+									)}
 									disabled={isDisabled}
 									onClick={() => {
 										if (isDeliverAction) {
@@ -248,7 +252,7 @@ export function SessionActionsMenu({
 			</DropdownMenuTrigger>
 			<DropdownMenuContent
 				align="end"
-				className="w-80 touch-manipulation">
+				className="w-86 touch-manipulation">
 				<DropdownMenuGroup>
 					<div className="flex items-center gap-2 px-2 py-1">
 						<a

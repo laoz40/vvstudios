@@ -73,21 +73,19 @@ export function EditorAssignmentEmail({
 							assigned sessions.
 						</Text>
 						<Text style={step}>
-							<strong>2. Find the session to edit.</strong> Open the assigned session, use the
-							three-dot menu, and click &quot;Start editing&quot; before working on the files. This
-							lets the team know editing has begun.
+							<strong>2. Find the session to edit.</strong> In the dashboard, find your assigned
+							session and change it from &quot;Not Started&quot; to &quot;Start editing&quot; before
+							working on the files. This lets the team know editing has begun.
 						</Text>
-						<Text style={stepHeading}>
-							<strong>3. Get the files.</strong>
-						</Text>
-						<Text style={substep}>
-							<strong>Raw media.</strong> Find the assigned session, open the three-dot menu, and
-							click &quot;Google Drive folders&quot;. Then open &quot;{rawMediaFolderName}
-							&quot; and download the recorded footage you need for the edit.
+						<Text style={step}>
+							<strong>3. Get the files.</strong> You will now see a Google Drive button on the right
+							side of the dashboard. Click it to open the folders, then open &quot;
+							{rawMediaFolderName}&quot; and download the recorded footage you need for the edit.
 						</Text>
 						<Text style={lastSubstep}>
-							<strong>Assets.</strong> Check the client&apos;s separate &quot;_Assets&quot; folder
-							for any relevant brand guidelines, logos, and other supporting files.
+							<strong>Note:</strong> Only if the Service column shows &quot;Full Edit&quot; or
+							&quot;HC Clips&quot; (Handcrafted Clips) do you need to check the &quot;_Assets&quot;
+							folder for brand guidelines, logos, and other supporting files.
 						</Text>
 						<Text style={step}>
 							<strong>4. Make the edit.</strong> This is the fun part. Take your time and make it
@@ -99,7 +97,7 @@ export function EditorAssignmentEmail({
 						</Text>
 						<Text style={step}>
 							<strong>6. Send it for review.</strong> Return to the session in the dashboard and
-							click &quot;Ready to review&quot; only after the finished files are in &quot;
+							change it to &quot;Ready to review&quot; only after the finished files are in &quot;
 							{deliverablesFolderName}&quot;.
 						</Text>
 						<Text style={lastStep}>That&apos;s it. Thanks for taking this one.</Text>
@@ -181,10 +179,6 @@ const sectionTitle = {
 };
 
 const step = { ...paragraph, margin: "0 0 16px" };
-
-const stepHeading = { ...paragraph, margin: "0 0 8px" };
-
-const substep = { ...paragraph, margin: "0 0 8px", paddingLeft: "16px" };
 
 const lastSubstep = { ...paragraph, margin: "0 0 16px", paddingLeft: "16px" };
 

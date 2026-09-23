@@ -5,16 +5,21 @@ import { cn } from "#/lib/utils";
 
 type SessionServiceCellProps<TSession extends EditingAddonQuantities> = {
 	className?: string;
+	duration?: string;
 	session: TSession & { addons: readonly string[]; service: string };
 };
 
 export function SessionServiceCell<TSession extends EditingAddonQuantities>({
 	className,
+	duration,
 	session
 }: SessionServiceCellProps<TSession>) {
 	return (
 		<div className={cn("flex flex-col gap-2 whitespace-normal", className)}>
-			<p className="font-medium">{session.service}</p>
+			<p className="font-medium">
+				{session.service}
+				{duration ? <span className="font-normal text-muted-foreground"> · {duration}</span> : null}
+			</p>
 			{session.addons.length > 0 ? (
 				<div className="flex flex-wrap gap-1">
 					{session.addons.map((addon) => (

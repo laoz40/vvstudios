@@ -1,19 +1,21 @@
-import { Badge } from "#/components/ui/badge";
+import { useState } from "react";
+import { Pencil } from "lucide-react";
+import { Button } from "#/components/ui/button";
 import { TableCell, TableRow } from "#/components/ui/table";
 import { cn } from "#/lib/utils";
-import {
-	deliverableStatusBadgeClassNameMap,
-	deliverableStatusBadgeVariantMap,
-	deliverableStatusLabelMap,
-	type DeliverableStatus
-} from "#studio/features/admin/lib/session-edit-status";
-import { EditorDeliverablesActions } from "#studio/features/editor/components/EditorDeliverablesActions";
+import { EditorDeliverableStatusBadge } from "#studio/features/editor/components/EditorDeliverableStatusBadge";
+import { EditorSessionDriveCell } from "#studio/features/editor/components/EditorSessionDriveCell";
+import { SessionEditorNotesDialog } from "#studio/features/editor/components/SessionEditorNotesDialog";
 import type { EditorSession } from "#studio/features/editor/lib/editor-sessions";
 import { SessionServiceCell } from "#studio/features/sessions/components/SessionServiceCell";
 import {
 	formatBookingDateMedium,
 	formatBookingTimeLabel,
+	formatEditorEditDueLabel,
 	getBookingDayDifference,
+	getBookingStartTimestamp,
+	getEditorEditDueDayDifference,
+	getEditorEditDueSubtitleClassName,
 	isUpcomingBooking
 } from "#studio/lib/bookingdatetime";
 
@@ -26,23 +28,17 @@ function getSessionDateSubtitle(date: string, time: string, view: EditorSessions
 		return { label: formatBookingTimeLabel(time), className: "text-muted-foreground" };
 	}
 
-	const daysAgo = Math.abs(dayDifference);
-	const label = `${daysAgo} ${daysAgo === 1 ? "day" : "days"} ago`;
+	const sessionStartAt = getBookingStartTimestamp(date, time);
+	const daysUntilDue = getEditorEditDueDayDifference(sessionStartAt);
 
-	if (view === "history") {
-		return { label, className: "text-muted-foreground" };
+	if (daysUntilDue === null) {
+		return { label: formatBookingTimeLabel(time), className: "text-muted-foreground" };
 	}
 
-	switch (daysAgo) {
-		case 1:
-		case 2:
-			return { label, className: "text-primary" };
-		case 3:
-		case 4:
-			return { label, className: "text-orange" };
-		default:
-			return { label, className: "text-destructive" };
-	}
+	return {
+		label: formatEditorEditDueLabel(daysUntilDue),
+		className: getEditorEditDueSubtitleClassName(daysUntilDue, view)
+	};
 }
 
 export function EditorSessionTableRow({
@@ -52,54 +48,76 @@ export function EditorSessionTableRow({
 	session: EditorSession;
 	view: EditorSessionsView;
 }) {
-	const deliverableStatus: DeliverableStatus = session.editStatus ?? "to_edit";
+	const [isEditorNotesOpen, setIsEditorNotesOpen] = useState(false);
 	const dateSubtitle = getSessionDateSubtitle(session.date, session.time, view);
 	const isPastSession = !isUpcomingBooking(session.date, session.time);
+	const editorNotesText = session.editorNotes?.trim() ?? "";
 
 	return (
-		<TableRow>
-			<TableCell className="text-center">
-				<Badge
-					variant={deliverableStatusBadgeVariantMap[deliverableStatus]}
-					className={deliverableStatusBadgeClassNameMap[deliverableStatus]}>
-					{deliverableStatus === "review"
-						? "Reviewing"
-						: deliverableStatusLabelMap[deliverableStatus]}
-				</Badge>
-			</TableCell>
-			<TableCell>
-				<div className="flex flex-col gap-1 whitespace-normal">
-					<p className="font-medium">{session.name}</p>
-					<p className="text-sm text-muted-foreground">{session.accountName}</p>
-				</div>
-			</TableCell>
-			<TableCell>
-				<div className="flex flex-col gap-1 whitespace-normal">
-					<p className="font-medium">{formatBookingDateMedium(session.date)}</p>
-					<p className={cn("text-sm", dateSubtitle.className)}>
-						{session.duration ? `${dateSubtitle.label} · ${session.duration}` : dateSubtitle.label}
+		<>
+			<TableRow>
+				<TableCell className="text-left">
+					<EditorDeliverableStatusBadge
+						session={session}
+						canManageDeliverables={isPastSession}
+					/>
+				</TableCell>
+				<TableCell>
+					<div className="flex flex-col gap-1 whitespace-normal">
+						<p className="font-medium">{session.name}</p>
+						<p className="text-sm text-muted-foreground">{session.accountName}</p>
+					</div>
+				</TableCell>
+				<TableCell>
+					<div className="flex flex-col gap-1 whitespace-normal">
+						<p className="font-medium">{formatBookingDateMedium(session.date)}</p>
+						<p className={cn("text-sm", dateSubtitle.className)}>{dateSubtitle.label}</p>
+					</div>
+				</TableCell>
+				<TableCell>
+					<SessionServiceCell
+						duration={session.duration}
+						session={session}
+					/>
+				</TableCell>
+				<TableCell>
+					<p className="text-sm whitespace-normal text-muted-foreground">
+						{session.adminNotes?.trim() || "-"}
 					</p>
-				</div>
-			</TableCell>
-			<TableCell>
-				<SessionServiceCell session={session} />
-			</TableCell>
-			<TableCell>
-				<p className="text-sm whitespace-normal text-muted-foreground">
-					{session.adminNotes?.trim() || "-"}
-				</p>
-			</TableCell>
-			<TableCell>
-				<p className="text-sm whitespace-normal text-muted-foreground">
-					{session.editorNotes?.trim() || "-"}
-				</p>
-			</TableCell>
-			<TableCell className="text-right">
-				<EditorDeliverablesActions
-					session={session}
-					canManageDeliverables={isPastSession}
+				</TableCell>
+				<TableCell>
+					<div className="text-sm whitespace-normal text-muted-foreground">
+						{editorNotesText ? <span>{editorNotesText}</span> : null}
+						<Button
+							type="button"
+							variant="ghost"
+							size="icon-sm"
+							className={cn(
+								"inline-flex h-5 w-5 align-text-bottom text-muted-foreground",
+								editorNotesText && "ml-1"
+							)}
+							onClick={() => setIsEditorNotesOpen(true)}>
+							<Pencil
+								size={14}
+								aria-hidden
+							/>
+							<span className="sr-only">Edit editor notes for {session.name}</span>
+						</Button>
+					</div>
+				</TableCell>
+				<TableCell className="text-right">
+					<EditorSessionDriveCell session={session} />
+				</TableCell>
+			</TableRow>
+			{isEditorNotesOpen ? (
+				<SessionEditorNotesDialog
+					bookingId={session._id}
+					bookingName={session.name}
+					savedNotes={session.editorNotes}
+					open
+					onOpenChange={setIsEditorNotesOpen}
 				/>
-			</TableCell>
-		</TableRow>
+			) : null}
+		</>
 	);
 }
