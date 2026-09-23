@@ -74,13 +74,14 @@ export function EditorSessionTableRow({
 			<TableCell>
 				<div className="flex flex-col gap-1 whitespace-normal">
 					<p className="font-medium">{formatBookingDateMedium(session.date)}</p>
-					<p className={cn("text-sm", dateSubtitle.className)}>
-						{session.duration ? `${dateSubtitle.label} · ${session.duration}` : dateSubtitle.label}
-					</p>
+					<p className={cn("text-sm", dateSubtitle.className)}>{dateSubtitle.label}</p>
 				</div>
 			</TableCell>
 			<TableCell>
-				<SessionServiceCell session={session} />
+				<SessionServiceCell
+					duration={session.duration}
+					session={session}
+				/>
 			</TableCell>
 			<TableCell>
 				<p className="text-sm whitespace-normal text-muted-foreground">
