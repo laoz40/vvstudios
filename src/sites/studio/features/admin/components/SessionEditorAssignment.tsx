@@ -110,27 +110,40 @@ function EditorSelect({
 	isSaving,
 	onSelect
 }: EditorSelectProps) {
+	const assignedEditorTokenIdentifier = session.assignedEditorTokenIdentifier;
+
+	const assignedEditorMissingFromActiveList =
+		assignedEditorTokenIdentifier !== undefined &&
+		!activeEditors.some((editor) => editor.tokenIdentifier === assignedEditorTokenIdentifier);
+
+	if (isLoadingEditors) {
+		return (
+			<div
+				aria-busy="true"
+				className="flex h-8 w-full items-center gap-2 rounded-md border border-input bg-background/60 px-3 text-sm text-muted-foreground opacity-50 dark:bg-background/60">
+				<LoaderCircle className="animate-spin" />
+				Loading editors
+			</div>
+		);
+	}
+
 	return (
 		<Select
-			value={session.assignedEditorTokenIdentifier ?? UNASSIGNED_VALUE}
-			disabled={isSaving || isLoadingEditors}
+			value={assignedEditorTokenIdentifier ?? UNASSIGNED_VALUE}
+			disabled={isSaving}
 			onValueChange={onSelect}>
 			<SelectTrigger
 				size="sm"
 				className="w-full bg-background/60 dark:bg-background/60 dark:hover:bg-background/60"
-				aria-label={`Editor assigned to ${session.name}`}>
+				aria-label={`Editor assigned to ${session.name}`}
+				onPointerDown={(event) => {
+					event.preventDefault();
+				}}>
 				{isSaving ? (
 					<>
 						<LoaderCircle className="animate-spin" />
 						Assigning
 					</>
-				) : isLoadingEditors ? (
-					<>
-						<LoaderCircle className="animate-spin" />
-						Loading editors
-					</>
-				) : assignedEditorDisplayName ? (
-					<span>{assignedEditorDisplayName}</span>
 				) : (
 					<SelectValue placeholder="No editor assigned" />
 				)}
@@ -138,6 +151,11 @@ function EditorSelect({
 			<SelectContent className="bg-background">
 				<SelectGroup>
 					<SelectItem value={UNASSIGNED_VALUE}>No editor assigned</SelectItem>
+					{assignedEditorMissingFromActiveList && assignedEditorDisplayName ? (
+						<SelectItem value={assignedEditorTokenIdentifier}>
+							{assignedEditorDisplayName}
+						</SelectItem>
+					) : null}
 					{activeEditors.map((editor) => (
 						<SelectItem
 							key={editor.tokenIdentifier}
