@@ -1,12 +1,6 @@
-import { Badge } from "#/components/ui/badge";
 import { TableCell, TableRow } from "#/components/ui/table";
 import { cn } from "#/lib/utils";
-import {
-	deliverableStatusBadgeClassNameMap,
-	deliverableStatusBadgeVariantMap,
-	deliverableStatusLabelMap,
-	type DeliverableStatus
-} from "#studio/features/admin/lib/session-edit-status";
+import { EditorDeliverableStatusBadge } from "#studio/features/editor/components/EditorDeliverableStatusBadge";
 import { EditorDeliverablesActions } from "#studio/features/editor/components/EditorDeliverablesActions";
 import type { EditorSession } from "#studio/features/editor/lib/editor-sessions";
 import { SessionServiceCell } from "#studio/features/sessions/components/SessionServiceCell";
@@ -50,20 +44,16 @@ export function EditorSessionTableRow({
 	session: EditorSession;
 	view: EditorSessionsView;
 }) {
-	const deliverableStatus: DeliverableStatus = session.editStatus ?? "to_edit";
 	const dateSubtitle = getSessionDateSubtitle(session.date, session.time, view);
 	const isPastSession = !isUpcomingBooking(session.date, session.time);
 
 	return (
 		<TableRow>
-			<TableCell className="text-center">
-				<Badge
-					variant={deliverableStatusBadgeVariantMap[deliverableStatus]}
-					className={deliverableStatusBadgeClassNameMap[deliverableStatus]}>
-					{deliverableStatus === "review"
-						? "Reviewing"
-						: deliverableStatusLabelMap[deliverableStatus]}
-				</Badge>
+			<TableCell className="text-left">
+				<EditorDeliverableStatusBadge
+					session={session}
+					canManageDeliverables={isPastSession}
+				/>
 			</TableCell>
 			<TableCell>
 				<div className="flex flex-col gap-1 whitespace-normal">
@@ -94,10 +84,7 @@ export function EditorSessionTableRow({
 				</p>
 			</TableCell>
 			<TableCell className="text-right">
-				<EditorDeliverablesActions
-					session={session}
-					canManageDeliverables={isPastSession}
-				/>
+				<EditorDeliverablesActions session={session} />
 			</TableCell>
 		</TableRow>
 	);
