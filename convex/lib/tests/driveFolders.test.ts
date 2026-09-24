@@ -173,11 +173,7 @@ describe("areDriveSetupFoldersSaved", () => {
 		expect(
 			areDriveSetupFoldersSaved(
 				completeDriveSetupInfo({
-					driveSession: {
-						_id: driveSessionId,
-						sessionFolder: folder,
-						deliverablesFolder: folder
-					}
+					driveSession: { _id: driveSessionId, sessionFolder: folder, deliverablesFolder: folder }
 				})
 			)
 		).toBe(false);
