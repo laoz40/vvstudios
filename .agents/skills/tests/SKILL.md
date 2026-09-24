@@ -55,6 +55,10 @@ Dont mock internal collaborators or anything you control.
 - Pass external dependencies in (dependency injection), dont construct them inside the unit under test
 - Prefer SDK-style interfaces (one function per external operation) over a generic fetcher with conditional mock logic
 
+## Frontend unit tests
+
+- Put Vitest files under `src/sites/studio/features/<feature>/tests/`, not beside implementation files in `lib/`.
+
 ## Test file comments
 
 - At top of every test file, maintain one file-level comment that describes each test

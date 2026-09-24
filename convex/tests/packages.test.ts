@@ -5,7 +5,7 @@
  *    Shrinking below active booked sessions is rejected without changing the package.
  *
  * 2. Pricing edits
- *    Admin edits store a coherent pricing snapshot and isolate a custom final total.
+ *    Admin edits recalculate pricing snapshots, including quantity add-ons and line-item totals.
  *
  * 3. Package payment claim
  *    Payment claim creates one paid lifecycle, one expiry job, and slot accounting on the package row.
@@ -150,6 +150,44 @@ describe("admin package management", () => {
 
 		expect(result).toEqual([{ reason: "PACKAGE_SIZE_BELOW_BOOKED_SESSIONS" }, null]);
 		expect(await readPackage(t, packageId)).toEqual(packageBefore);
+	});
+
+	test("recalculates quantity add-on pricing on a four-session package", async () => {
+		const t = createConvexTest();
+		const packageId = await seedPackage(t);
+		const admin = t.withIdentity(adminIdentity);
+
+		const result = await admin.mutation(api.packages.updatePackageFromAdmin, {
+			packageId: packageId,
+			name: "Updated customer",
+			phone: "0411 111 111",
+			accountName: "Updated account",
+			email: "updated@example.com",
+			duration: "1h",
+			addons: ["Essential Edit"] satisfies BookingAddon[],
+			essentialEditQuantity: "2",
+			notes: "Updated notes",
+			packageSize: 4
+		});
+
+		const packageRecord = await readPackage(t, packageId);
+
+		if (!packageRecord?.invoiceLineItems) throw new Error("Expected package invoice snapshot");
+
+		const lineItemTotal = packageRecord.invoiceLineItems.reduce(
+			(total, item) => total + item.amount,
+			0
+		);
+
+		expect(result).toEqual([null, null]);
+		expect(packageRecord).toMatchObject({
+			singleSessionAmount: 400,
+			packageSubtotalAmount: 1600,
+			discountPercent: 5,
+			discountAmount: 80,
+			totalDueAmount: 1520
+		});
+		expect(lineItemTotal).toBe(1520);
 	});
 
 	test("updates a coherent pricing snapshot", async () => {

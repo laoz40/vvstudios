@@ -2,6 +2,7 @@ import { createEnv } from "@t3-oss/env-core";
 import { z } from "zod";
 
 export const env = createEnv({
+	isServer: true,
 	server: {
 		CLERK_FRONTEND_API_URL: z.string().min(1),
 		CLERK_SECRET_KEY: z.string().min(1),
