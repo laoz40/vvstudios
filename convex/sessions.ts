@@ -33,6 +33,7 @@ import {
 	saveEditorDrivePermissionsStatus as saveEditorDrivePermissionsStatusRecord
 } from "#convex/lib/driveEditor";
 import {
+	archivePastDeadCheckoutSessionsService,
 	archiveSessionService,
 	assignSessionEditorService,
 	buildPublicSessionStatusResponse,
@@ -351,6 +352,11 @@ export const assignSessionEditor = mutation({
 export const archiveSession = mutation({
 	args: { bookingId: v.id("bookings"), archived: v.boolean() },
 	handler: (ctx, args) => archiveSessionService(ctx, args).match(tupleOk, tupleErr)
+});
+
+export const archivePastDeadCheckoutSessions = mutation({
+	args: { cursor: v.union(v.string(), v.null()), numItems: v.optional(v.number()) },
+	handler: (ctx, args) => archivePastDeadCheckoutSessionsService(ctx, args).match(tupleOk, tupleErr)
 });
 
 export const updateSessionAdminNotes = mutation({
