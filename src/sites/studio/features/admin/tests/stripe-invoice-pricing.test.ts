@@ -12,6 +12,9 @@
  *
  * 4. Package duration upgrade
  *    Optional apply-to-all-sessions multiplies the per-session duration difference.
+ *
+ * 5. Full booking price parity
+ *    A one-hour checkout plus a two-hour upgrade invoice matches the two-hour booking total.
  */
 import { describe, expect, test } from "vitest";
 import {
@@ -27,6 +30,7 @@ import {
 	type StripeInvoiceContext,
 	type StripeInvoiceLineItemDraft
 } from "#studio/features/admin/lib/stripe-invoice-pricing";
+import { getBookingTotal } from "#studio/features/booking-form/lib/booking-pricing";
 
 const sessionContext: StripeInvoiceContext = { currentDuration: "2h", sessionCount: 1 };
 
@@ -215,6 +219,25 @@ describe("parseStripeInvoiceLineItemSelection", () => {
 			quantity: "1",
 			applyToEverySession: false
 		});
+	});
+});
+
+describe("duration upgrade and full booking price", () => {
+	test("one-hour checkout plus a two-hour upgrade invoice equals the two-hour booking total", () => {
+		const paidAtCheckout = getBookingTotal({ duration: "1h", addons: [] });
+
+		const upgradeLineItem = calculateDurationUpgradeLineItem(
+			{ currentDuration: "1h", sessionCount: 1 },
+			"2h",
+			false
+		);
+
+		const fullTwoHourPrice = getBookingTotal({ duration: "2h", addons: [] });
+
+		expect(paidAtCheckout).toBe(200);
+		expect(upgradeLineItem).toEqual({ description: "Studio hire upgrade: 1h to 2h", amount: 99 });
+		expect(paidAtCheckout + (upgradeLineItem?.amount ?? 0)).toBe(fullTwoHourPrice);
+		expect(fullTwoHourPrice).toBe(299);
 	});
 });
 
