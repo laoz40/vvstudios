@@ -4,7 +4,7 @@ import { internalMutation, internalQuery, query } from "#convex/_generated/serve
 import {
 	buildPublicPackageStatusResponse,
 	claimPackageCheckoutPaymentService,
-	deletePendingPackageService,
+	abandonPendingPackageService,
 	markPackageExpiredByStripeSessionIdService
 } from "#convex/services/packageCheckout";
 
@@ -27,9 +27,9 @@ export const claimPackageCheckoutPayment = internalMutation({
 	handler: (ctx, args) => claimPackageCheckoutPaymentService(ctx, args).match(tupleOk, tupleErr)
 });
 
-export const deletePendingPackage = internalMutation({
+export const abandonPendingPackage = internalMutation({
 	args: { packageId: v.id("packages"), stripeSessionId: v.string() },
-	handler: (ctx, args) => deletePendingPackageService(ctx, args).match(tupleOk, tupleErr)
+	handler: (ctx, args) => abandonPendingPackageService(ctx, args).match(tupleOk, tupleErr)
 });
 
 export const markPackageExpiredByStripeSessionId = internalMutation({

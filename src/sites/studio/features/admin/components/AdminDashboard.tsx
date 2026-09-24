@@ -17,10 +17,12 @@ import { BackendAuthErrorPage } from "#studio/features/auth/components/BackendAu
 import { DashboardForbiddenPage } from "#studio/features/auth/components/DashboardForbiddenPage";
 import {
 	toPackageListQuerySort,
-	type AdminPackageSort
+	type AdminPackageSort,
+	type AdminPackagesView
 } from "#studio/features/admin/lib/admin-packages";
 import {
 	toSessionListQuerySort,
+	type AdminSessionsView,
 	type SessionSorting
 } from "#studio/features/admin/lib/admin-sessions";
 import {
@@ -67,19 +69,31 @@ function renderEmployeeListError(error: EmployeeListError) {
 type BookingsDashboardViewProps = {
 	sessionSearchQuery: string;
 	sessionSorting: SessionSorting;
+	sessionsView: AdminSessionsView;
+	showStaleSessions: boolean;
 	onSessionSearchQueryChange: (searchQuery: string) => void;
 	onSessionSortingChange: (sorting: SessionSorting) => void;
+	onSessionsViewChange: (view: AdminSessionsView) => void;
+	onShowStaleSessionsChange: (showStaleSessions: boolean) => void;
 };
 
 function BookingsDashboardView({
 	sessionSearchQuery,
 	sessionSorting,
+	sessionsView,
+	showStaleSessions,
 	onSessionSearchQueryChange,
-	onSessionSortingChange
+	onSessionSortingChange,
+	onSessionsViewChange,
+	onShowStaleSessionsChange
 }: BookingsDashboardViewProps) {
-	const sessionListSort = toSessionListQuerySort(sessionSorting);
+	const sessionListQuery = {
+		...toSessionListQuerySort(sessionSorting),
+		view: sessionsView,
+		includeStale: showStaleSessions
+	};
 
-	const sessions = usePaginatedQuery(api.sessions.listSessions, sessionListSort, {
+	const sessions = usePaginatedQuery(api.sessions.listSessions, sessionListQuery, {
 		initialNumItems: DASHBOARD_PAGE_SIZE
 	});
 
@@ -96,8 +110,12 @@ function BookingsDashboardView({
 			isLoadingSessions={sessions.status === "LoadingFirstPage"}
 			loadMoreSessions={() => sessions.loadMore(DASHBOARD_PAGE_SIZE)}
 			searchQuery={sessionSearchQuery}
+			sessionsView={sessionsView}
+			showStaleSessions={showStaleSessions}
 			sorting={sessionSorting}
 			onSearchQueryChange={onSessionSearchQueryChange}
+			onSessionsViewChange={onSessionsViewChange}
+			onShowStaleSessionsChange={onShowStaleSessionsChange}
 			onSortingChange={onSessionSortingChange}
 		/>
 	);
@@ -105,18 +123,30 @@ function BookingsDashboardView({
 
 type PackagesDashboardViewProps = {
 	packageSorting: AdminPackageSort;
+	packagesView: AdminPackagesView;
+	showStalePackages: boolean;
 	onPackageSortingChange: (sorting: AdminPackageSort) => void;
+	onPackagesViewChange: (view: AdminPackagesView) => void;
+	onShowStalePackagesChange: (showStalePackages: boolean) => void;
 	onViewPackageSessions: (invoiceNumber: string) => void;
 };
 
 function PackagesDashboardView({
 	packageSorting,
+	packagesView,
+	showStalePackages,
 	onPackageSortingChange,
+	onPackagesViewChange,
+	onShowStalePackagesChange,
 	onViewPackageSessions
 }: PackagesDashboardViewProps) {
-	const packageListSort = toPackageListQuerySort(packageSorting);
+	const packageListQuery = {
+		...toPackageListQuerySort(packageSorting),
+		view: packagesView,
+		includeStale: showStalePackages
+	};
 
-	const packages = usePaginatedQuery(api.packages.listPackages, packageListSort, {
+	const packages = usePaginatedQuery(api.packages.listPackages, packageListQuery, {
 		initialNumItems: DASHBOARD_PAGE_SIZE
 	});
 
@@ -132,7 +162,11 @@ function PackagesDashboardView({
 			isLoadingMorePackages={packages.status === "LoadingMore"}
 			isLoadingPackages={packages.status === "LoadingFirstPage"}
 			loadMorePackages={() => packages.loadMore(DASHBOARD_PAGE_SIZE)}
+			packagesView={packagesView}
+			showStalePackages={showStalePackages}
 			sorting={packageSorting}
+			onPackagesViewChange={onPackagesViewChange}
+			onShowStalePackagesChange={onShowStalePackagesChange}
 			onSortingChange={onPackageSortingChange}
 			onViewPackageSessions={onViewPackageSessions}
 		/>
@@ -178,7 +212,21 @@ export function AdminDashboard({ dashboardRole }: { dashboardRole: DashboardRole
 	);
 
 	const [sessionSorting, setSessionSorting] = useState(initialTablePreferences.sessions.sorting);
+
+	const [sessionsView, setSessionsView] = useState(initialTablePreferences.sessions.sessionsView);
+
+	const [showStaleSessions, setShowStaleSessions] = useState(
+		initialTablePreferences.sessions.showStaleBookings
+	);
+
 	const [packageSorting, setPackageSorting] = useState(initialTablePreferences.packages.sorting);
+
+	const [packagesView, setPackagesView] = useState(initialTablePreferences.packages.packagesView);
+
+	const [showStalePackages, setShowStalePackages] = useState(
+		initialTablePreferences.packages.showStalePackages
+	);
+
 	const [sessionSearchQuery, setSessionSearchQuery] = useState("");
 
 	const email = user?.primaryEmailAddress?.emailAddress ?? user?.emailAddresses[0]?.emailAddress;
@@ -228,14 +276,22 @@ export function AdminDashboard({ dashboardRole }: { dashboardRole: DashboardRole
 						<BookingsDashboardView
 							sessionSearchQuery={sessionSearchQuery}
 							sessionSorting={sessionSorting}
+							sessionsView={sessionsView}
+							showStaleSessions={showStaleSessions}
 							onSessionSearchQueryChange={setSessionSearchQuery}
 							onSessionSortingChange={setSessionSorting}
+							onSessionsViewChange={setSessionsView}
+							onShowStaleSessionsChange={setShowStaleSessions}
 						/>
 					) : null}
 					{activeView === "packages" ? (
 						<PackagesDashboardView
 							packageSorting={packageSorting}
+							packagesView={packagesView}
+							showStalePackages={showStalePackages}
 							onPackageSortingChange={setPackageSorting}
+							onPackagesViewChange={setPackagesView}
+							onShowStalePackagesChange={setShowStalePackages}
 							onViewPackageSessions={viewPackageSessions}
 						/>
 					) : null}

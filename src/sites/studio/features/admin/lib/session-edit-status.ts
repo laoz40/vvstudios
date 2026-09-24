@@ -105,7 +105,3 @@ export function isDeliverableSession(session: SessionRecord) {
 
 	return !isUpcomingBooking(session.date, session.time);
 }
-
-export function hasUnsentDeliverables(session: SessionRecord) {
-	return isDeliverableSession(session) && getDeliverableStatus(session) !== "completed";
-}

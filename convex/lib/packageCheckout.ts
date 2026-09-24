@@ -9,13 +9,13 @@ export type ExpirePackageDecision =
 	| { kind: "complete"; alreadyExpired: true }
 	| { kind: "expire"; packageId: Doc<"packages">["_id"] };
 
-export type DeletePendingPackageSuccess =
+export type AbandonPendingPackageSuccess =
 	| { outcome: "not_found" }
 	| { outcome: "not_pending"; status: Doc<"packages">["status"] }
 	| { outcome: "abandoned" };
 
-export type DeletePendingPackageDecision =
-	| { kind: "complete"; value: DeletePendingPackageSuccess }
+export type AbandonPendingPackageDecision =
+	| { kind: "complete"; value: AbandonPendingPackageSuccess }
 	| { kind: "abandon" };
 
 export function validatePackageExpiry(
@@ -34,10 +34,10 @@ export function validatePackageExpiry(
 	return ok({ kind: "expire", packageId: packageFromDb._id });
 }
 
-export function validatePendingPackageDeletion(
+export function validatePendingPackageAbandonment(
 	packageFromDb: Doc<"packages">,
 	stripeSessionId: string
-): Result<DeletePendingPackageDecision, { reason: "STRIPE_SESSION_MISMATCH" }> {
+): Result<AbandonPendingPackageDecision, { reason: "STRIPE_SESSION_MISMATCH" }> {
 	if (packageFromDb.stripeSessionId !== stripeSessionId) {
 		return err({ reason: "STRIPE_SESSION_MISMATCH" });
 	}

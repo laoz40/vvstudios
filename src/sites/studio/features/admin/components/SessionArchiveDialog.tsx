@@ -11,32 +11,34 @@ import {
 } from "#/components/ui/dialog";
 import { formatBookingDateMedium, formatBookingTimeLabel } from "#studio/lib/bookingdatetime";
 
-export type SessionDeleteDialogProps = {
+export type SessionArchiveDialogProps = {
 	open: boolean;
 	bookingName: string;
 	bookingId: string;
 	sessionDate: string;
 	sessionTime: string;
+	editorDisplayName: string | null;
 	onOpenChange: (open: boolean) => void;
 	onConfirm: () => Promise<void>;
-	isDeleting: boolean;
+	isArchiving: boolean;
 };
 
-export function SessionDeleteDialog({
+export function SessionArchiveDialog({
 	open,
 	bookingName,
 	bookingId,
 	sessionDate,
 	sessionTime,
+	editorDisplayName,
 	onOpenChange,
 	onConfirm,
-	isDeleting
-}: SessionDeleteDialogProps) {
+	isArchiving
+}: SessionArchiveDialogProps) {
 	return (
 		<Dialog
 			open={open}
 			onOpenChange={(nextOpen) => {
-				if (isDeleting && !nextOpen) {
+				if (isArchiving && !nextOpen) {
 					return;
 				}
 
@@ -45,12 +47,12 @@ export function SessionDeleteDialog({
 			<DialogContent
 				className="sm:max-w-lg"
 				onInteractOutside={(event) => {
-					if (isDeleting) {
+					if (isArchiving) {
 						event.preventDefault();
 					}
 				}}
 				onEscapeKeyDown={(event) => {
-					if (isDeleting) {
+					if (isArchiving) {
 						event.preventDefault();
 					}
 				}}>
@@ -60,17 +62,18 @@ export function SessionDeleteDialog({
 						variant="ghost"
 						size="icon-sm"
 						className="absolute top-2 right-2"
-						aria-label="Close delete event dialog"
-						disabled={isDeleting}>
+						aria-label="Close archive session dialog"
+						disabled={isArchiving}>
 						<X />
 					</Button>
 				</DialogClose>
 
 				<DialogHeader className="text-left">
-					<DialogTitle>Delete Google Calendar event?</DialogTitle>
+					<DialogTitle>Archive session?</DialogTitle>
 					<DialogDescription>
-						This removes the calendar event and marks the session as cancelled. The session record
-						will stay in the dashboard until archived.
+						Archiving only hides this session from the Inbox tab. It stays on the editor dashboard
+						{editorDisplayName ? ` for ${editorDisplayName}` : ""} until you cancel the session or
+						mark deliverables as sent.
 					</DialogDescription>
 				</DialogHeader>
 
@@ -98,18 +101,17 @@ export function SessionDeleteDialog({
 						type="button"
 						variant="outline"
 						onClick={() => onOpenChange(false)}
-						disabled={isDeleting}>
+						disabled={isArchiving}>
 						Cancel
 					</Button>
 					<Button
 						type="button"
-						variant="destructive"
 						onClick={() => {
 							void onConfirm();
 						}}
-						disabled={isDeleting}>
-						{isDeleting ? <LoaderCircle className="size-4 animate-spin" /> : null}
-						{isDeleting ? "Deleting event..." : "Delete event and cancel session"}
+						disabled={isArchiving}>
+						{isArchiving ? <LoaderCircle className="size-4 animate-spin" /> : null}
+						{isArchiving ? "Archiving" : "Archive session"}
 					</Button>
 				</DialogFooter>
 			</DialogContent>

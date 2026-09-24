@@ -9,6 +9,7 @@
  */
 
 import type * as auth from "../auth.js";
+import type * as backfillArchive from "../backfillArchive.js";
 import type * as bookingConfirmation from "../bookingConfirmation.js";
 import type * as bookingSettings from "../bookingSettings.js";
 import type * as crons from "../crons.js";
@@ -22,7 +23,11 @@ import type * as feedback from "../feedback.js";
 import type * as googleCalendar from "../googleCalendar.js";
 import type * as http from "../http.js";
 import type * as invoices from "../invoices.js";
+import type * as lib_adminPackageList from "../lib/adminPackageList.js";
+import type * as lib_adminSessionList from "../lib/adminSessionList.js";
+import type * as lib_archiveState from "../lib/archiveState.js";
 import type * as lib_auth from "../lib/auth.js";
+import type * as lib_backfillArchive from "../lib/backfillArchive.js";
 import type * as lib_bookingAddonQuantities from "../lib/bookingAddonQuantities.js";
 import type * as lib_bookingConfirmation from "../lib/bookingConfirmation.js";
 import type * as lib_bookingConfirmationClaim from "../lib/bookingConfirmationClaim.js";
@@ -57,6 +62,7 @@ import type * as lib_googleDrive from "../lib/googleDrive.js";
 import type * as lib_invoiceDownloads from "../lib/invoiceDownloads.js";
 import type * as lib_packageAdjustmentInvoicePayment from "../lib/packageAdjustmentInvoicePayment.js";
 import type * as lib_packageAdjustments from "../lib/packageAdjustments.js";
+import type * as lib_packageArchive from "../lib/packageArchive.js";
 import type * as lib_packageCheckout from "../lib/packageCheckout.js";
 import type * as lib_packageCheckoutClaim from "../lib/packageCheckoutClaim.js";
 import type * as lib_packageLookup from "../lib/packageLookup.js";
@@ -64,12 +70,14 @@ import type * as lib_packagePayment from "../lib/packagePayment.js";
 import type * as lib_packageReminders from "../lib/packageReminders.js";
 import type * as lib_packageScheduling from "../lib/packageScheduling.js";
 import type * as lib_packageSchedulingCalendar from "../lib/packageSchedulingCalendar.js";
+import type * as lib_packageSessionCapacity from "../lib/packageSessionCapacity.js";
 import type * as lib_packageUpdates from "../lib/packageUpdates.js";
 import type * as lib_rateLimits from "../lib/rateLimits.js";
 import type * as lib_reminderScheduleTime from "../lib/reminderScheduleTime.js";
 import type * as lib_result from "../lib/result.js";
 import type * as lib_sessionAdminEdit from "../lib/sessionAdminEdit.js";
 import type * as lib_sessionAdminGoogleCalendarUpdate from "../lib/sessionAdminGoogleCalendarUpdate.js";
+import type * as lib_sessionArchive from "../lib/sessionArchive.js";
 import type * as lib_sessionCalendarEvents from "../lib/sessionCalendarEvents.js";
 import type * as lib_sessionCalendarTime from "../lib/sessionCalendarTime.js";
 import type * as lib_sessionCheckout from "../lib/sessionCheckout.js";
@@ -150,6 +158,7 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   auth: typeof auth;
+  backfillArchive: typeof backfillArchive;
   bookingConfirmation: typeof bookingConfirmation;
   bookingSettings: typeof bookingSettings;
   crons: typeof crons;
@@ -163,7 +172,11 @@ declare const fullApi: ApiFromModules<{
   googleCalendar: typeof googleCalendar;
   http: typeof http;
   invoices: typeof invoices;
+  "lib/adminPackageList": typeof lib_adminPackageList;
+  "lib/adminSessionList": typeof lib_adminSessionList;
+  "lib/archiveState": typeof lib_archiveState;
   "lib/auth": typeof lib_auth;
+  "lib/backfillArchive": typeof lib_backfillArchive;
   "lib/bookingAddonQuantities": typeof lib_bookingAddonQuantities;
   "lib/bookingConfirmation": typeof lib_bookingConfirmation;
   "lib/bookingConfirmationClaim": typeof lib_bookingConfirmationClaim;
@@ -198,6 +211,7 @@ declare const fullApi: ApiFromModules<{
   "lib/invoiceDownloads": typeof lib_invoiceDownloads;
   "lib/packageAdjustmentInvoicePayment": typeof lib_packageAdjustmentInvoicePayment;
   "lib/packageAdjustments": typeof lib_packageAdjustments;
+  "lib/packageArchive": typeof lib_packageArchive;
   "lib/packageCheckout": typeof lib_packageCheckout;
   "lib/packageCheckoutClaim": typeof lib_packageCheckoutClaim;
   "lib/packageLookup": typeof lib_packageLookup;
@@ -205,12 +219,14 @@ declare const fullApi: ApiFromModules<{
   "lib/packageReminders": typeof lib_packageReminders;
   "lib/packageScheduling": typeof lib_packageScheduling;
   "lib/packageSchedulingCalendar": typeof lib_packageSchedulingCalendar;
+  "lib/packageSessionCapacity": typeof lib_packageSessionCapacity;
   "lib/packageUpdates": typeof lib_packageUpdates;
   "lib/rateLimits": typeof lib_rateLimits;
   "lib/reminderScheduleTime": typeof lib_reminderScheduleTime;
   "lib/result": typeof lib_result;
   "lib/sessionAdminEdit": typeof lib_sessionAdminEdit;
   "lib/sessionAdminGoogleCalendarUpdate": typeof lib_sessionAdminGoogleCalendarUpdate;
+  "lib/sessionArchive": typeof lib_sessionArchive;
   "lib/sessionCalendarEvents": typeof lib_sessionCalendarEvents;
   "lib/sessionCalendarTime": typeof lib_sessionCalendarTime;
   "lib/sessionCheckout": typeof lib_sessionCheckout;

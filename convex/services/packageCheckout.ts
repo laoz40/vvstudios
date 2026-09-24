@@ -3,13 +3,14 @@ import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { MutationCtx } from "#convex/_generated/server";
 import {
 	validatePackageExpiry,
-	validatePendingPackageDeletion,
-	type DeletePendingPackageSuccess
+	validatePendingPackageAbandonment,
+	type AbandonPendingPackageSuccess
 } from "#convex/lib/packageCheckout";
 import {
 	getPackageCheckoutClaimStatus,
 	validatePackageClaimStripeSession
 } from "#convex/lib/packageCheckoutClaim";
+import { archiveDeadPackage } from "#convex/lib/packageArchive";
 import { getPackageFromDb } from "#convex/lib/packageLookup";
 import { okOrThrow } from "#convex/lib/result";
 
@@ -33,34 +34,30 @@ export function markPackageExpiredByStripeSessionIdService(
 					return ok({ alreadyExpired: expireDecision.alreadyExpired });
 				}
 
-				return okOrThrow(
-					ctx.db
-						.patch(expireDecision.packageId, { status: "expired" })
-						.then(() => ({ alreadyExpired: false }))
-				);
+				return archiveDeadPackage(ctx, expireDecision.packageId, { status: "expired" }).map(() => ({
+					alreadyExpired: false
+				}));
 			})
 	);
 }
 
-export function deletePendingPackageService(
+export function abandonPendingPackageService(
 	ctx: MutationCtx,
 	args: { packageId: Id<"packages">; stripeSessionId: string }
 ) {
 	return (
 		getPackageFromDb(ctx, args.packageId)
 			.andThen((packageFromDb) =>
-				validatePendingPackageDeletion(packageFromDb, args.stripeSessionId)
+				validatePendingPackageAbandonment(packageFromDb, args.stripeSessionId)
 			)
 			// Preserve idempotency or abandon the pending package.
-			.andThen((deleteDecision) => {
-				if (deleteDecision.kind === "complete") {
-					return ok(deleteDecision.value);
+			.andThen((abandonDecision) => {
+				if (abandonDecision.kind === "complete") {
+					return ok(abandonDecision.value);
 				}
 
-				return okOrThrow(
-					ctx.db
-						.patch(args.packageId, { status: "abandoned" })
-						.then((): DeletePendingPackageSuccess => ({ outcome: "abandoned" }))
+				return archiveDeadPackage(ctx, args.packageId, { status: "abandoned" }).map(
+					(): AbandonPendingPackageSuccess => ({ outcome: "abandoned" })
 				);
 			})
 			.orElse((error) =>

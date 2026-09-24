@@ -13,6 +13,7 @@ import {
 	checkSessionMeetsAvailabilitySettings,
 	type SessionAvailabilityValidationError
 } from "#convex/lib/sessionCalendarTime";
+import { archiveDeadCheckoutBooking } from "#convex/lib/sessionArchive";
 import {
 	validatePendingSessionDeletion,
 	validateSessionExpiry,
@@ -115,10 +116,8 @@ export function markSessionExpiredByStripeSessionIdService(
 					return ok<{ alreadyExpired: boolean }>({ alreadyExpired: decision.alreadyExpired });
 				}
 
-				return okOrThrow(
-					ctx.db
-						.patch(decision.bookingId, { status: "expired" })
-						.then(() => ({ alreadyExpired: false }))
+				return archiveDeadCheckoutBooking(ctx, decision.bookingId, { status: "expired" }).map(
+					() => ({ alreadyExpired: false })
 				);
 			})
 	);
@@ -132,16 +131,14 @@ export function deletePendingSessionService(
 		okOrThrow(ctx.db.get(args.bookingId))
 			// Verify ownership and whether the pending booking still needs abandonment.
 			.andThen((booking) => validatePendingSessionDeletion(booking, args.stripeSessionId))
-			// Return terminal outcomes unchanged or abandon the pending booking.
+			// Return idempotent outcomes unchanged or abandon the pending booking.
 			.andThen((decision) => {
 				if (decision.kind === "complete") {
 					return ok<DeletePendingSessionSuccess>(decision.value);
 				}
 
-				return okOrThrow(
-					ctx.db
-						.patch(args.bookingId, { status: "abandoned" })
-						.then((): DeletePendingSessionSuccess => ({ outcome: "abandoned" }))
+				return archiveDeadCheckoutBooking(ctx, args.bookingId, { status: "abandoned" }).map(
+					(): DeletePendingSessionSuccess => ({ outcome: "abandoned" })
 				);
 			})
 	);

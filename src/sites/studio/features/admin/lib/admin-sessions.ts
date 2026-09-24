@@ -1,12 +1,10 @@
 import type { Doc } from "#convex/_generated/dataModel";
 import { sessionConsumesPackageCapacity } from "#convex/lib/packageSessionCapacity";
 import { customerFilter } from "#studio/features/admin/components/AdminDashboardTableUtils";
-import { hasUnsentDeliverables } from "#studio/features/admin/lib/session-edit-status";
 import {
 	DURATION_OPTIONS,
 	type BookingFormValues
 } from "#studio/features/booking-form/lib/booking-form-model";
-import { isUpcomingBooking } from "#studio/lib/bookingdatetime";
 
 export type SessionRecord = Doc<"bookings"> & {
 	assignedEditorDisplayName?: string;
@@ -35,21 +33,8 @@ export type SessionActionDetails = {
 	isPastSession: boolean;
 };
 
-const STRIPE_CHECKOUT_SESSION_EXPIRY_MS = 24 * 60 * 60 * 1000;
-
 export function isManageableConfirmedSession(session: SessionRecord) {
 	return session.status === "confirmed" || session.status === "email_failed";
-}
-
-function isStaleCleanupSession(session: SessionRecord, now = Date.now()) {
-	if (session.status === "expired" || session.status === "abandoned") {
-		return true;
-	}
-
-	return (
-		session.status === "pending_payment" &&
-		session.pendingPaymentCreatedAt < now - STRIPE_CHECKOUT_SESSION_EXPIRY_MS
-	);
 }
 
 export function getPackageSessionProgressLabel(session: SessionRecord) {
@@ -79,56 +64,33 @@ export type SessionListQuerySort = {
 	sortDirection: SessionListSortDirection;
 };
 
+export type AdminSessionsView = "inbox" | "all";
+
 export function toSessionListQuerySort(sorting: SessionSorting): SessionListQuerySort {
 	const activeSort = sorting.at(0) ?? { id: "session", desc: false };
 
 	return { sortBy: activeSort.id, sortDirection: activeSort.desc ? "desc" : "asc" };
 }
 
-export type AdminSessionFilters = {
-	searchQuery: string;
-	showArchived: boolean;
-	showStaleSessions: boolean;
-	showUpcomingOnly: boolean;
-};
+export type AdminSessionFilters = { searchQuery: string };
 
-// Leo: Currently client filters paginated data. Fine at current volume. Prefetches when
-// filters hide every loaded row. Won't scale as bookings grow.
-//
-// Server-side filtering probably needed in the future. Idea to explore:
-// - Split upcoming (future sessions) and needs action (unpaid invoices, deliverables
-//   not sent) into separate views instead of one toggle
-// - Upfront payment may simplify the unpaid case
-// - might not be necessary to even filter for unpaid as deliverables won't be sent until payment is received
+type SessionArchiveConfirmInput = Pick<
+	SessionRecord,
+	"assignedEditorTokenIdentifier" | "editStatus"
+>;
+
+/** Warn before archiving when an editor still has open deliverables work. */
+export function shouldConfirmSessionArchive(session: SessionArchiveConfirmInput): boolean {
+	if (session.assignedEditorTokenIdentifier === undefined) {
+		return false;
+	}
+
+	return session.editStatus !== "completed";
+}
+
+// Client-side search on whatever usePaginatedQuery has loaded so far. listSessions does not
+// take searchQuery; matching rows on later pages only appear after loadMore (see prefetch in
+// SessionsTable). Inbox vs all and stale checkout rows are server-side on listSessions.
 export function filterAdminSessions(sessions: SessionRecord[], filters: AdminSessionFilters) {
-	return sessions.filter((session) => {
-		if (!filters.showArchived && session.hiddenAt !== undefined) {
-			return false;
-		}
-
-		if (!customerFilter({ original: session }, filters.searchQuery)) {
-			return false;
-		}
-
-		if (!filters.showStaleSessions && session.status === "cancelled") {
-			return false;
-		}
-
-		const hasUnpaidStripeInvoices = session.stripeInvoicesSummary?.paymentStatus === "unpaid";
-
-		if (
-			filters.showUpcomingOnly &&
-			!isUpcomingBooking(session.date, session.time) &&
-			!hasUnsentDeliverables(session) &&
-			!hasUnpaidStripeInvoices
-		) {
-			return false;
-		}
-
-		if (!filters.showStaleSessions && isStaleCleanupSession(session)) {
-			return false;
-		}
-
-		return true;
-	});
+	return sessions.filter((session) => customerFilter({ original: session }, filters.searchQuery));
 }

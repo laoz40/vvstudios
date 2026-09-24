@@ -12,13 +12,13 @@
  */
 import { describe, expect, test } from "vitest";
 import type { Doc } from "#convex/_generated/dataModel";
-import { validatePendingPackageDeletion } from "#convex/lib/packageCheckout";
+import { validatePendingPackageAbandonment } from "#convex/lib/packageCheckout";
 import { testPackageId } from "#convex/lib/tests/testIds";
 
 function packageRecord(
 	overrides: Partial<Pick<Doc<"packages">, "status" | "stripeSessionId">> = {}
 ): Doc<"packages"> {
-	// SAFETY: Unit tests only pass the package fields read by validatePendingPackageDeletion.
+	// SAFETY: Unit tests only pass the package fields read by validatePendingPackageAbandonment.
 	return {
 		_id: testPackageId("package-1"),
 		status: "pending_payment",
@@ -27,9 +27,9 @@ function packageRecord(
 	} as Doc<"packages">;
 }
 
-describe("validatePendingPackageDeletion", () => {
+describe("validatePendingPackageAbandonment", () => {
 	test("rejects a close request when the Stripe session does not match", () => {
-		const result = validatePendingPackageDeletion(packageRecord(), "cs-other");
+		const result = validatePendingPackageAbandonment(packageRecord(), "cs-other");
 
 		expect(result.isErr()).toBe(true);
 
@@ -39,8 +39,8 @@ describe("validatePendingPackageDeletion", () => {
 	});
 
 	test("does not abandon a package that is no longer pending payment", () => {
-		const paid = validatePendingPackageDeletion(packageRecord({ status: "paid" }), "cs-1");
-		const expired = validatePendingPackageDeletion(packageRecord({ status: "expired" }), "cs-1");
+		const paid = validatePendingPackageAbandonment(packageRecord({ status: "paid" }), "cs-1");
+		const expired = validatePendingPackageAbandonment(packageRecord({ status: "expired" }), "cs-1");
 
 		expect(paid.isOk()).toBe(true);
 		expect(expired.isOk()).toBe(true);
@@ -61,7 +61,7 @@ describe("validatePendingPackageDeletion", () => {
 	});
 
 	test("abandons a pending package when the Stripe session matches", () => {
-		const result = validatePendingPackageDeletion(packageRecord(), "cs-1");
+		const result = validatePendingPackageAbandonment(packageRecord(), "cs-1");
 
 		expect(result.isOk()).toBe(true);
 

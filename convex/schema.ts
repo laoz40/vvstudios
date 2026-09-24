@@ -239,6 +239,7 @@ export default defineSchema({
 		bookingFailureCode: v.optional(v.string()),
 
 		hiddenAt: v.optional(v.number()),
+		archived: v.optional(v.boolean()),
 		bookingConfirmationClaimedAt: v.optional(v.number()),
 		bookingConfirmationEventId: v.optional(v.string()),
 		reservationCreatedAt: v.optional(v.number()),
@@ -291,6 +292,8 @@ export default defineSchema({
 		.index("by_email", ["email"])
 		.index("by_pendingPaymentCreatedAt", ["pendingPaymentCreatedAt"])
 		.index("by_sessionStartAt", ["sessionStartAt"])
+		.index("by_hiddenAt_and_sessionStartAt", ["hiddenAt", "sessionStartAt"])
+		.index("by_hiddenAt_and_pendingPaymentCreatedAt", ["hiddenAt", "pendingPaymentCreatedAt"])
 		.index("by_stripeSessionId", ["stripeSessionId"])
 		.index("by_status_and_sessionStartAt", ["status", "sessionStartAt"])
 		.index("by_status_and_reminderEmailSentAt_and_sessionStartAt", [
@@ -348,6 +351,7 @@ export default defineSchema({
 		paidAt: v.optional(v.number()),
 		expiresAt: v.optional(v.number()),
 		hiddenAt: v.optional(v.number()),
+		archived: v.optional(v.boolean()),
 
 		// Receipt metadata (receipt number + email delivery status)
 		invoiceNumber: v.optional(v.string()),
@@ -375,6 +379,7 @@ export default defineSchema({
 		stripeCustomerId: v.optional(v.string())
 	})
 		.index("by_status_and_expiresAt", ["status", "expiresAt"])
+		.index("by_hiddenAt_and_createdAt", ["hiddenAt", "createdAt"])
 		.index("by_createdAt", ["createdAt"])
 		.index("by_scheduleTokenHash", ["scheduleTokenHash"])
 		.index("by_stripeSessionId", ["stripeSessionId"])

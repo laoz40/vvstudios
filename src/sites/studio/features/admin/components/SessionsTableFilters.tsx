@@ -10,30 +10,28 @@ import {
 } from "#/components/ui/dropdown-menu";
 import { Input } from "#/components/ui/input";
 import { Label } from "#/components/ui/label";
+import { AdminInboxAllViewTabs } from "#studio/features/admin/components/AdminInboxAllViewTabs";
+import type { AdminSessionsView } from "#studio/features/admin/lib/admin-sessions";
 
 type SessionsTableFiltersProps = {
 	onSearchQueryChange: (searchQuery: string) => void;
-	onShowArchivedChange: (checked: boolean) => void;
+	onSessionsViewChange: (view: AdminSessionsView) => void;
 	onShowStaleSessionsChange: (checked: boolean) => void;
-	onShowUpcomingOnlyChange: (checked: boolean) => void;
 	searchQuery: string;
-	showArchived: boolean;
+	sessionsView: AdminSessionsView;
 	showStaleSessions: boolean;
-	showUpcomingOnly: boolean;
 };
 
 export function SessionsTableFilters({
 	onSearchQueryChange,
-	onShowArchivedChange,
+	onSessionsViewChange,
 	onShowStaleSessionsChange,
-	onShowUpcomingOnlyChange,
 	searchQuery,
-	showArchived,
-	showStaleSessions,
-	showUpcomingOnly
+	sessionsView,
+	showStaleSessions
 }: SessionsTableFiltersProps) {
 	return (
-		<div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+		<div className="flex flex-col gap-3 md:flex-row md:items-center md:gap-4">
 			<div className="flex flex-col gap-3 md:flex-row md:items-center md:gap-4">
 				<Input
 					placeholder="Search sessions..."
@@ -41,78 +39,46 @@ export function SessionsTableFilters({
 					onChange={(event) => onSearchQueryChange(event.target.value)}
 					className="w-full md:w-sm"
 				/>
-				<div className="flex items-center justify-end gap-3 md:contents">
-					<DropdownMenu>
-						<DropdownMenuTrigger asChild>
-							<Button
-								type="button"
-								variant="outline"
-								size="sm"
-								className="md:hidden">
-								<ListFilter aria-hidden />
-								Filters
-							</Button>
-						</DropdownMenuTrigger>
-						<DropdownMenuContent align="end">
-							<DropdownMenuGroup>
-								<DropdownMenuCheckboxItem
-									checked={showUpcomingOnly}
-									onCheckedChange={(checked) => onShowUpcomingOnlyChange(checked)}
-									onSelect={(event) => event.preventDefault()}>
-									Show due
-								</DropdownMenuCheckboxItem>
-								<DropdownMenuCheckboxItem
-									checked={showStaleSessions}
-									onCheckedChange={(checked) => onShowStaleSessionsChange(checked)}
-									onSelect={(event) => event.preventDefault()}>
-									Show unconfirmed
-								</DropdownMenuCheckboxItem>
-								<DropdownMenuCheckboxItem
-									checked={showArchived}
-									onCheckedChange={(checked) => onShowArchivedChange(checked)}
-									onSelect={(event) => event.preventDefault()}>
-									Show archived
-								</DropdownMenuCheckboxItem>
-							</DropdownMenuGroup>
-						</DropdownMenuContent>
-					</DropdownMenu>
-				</div>
+				<AdminInboxAllViewTabs
+					allTabLabel="All sessions"
+					view={sessionsView}
+					onViewChange={onSessionsViewChange}
+				/>
 			</div>
-			<div className="hidden flex-col gap-3 md:flex md:flex-row md:flex-wrap md:items-center">
-				<div className="flex items-center gap-2">
-					<Checkbox
-						id="show-upcoming-only"
-						checked={showUpcomingOnly}
-						onCheckedChange={(checked) => onShowUpcomingOnlyChange(checked === true)}
-					/>
-					<Label
-						htmlFor="show-upcoming-only"
-						className="text-sm font-medium text-foreground">
-						Show due
-					</Label>
-				</div>
-				<div className="flex items-center gap-2">
+			<div className="flex items-center justify-end gap-3 md:ml-auto">
+				<DropdownMenu>
+					<DropdownMenuTrigger asChild>
+						<Button
+							type="button"
+							variant="outline"
+							size="sm"
+							className="md:hidden">
+							<ListFilter aria-hidden />
+							Filters
+						</Button>
+					</DropdownMenuTrigger>
+					<DropdownMenuContent align="end">
+						<DropdownMenuGroup>
+							<DropdownMenuCheckboxItem
+								checked={showStaleSessions}
+								onCheckedChange={(checked) => onShowStaleSessionsChange(checked)}
+								onSelect={(event) => event.preventDefault()}>
+								Show unconfirmed
+							</DropdownMenuCheckboxItem>
+						</DropdownMenuGroup>
+					</DropdownMenuContent>
+				</DropdownMenu>
+				<div className="hidden items-center gap-1.5 md:flex">
 					<Checkbox
 						id="show-stale-sessions"
 						checked={showStaleSessions}
 						onCheckedChange={(checked) => onShowStaleSessionsChange(checked === true)}
+						className="size-4 rounded-sm"
 					/>
 					<Label
 						htmlFor="show-stale-sessions"
-						className="text-sm font-medium text-foreground">
+						className="text-sm font-normal text-muted-foreground">
 						Show unconfirmed
-					</Label>
-				</div>
-				<div className="flex items-center gap-2">
-					<Checkbox
-						id="show-archived-sessions"
-						checked={showArchived}
-						onCheckedChange={(checked) => onShowArchivedChange(checked === true)}
-					/>
-					<Label
-						htmlFor="show-archived-sessions"
-						className="text-sm font-medium text-foreground">
-						Show archived
 					</Label>
 				</div>
 			</div>

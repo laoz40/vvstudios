@@ -2,6 +2,7 @@ import { ConvexError } from "convex/values";
 import { err, errAsync, ok } from "neverthrow";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
+import { setBookingArchived } from "#convex/lib/archiveState";
 import { requirePermission } from "#convex/lib/auth";
 import {
 	buildActiveEditorProjection,
@@ -31,6 +32,16 @@ import {
 import { okOrThrow } from "#convex/lib/result";
 import { getSessionByStripeSessionId, getSessionFromDb } from "#convex/lib/sessionLookup";
 import { listStripeInvoicesForBooking, summarizeStripeInvoices } from "#convex/lib/stripeInvoices";
+import {
+	type AdminSessionsView,
+	paginateAdminSessionsByCreatedAt,
+	paginateAdminSessionsBySessionStart,
+	passesAdminInboxStaleFilter
+} from "#convex/lib/adminSessionList";
+import {
+	archiveSessionWhenFullyDone,
+	archiveDeadCheckoutBooking
+} from "#convex/lib/sessionArchive";
 import { formatBookingInvoiceNumber } from "#studio/features/booking-invoice/lib/build-booking-invoice-data";
 
 type PaginationArgs = { paginationOpts: { numItems: number; cursor: string | null } };
@@ -42,6 +53,8 @@ type SessionListSortDirection = "asc" | "desc";
 type ListSessionsArgs = PaginationArgs & {
 	sortBy?: SessionListSortBy;
 	sortDirection?: SessionListSortDirection;
+	view?: AdminSessionsView;
+	includeStale?: boolean;
 };
 
 type ListEditorSessionsArgs = PaginationArgs;
@@ -138,23 +151,21 @@ export async function listSessionsService(ctx: QueryCtx, args: ListSessionsArgs)
 	// Auth failures throw above so the hook can keep native cursor/page handling.
 	const sortBy = args.sortBy ?? "session";
 	const sortDirection = args.sortDirection ?? "asc";
+	const view = args.view ?? "inbox";
+	const includeStale = args.includeStale ?? true;
 
 	const bookingsPage =
 		sortBy === "createdAt"
-			? await ctx.db
-					.query("bookings")
-					.withIndex("by_pendingPaymentCreatedAt")
-					.order(sortDirection)
-					.paginate(args.paginationOpts)
-			: await ctx.db
-					.query("bookings")
-					.withIndex("by_sessionStartAt")
-					.order(sortDirection)
-					.paginate(args.paginationOpts);
+			? await paginateAdminSessionsByCreatedAt(ctx, view, sortDirection, args.paginationOpts)
+			: await paginateAdminSessionsBySessionStart(ctx, view, sortDirection, args.paginationOpts);
+
+	const sessionsPage = !includeStale
+		? bookingsPage.page.filter((session) => passesAdminInboxStaleFilter(session, includeStale))
+		: bookingsPage.page;
 
 	const assignedEditorTokens = [
 		...new Set(
-			bookingsPage.page
+			sessionsPage
 				.map((session) => session.assignedEditorTokenIdentifier)
 				.filter((tokenIdentifier): tokenIdentifier is string => tokenIdentifier !== undefined)
 		)
@@ -166,7 +177,7 @@ export async function listSessionsService(ctx: QueryCtx, args: ListSessionsArgs)
 	);
 
 	const page = await Promise.all(
-		bookingsPage.page.map(async (session) => {
+		sessionsPage.map(async (session) => {
 			const assignedEditorDisplayName = session.assignedEditorTokenIdentifier
 				? assignedEditorDisplayNamesByToken.get(session.assignedEditorTokenIdentifier)
 				: undefined;
@@ -295,11 +306,7 @@ export function archiveSessionService(ctx: MutationCtx, args: ArchiveSessionArgs
 	return requirePermission(ctx, "archive:sessions")
 		.andThen(() => getSessionFromDb(ctx, args.bookingId))
 		.andThen(() =>
-			okOrThrow(
-				ctx.db
-					.patch(args.bookingId, { hiddenAt: args.archived ? Date.now() : undefined })
-					.then(() => null)
-			)
+			okOrThrow(setBookingArchived(ctx, args.bookingId, args.archived, Date.now()).then(() => null))
 		);
 }
 
@@ -331,7 +338,8 @@ export function updateSessionEditStatusService(
 		)
 		.andThen(requireDeliverablesOwnership)
 		.andThen(requireDeliverablesEligibility)
-		.andThen((session) => saveSessionEditStatus(ctx, session, args.editStatus));
+		.andThen((session) => saveSessionEditStatus(ctx, session, args.editStatus))
+		.andThen(() => archiveSessionWhenFullyDone(ctx, args.bookingId));
 }
 
 export function markSessionCalendarEventDeletedService(
@@ -339,15 +347,11 @@ export function markSessionCalendarEventDeletedService(
 	args: MarkSessionCalendarEventDeletedArgs
 ) {
 	return getSessionFromDb(ctx, args.bookingId).andThen(() =>
-		okOrThrow(
-			ctx.db
-				.patch(args.bookingId, {
-					bookingFailureCode: undefined,
-					googleCalendarId: undefined,
-					googleEventId: undefined,
-					status: "cancelled"
-				})
-				.then(() => null)
-		)
+		archiveDeadCheckoutBooking(ctx, args.bookingId, {
+			bookingFailureCode: undefined,
+			googleCalendarId: undefined,
+			googleEventId: undefined,
+			status: "cancelled"
+		})
 	);
 }

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { SessionActionsDialogs } from "#studio/features/admin/components/SessionActionsDialogs";
 import { DriveFoldersDialog } from "#studio/features/admin/components/DriveFoldersDialog";
 import { SessionActionsMenu } from "#studio/features/admin/components/SessionActionsMenu";
-import { useDeleteAction } from "#studio/features/admin/hooks/useDeleteAction";
+import { useSessionArchiveAndCancelActions } from "#studio/features/admin/hooks/useSessionArchiveAndCancelActions";
 import type { useDeliverablesEmailAction } from "#studio/features/admin/hooks/useDeliverablesEmailAction";
 import { useEditAction } from "#studio/features/admin/hooks/useEditAction";
 import { useInvoiceActions } from "#studio/features/admin/hooks/useInvoiceActions";
@@ -38,7 +38,7 @@ export function SessionActions({ deliverablesEmailAction, session }: SessionActi
 		isPastSession
 	};
 
-	const deleteAction = useDeleteAction(session);
+	const archiveAndCancelAction = useSessionArchiveAndCancelActions(session);
 	const editAction = useEditAction(session);
 	const invoiceActions = useInvoiceActions(session);
 
@@ -57,7 +57,7 @@ export function SessionActions({ deliverablesEmailAction, session }: SessionActi
 			<SessionActionsMenu
 				session={session}
 				details={details}
-				deleteAction={deleteAction}
+				archiveAndCancelAction={archiveAndCancelAction}
 				deliverablesEmailAction={deliverablesEmailAction}
 				editAction={editAction}
 				invoiceActions={invoiceActions}
@@ -80,7 +80,7 @@ export function SessionActions({ deliverablesEmailAction, session }: SessionActi
 			<SessionActionsDialogs
 				session={session}
 				details={details}
-				deleteAction={deleteAction}
+				archiveAndCancelAction={archiveAndCancelAction}
 				deliverablesEmailAction={deliverablesEmailAction}
 				editAction={editAction}
 				invoiceActions={invoiceActions}

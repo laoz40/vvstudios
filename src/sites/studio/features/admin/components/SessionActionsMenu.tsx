@@ -37,9 +37,10 @@ import {
 	deliverableStatusTabClassNameMap,
 	deliverableStatusTabLabelMap
 } from "#studio/features/admin/lib/session-edit-status";
+import { isBookingArchived } from "#convex/lib/archiveState";
 import type { SessionActionDetails } from "#studio/features/admin/lib/admin-sessions";
 import type { SessionRecord } from "#studio/features/admin/lib/admin-sessions";
-import type { useDeleteAction } from "#studio/features/admin/hooks/useDeleteAction";
+import type { useSessionArchiveAndCancelActions } from "#studio/features/admin/hooks/useSessionArchiveAndCancelActions";
 import type { useDeliverablesEmailAction } from "#studio/features/admin/hooks/useDeliverablesEmailAction";
 import type { useEditAction } from "#studio/features/admin/hooks/useEditAction";
 import type { useInvoiceActions } from "#studio/features/admin/hooks/useInvoiceActions";
@@ -51,7 +52,7 @@ import type { useStatusActions } from "#studio/features/admin/hooks/useStatusAct
 type SessionActionsMenuProps = {
 	session: SessionRecord;
 	details: SessionActionDetails;
-	deleteAction: ReturnType<typeof useDeleteAction>;
+	archiveAndCancelAction: ReturnType<typeof useSessionArchiveAndCancelActions>;
 	deliverablesEmailAction: ReturnType<typeof useDeliverablesEmailAction>;
 	editAction: ReturnType<typeof useEditAction>;
 	invoiceActions: ReturnType<typeof useInvoiceActions>;
@@ -98,7 +99,7 @@ function SessionPackageStripeInvoiceMenuItem({
 
 function getSessionArchiveActionLabel(isUpdatingArchive: boolean, isArchived: boolean) {
 	if (isUpdatingArchive) {
-		return "Updating archive...";
+		return isArchived ? "Unarchiving" : "Archiving";
 	}
 
 	if (!isArchived) {
@@ -203,7 +204,7 @@ function DeliverablesControls({
 export function SessionActionsMenu({
 	session,
 	details,
-	deleteAction,
+	archiveAndCancelAction,
 	deliverablesEmailAction,
 	editAction,
 	invoiceActions,
@@ -222,10 +223,10 @@ export function SessionActionsMenu({
 	const otherMenuIconRef = useRef<AnimatedIconHandle | null>(null);
 	const emailIconRef = useRef<AnimatedIconHandle | null>(null);
 	const phoneIconRef = useRef<AnimatedIconHandle | null>(null);
-	const isArchived = session.hiddenAt !== undefined;
+	const isArchived = isBookingArchived(session);
 
 	const archiveActionLabel = getSessionArchiveActionLabel(
-		deleteAction.isUpdatingArchive,
+		archiveAndCancelAction.isUpdatingArchive,
 		isArchived
 	);
 
@@ -513,7 +514,7 @@ export function SessionActionsMenu({
 				</AnimatedDropdownMenuItem>
 				<AnimatedDropdownMenuItem
 					className="hover:text-destructive focus:text-destructive"
-					onSelect={() => deleteAction.setIsDeleteDialogOpen(true)}
+					onSelect={() => archiveAndCancelAction.setIsCancelBookingDialogOpen(true)}
 					renderIcon={(iconRef) => (
 						<TrashIcon
 							ref={iconRef}
@@ -522,11 +523,11 @@ export function SessionActionsMenu({
 							className="shrink-0 text-current"
 						/>
 					)}>
-					Delete event
+					Cancel booking
 				</AnimatedDropdownMenuItem>
 				<AnimatedDropdownMenuItem
-					disabled={deleteAction.isUpdatingArchive}
-					onSelect={() => void deleteAction.handleArchiveChange(!isArchived)}
+					disabled={archiveAndCancelAction.isUpdatingArchive}
+					onSelect={() => archiveAndCancelAction.requestArchiveChange(!isArchived)}
 					renderIcon={(iconRef) => (
 						<Stack3Icon
 							ref={iconRef}

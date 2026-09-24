@@ -5,7 +5,7 @@ import { tupleErr, tupleOk, type Result } from "#/lib/result";
 import { action, internalAction } from "#convex/_generated/server";
 import { type BusyDayWindow } from "#convex/lib/sessionCalendarTime";
 import {
-	deleteSessionFromAdminService,
+	cancelBookingFromAdminService,
 	getAvailableBookingTimesService,
 	getAvailableRescheduleTimesService,
 	getBookableRangeBusyWindowsService,
@@ -123,10 +123,10 @@ export const updateSessionFromAdmin = action({
 		await updateSessionFromAdminService(ctx, args).match(tupleOk, tupleErr)
 });
 
-export const deleteSessionFromAdmin = action({
+export const cancelBookingFromAdmin = action({
 	args: { bookingId: v.id("bookings") },
 	handler: async (ctx, args) =>
-		await deleteSessionFromAdminService(ctx, args.bookingId).match(tupleOk, tupleErr)
+		await cancelBookingFromAdminService(ctx, args.bookingId).match(tupleOk, tupleErr)
 });
 
 export const sendSessionReminderEmail = internalAction({

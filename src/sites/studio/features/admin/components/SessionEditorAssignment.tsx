@@ -53,7 +53,7 @@ function showAssignmentError(error: AssignmentError) {
 
 			return;
 		case "SESSION_NOT_ASSIGNABLE":
-			toast.error("Editors can only be assigned to confirmed, non-archived sessions.");
+			toast.error("Editors can only be assigned to confirmed sessions.");
 
 			return;
 		case "NOT_AUTHENTICATED":

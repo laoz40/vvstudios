@@ -1,21 +1,22 @@
 import { z } from "zod";
-import type { AdminPackageSort } from "#studio/features/admin/lib/admin-packages";
-import type { SessionSorting } from "#studio/features/admin/lib/admin-sessions";
+import type {
+	AdminPackageSort,
+	AdminPackagesView
+} from "#studio/features/admin/lib/admin-packages";
+import type { AdminSessionsView, SessionSorting } from "#studio/features/admin/lib/admin-sessions";
 
 const ADMIN_DASHBOARD_PREFERENCES_KEY = "vvstudios.adminDashboard.preferences";
 
 const DEFAULT_PACKAGES_TABLE_PREFERENCES: PackagesTablePreferences = {
 	sorting: { isDescending: true },
-	showArchived: false,
-	showDueOnly: false,
+	packagesView: "inbox",
 	showStalePackages: false
 };
 
 const DEFAULT_SESSIONS_TABLE_PREFERENCES: SessionsTablePreferences = {
 	sorting: [{ id: "session", desc: false }],
-	showArchived: false,
-	showStaleBookings: true,
-	showUpcomingOnly: true
+	sessionsView: "inbox",
+	showStaleBookings: true
 };
 
 const storedSessionSortIdSchema = z.enum(["name", "session", "createdAt"]);
@@ -27,8 +28,11 @@ const sessionSortingItemSchema = z.object({
 
 const storedPackageSortingSchema = z.object({ isDescending: z.boolean().optional() });
 
+const storedPackagesViewSchema = z.enum(["inbox", "all"]);
+
 const storedPackagesTablePreferencesSchema = z.object({
 	sorting: storedPackageSortingSchema.optional(),
+	packagesView: storedPackagesViewSchema.optional(),
 	showArchived: z.boolean().optional(),
 	showDueOnly: z.boolean().optional(),
 	showOverdue: z.boolean().optional(),
@@ -36,8 +40,11 @@ const storedPackagesTablePreferencesSchema = z.object({
 	showUpcoming: z.boolean().optional()
 });
 
+const storedSessionsViewSchema = z.enum(["inbox", "all"]);
+
 const storedSessionsTablePreferencesSchema = z.object({
 	sorting: z.array(sessionSortingItemSchema).optional(),
+	sessionsView: storedSessionsViewSchema.optional(),
 	showArchived: z.boolean().optional(),
 	showStaleBookings: z.boolean().optional(),
 	showUpcomingOnly: z.boolean().optional()
@@ -51,16 +58,14 @@ const adminDashboardPreferencesSchema = z.object({
 
 type PackagesTablePreferences = {
 	sorting: AdminPackageSort;
-	showArchived: boolean;
-	showDueOnly: boolean;
+	packagesView: AdminPackagesView;
 	showStalePackages: boolean;
 };
 
 type SessionsTablePreferences = {
 	sorting: SessionSorting;
-	showArchived: boolean;
+	sessionsView: AdminSessionsView;
 	showStaleBookings: boolean;
-	showUpcomingOnly: boolean;
 };
 
 type AdminDashboardPreferences = z.infer<typeof adminDashboardPreferencesSchema>;
@@ -109,18 +114,18 @@ export function readStoredPackagesTablePreferences(): PackagesTablePreferences {
 		return DEFAULT_PACKAGES_TABLE_PREFERENCES;
 	}
 
+	const legacyAllView =
+		storedPreferences.showArchived === true || storedPreferences.packagesView === "all";
+
 	return {
 		sorting: {
 			isDescending:
 				storedPreferences.sorting?.isDescending ??
 				DEFAULT_PACKAGES_TABLE_PREFERENCES.sorting.isDescending
 		},
-		showArchived: storedPreferences.showArchived ?? false,
-		showDueOnly:
-			storedPreferences.showDueOnly ??
-			storedPreferences.showOverdue ??
-			storedPreferences.showUpcoming ??
-			false,
+		packagesView:
+			storedPreferences.packagesView ??
+			(legacyAllView ? "all" : DEFAULT_PACKAGES_TABLE_PREFERENCES.packagesView),
 		showStalePackages: storedPreferences.showStalePackages ?? false
 	};
 }
@@ -140,9 +145,8 @@ export function readStoredSessionsTablePreferences(): SessionsTablePreferences {
 		sorting:
 			normalizeStoredSorting(storedPreferences.sorting) ??
 			DEFAULT_SESSIONS_TABLE_PREFERENCES.sorting,
-		showArchived: storedPreferences.showArchived ?? false,
-		showStaleBookings: storedPreferences.showStaleBookings ?? true,
-		showUpcomingOnly: storedPreferences.showUpcomingOnly ?? true
+		sessionsView: storedPreferences.sessionsView ?? DEFAULT_SESSIONS_TABLE_PREFERENCES.sessionsView,
+		showStaleBookings: storedPreferences.showStaleBookings ?? true
 	};
 }
 

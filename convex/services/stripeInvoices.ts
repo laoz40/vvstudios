@@ -1,6 +1,16 @@
+import { okAsync } from "neverthrow";
 import type { Id } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
 import { requirePermission } from "#convex/lib/auth";
+import { okOrThrow } from "#convex/lib/result";
+import {
+	archivePackageWhenFullyDone,
+	unarchivePackageForNewUnpaidInvoice
+} from "#convex/lib/packageArchive";
+import {
+	archiveSessionWhenFullyDone,
+	unarchiveSessionForNewUnpaidInvoice
+} from "#convex/lib/sessionArchive";
 import type { StripeInvoiceLineItem } from "#convex/lib/stripeInvoice";
 import {
 	listStripeInvoicesForBooking,
@@ -39,7 +49,19 @@ export function recordBookingStripeInvoiceService(
 		createdBy?: string;
 	}
 ) {
-	return recordBookingStripeInvoice(ctx, args);
+	return recordBookingStripeInvoice(ctx, args).andThen((insertResult) => {
+		if (!insertResult.created) {
+			return okAsync(insertResult);
+		}
+
+		return okOrThrow(ctx.db.get(args.bookingId)).andThen((booking) => {
+			if (booking === null) {
+				return okAsync(insertResult);
+			}
+
+			return unarchiveSessionForNewUnpaidInvoice(ctx, booking).map(() => insertResult);
+		});
+	});
 }
 
 export function recordPackageStripeInvoiceService(
@@ -52,7 +74,19 @@ export function recordPackageStripeInvoiceService(
 		createdBy?: string;
 	}
 ) {
-	return recordPackageStripeInvoice(ctx, args);
+	return recordPackageStripeInvoice(ctx, args).andThen((insertResult) => {
+		if (!insertResult.created) {
+			return okAsync(insertResult);
+		}
+
+		return okOrThrow(ctx.db.get(args.packageId)).andThen((packageRecord) => {
+			if (packageRecord === null) {
+				return okAsync(insertResult);
+			}
+
+			return unarchivePackageForNewUnpaidInvoice(ctx, packageRecord).map(() => insertResult);
+		});
+	});
 }
 
 export function recordPackageAdjustmentStripeInvoiceService(
@@ -65,12 +99,51 @@ export function recordPackageAdjustmentStripeInvoiceService(
 		totalAmount: number;
 	}
 ) {
-	return recordPackageAdjustmentStripeInvoice(ctx, args);
+	return recordPackageAdjustmentStripeInvoice(ctx, args).andThen((insertResult) => {
+		if (!insertResult.created) {
+			return okAsync(insertResult);
+		}
+
+		return okOrThrow(ctx.db.get(args.packageId)).andThen((packageRecord) => {
+			if (packageRecord === null) {
+				return okAsync(insertResult);
+			}
+
+			return unarchivePackageForNewUnpaidInvoice(ctx, packageRecord).map(() => insertResult);
+		});
+	});
 }
 
 export function markStripeInvoicePaidService(
 	ctx: MutationCtx,
 	args: { stripeInvoiceId: string; paidAt: number }
 ) {
-	return markStripeInvoicePaid(ctx, args);
+	return markStripeInvoicePaid(ctx, args).andThen((claim) => {
+		if (claim.outcome === "not_found") {
+			return okAsync(claim);
+		}
+
+		return okOrThrow(
+			ctx.db
+				.query("stripeInvoices")
+				.withIndex("by_stripeInvoiceId", (indexQuery) =>
+					indexQuery.eq("stripeInvoiceId", args.stripeInvoiceId)
+				)
+				.unique()
+		).andThen((stripeInvoice) => {
+			if (stripeInvoice?.bookingId !== undefined) {
+				return archiveSessionWhenFullyDone(ctx, stripeInvoice.bookingId, args.paidAt).map(
+					() => claim
+				);
+			}
+
+			if (stripeInvoice?.packageId !== undefined) {
+				return archivePackageWhenFullyDone(ctx, stripeInvoice.packageId, args.paidAt).map(
+					() => claim
+				);
+			}
+
+			return okAsync(claim);
+		});
+	});
 }

@@ -109,7 +109,7 @@ export function PackageActions({ packageRow }: { packageRow: AdminPackageRow }) 
 					</AnimatedDropdownMenuItem>
 					<AnimatedDropdownMenuItem
 						disabled={isActionPending}
-						onSelect={() => void handleArchiveChange(packageRow.hiddenAt === undefined)}
+						onSelect={() => void handleArchiveChange(!packageRow.archived)}
 						renderIcon={(iconRef) => (
 							<Stack3Icon
 								ref={iconRef}

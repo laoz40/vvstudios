@@ -3,19 +3,23 @@ import { useAction, useMutation } from "convex/react";
 import { toast } from "sonner";
 import { api } from "#convex/_generated/api";
 import { exhaustiveCheck, tryCatch } from "#/lib/result";
-import type { SessionRecord } from "#studio/features/admin/lib/admin-sessions";
+import {
+	shouldConfirmSessionArchive,
+	type SessionRecord
+} from "#studio/features/admin/lib/admin-sessions";
 
-export function useDeleteAction(session: SessionRecord) {
+export function useSessionArchiveAndCancelActions(session: SessionRecord) {
 	const archiveSession = useMutation(api.sessions.archiveSession);
-	const deleteSessionEvent = useAction(api.googleCalendar.deleteSessionFromAdmin);
-	const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-	const [isDeleting, setIsDeleting] = useState(false);
+	const cancelBookingFromAdmin = useAction(api.googleCalendar.cancelBookingFromAdmin);
+	const [isCancelBookingDialogOpen, setIsCancelBookingDialogOpen] = useState(false);
+	const [isArchiveDialogOpen, setIsArchiveDialogOpen] = useState(false);
+	const [isCancellingBooking, setIsCancellingBooking] = useState(false);
 	const [isUpdatingArchive, setIsUpdatingArchive] = useState(false);
 
-	async function handleDeleteBooking() {
-		setIsDeleting(true);
+	async function handleCancelBooking() {
+		setIsCancellingBooking(true);
 
-		const [error] = await tryCatch(deleteSessionEvent({ bookingId: session._id }));
+		const [error] = await tryCatch(cancelBookingFromAdmin({ bookingId: session._id }));
 
 		if (error !== null) {
 			const reason = error.reason;
@@ -25,35 +29,35 @@ export function useDeleteAction(session: SessionRecord) {
 					toast.error("You are not signed in.");
 					break;
 				case "NOT_AUTHORIZED":
-					toast.error("You do not have access to delete session events.");
+					toast.error("You do not have access to cancel bookings.");
 					break;
 				case "BOOKING_NOT_FOUND":
 					toast.error("That session no longer exists.");
 					break;
 				case "GOOGLE_CALENDAR_AUTH_FAILED":
-					toast.error("Google Calendar authentication failed. Session event was not deleted.");
+					toast.error("Google Calendar authentication failed. Booking was not cancelled.");
 					break;
 				case "GOOGLE_CALENDAR_DELETE_FAILED":
-					toast.error("Google Calendar failed to delete the event. Please try again.");
+					toast.error("Google Calendar failed to remove the event. Please try again.");
 					break;
 				case "GOOGLE_CALENDAR_RATE_LIMITED":
-					toast.error("Google Calendar is busy right now. Wait a minute, then try deleting again.");
+					toast.error("Google Calendar is busy right now. Wait a minute, then try again.");
 					break;
 				case "UNEXPECTED_ERROR":
-					toast.error("Something went wrong while deleting the event. Please try again.");
+					toast.error("Something went wrong while cancelling the booking. Please try again.");
 					break;
 				default:
 					exhaustiveCheck(reason);
 			}
 
-			setIsDeleting(false);
+			setIsCancellingBooking(false);
 
 			return;
 		}
 
-		setIsDeleteDialogOpen(false);
-		toast.success("Event deleted and session cancelled.");
-		setIsDeleting(false);
+		setIsCancelBookingDialogOpen(false);
+		toast.success("Booking cancelled.");
+		setIsCancellingBooking(false);
 	}
 
 	async function handleArchiveChange(archived: boolean) {
@@ -88,14 +92,33 @@ export function useDeleteAction(session: SessionRecord) {
 
 		toast.success(archived ? "Session archived." : "Session unarchived.");
 		setIsUpdatingArchive(false);
+		setIsArchiveDialogOpen(false);
+	}
+
+	function requestArchiveChange(archived: boolean) {
+		if (archived && shouldConfirmSessionArchive(session)) {
+			setIsArchiveDialogOpen(true);
+
+			return;
+		}
+
+		void handleArchiveChange(archived);
+	}
+
+	async function confirmArchiveFromInbox() {
+		await handleArchiveChange(true);
 	}
 
 	return {
+		confirmArchiveFromInbox,
 		handleArchiveChange,
-		handleDeleteBooking,
+		handleCancelBooking,
+		isArchiveDialogOpen,
+		isCancelBookingDialogOpen,
+		isCancellingBooking,
 		isUpdatingArchive,
-		isDeleteDialogOpen,
-		isDeleting,
-		setIsDeleteDialogOpen
+		requestArchiveChange,
+		setIsArchiveDialogOpen,
+		setIsCancelBookingDialogOpen
 	};
 }

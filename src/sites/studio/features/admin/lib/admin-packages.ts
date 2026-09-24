@@ -1,6 +1,7 @@
 import { Check, ClockAlert, DollarSign, MailWarning, type LucideIcon } from "lucide-react";
 import { exhaustiveCheck } from "#/lib/result";
 import type { Doc } from "#convex/_generated/dataModel";
+import { isPackageArchived } from "#convex/lib/archiveState";
 import type { BookingAddon } from "#studio/features/booking-form/lib/booking-form-model";
 import { formatBookingInvoiceNumber } from "#studio/features/booking-invoice/lib/build-booking-invoice-data";
 import { formatAudAmount } from "#studio/features/admin/lib/remaining-balance";
@@ -54,7 +55,7 @@ export type AdminPackageRow = {
 	invoiceNumber: string;
 	stripeCustomerId?: string;
 	stripePaymentIntentId?: string;
-	hiddenAt?: number;
+	archived: boolean;
 };
 
 export type AdminPackageDashboardDate =
@@ -85,28 +86,9 @@ const PAYMENT_REMINDER_DAYS_BEFORE_DUE = 2;
 
 const PACKAGE_EXPIRY_REMINDER_DAYS_PER_REMAINING_SESSION = 7;
 
-export type AdminPackageFilters = {
-	showArchived: boolean;
-	showDueOnly: boolean;
-	showStalePackages: boolean;
-	searchQuery: string;
-};
+export type AdminPackagesView = "inbox" | "all";
 
-const STRIPE_CHECKOUT_SESSION_EXPIRY_MS = 24 * 60 * 60 * 1000;
-
-function isStaleCleanupPackage(
-	packageRow: Pick<AdminPackageRow, "createdAt" | "status">,
-	now = Date.now()
-) {
-	if (packageRow.status === "expired" || packageRow.status === "abandoned") {
-		return true;
-	}
-
-	return (
-		packageRow.status === "pending_payment" &&
-		packageRow.createdAt < now - STRIPE_CHECKOUT_SESSION_EXPIRY_MS
-	);
-}
+export type AdminPackageSearchFilters = { searchQuery: string };
 
 function getAdminPackageStatusLabel(status: AdminPackageStatus) {
 	switch (status) {
@@ -233,43 +215,6 @@ export function isAdminPackageExpiryClose(
 	);
 }
 
-function hasUnpaidPackageBill(
-	packageRow: Pick<AdminPackageRow, "adjustment" | "customStripeInvoices">
-) {
-	return (
-		packageRow.adjustment?.paymentStatus === "unpaid" ||
-		packageRow.customStripeInvoices?.paymentStatus === "unpaid"
-	);
-}
-
-function hasPackageSessionsLeftBeforeExpiry(
-	packageRow: Pick<AdminPackageRow, "bookedSessions" | "expiresAt" | "isPaid" | "packageSize">
-) {
-	if (!packageRow.isPaid || packageRow.expiresAt === undefined) {
-		return false;
-	}
-
-	if (Date.now() > packageRow.expiresAt) {
-		return false;
-	}
-
-	return packageRow.bookedSessions < packageRow.packageSize;
-}
-
-function isAdminPackageDue(
-	packageRow: Pick<
-		AdminPackageRow,
-		| "adjustment"
-		| "bookedSessions"
-		| "customStripeInvoices"
-		| "expiresAt"
-		| "isPaid"
-		| "packageSize"
-	>
-) {
-	return hasUnpaidPackageBill(packageRow) || hasPackageSessionsLeftBeforeExpiry(packageRow);
-}
-
 export function getAdminPackageDashboardDate(
 	packageRow: Pick<AdminPackageRow, "adjustment" | "expiresAt" | "isPaid">
 ): AdminPackageDashboardDate {
@@ -285,14 +230,14 @@ export function getAdminPackageDashboardDate(
 }
 
 export function getPackageArchiveActionLabel(
-	packageRow: Pick<AdminPackageRow, "hiddenAt">,
+	packageRow: Pick<AdminPackageRow, "archived">,
 	pendingAction: AdminPackagePendingAction
 ) {
 	if (pendingAction === "archive") {
 		return "Updating archive...";
 	}
 
-	if (packageRow.hiddenAt === undefined) {
+	if (!packageRow.archived) {
 		return "Archive";
 	}
 
@@ -343,7 +288,7 @@ export function mapPackageToAdminRow(packageRecord: AdminPackageRecord): AdminPa
 		invoiceNumber: formatBookingInvoiceNumber(packageRecord._id, packageRecord.createdAt),
 		stripeCustomerId: packageRecord.stripeCustomerId,
 		stripePaymentIntentId: packageRecord.stripePaymentIntentId,
-		hiddenAt: packageRecord.hiddenAt
+		archived: isPackageArchived(packageRecord)
 	};
 }
 
@@ -375,20 +320,6 @@ function packageMatchesSearch(packageRow: AdminPackageRow, searchQuery: string) 
 	return searchableText.includes(normalizedSearchQuery);
 }
 
-export function filterAdminPackages(rows: AdminPackageRow[], filters: AdminPackageFilters) {
-	return rows.filter((packageRow) => {
-		if (!filters.showArchived && packageRow.hiddenAt !== undefined) {
-			return false;
-		}
-
-		if (!filters.showStalePackages && isStaleCleanupPackage(packageRow)) {
-			return false;
-		}
-
-		if (filters.showDueOnly && !isAdminPackageDue(packageRow)) {
-			return false;
-		}
-
-		return packageMatchesSearch(packageRow, filters.searchQuery);
-	});
+export function filterAdminPackages(rows: AdminPackageRow[], filters: AdminPackageSearchFilters) {
+	return rows.filter((packageRow) => packageMatchesSearch(packageRow, filters.searchQuery));
 }

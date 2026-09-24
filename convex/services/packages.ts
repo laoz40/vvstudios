@@ -2,6 +2,7 @@ import type { PaginationOptions } from "convex/server";
 import { err, ok } from "neverthrow";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
+import { setPackageArchived } from "#convex/lib/archiveState";
 import { requirePermission } from "#convex/lib/auth";
 import { getPackageFromDb } from "#convex/lib/packageLookup";
 import {
@@ -18,6 +19,11 @@ import {
 	type UpdatePackageArgs,
 	validatePackageUpdate
 } from "#convex/lib/packageUpdates";
+import {
+	paginateAdminPackagesByCreatedAt,
+	passesAdminPackageStaleFilter,
+	type AdminPackagesView
+} from "#convex/lib/adminPackageList";
 import { okOrThrow } from "#convex/lib/result";
 import {
 	listStripeInvoicesForPackage,
@@ -67,25 +73,29 @@ type PackageListSortDirection = "asc" | "desc";
 type ListPackagesArgs = {
 	paginationOpts: PaginationOptions;
 	sortDirection?: PackageListSortDirection;
+	view?: AdminPackagesView;
+	includeStale?: boolean;
 };
 
 export function listPackagesService(ctx: QueryCtx, args: ListPackagesArgs) {
 	const sortDirection = args.sortDirection ?? "desc";
+	const view = args.view ?? "inbox";
+	const includeStale = args.includeStale ?? false;
 
 	return requirePermission(ctx, "view:packages")
 		.andThen(() =>
-			okOrThrow(
-				ctx.db
-					.query("packages")
-					.withIndex("by_createdAt")
-					.order(sortDirection)
-					.paginate(args.paginationOpts)
-			)
+			okOrThrow(paginateAdminPackagesByCreatedAt(ctx, view, sortDirection, args.paginationOpts))
 		)
-		.andThen((packagesPage) =>
-			okOrThrow(
+		.andThen((packagesPage) => {
+			const packagesOnPage = !includeStale
+				? packagesPage.page.filter((packageFromDb) =>
+						passesAdminPackageStaleFilter(packageFromDb, includeStale)
+					)
+				: packagesPage.page;
+
+			return okOrThrow(
 				Promise.all(
-					packagesPage.page.map(async (packageFromDb) => {
+					packagesOnPage.map(async (packageFromDb) => {
 						const [packageSessions, packageAdjustment, stripeInvoicesResult] = await Promise.all([
 							getCapacityConsumingPackageSessions(
 								ctx,
@@ -124,8 +134,8 @@ export function listPackagesService(ctx: QueryCtx, args: ListPackagesArgs) {
 						};
 					})
 				).then((page) => ({ ...packagesPage, page }))
-			)
-		);
+			);
+		});
 }
 
 export function updatePackageService(ctx: MutationCtx, args: UpdatePackageArgs) {
@@ -172,11 +182,7 @@ export function archivePackageService(ctx: MutationCtx, args: ArchivePackageArgs
 	return requirePermission(ctx, "archive:sessions")
 		.andThen(() => getPackageFromDb(ctx, args.packageId))
 		.andThen(() =>
-			okOrThrow(
-				ctx.db
-					.patch(args.packageId, { hiddenAt: args.archived ? Date.now() : undefined })
-					.then(() => null)
-			)
+			okOrThrow(setPackageArchived(ctx, args.packageId, args.archived, Date.now()).then(() => null))
 		);
 }
 

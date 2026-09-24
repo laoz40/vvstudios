@@ -14,10 +14,7 @@ export function listEditorProfiles(ctx: QueryCtx) {
 }
 
 function isCurrentAssignedSession(booking: Doc<"bookings">) {
-	return (
-		(booking.status === "confirmed" || booking.status === "email_failed") &&
-		booking.hiddenAt === undefined
-	);
+	return booking.status === "confirmed" || booking.status === "email_failed";
 }
 
 export async function getEditorWorkStatus(
