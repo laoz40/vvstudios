@@ -98,7 +98,7 @@ function SessionPackageStripeInvoiceMenuItem({
 
 function getSessionArchiveActionLabel(isUpdatingArchive: boolean, isArchived: boolean) {
 	if (isUpdatingArchive) {
-		return "Updating archive...";
+		return isArchived ? "Unarchiving" : "Archiving";
 	}
 
 	if (!isArchived) {
@@ -526,7 +526,7 @@ export function SessionActionsMenu({
 				</AnimatedDropdownMenuItem>
 				<AnimatedDropdownMenuItem
 					disabled={deleteAction.isUpdatingArchive}
-					onSelect={() => void deleteAction.handleArchiveChange(!isArchived)}
+					onSelect={() => deleteAction.requestArchiveChange(!isArchived)}
 					renderIcon={(iconRef) => (
 						<Stack3Icon
 							ref={iconRef}

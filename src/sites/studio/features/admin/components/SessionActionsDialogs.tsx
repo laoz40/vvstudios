@@ -9,6 +9,7 @@ import {
 	DialogHeader,
 	DialogTitle
 } from "#/components/ui/dialog";
+import { SessionArchiveDialog } from "#studio/features/admin/components/SessionArchiveDialog";
 import { SessionDeleteDialog } from "#studio/features/admin/components/SessionDeleteDialog";
 import { AdminEditConfirmationDialog } from "#studio/features/admin/components/AdminEditConfirmationDialog";
 import { SessionEditDialog } from "#studio/features/admin/components/SessionEditDialog";
@@ -101,6 +102,30 @@ function RescheduleLinkDialog({
 				</DialogFooter>
 			</DialogContent>
 		</Dialog>
+	);
+}
+
+function SessionArchiveDialogHost({
+	session,
+	customerSessionId,
+	deleteAction
+}: {
+	session: SessionRecord;
+	customerSessionId: string;
+	deleteAction: ReturnType<typeof useDeleteAction>;
+}) {
+	return (
+		<SessionArchiveDialog
+			open={deleteAction.isArchiveDialogOpen}
+			bookingName={session.name}
+			bookingId={customerSessionId}
+			sessionDate={session.date}
+			sessionTime={session.time}
+			editorDisplayName={session.assignedEditorDisplayName ?? null}
+			onOpenChange={deleteAction.setIsArchiveDialogOpen}
+			onConfirm={deleteAction.confirmArchiveFromInbox}
+			isArchiving={deleteAction.isUpdatingArchive}
+		/>
 	);
 }
 
@@ -229,6 +254,12 @@ export function SessionActionsDialogs({
 					onSend={packageInvoiceActions.handleSendStripeInvoice}
 				/>
 			) : null}
+
+			<SessionArchiveDialogHost
+				session={session}
+				customerSessionId={details.customerSessionId}
+				deleteAction={deleteAction}
+			/>
 
 			<SessionDeleteDialog
 				open={deleteAction.isDeleteDialogOpen}

@@ -3,12 +3,16 @@ import { useAction, useMutation } from "convex/react";
 import { toast } from "sonner";
 import { api } from "#convex/_generated/api";
 import { exhaustiveCheck, tryCatch } from "#/lib/result";
-import type { SessionRecord } from "#studio/features/admin/lib/admin-sessions";
+import {
+	shouldConfirmSessionArchive,
+	type SessionRecord
+} from "#studio/features/admin/lib/admin-sessions";
 
 export function useDeleteAction(session: SessionRecord) {
 	const archiveSession = useMutation(api.sessions.archiveSession);
 	const deleteSessionEvent = useAction(api.googleCalendar.deleteSessionFromAdmin);
 	const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+	const [isArchiveDialogOpen, setIsArchiveDialogOpen] = useState(false);
 	const [isDeleting, setIsDeleting] = useState(false);
 	const [isUpdatingArchive, setIsUpdatingArchive] = useState(false);
 
@@ -88,14 +92,33 @@ export function useDeleteAction(session: SessionRecord) {
 
 		toast.success(archived ? "Session archived." : "Session unarchived.");
 		setIsUpdatingArchive(false);
+		setIsArchiveDialogOpen(false);
+	}
+
+	function requestArchiveChange(archived: boolean) {
+		if (archived && shouldConfirmSessionArchive(session)) {
+			setIsArchiveDialogOpen(true);
+
+			return;
+		}
+
+		void handleArchiveChange(archived);
+	}
+
+	async function confirmArchiveFromInbox() {
+		await handleArchiveChange(true);
 	}
 
 	return {
+		confirmArchiveFromInbox,
 		handleArchiveChange,
 		handleDeleteBooking,
+		isArchiveDialogOpen,
 		isUpdatingArchive,
 		isDeleteDialogOpen,
 		isDeleting,
+		requestArchiveChange,
+		setIsArchiveDialogOpen,
 		setIsDeleteDialogOpen
 	};
 }

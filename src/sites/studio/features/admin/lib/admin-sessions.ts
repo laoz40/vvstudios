@@ -79,6 +79,20 @@ export function toSessionListQuerySort(sorting: SessionSorting): SessionListQuer
 
 export type AdminSessionFilters = { searchQuery: string };
 
+type SessionArchiveConfirmInput = Pick<
+	SessionRecord,
+	"assignedEditorTokenIdentifier" | "editStatus"
+>;
+
+/** Warn before archiving when an editor still has open deliverables work. */
+export function shouldConfirmSessionArchive(session: SessionArchiveConfirmInput): boolean {
+	if (session.assignedEditorTokenIdentifier === undefined) {
+		return false;
+	}
+
+	return session.editStatus !== "completed";
+}
+
 // Client-side search on whatever usePaginatedQuery has loaded so far. listSessions does not
 // take searchQuery; matching rows on later pages only appear after loadMore (see prefetch in
 // SessionsTable). Inbox vs all and stale checkout rows are server-side on listSessions.
