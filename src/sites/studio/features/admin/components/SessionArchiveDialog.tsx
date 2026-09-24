@@ -14,7 +14,6 @@ import { formatBookingDateMedium, formatBookingTimeLabel } from "#studio/lib/boo
 export type SessionArchiveDialogProps = {
 	open: boolean;
 	bookingName: string;
-	bookingId: string;
 	sessionDate: string;
 	sessionTime: string;
 	editorDisplayName: string | null;
@@ -26,7 +25,6 @@ export type SessionArchiveDialogProps = {
 export function SessionArchiveDialog({
 	open,
 	bookingName,
-	bookingId,
 	sessionDate,
 	sessionTime,
 	editorDisplayName,
@@ -69,7 +67,7 @@ export function SessionArchiveDialog({
 				</DialogClose>
 
 				<DialogHeader className="text-left">
-					<DialogTitle>Archive session?</DialogTitle>
+					<DialogTitle>Archive session with assigned editor?</DialogTitle>
 					<DialogDescription>
 						Archiving only hides this session from the Inbox tab. It stays on the editor dashboard
 						{editorDisplayName ? ` for ${editorDisplayName}` : ""} until you cancel the session or
@@ -88,10 +86,6 @@ export function SessionArchiveDialog({
 							<dd className="font-medium">
 								{formatBookingDateMedium(sessionDate)} at {formatBookingTimeLabel(sessionTime)}
 							</dd>
-						</div>
-						<div className="grid gap-1 sm:col-span-2">
-							<dt className="text-muted-foreground">Session ID</dt>
-							<dd className="font-medium">{bookingId}</dd>
 						</div>
 					</dl>
 				</div>
