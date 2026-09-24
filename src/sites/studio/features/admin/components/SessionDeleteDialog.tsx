@@ -60,17 +60,17 @@ export function SessionDeleteDialog({
 						variant="ghost"
 						size="icon-sm"
 						className="absolute top-2 right-2"
-						aria-label="Close delete event dialog"
+						aria-label="Close cancel booking dialog"
 						disabled={isDeleting}>
 						<X />
 					</Button>
 				</DialogClose>
 
 				<DialogHeader className="text-left">
-					<DialogTitle>Delete Google Calendar event?</DialogTitle>
+					<DialogTitle>Cancel booking?</DialogTitle>
 					<DialogDescription>
-						This removes the calendar event and marks the session as cancelled. The session is
-						archived automatically and remains on All sessions.
+						This removes the Google Calendar event and marks the booking as cancelled. The session
+						is archived automatically and remains on All sessions.
 					</DialogDescription>
 				</DialogHeader>
 
@@ -109,7 +109,7 @@ export function SessionDeleteDialog({
 						}}
 						disabled={isDeleting}>
 						{isDeleting ? <LoaderCircle className="size-4 animate-spin" /> : null}
-						{isDeleting ? "Deleting event..." : "Delete event and cancel session"}
+						{isDeleting ? "Cancelling" : "Cancel booking"}
 					</Button>
 				</DialogFooter>
 			</DialogContent>

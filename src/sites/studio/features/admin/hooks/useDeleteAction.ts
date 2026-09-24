@@ -29,22 +29,22 @@ export function useDeleteAction(session: SessionRecord) {
 					toast.error("You are not signed in.");
 					break;
 				case "NOT_AUTHORIZED":
-					toast.error("You do not have access to delete session events.");
+					toast.error("You do not have access to cancel bookings.");
 					break;
 				case "BOOKING_NOT_FOUND":
 					toast.error("That session no longer exists.");
 					break;
 				case "GOOGLE_CALENDAR_AUTH_FAILED":
-					toast.error("Google Calendar authentication failed. Session event was not deleted.");
+					toast.error("Google Calendar authentication failed. Booking was not cancelled.");
 					break;
 				case "GOOGLE_CALENDAR_DELETE_FAILED":
-					toast.error("Google Calendar failed to delete the event. Please try again.");
+					toast.error("Google Calendar failed to remove the event. Please try again.");
 					break;
 				case "GOOGLE_CALENDAR_RATE_LIMITED":
-					toast.error("Google Calendar is busy right now. Wait a minute, then try deleting again.");
+					toast.error("Google Calendar is busy right now. Wait a minute, then try again.");
 					break;
 				case "UNEXPECTED_ERROR":
-					toast.error("Something went wrong while deleting the event. Please try again.");
+					toast.error("Something went wrong while cancelling the booking. Please try again.");
 					break;
 				default:
 					exhaustiveCheck(reason);
@@ -56,7 +56,7 @@ export function useDeleteAction(session: SessionRecord) {
 		}
 
 		setIsDeleteDialogOpen(false);
-		toast.success("Event deleted and session cancelled.");
+		toast.success("Booking cancelled.");
 		setIsDeleting(false);
 	}
 

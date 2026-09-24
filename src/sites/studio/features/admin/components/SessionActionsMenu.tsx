@@ -522,7 +522,7 @@ export function SessionActionsMenu({
 							className="shrink-0 text-current"
 						/>
 					)}>
-					Delete event
+					Cancel booking
 				</AnimatedDropdownMenuItem>
 				<AnimatedDropdownMenuItem
 					disabled={deleteAction.isUpdatingArchive}

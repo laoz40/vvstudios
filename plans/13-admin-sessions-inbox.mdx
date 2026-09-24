@@ -89,7 +89,7 @@ Open locally: `mdxp plans/13-admin-sessions-inbox.mdx`
 - **Archive** = set \`hiddenAt\` (drops off inbox, still visible on **All sessions**). **Unarchive** = clear \`hiddenAt\` (back to inbox). Schema unchanged.
 - **Manual archive** stays; rare with auto-archive. Stage 4 may add a confirm when deliverables are not **Sent** and an editor is assigned.
 - **Auto-archive (done)** when \`confirmed\` or \`email_failed\`, past, no unpaid Stripe invoices, deliverables **Sent** (\`editStatus === "completed"\`). Event-driven only; no cron. \`email_failed\` is eligible for this path once work is truly finished (same as confirmed).
-- **Auto-archive (dead status)** when \`status\` becomes \`cancelled\`, \`abandoned\`, or \`expired\` — same patch sets \`hiddenAt\` via one helper. Includes admin **Delete event** and checkout cleanup. **Not** \`failed\` or \`email_failed\`.
+- **Auto-archive (dead status)** when \`status\` becomes \`cancelled\`, \`abandoned\`, or \`expired\` — same patch sets \`hiddenAt\` via one helper. Includes admin **Cancel booking** and checkout cleanup. **Not** \`failed\` or \`email_failed\`.
 - **Do not** auto-archive live \`pending_payment\` until \`expired\` / \`abandoned\` (or admin cancels).
 - **Auto-unarchive** when a new unpaid invoice is attached to an archived booking, only if \`status\` is \`confirmed\` or \`email_failed\` (never for \`cancelled\` / \`expired\` / \`abandoned\` / \`failed\`).
 - **Editors**: \`hiddenAt\` does not hide sessions or block deliverables. \`cancelled\` and non-confirmed statuses still block editors as today.`}
@@ -140,7 +140,7 @@ Open locally: `mdxp plans/13-admin-sessions-inbox.mdx`
 ├──────────────────────────────────────────────┤
 │  … unarchived: confirmed, email_failed,      │
 │    failed, pending_payment, …                │
-│  ⋮ Archive session  |  Delete event          │
+│  ⋮ Archive session  |  Cancel booking        │
 └──────────────────────────────────────────────┘`}
 		/>
 	</Tab>
@@ -481,7 +481,7 @@ When admin chooses **Archive session**:
 - If `assignedEditorTokenIdentifier` is set and `editStatus !== "completed"`, `SessionArchiveDialog` explains the session stays on the editor dashboard until cancel or deliverables sent.
 - Otherwise archive runs immediately (same as before).
 
-Delete-event dialog copy updated for auto-file on cancel (stage 3).
+Cancel-booking dialog copy notes auto-archive on cancel (stage 3).
 
 Optional backfill for old dead-status rows remains out of scope unless run manually (see below).
 
@@ -491,7 +491,7 @@ Optional backfill for old dead-status rows remains out of scope unless run manua
 
 | Action              | Menu label            | Calendar  | `status`                | `hiddenAt`                    | Editors                   |
 | ------------------- | --------------------- | --------- | ----------------------- | ----------------------------- | ------------------------- |
-| Delete event        | **Delete event**      | Removed   | `cancelled`             | set                           | No access                 |
+| Cancel booking      | **Cancel booking**    | Removed   | `cancelled`             | set                           | No access                 |
 | Checkout dies       | (automatic)           | —         | `expired` / `abandoned` | set                           | No access                 |
 | Confirmation failed | (automatic)           | —         | `failed`                | unset (stays in inbox)        | No access until confirmed |
 | Email failed        | (automatic)           | —         | `email_failed`          | unset until done auto-archive | Access like confirmed     |
