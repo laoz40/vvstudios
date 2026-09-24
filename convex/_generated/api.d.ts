@@ -59,6 +59,7 @@ import type * as lib_googleDrive from "../lib/googleDrive.js";
 import type * as lib_invoiceDownloads from "../lib/invoiceDownloads.js";
 import type * as lib_packageAdjustmentInvoicePayment from "../lib/packageAdjustmentInvoicePayment.js";
 import type * as lib_packageAdjustments from "../lib/packageAdjustments.js";
+import type * as lib_packageArchive from "../lib/packageArchive.js";
 import type * as lib_packageCheckout from "../lib/packageCheckout.js";
 import type * as lib_packageCheckoutClaim from "../lib/packageCheckoutClaim.js";
 import type * as lib_packageLookup from "../lib/packageLookup.js";
@@ -204,6 +205,7 @@ declare const fullApi: ApiFromModules<{
   "lib/invoiceDownloads": typeof lib_invoiceDownloads;
   "lib/packageAdjustmentInvoicePayment": typeof lib_packageAdjustmentInvoicePayment;
   "lib/packageAdjustments": typeof lib_packageAdjustments;
+  "lib/packageArchive": typeof lib_packageArchive;
   "lib/packageCheckout": typeof lib_packageCheckout;
   "lib/packageCheckoutClaim": typeof lib_packageCheckoutClaim;
   "lib/packageLookup": typeof lib_packageLookup;

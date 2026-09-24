@@ -1,4 +1,4 @@
-import { ok } from "neverthrow";
+import { ok, okAsync } from "neverthrow";
 import type { Id } from "#convex/_generated/dataModel";
 import type { MutationCtx } from "#convex/_generated/server";
 import { requirePermission } from "#convex/lib/auth";
@@ -9,6 +9,7 @@ import {
 	type PackageAdjustmentEmailClaim
 } from "#convex/lib/packageAdjustments";
 import { claimPackageAdjustmentInvoicePayment } from "#convex/lib/packageAdjustmentInvoicePayment";
+import { archivePackageWhenFullyDone } from "#convex/lib/packageArchive";
 import { getPackageFromDb } from "#convex/lib/packageLookup";
 import { okOrThrow } from "#convex/lib/result";
 import { recordPackageAdjustmentStripeInvoice } from "#convex/lib/stripeInvoices";
@@ -140,7 +141,13 @@ export function claimPackageAdjustmentInvoicePaymentService(
 	ctx: MutationCtx,
 	args: { stripeInvoiceId: string; adjustmentId?: string; paidAt: number }
 ) {
-	return claimPackageAdjustmentInvoicePayment(ctx, args);
+	return claimPackageAdjustmentInvoicePayment(ctx, args).andThen((claim) => {
+		if (claim.outcome !== "completed") {
+			return okAsync(claim);
+		}
+
+		return archivePackageWhenFullyDone(ctx, claim.packageId, args.paidAt).map(() => claim);
+	});
 }
 
 export function markPackageAdjustmentPaymentStatusService(
@@ -154,7 +161,13 @@ export function markPackageAdjustmentPaymentStatusService(
 			okOrThrow(
 				ctx.db
 					.patch(adjustment._id, { paymentStatus: args.paid ? "paid" : "unpaid" })
-					.then(() => null)
-			)
+					.then(() => adjustment)
+			).andThen((updatedAdjustment) => {
+				if (!args.paid) {
+					return okAsync(null);
+				}
+
+				return archivePackageWhenFullyDone(ctx, updatedAdjustment.packageId);
+			})
 		);
 }

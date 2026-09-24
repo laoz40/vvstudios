@@ -10,6 +10,7 @@ import {
 	getPackageCheckoutClaimStatus,
 	validatePackageClaimStripeSession
 } from "#convex/lib/packageCheckoutClaim";
+import { archiveDeadPackage } from "#convex/lib/packageArchive";
 import { getPackageFromDb } from "#convex/lib/packageLookup";
 import { okOrThrow } from "#convex/lib/result";
 
@@ -33,11 +34,9 @@ export function markPackageExpiredByStripeSessionIdService(
 					return ok({ alreadyExpired: expireDecision.alreadyExpired });
 				}
 
-				return okOrThrow(
-					ctx.db
-						.patch(expireDecision.packageId, { status: "expired" })
-						.then(() => ({ alreadyExpired: false }))
-				);
+				return archiveDeadPackage(ctx, expireDecision.packageId, { status: "expired" }).map(() => ({
+					alreadyExpired: false
+				}));
 			})
 	);
 }
@@ -57,10 +56,8 @@ export function deletePendingPackageService(
 					return ok(deleteDecision.value);
 				}
 
-				return okOrThrow(
-					ctx.db
-						.patch(args.packageId, { status: "abandoned" })
-						.then((): DeletePendingPackageSuccess => ({ outcome: "abandoned" }))
+				return archiveDeadPackage(ctx, args.packageId, { status: "abandoned" }).map(
+					(): DeletePendingPackageSuccess => ({ outcome: "abandoned" })
 				);
 			})
 			.orElse((error) =>

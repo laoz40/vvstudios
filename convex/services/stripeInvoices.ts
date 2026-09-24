@@ -4,6 +4,10 @@ import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
 import { requirePermission } from "#convex/lib/auth";
 import { okOrThrow } from "#convex/lib/result";
 import {
+	archivePackageWhenFullyDone,
+	unarchivePackageForNewUnpaidInvoice
+} from "#convex/lib/packageArchive";
+import {
 	archiveSessionWhenFullyDone,
 	unarchiveSessionForNewUnpaidInvoice
 } from "#convex/lib/sessionArchive";
@@ -70,7 +74,19 @@ export function recordPackageStripeInvoiceService(
 		createdBy?: string;
 	}
 ) {
-	return recordPackageStripeInvoice(ctx, args);
+	return recordPackageStripeInvoice(ctx, args).andThen((insertResult) => {
+		if (!insertResult.created) {
+			return okAsync(insertResult);
+		}
+
+		return okOrThrow(ctx.db.get(args.packageId)).andThen((packageRecord) => {
+			if (packageRecord === null) {
+				return okAsync(insertResult);
+			}
+
+			return unarchivePackageForNewUnpaidInvoice(ctx, packageRecord).map(() => insertResult);
+		});
+	});
 }
 
 export function recordPackageAdjustmentStripeInvoiceService(
@@ -83,7 +99,19 @@ export function recordPackageAdjustmentStripeInvoiceService(
 		totalAmount: number;
 	}
 ) {
-	return recordPackageAdjustmentStripeInvoice(ctx, args);
+	return recordPackageAdjustmentStripeInvoice(ctx, args).andThen((insertResult) => {
+		if (!insertResult.created) {
+			return okAsync(insertResult);
+		}
+
+		return okOrThrow(ctx.db.get(args.packageId)).andThen((packageRecord) => {
+			if (packageRecord === null) {
+				return okAsync(insertResult);
+			}
+
+			return unarchivePackageForNewUnpaidInvoice(ctx, packageRecord).map(() => insertResult);
+		});
+	});
 }
 
 export function markStripeInvoicePaidService(
@@ -103,13 +131,19 @@ export function markStripeInvoicePaidService(
 				)
 				.unique()
 		).andThen((stripeInvoice) => {
-			if (stripeInvoice?.bookingId === undefined) {
-				return okAsync(claim);
+			if (stripeInvoice?.bookingId !== undefined) {
+				return archiveSessionWhenFullyDone(ctx, stripeInvoice.bookingId, args.paidAt).map(
+					() => claim
+				);
 			}
 
-			return archiveSessionWhenFullyDone(ctx, stripeInvoice.bookingId, args.paidAt).map(
-				() => claim
-			);
+			if (stripeInvoice?.packageId !== undefined) {
+				return archivePackageWhenFullyDone(ctx, stripeInvoice.packageId, args.paidAt).map(
+					() => claim
+				);
+			}
+
+			return okAsync(claim);
 		});
 	});
 }

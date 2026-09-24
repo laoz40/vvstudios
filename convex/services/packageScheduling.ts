@@ -24,6 +24,7 @@ import {
 	type ValidPackageByTokenError
 } from "#convex/lib/packageLookup";
 import { fromConvexTuple, okOrThrow } from "#convex/lib/result";
+import { archivePackageWhenFullyDone } from "#convex/lib/packageArchive";
 import { archiveDeadCheckoutBooking } from "#convex/lib/sessionArchive";
 import { getSessionStartAt } from "#convex/lib/sessionAdminEdit";
 import type { SessionAvailabilitySettings } from "#convex/lib/sessionCalendarTime";
@@ -424,18 +425,20 @@ export function validatePackageUnscheduleRequestService(
 	}));
 }
 
-export function processPackageAdjustmentAtExpiryService(
+export async function processPackageAdjustmentAtExpiryService(
 	ctx: MutationCtx,
 	args: { packageId: Id<"packages">; expectedExpiresAt: number }
 ) {
-	return processPackageAdjustment(ctx, { ...args, trigger: "package_expired" });
+	await processPackageAdjustment(ctx, { ...args, trigger: "package_expired" });
+	await archivePackageWhenFullyDone(ctx, args.packageId);
 }
 
-export function processPackageAdjustmentWhenSessionsCompleteService(
+export async function processPackageAdjustmentWhenSessionsCompleteService(
 	ctx: MutationCtx,
 	args: { packageId: Id<"packages"> }
 ) {
-	return processPackageAdjustment(ctx, { ...args, trigger: "all_sessions_completed" });
+	await processPackageAdjustment(ctx, { ...args, trigger: "all_sessions_completed" });
+	await archivePackageWhenFullyDone(ctx, args.packageId);
 }
 
 export function saveCreatedPackageSessionService(
