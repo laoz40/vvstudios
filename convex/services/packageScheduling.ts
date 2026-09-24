@@ -499,6 +499,7 @@ export function saveCreatedPackageSessionService(
 							googleCalendarId: args.googleCalendarId,
 							googleEventId: args.googleEventId,
 							packageId: packageFromDb._id,
+							archived: false,
 							driveClientId
 						})
 					).andThen((bookingId) =>

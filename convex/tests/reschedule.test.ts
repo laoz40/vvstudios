@@ -198,6 +198,7 @@ describe("reschedule reservation and failure guards", () => {
 				service: "Remote Podcast",
 				addons: [],
 				status: "pending_payment",
+				archived: false,
 				pendingPaymentCreatedAt: now,
 				stripeSessionId: "cs-1"
 			});
@@ -243,6 +244,7 @@ async function seedReschedulableSession(t: TestClient) {
 			service: "Remote Podcast",
 			addons: [],
 			status: "confirmed",
+			archived: false,
 			pendingPaymentCreatedAt: now,
 			googleCalendarId: "primary-calendar",
 			googleEventId: "original-event",

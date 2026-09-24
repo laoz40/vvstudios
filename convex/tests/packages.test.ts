@@ -241,6 +241,7 @@ async function seedPackage(t: TestClient) {
 				{ amount: -160, description: "10% package discount", quantity: 1, rate: -160 }
 			],
 			status: "paid",
+			archived: false,
 			createdAt: now,
 			paidAt: now,
 			expiresAt: now + 100_000,
@@ -268,6 +269,7 @@ async function seedPackageSession(
 			service: "Table Setup",
 			addons: [],
 			status,
+			archived: false,
 			pendingPaymentCreatedAt: now,
 			packageId: packageId
 		})
@@ -294,6 +296,7 @@ async function seedPendingPackage(t: TestClient) {
 			discountAmount: 0,
 			totalDueAmount: 400,
 			status: "pending_payment",
+			archived: false,
 			createdAt: now,
 			invoiceEmailStatus: "sent"
 		})
@@ -318,6 +321,7 @@ async function seedPaidPackageWithToken(t: TestClient) {
 			discountAmount: 0,
 			totalDueAmount: 400,
 			status: "paid",
+			archived: false,
 			createdAt: now,
 			paidAt: now,
 			expiresAt: getPackageExpiresAt(now, 4),

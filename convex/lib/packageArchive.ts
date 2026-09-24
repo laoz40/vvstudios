@@ -31,13 +31,12 @@ export function isDeadPackageStatus(
 export function archiveDeadPackage(
 	ctx: MutationCtx,
 	packageId: Id<"packages">,
-	updates: Partial<Doc<"packages">>,
-	now = Date.now()
+	updates: Partial<Doc<"packages">>
 ): ResultAsync<null, never> {
 	const merged: Partial<Doc<"packages">> = { ...updates };
 
 	if (updates.status !== undefined && isDeadPackageStatus(updates.status)) {
-		Object.assign(merged, packageArchivedPatch(merged.hiddenAt ?? now));
+		Object.assign(merged, packageArchivedPatch());
 	}
 
 	return okOrThrow(ctx.db.patch(packageId, merged).then(() => null));
@@ -184,7 +183,7 @@ export function archivePackageWhenFullyDone(
 			return okAsync(null);
 		}
 
-		return okOrThrow(setPackageArchived(ctx, packageId, true, now).then(() => null));
+		return okOrThrow(setPackageArchived(ctx, packageId, true).then(() => null));
 	});
 }
 

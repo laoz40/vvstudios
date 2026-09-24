@@ -61,6 +61,7 @@ describe("drive setup guards", () => {
 				service: "Remote Podcast",
 				addons: [],
 				status: "confirmed",
+				archived: false,
 				pendingPaymentCreatedAt: now
 			});
 
@@ -148,6 +149,7 @@ async function seedBooking(t: TestClient) {
 			service: "Remote Podcast",
 			addons: [],
 			status: "confirmed",
+			archived: false,
 			pendingPaymentCreatedAt: now
 		})
 	);

@@ -5,10 +5,10 @@
  *    updateSessionEditStatus to completed archives a past confirmed session when invoices are paid.
  *
  * 2. Dead checkout status
- *    Admin delete event and checkout expiry set hiddenAt; failed confirmation does not.
+ *    Admin delete event and checkout expiry set archived; failed confirmation does not.
  *
  * 3. New unpaid invoice
- *    Recording a booking invoice clears hiddenAt for confirmed archived sessions only.
+ *    Recording a booking invoice unarchives confirmed archived sessions only.
  */
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { api, internal } from "#convex/_generated/api";
@@ -42,20 +42,16 @@ describe("session auto-archive", () => {
 			.mutation(api.sessions.updateSessionEditStatus, { bookingId, editStatus: "completed" });
 
 		expect(error).toBeNull();
-		expect(await readBooking(t, bookingId)).toMatchObject({ hiddenAt: now, archived: true });
+		expect(await readBooking(t, bookingId)).toMatchObject({ archived: true });
 	});
 
-	test("sets hiddenAt when admin deletes calendar event", async () => {
+	test("archives when admin deletes calendar event", async () => {
 		const t = createConvexTest();
 		const bookingId = await seedPastConfirmedBooking(t);
 
 		await t.mutation(internal.sessions.markSessionCalendarEventDeleted, { bookingId });
 
-		expect(await readBooking(t, bookingId)).toMatchObject({
-			status: "cancelled",
-			hiddenAt: now,
-			archived: true
-		});
+		expect(await readBooking(t, bookingId)).toMatchObject({ status: "cancelled", archived: true });
 	});
 
 	test("does not archive failed confirmation bookings", async () => {
@@ -68,12 +64,12 @@ describe("session auto-archive", () => {
 		});
 
 		expect(await readBooking(t, bookingId)).toMatchObject({ status: "failed" });
-		expect((await readBooking(t, bookingId))?.hiddenAt).toBeUndefined();
+		expect((await readBooking(t, bookingId))?.archived).toBe(false);
 	});
 
 	test("unarchives archived confirmed session when a new unpaid invoice is recorded", async () => {
 		const t = createConvexTest();
-		const bookingId = await seedPastConfirmedBooking(t, { hiddenAt: now - 1_000 });
+		const bookingId = await seedPastConfirmedBooking(t, { archived: true });
 
 		await t.mutation(internal.stripeInvoices.recordBookingStripeInvoice, {
 			bookingId,
@@ -83,7 +79,6 @@ describe("session auto-archive", () => {
 		});
 
 		const booking = await readBooking(t, bookingId);
-		expect(booking?.hiddenAt).toBeUndefined();
 		expect(booking?.archived).toBe(false);
 	});
 
@@ -103,7 +98,7 @@ describe("session auto-archive", () => {
 			paidAt: now
 		});
 
-		expect(await readBooking(t, bookingId)).toMatchObject({ hiddenAt: now, archived: true });
+		expect(await readBooking(t, bookingId)).toMatchObject({ archived: true });
 	});
 });
 
@@ -124,6 +119,7 @@ async function seedPastConfirmedBooking(
 			service: "Remote Podcast",
 			addons: [],
 			status: "confirmed",
+			archived: false,
 			pendingPaymentCreatedAt: 1,
 			googleEventId: "event-id",
 			googleCalendarId: "calendar-id",
@@ -146,6 +142,7 @@ async function seedPendingBooking(t: TestClient, stripeSessionId: string): Promi
 			service: "Remote Podcast",
 			addons: [],
 			status: "pending_payment",
+			archived: false,
 			pendingPaymentCreatedAt: 1,
 			stripeSessionId
 		})

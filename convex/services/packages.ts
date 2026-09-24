@@ -182,7 +182,7 @@ export function archivePackageService(ctx: MutationCtx, args: ArchivePackageArgs
 	return requirePermission(ctx, "archive:sessions")
 		.andThen(() => getPackageFromDb(ctx, args.packageId))
 		.andThen(() =>
-			okOrThrow(setPackageArchived(ctx, args.packageId, args.archived, Date.now()).then(() => null))
+			okOrThrow(setPackageArchived(ctx, args.packageId, args.archived).then(() => null))
 		);
 }
 

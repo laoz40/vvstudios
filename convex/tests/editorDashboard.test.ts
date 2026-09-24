@@ -118,6 +118,7 @@ async function seedBooking(t: TestClient, name: string): Promise<Id<"bookings">>
 			handcraftedClipsQuantity: "4",
 			notes: `${name} production notes`,
 			status: "confirmed",
+			archived: false,
 			pendingPaymentCreatedAt: Date.parse("2030-01-01T00:00:00.000Z"),
 			paidRemainingBalance: false,
 			remainingBalanceAmount: 150,
@@ -241,7 +242,7 @@ describe("restricted editor session query", () => {
 		await seedEditorProfile(t, editorIdentity);
 		const bookingId = await seedBooking(t, "Archived Assignment Customer");
 		await assignBooking(t, bookingId);
-		await t.run((ctx) => ctx.db.patch(bookingId, { hiddenAt: Date.now() }));
+		await t.run((ctx) => ctx.db.patch(bookingId, { archived: true }));
 
 		const result = await t
 			.withIdentity(editorIdentity)
@@ -254,7 +255,7 @@ describe("restricted editor session query", () => {
 		const t = createConvexTest();
 		await seedEditorProfile(t, editorIdentity);
 		const bookingId = await seedBooking(t, "Archived Assign Target");
-		await t.run((ctx) => ctx.db.patch(bookingId, { hiddenAt: Date.now() }));
+		await t.run((ctx) => ctx.db.patch(bookingId, { archived: true }));
 
 		const [error] = await t
 			.withIdentity(adminIdentity)

@@ -306,7 +306,7 @@ export function archiveSessionService(ctx: MutationCtx, args: ArchiveSessionArgs
 	return requirePermission(ctx, "archive:sessions")
 		.andThen(() => getSessionFromDb(ctx, args.bookingId))
 		.andThen(() =>
-			okOrThrow(setBookingArchived(ctx, args.bookingId, args.archived, Date.now()).then(() => null))
+			okOrThrow(setBookingArchived(ctx, args.bookingId, args.archived).then(() => null))
 		);
 }
 

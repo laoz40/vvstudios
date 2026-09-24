@@ -254,6 +254,7 @@ async function seedSchedulablePackage(t: TestClient) {
 			discountAmount: 0,
 			totalDueAmount: 400,
 			status: "paid",
+			archived: false,
 			createdAt: now - 1,
 			paidAt: now - 1,
 			expiresAt: expiryAt,
@@ -303,6 +304,7 @@ async function seedBooking(
 			service: "Remote Podcast",
 			addons: [],
 			status: "confirmed",
+			archived: false,
 			pendingPaymentCreatedAt: now - 1,
 			...overrides
 		});
@@ -332,6 +334,7 @@ async function seedPackage(
 			discountAmount: 0,
 			totalDueAmount: 400,
 			status: lifecycle.status,
+			archived: false,
 			createdAt: now - 1,
 			expiresAt: lifecycle.expiresAt,
 			packageReminderState: lifecycle.packageReminderState

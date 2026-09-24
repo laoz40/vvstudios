@@ -1,10 +1,10 @@
 import { v } from "convex/values";
 import { internalMutation } from "#convex/_generated/server";
 import {
-	backfillBookingArchivedFieldBatch,
 	backfillEligiblePackageArchivesBatch,
 	backfillEligibleSessionArchivesBatch,
-	backfillPackageArchivedFieldBatch
+	backfillStripBookingHiddenAtBatch,
+	backfillStripPackageHiddenAtBatch
 } from "#convex/lib/backfillArchive";
 
 const batchResultValidator = v.object({
@@ -14,11 +14,11 @@ const batchResultValidator = v.object({
 	scanned: v.number()
 });
 
-const archivedFieldBatchResultValidator = v.object({
+const stripHiddenAtBatchResultValidator = v.object({
 	continueCursor: v.union(v.string(), v.null()),
 	isDone: v.boolean(),
 	scanned: v.number(),
-	updated: v.number()
+	stripped: v.number()
 });
 
 /** One-off prod helper: archive inbox sessions that already match auto-archive "fully done" rules. */
@@ -37,18 +37,18 @@ export const backfillEligiblePackageArchives = internalMutation({
 		backfillEligiblePackageArchivesBatch(ctx, args.cursor, args.numItems ?? undefined)
 });
 
-/** Copy hiddenAt presence into optional archived on every booking (run after deploy, before PR2). */
-export const backfillBookingArchivedField = internalMutation({
+/** One-off: strip deprecated hiddenAt from every booking. Required before PR3 schema deploy. */
+export const backfillStripBookingHiddenAt = internalMutation({
 	args: { cursor: v.union(v.string(), v.null()), numItems: v.optional(v.number()) },
-	returns: archivedFieldBatchResultValidator,
+	returns: stripHiddenAtBatchResultValidator,
 	handler: async (ctx, args) =>
-		backfillBookingArchivedFieldBatch(ctx, args.cursor, args.numItems ?? undefined)
+		backfillStripBookingHiddenAtBatch(ctx, args.cursor, args.numItems ?? undefined)
 });
 
-/** Copy hiddenAt presence into optional archived on every package (run after deploy, before PR2). */
-export const backfillPackageArchivedField = internalMutation({
+/** One-off: strip deprecated hiddenAt from every package. Required before PR3 schema deploy. */
+export const backfillStripPackageHiddenAt = internalMutation({
 	args: { cursor: v.union(v.string(), v.null()), numItems: v.optional(v.number()) },
-	returns: archivedFieldBatchResultValidator,
+	returns: stripHiddenAtBatchResultValidator,
 	handler: async (ctx, args) =>
-		backfillPackageArchivedFieldBatch(ctx, args.cursor, args.numItems ?? undefined)
+		backfillStripPackageHiddenAtBatch(ctx, args.cursor, args.numItems ?? undefined)
 });

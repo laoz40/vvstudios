@@ -427,6 +427,7 @@ async function seedPaidPackage(t: TestClient) {
 			discountAmount: 0,
 			totalDueAmount: 400,
 			status: "paid",
+			archived: false,
 			createdAt: now - 30 * 24 * 60 * 60 * 1000,
 			invoiceEmailStatus: "sent",
 			paidAt: now - 20 * 24 * 60 * 60 * 1000,
@@ -455,6 +456,7 @@ async function seedPackageSession(
 			service: "Table Setup",
 			addons,
 			status: overrides.status ?? "confirmed",
+			archived: false,
 			pendingPaymentCreatedAt: now,
 			packageId: packageId
 		})

@@ -160,6 +160,7 @@ async function seedBooking(
 			service: "Remote Podcast",
 			addons: [],
 			status,
+			archived: false,
 			pendingPaymentCreatedAt: now
 		})
 	);

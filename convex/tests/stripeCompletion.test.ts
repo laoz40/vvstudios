@@ -134,6 +134,7 @@ async function seedBooking(t: TestClient, email = "customer@example.com") {
 			service: "Remote Podcast",
 			addons: [],
 			status: "pending_payment",
+			archived: false,
 			pendingPaymentCreatedAt: now,
 			stripeSessionId: "cs-1"
 		});
@@ -169,6 +170,7 @@ async function seedPendingPackage(t: TestClient) {
 			discountAmount: 0,
 			totalDueAmount: 400,
 			status: "pending_payment",
+			archived: false,
 			createdAt: now,
 			invoiceEmailStatus: "sent",
 			stripeSessionId: "cs-1"

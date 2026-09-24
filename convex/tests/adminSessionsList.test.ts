@@ -23,7 +23,7 @@ describe("listSessions admin views", () => {
 		const t = createConvexTest();
 		const visibleId = await seedBooking(t, "Inbox Visible");
 		const archivedId = await seedBooking(t, "Inbox Hidden");
-		await t.run((ctx) => ctx.db.patch(archivedId, { hiddenAt: Date.now() }));
+		await t.run((ctx) => ctx.db.patch(archivedId, { archived: true }));
 
 		const result = await t
 			.withIdentity(adminIdentity)
@@ -37,7 +37,7 @@ describe("listSessions admin views", () => {
 	test("all sessions includes archived bookings", async () => {
 		const t = createConvexTest();
 		const archivedId = await seedBooking(t, "All Tab Archived");
-		await t.run((ctx) => ctx.db.patch(archivedId, { hiddenAt: Date.now() }));
+		await t.run((ctx) => ctx.db.patch(archivedId, { archived: true }));
 
 		const result = await t
 			.withIdentity(adminIdentity)
@@ -61,6 +61,7 @@ async function seedBooking(t: TestClient, name: string): Promise<Id<"bookings">>
 			service: "Remote Podcast",
 			addons: [],
 			status: "confirmed",
+			archived: false,
 			pendingPaymentCreatedAt: 1,
 			googleEventId: "event-id",
 			googleCalendarId: "calendar-id"

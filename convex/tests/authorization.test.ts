@@ -153,6 +153,7 @@ async function seedBooking(t: TestClient): Promise<Id<"bookings">> {
 			service: "Remote Podcast",
 			addons: [],
 			status: "confirmed",
+			archived: false,
 			pendingPaymentCreatedAt: 1,
 			googleEventId: "event-id",
 			googleCalendarId: "calendar-id"

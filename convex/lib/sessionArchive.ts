@@ -27,13 +27,12 @@ export function isDeadCheckoutStatus(
 export function archiveDeadCheckoutBooking(
 	ctx: MutationCtx,
 	bookingId: Id<"bookings">,
-	updates: Partial<Doc<"bookings">>,
-	now = Date.now()
+	updates: Partial<Doc<"bookings">>
 ): ResultAsync<null, never> {
 	const merged: Partial<Doc<"bookings">> = { ...updates };
 
 	if (updates.status !== undefined && isDeadCheckoutStatus(updates.status)) {
-		Object.assign(merged, bookingArchivedPatch(merged.hiddenAt ?? now));
+		Object.assign(merged, bookingArchivedPatch());
 	}
 
 	return okOrThrow(ctx.db.patch(bookingId, merged).then(() => null));
@@ -84,7 +83,7 @@ export function archiveSessionWhenFullyDone(
 				return okAsync(null);
 			}
 
-			return okOrThrow(setBookingArchived(ctx, bookingId, true, now).then(() => null));
+			return okOrThrow(setBookingArchived(ctx, bookingId, true).then(() => null));
 		})
 		.orElse(() => okAsync(null));
 }

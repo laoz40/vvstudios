@@ -16,7 +16,7 @@ export function paginateAdminSessionsBySessionStart(
 	if (view === "inbox") {
 		return ctx.db
 			.query("bookings")
-			.withIndex("by_hiddenAt_and_sessionStartAt", (query) => query.eq("hiddenAt", undefined))
+			.withIndex("by_archived_and_sessionStartAt", (query) => query.eq("archived", false))
 			.order(sortDirection)
 			.paginate(paginationOpts);
 	}
@@ -37,9 +37,7 @@ export function paginateAdminSessionsByCreatedAt(
 	if (view === "inbox") {
 		return ctx.db
 			.query("bookings")
-			.withIndex("by_hiddenAt_and_pendingPaymentCreatedAt", (query) =>
-				query.eq("hiddenAt", undefined)
-			)
+			.withIndex("by_archived_and_pendingPaymentCreatedAt", (query) => query.eq("archived", false))
 			.order(sortDirection)
 			.paginate(paginationOpts);
 	}
