@@ -1,5 +1,5 @@
 import type { Doc } from "#convex/_generated/dataModel";
-import { sessionConsumesPackageCapacity } from "#convex/lib/packageScheduling";
+import { sessionConsumesPackageCapacity } from "#convex/lib/packageSessionCapacity";
 import { customerFilter } from "#studio/features/admin/components/AdminDashboardTableUtils";
 import { hasUnsentDeliverables } from "#studio/features/admin/lib/session-edit-status";
 import {
