@@ -239,8 +239,6 @@ export default defineSchema({
 		bookingFailureCode: v.optional(v.string()),
 
 		archived: v.boolean(),
-		// Deprecated: PR2 keeps optional until strip backfill + PR3 schema narrow.
-		hiddenAt: v.optional(v.number()),
 		bookingConfirmationClaimedAt: v.optional(v.number()),
 		bookingConfirmationEventId: v.optional(v.string()),
 		reservationCreatedAt: v.optional(v.number()),
@@ -352,8 +350,6 @@ export default defineSchema({
 		paidAt: v.optional(v.number()),
 		expiresAt: v.optional(v.number()),
 		archived: v.boolean(),
-		// Deprecated: PR2 keeps optional until strip backfill + PR3 schema narrow.
-		hiddenAt: v.optional(v.number()),
 
 		// Receipt metadata (receipt number + email delivery status)
 		invoiceNumber: v.optional(v.string()),
