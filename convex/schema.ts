@@ -239,6 +239,7 @@ export default defineSchema({
 		bookingFailureCode: v.optional(v.string()),
 
 		hiddenAt: v.optional(v.number()),
+		archived: v.optional(v.boolean()),
 		bookingConfirmationClaimedAt: v.optional(v.number()),
 		bookingConfirmationEventId: v.optional(v.string()),
 		reservationCreatedAt: v.optional(v.number()),
@@ -350,6 +351,7 @@ export default defineSchema({
 		paidAt: v.optional(v.number()),
 		expiresAt: v.optional(v.number()),
 		hiddenAt: v.optional(v.number()),
+		archived: v.optional(v.boolean()),
 
 		// Receipt metadata (receipt number + email delivery status)
 		invoiceNumber: v.optional(v.string()),

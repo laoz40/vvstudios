@@ -37,6 +37,7 @@ import {
 	deliverableStatusTabClassNameMap,
 	deliverableStatusTabLabelMap
 } from "#studio/features/admin/lib/session-edit-status";
+import { isBookingArchived } from "#convex/lib/archiveState";
 import type { SessionActionDetails } from "#studio/features/admin/lib/admin-sessions";
 import type { SessionRecord } from "#studio/features/admin/lib/admin-sessions";
 import type { useSessionArchiveAndCancelActions } from "#studio/features/admin/hooks/useSessionArchiveAndCancelActions";
@@ -222,7 +223,7 @@ export function SessionActionsMenu({
 	const otherMenuIconRef = useRef<AnimatedIconHandle | null>(null);
 	const emailIconRef = useRef<AnimatedIconHandle | null>(null);
 	const phoneIconRef = useRef<AnimatedIconHandle | null>(null);
-	const isArchived = session.hiddenAt !== undefined;
+	const isArchived = isBookingArchived(session);
 
 	const archiveActionLabel = getSessionArchiveActionLabel(
 		archiveAndCancelAction.isUpdatingArchive,

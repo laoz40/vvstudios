@@ -487,6 +487,25 @@ Optional backfill for old dead-status rows remains out of scope unless run manua
 
 ---
 
+## Archive rename (`hiddenAt` → `archived`)
+
+**PR1 (now):** optional `archived` on bookings/packages; code reads/writes both fields; inbox still indexes `hiddenAt`.
+
+**After PR1 deploy (Convex dashboard → Functions → `backfillArchive`, run as internal mutations):**
+
+| Function                          | Args                 | Until                         |
+| --------------------------------- | -------------------- | ----------------------------- |
+| `backfillBookingArchivedField`    | `{ "cursor": null }` | `isDone: true`                |
+| `backfillPackageArchivedField`    | `{ "cursor": null }` | `isDone: true`                |
+| `backfillEligibleSessionArchives` | `{ "cursor": null }` | optional; fully-done sessions |
+| `backfillEligiblePackageArchives` | `{ "cursor": null }` | optional; fully-done packages |
+
+Next batch: pass returned `continueCursor` as `"cursor"`. The two `*ArchivedField` backfills are **required before PR2**.
+
+**PR2:** make `archived` required, remove `hiddenAt`, switch inbox indexes to `archived === false`, delete dual-field helpers and field-copy backfills. Merge only after both `*ArchivedField` runs finish.
+
+---
+
 ## Cancel vs archive (reference)
 
 | Action              | Menu label            | Calendar  | `status`                | `hiddenAt`                    | Editors                   |

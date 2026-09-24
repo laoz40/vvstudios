@@ -40,7 +40,11 @@ describe("package auto-archive", () => {
 			stripeSessionId: "cs_abandon_archive"
 		});
 
-		expect(await readPackage(t, packageId)).toMatchObject({ status: "abandoned", hiddenAt: now });
+		expect(await readPackage(t, packageId)).toMatchObject({
+			status: "abandoned",
+			hiddenAt: now,
+			archived: true
+		});
 	});
 
 	test("archives after expiry closeout with a no-charge adjustment", async () => {
@@ -53,7 +57,7 @@ describe("package auto-archive", () => {
 			expectedExpiresAt: now
 		});
 
-		expect(await readPackage(t, packageId)).toMatchObject({ hiddenAt: now });
+		expect(await readPackage(t, packageId)).toMatchObject({ hiddenAt: now, archived: true });
 	});
 
 	test("archives after the last custom package invoice is marked paid", async () => {
@@ -80,7 +84,7 @@ describe("package auto-archive", () => {
 			paidAt: now
 		});
 
-		expect(await readPackage(t, packageId)).toMatchObject({ hiddenAt: now });
+		expect(await readPackage(t, packageId)).toMatchObject({ hiddenAt: now, archived: true });
 	});
 });
 

@@ -6,6 +6,11 @@ import {
 	type PackageAdjustmentSession
 } from "#convex/lib/packageAdjustments";
 import { getCapacityConsumingPackageSessions } from "#convex/lib/packageScheduling";
+import {
+	isPackageArchived,
+	packageArchivedPatch,
+	setPackageArchived
+} from "#convex/lib/archiveState";
 import { okOrThrow } from "#convex/lib/result";
 import {
 	listStripeInvoicesForPackage,
@@ -32,7 +37,7 @@ export function archiveDeadPackage(
 	const merged: Partial<Doc<"packages">> = { ...updates };
 
 	if (updates.status !== undefined && isDeadPackageStatus(updates.status)) {
-		merged.hiddenAt = merged.hiddenAt ?? now;
+		Object.assign(merged, packageArchivedPatch(merged.hiddenAt ?? now));
 	}
 
 	return okOrThrow(ctx.db.patch(packageId, merged).then(() => null));
@@ -163,7 +168,7 @@ export function archivePackageWhenFullyDone(
 
 		const { packageRecord, sessions, adjustment, customStripeSummary } = context;
 
-		if (packageRecord.hiddenAt !== undefined) {
+		if (isPackageArchived(packageRecord)) {
 			return okAsync(null);
 		}
 
@@ -179,7 +184,7 @@ export function archivePackageWhenFullyDone(
 			return okAsync(null);
 		}
 
-		return okOrThrow(ctx.db.patch(packageId, { hiddenAt: now }).then(() => null));
+		return okOrThrow(setPackageArchived(ctx, packageId, true, now).then(() => null));
 	});
 }
 
@@ -188,7 +193,7 @@ export function unarchivePackageForNewUnpaidInvoice(
 	ctx: MutationCtx,
 	packageRecord: Doc<"packages">
 ): ResultAsync<null, never> {
-	if (packageRecord.hiddenAt === undefined) {
+	if (!isPackageArchived(packageRecord)) {
 		return okAsync(null);
 	}
 
@@ -196,5 +201,5 @@ export function unarchivePackageForNewUnpaidInvoice(
 		return okAsync(null);
 	}
 
-	return okOrThrow(ctx.db.patch(packageRecord._id, { hiddenAt: undefined }).then(() => null));
+	return okOrThrow(setPackageArchived(ctx, packageRecord._id, false).then(() => null));
 }

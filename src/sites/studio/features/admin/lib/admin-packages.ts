@@ -1,6 +1,7 @@
 import { Check, ClockAlert, DollarSign, MailWarning, type LucideIcon } from "lucide-react";
 import { exhaustiveCheck } from "#/lib/result";
 import type { Doc } from "#convex/_generated/dataModel";
+import { isPackageArchived } from "#convex/lib/archiveState";
 import type { BookingAddon } from "#studio/features/booking-form/lib/booking-form-model";
 import { formatBookingInvoiceNumber } from "#studio/features/booking-invoice/lib/build-booking-invoice-data";
 import { formatAudAmount } from "#studio/features/admin/lib/remaining-balance";
@@ -54,7 +55,7 @@ export type AdminPackageRow = {
 	invoiceNumber: string;
 	stripeCustomerId?: string;
 	stripePaymentIntentId?: string;
-	hiddenAt?: number;
+	archived: boolean;
 };
 
 export type AdminPackageDashboardDate =
@@ -229,14 +230,14 @@ export function getAdminPackageDashboardDate(
 }
 
 export function getPackageArchiveActionLabel(
-	packageRow: Pick<AdminPackageRow, "hiddenAt">,
+	packageRow: Pick<AdminPackageRow, "archived">,
 	pendingAction: AdminPackagePendingAction
 ) {
 	if (pendingAction === "archive") {
 		return "Updating archive...";
 	}
 
-	if (packageRow.hiddenAt === undefined) {
+	if (!packageRow.archived) {
 		return "Archive";
 	}
 
@@ -287,7 +288,7 @@ export function mapPackageToAdminRow(packageRecord: AdminPackageRecord): AdminPa
 		invoiceNumber: formatBookingInvoiceNumber(packageRecord._id, packageRecord.createdAt),
 		stripeCustomerId: packageRecord.stripeCustomerId,
 		stripePaymentIntentId: packageRecord.stripePaymentIntentId,
-		hiddenAt: packageRecord.hiddenAt
+		archived: isPackageArchived(packageRecord)
 	};
 }
 

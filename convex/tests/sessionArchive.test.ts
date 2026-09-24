@@ -42,7 +42,7 @@ describe("session auto-archive", () => {
 			.mutation(api.sessions.updateSessionEditStatus, { bookingId, editStatus: "completed" });
 
 		expect(error).toBeNull();
-		expect(await readBooking(t, bookingId)).toMatchObject({ hiddenAt: now });
+		expect(await readBooking(t, bookingId)).toMatchObject({ hiddenAt: now, archived: true });
 	});
 
 	test("sets hiddenAt when admin deletes calendar event", async () => {
@@ -51,7 +51,11 @@ describe("session auto-archive", () => {
 
 		await t.mutation(internal.sessions.markSessionCalendarEventDeleted, { bookingId });
 
-		expect(await readBooking(t, bookingId)).toMatchObject({ status: "cancelled", hiddenAt: now });
+		expect(await readBooking(t, bookingId)).toMatchObject({
+			status: "cancelled",
+			hiddenAt: now,
+			archived: true
+		});
 	});
 
 	test("does not archive failed confirmation bookings", async () => {
@@ -78,7 +82,9 @@ describe("session auto-archive", () => {
 			requestId: "req_unarchive"
 		});
 
-		expect((await readBooking(t, bookingId))?.hiddenAt).toBeUndefined();
+		const booking = await readBooking(t, bookingId);
+		expect(booking?.hiddenAt).toBeUndefined();
+		expect(booking?.archived).toBe(false);
 	});
 
 	test("archives after the last booking invoice is marked paid on a sent session", async () => {
@@ -97,7 +103,7 @@ describe("session auto-archive", () => {
 			paidAt: now
 		});
 
-		expect(await readBooking(t, bookingId)).toMatchObject({ hiddenAt: now });
+		expect(await readBooking(t, bookingId)).toMatchObject({ hiddenAt: now, archived: true });
 	});
 });
 

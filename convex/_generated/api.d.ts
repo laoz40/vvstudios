@@ -9,6 +9,7 @@
  */
 
 import type * as auth from "../auth.js";
+import type * as backfillArchive from "../backfillArchive.js";
 import type * as bookingConfirmation from "../bookingConfirmation.js";
 import type * as bookingSettings from "../bookingSettings.js";
 import type * as crons from "../crons.js";
@@ -24,7 +25,9 @@ import type * as http from "../http.js";
 import type * as invoices from "../invoices.js";
 import type * as lib_adminPackageList from "../lib/adminPackageList.js";
 import type * as lib_adminSessionList from "../lib/adminSessionList.js";
+import type * as lib_archiveState from "../lib/archiveState.js";
 import type * as lib_auth from "../lib/auth.js";
+import type * as lib_backfillArchive from "../lib/backfillArchive.js";
 import type * as lib_bookingAddonQuantities from "../lib/bookingAddonQuantities.js";
 import type * as lib_bookingConfirmation from "../lib/bookingConfirmation.js";
 import type * as lib_bookingConfirmationClaim from "../lib/bookingConfirmationClaim.js";
@@ -155,6 +158,7 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   auth: typeof auth;
+  backfillArchive: typeof backfillArchive;
   bookingConfirmation: typeof bookingConfirmation;
   bookingSettings: typeof bookingSettings;
   crons: typeof crons;
@@ -170,7 +174,9 @@ declare const fullApi: ApiFromModules<{
   invoices: typeof invoices;
   "lib/adminPackageList": typeof lib_adminPackageList;
   "lib/adminSessionList": typeof lib_adminSessionList;
+  "lib/archiveState": typeof lib_archiveState;
   "lib/auth": typeof lib_auth;
+  "lib/backfillArchive": typeof lib_backfillArchive;
   "lib/bookingAddonQuantities": typeof lib_bookingAddonQuantities;
   "lib/bookingConfirmation": typeof lib_bookingConfirmation;
   "lib/bookingConfirmationClaim": typeof lib_bookingConfirmationClaim;

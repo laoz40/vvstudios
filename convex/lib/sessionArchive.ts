@@ -1,6 +1,11 @@
 import { okAsync, type ResultAsync } from "neverthrow";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { MutationCtx } from "#convex/_generated/server";
+import {
+	bookingArchivedPatch,
+	isBookingArchived,
+	setBookingArchived
+} from "#convex/lib/archiveState";
 import { okOrThrow } from "#convex/lib/result";
 import { getSessionFromDb } from "#convex/lib/sessionLookup";
 import {
@@ -28,7 +33,7 @@ export function archiveDeadCheckoutBooking(
 	const merged: Partial<Doc<"bookings">> = { ...updates };
 
 	if (updates.status !== undefined && isDeadCheckoutStatus(updates.status)) {
-		merged.hiddenAt = merged.hiddenAt ?? now;
+		Object.assign(merged, bookingArchivedPatch(merged.hiddenAt ?? now));
 	}
 
 	return okOrThrow(ctx.db.patch(bookingId, merged).then(() => null));
@@ -71,7 +76,7 @@ export function archiveSessionWhenFullyDone(
 			}))
 		)
 		.andThen(({ session, stripeSummary }) => {
-			if (session.hiddenAt !== undefined) {
+			if (isBookingArchived(session)) {
 				return okAsync(null);
 			}
 
@@ -79,7 +84,7 @@ export function archiveSessionWhenFullyDone(
 				return okAsync(null);
 			}
 
-			return okOrThrow(ctx.db.patch(bookingId, { hiddenAt: now }).then(() => null));
+			return okOrThrow(setBookingArchived(ctx, bookingId, true, now).then(() => null));
 		})
 		.orElse(() => okAsync(null));
 }
@@ -89,7 +94,7 @@ export function unarchiveSessionForNewUnpaidInvoice(
 	ctx: MutationCtx,
 	session: Doc<"bookings">
 ): ResultAsync<null, never> {
-	if (session.hiddenAt === undefined) {
+	if (!isBookingArchived(session)) {
 		return okAsync(null);
 	}
 
@@ -97,5 +102,5 @@ export function unarchiveSessionForNewUnpaidInvoice(
 		return okAsync(null);
 	}
 
-	return okOrThrow(ctx.db.patch(session._id, { hiddenAt: undefined }).then(() => null));
+	return okOrThrow(setBookingArchived(ctx, session._id, false).then(() => null));
 }

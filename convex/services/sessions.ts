@@ -2,6 +2,7 @@ import { ConvexError } from "convex/values";
 import { err, errAsync, ok } from "neverthrow";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
+import { setBookingArchived } from "#convex/lib/archiveState";
 import { requirePermission } from "#convex/lib/auth";
 import {
 	buildActiveEditorProjection,
@@ -305,11 +306,7 @@ export function archiveSessionService(ctx: MutationCtx, args: ArchiveSessionArgs
 	return requirePermission(ctx, "archive:sessions")
 		.andThen(() => getSessionFromDb(ctx, args.bookingId))
 		.andThen(() =>
-			okOrThrow(
-				ctx.db
-					.patch(args.bookingId, { hiddenAt: args.archived ? Date.now() : undefined })
-					.then(() => null)
-			)
+			okOrThrow(setBookingArchived(ctx, args.bookingId, args.archived, Date.now()).then(() => null))
 		);
 }
 

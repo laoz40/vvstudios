@@ -2,6 +2,7 @@ import type { PaginationOptions } from "convex/server";
 import { err, ok } from "neverthrow";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
+import { setPackageArchived } from "#convex/lib/archiveState";
 import { requirePermission } from "#convex/lib/auth";
 import { getPackageFromDb } from "#convex/lib/packageLookup";
 import {
@@ -181,11 +182,7 @@ export function archivePackageService(ctx: MutationCtx, args: ArchivePackageArgs
 	return requirePermission(ctx, "archive:sessions")
 		.andThen(() => getPackageFromDb(ctx, args.packageId))
 		.andThen(() =>
-			okOrThrow(
-				ctx.db
-					.patch(args.packageId, { hiddenAt: args.archived ? Date.now() : undefined })
-					.then(() => null)
-			)
+			okOrThrow(setPackageArchived(ctx, args.packageId, args.archived, Date.now()).then(() => null))
 		);
 }
 
