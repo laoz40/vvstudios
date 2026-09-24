@@ -44,8 +44,9 @@ async function archivePastDeadCheckoutSessionsUntilDone(
 	>,
 	cursor: string | null = null
 ) {
-	const [error, batch]: Result<ArchivePastDeadCheckoutBatch, { reason: string }> =
-		await tryCatch(archivePastDeadCheckoutSessions({ cursor }));
+	const [error, batch]: Result<ArchivePastDeadCheckoutBatch, { reason: string }> = await tryCatch(
+		archivePastDeadCheckoutSessions({ cursor })
+	);
 
 	if (error !== null) {
 		return;
