@@ -1,3 +1,9 @@
+// Vitest edge-runtime defines `window`, which makes t3-env treat Convex as client-only.
+if ("window" in globalThis) {
+	// SAFETY: edge-runtime adds a browser-like global; tests need Convex env validated as server-side.
+	Reflect.deleteProperty(globalThis, "window");
+}
+
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { loadLocalEnvFiles } from "./scripts/load-env";

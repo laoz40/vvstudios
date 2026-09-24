@@ -1,5 +1,4 @@
 import { err, ok, type ResultAsync } from "neverthrow";
-import { exhaustiveCheck } from "#/lib/result";
 import { okOrThrow } from "#convex/lib/result";
 import type {
 	SessionAvailabilitySettings,
@@ -28,7 +27,13 @@ import {
 	type ValidPackage,
 	type ValidPackageByTokenError
 } from "#convex/lib/packageLookup";
+import {
+	capacityConsumingSessionStatuses,
+	sessionConsumesPackageCapacity
+} from "#convex/lib/packageSessionCapacity";
 import { generateRescheduleToken, hashRescheduleToken } from "#convex/lib/sessionRescheduleLinks";
+
+export { sessionConsumesPackageCapacity } from "#convex/lib/packageSessionCapacity";
 
 export type { ValidPackage, ValidPackageByTokenError } from "#convex/lib/packageLookup";
 
@@ -106,24 +111,6 @@ export type UnschedulePackageSessionError =
 	| ValidPackageByTokenError
 	| PackageSessionEditError
 	| GoogleCalendarWriteError;
-
-const capacityConsumingSessionStatuses = ["confirmed", "email_failed"] as const;
-
-export function sessionConsumesPackageCapacity(session: Pick<Doc<"bookings">, "status">) {
-	switch (session.status) {
-		case "confirmed":
-		case "email_failed":
-			return true;
-		case "cancelled":
-		case "pending_payment":
-		case "failed":
-		case "expired":
-		case "abandoned":
-			return false;
-		default:
-			return exhaustiveCheck(session.status);
-	}
-}
 
 export async function getCapacityConsumingPackageSessions(
 	ctx: QueryCtx | MutationCtx,
