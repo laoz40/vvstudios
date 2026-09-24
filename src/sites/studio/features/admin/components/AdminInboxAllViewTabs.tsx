@@ -2,7 +2,7 @@ import { Inbox, LayoutList } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger } from "#/components/ui/tabs";
 import { cn } from "#/lib/utils";
 
-export type AdminInboxAllView = "inbox" | "all";
+type AdminInboxAllView = "inbox" | "all";
 
 type AdminInboxAllViewTabsProps = {
 	allTabLabel: string;

@@ -66,11 +66,6 @@ export type SessionListQuerySort = {
 
 export type AdminSessionsView = "inbox" | "all";
 
-export type AdminSessionsListQuery = SessionListQuerySort & {
-	view: AdminSessionsView;
-	includeStale: boolean;
-};
-
 export function toSessionListQuerySort(sorting: SessionSorting): SessionListQuerySort {
 	const activeSort = sorting.at(0) ?? { id: "session", desc: false };
 
