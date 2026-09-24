@@ -24,10 +24,7 @@ import {
 } from "#studio/features/admin/lib/session-edit-status";
 import { SessionServiceCell } from "#studio/features/sessions/components/SessionServiceCell";
 import { useDeliverablesEmailAction } from "#studio/features/admin/hooks/useDeliverablesEmailAction";
-import {
-	getPackageSessionProgressLabel,
-	type SessionRecord
-} from "#studio/features/admin/lib/admin-sessions";
+import { getPackageSessionProgressLabel, type SessionRecord } from "#studio/features/admin/lib/admin-sessions";
 import {
 	formatAudAmount,
 	getAudAmountRowShowCents

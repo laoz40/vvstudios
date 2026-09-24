@@ -1,6 +1,6 @@
 import { z } from "zod";
 import type { AdminPackageSort } from "#studio/features/admin/lib/admin-packages";
-import type { SessionSorting } from "#studio/features/admin/lib/admin-sessions";
+import type { AdminSessionsView, SessionSorting } from "#studio/features/admin/lib/admin-sessions";
 
 const ADMIN_DASHBOARD_PREFERENCES_KEY = "vvstudios.adminDashboard.preferences";
 
@@ -13,9 +13,8 @@ const DEFAULT_PACKAGES_TABLE_PREFERENCES: PackagesTablePreferences = {
 
 const DEFAULT_SESSIONS_TABLE_PREFERENCES: SessionsTablePreferences = {
 	sorting: [{ id: "session", desc: false }],
-	showArchived: false,
-	showStaleBookings: true,
-	showUpcomingOnly: true
+	sessionsView: "inbox",
+	showStaleBookings: true
 };
 
 const storedSessionSortIdSchema = z.enum(["name", "session", "createdAt"]);
@@ -36,8 +35,11 @@ const storedPackagesTablePreferencesSchema = z.object({
 	showUpcoming: z.boolean().optional()
 });
 
+const storedSessionsViewSchema = z.enum(["inbox", "all"]);
+
 const storedSessionsTablePreferencesSchema = z.object({
 	sorting: z.array(sessionSortingItemSchema).optional(),
+	sessionsView: storedSessionsViewSchema.optional(),
 	showArchived: z.boolean().optional(),
 	showStaleBookings: z.boolean().optional(),
 	showUpcomingOnly: z.boolean().optional()
@@ -58,9 +60,8 @@ type PackagesTablePreferences = {
 
 type SessionsTablePreferences = {
 	sorting: SessionSorting;
-	showArchived: boolean;
+	sessionsView: AdminSessionsView;
 	showStaleBookings: boolean;
-	showUpcomingOnly: boolean;
 };
 
 type AdminDashboardPreferences = z.infer<typeof adminDashboardPreferencesSchema>;
@@ -140,9 +141,8 @@ export function readStoredSessionsTablePreferences(): SessionsTablePreferences {
 		sorting:
 			normalizeStoredSorting(storedPreferences.sorting) ??
 			DEFAULT_SESSIONS_TABLE_PREFERENCES.sorting,
-		showArchived: storedPreferences.showArchived ?? false,
-		showStaleBookings: storedPreferences.showStaleBookings ?? true,
-		showUpcomingOnly: storedPreferences.showUpcomingOnly ?? true
+		sessionsView: storedPreferences.sessionsView ?? DEFAULT_SESSIONS_TABLE_PREFERENCES.sessionsView,
+		showStaleBookings: storedPreferences.showStaleBookings ?? true
 	};
 }
 

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo } from "react";
 import {
 	Table,
 	TableBody,
@@ -14,16 +14,13 @@ import {
 import { SessionTableRow } from "#studio/features/admin/components/SessionTableRow";
 import { SessionsTableFilters } from "#studio/features/admin/components/SessionsTableFilters";
 import { SessionsTableFooter } from "#studio/features/admin/components/SessionsTableFooter";
-import type { SessionRecord } from "#studio/features/admin/lib/admin-sessions";
+import type { AdminSessionsView, SessionRecord } from "#studio/features/admin/lib/admin-sessions";
 import {
 	filterAdminSessions,
 	type SessionSortId,
 	type SessionSorting
 } from "#studio/features/admin/lib/admin-sessions";
-import {
-	readStoredSessionsTablePreferences,
-	storeSessionsTableFilters
-} from "#studio/features/admin/lib/admin-dashboard-preferences";
+import { storeSessionsTableFilters } from "#studio/features/admin/lib/admin-dashboard-preferences";
 import { InfiniteScrollSentinel } from "#studio/components/InfiniteScrollSentinel";
 
 type SessionsTableProps = {
@@ -33,8 +30,12 @@ type SessionsTableProps = {
 	isLoadingSessions: boolean;
 	loadMoreSessions: () => void;
 	onSearchQueryChange: (searchQuery: string) => void;
+	onSessionsViewChange: (view: AdminSessionsView) => void;
+	onShowStaleSessionsChange: (showStaleSessions: boolean) => void;
 	onSortingChange: (sorting: SessionSorting) => void;
 	searchQuery: string;
+	sessionsView: AdminSessionsView;
+	showStaleSessions: boolean;
 	sorting: SessionSorting;
 };
 
@@ -45,41 +46,23 @@ export function SessionsTable({
 	isLoadingSessions,
 	loadMoreSessions,
 	onSearchQueryChange,
+	onSessionsViewChange,
+	onShowStaleSessionsChange,
 	onSortingChange,
 	searchQuery,
+	sessionsView,
+	showStaleSessions,
 	sorting
 }: SessionsTableProps) {
-	// Table setup and persisted filters
-	const initialTablePreferences = useMemo(readStoredSessionsTablePreferences, []);
-	const [showArchived, setShowArchived] = useState(initialTablePreferences.showArchived);
-
-	const [showUpcomingOnly, setShowUpcomingOnly] = useState(
-		initialTablePreferences.showUpcomingOnly
-	);
-
-	const [showStaleSessions, setShowStaleSessions] = useState(
-		initialTablePreferences.showStaleBookings
-	);
-
 	// Persist table preferences.
 	useEffect(() => {
-		storeSessionsTableFilters({
-			sorting,
-			showArchived,
-			showStaleBookings: showStaleSessions,
-			showUpcomingOnly
-		});
-	}, [sorting, showArchived, showStaleSessions, showUpcomingOnly]);
+		storeSessionsTableFilters({ sorting, sessionsView, showStaleBookings: showStaleSessions });
+	}, [sorting, sessionsView, showStaleSessions]);
 
 	// Visible session rows after dashboard-level filters.
 	const filteredSessions = useMemo(() => {
-		return filterAdminSessions(sessions, {
-			searchQuery,
-			showArchived,
-			showStaleSessions,
-			showUpcomingOnly
-		});
-	}, [sessions, searchQuery, showArchived, showStaleSessions, showUpcomingOnly]);
+		return filterAdminSessions(sessions, { searchQuery });
+	}, [sessions, searchQuery]);
 
 	// Prefetch another page when client-side filters hide every loaded session.
 	useEffect(() => {
@@ -130,13 +113,11 @@ export function SessionsTable({
 		<section className="flex flex-col gap-4">
 			<SessionsTableFilters
 				searchQuery={searchQuery}
-				showArchived={showArchived}
+				sessionsView={sessionsView}
 				showStaleSessions={showStaleSessions}
-				showUpcomingOnly={showUpcomingOnly}
 				onSearchQueryChange={onSearchQueryChange}
-				onShowArchivedChange={setShowArchived}
-				onShowStaleSessionsChange={setShowStaleSessions}
-				onShowUpcomingOnlyChange={setShowUpcomingOnly}
+				onSessionsViewChange={onSessionsViewChange}
+				onShowStaleSessionsChange={onShowStaleSessionsChange}
 			/>
 
 			<div className="overflow-x-auto border-y">
