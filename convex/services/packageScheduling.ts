@@ -24,6 +24,7 @@ import {
 	type ValidPackageByTokenError
 } from "#convex/lib/packageLookup";
 import { fromConvexTuple, okOrThrow } from "#convex/lib/result";
+import { archiveDeadCheckoutBooking } from "#convex/lib/sessionArchive";
 import { getSessionStartAt } from "#convex/lib/sessionAdminEdit";
 import type { SessionAvailabilitySettings } from "#convex/lib/sessionCalendarTime";
 import { env } from "#convex/env";
@@ -548,19 +549,15 @@ export function cancelPackageSessionService(ctx: MutationCtx, args: CancelPackag
 			})
 			// Cancel the booking and clear its Calendar and reminder state.
 			.andThen(() =>
-				okOrThrow(
-					ctx.db
-						.patch(args.bookingId, {
-							bookingFailureCode: undefined,
-							googleCalendarId: undefined,
-							googleEventId: undefined,
-							reminderEmailClaimedAt: undefined,
-							reminderEmailSentAt: undefined,
-							reminderEmailFailureCode: undefined,
-							status: "cancelled"
-						})
-						.then(() => ({ cancelled: true as const, bookingId: args.bookingId }))
-				)
+				archiveDeadCheckoutBooking(ctx, args.bookingId, {
+					bookingFailureCode: undefined,
+					googleCalendarId: undefined,
+					googleEventId: undefined,
+					reminderEmailClaimedAt: undefined,
+					reminderEmailSentAt: undefined,
+					reminderEmailFailureCode: undefined,
+					status: "cancelled"
+				}).map(() => ({ cancelled: true as const, bookingId: args.bookingId }))
 			)
 	);
 }

@@ -72,6 +72,7 @@ import type * as lib_reminderScheduleTime from "../lib/reminderScheduleTime.js";
 import type * as lib_result from "../lib/result.js";
 import type * as lib_sessionAdminEdit from "../lib/sessionAdminEdit.js";
 import type * as lib_sessionAdminGoogleCalendarUpdate from "../lib/sessionAdminGoogleCalendarUpdate.js";
+import type * as lib_sessionArchive from "../lib/sessionArchive.js";
 import type * as lib_sessionCalendarEvents from "../lib/sessionCalendarEvents.js";
 import type * as lib_sessionCalendarTime from "../lib/sessionCalendarTime.js";
 import type * as lib_sessionCheckout from "../lib/sessionCheckout.js";
@@ -215,6 +216,7 @@ declare const fullApi: ApiFromModules<{
   "lib/result": typeof lib_result;
   "lib/sessionAdminEdit": typeof lib_sessionAdminEdit;
   "lib/sessionAdminGoogleCalendarUpdate": typeof lib_sessionAdminGoogleCalendarUpdate;
+  "lib/sessionArchive": typeof lib_sessionArchive;
   "lib/sessionCalendarEvents": typeof lib_sessionCalendarEvents;
   "lib/sessionCalendarTime": typeof lib_sessionCalendarTime;
   "lib/sessionCheckout": typeof lib_sessionCheckout;

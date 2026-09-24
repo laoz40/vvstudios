@@ -37,6 +37,10 @@ import {
 	paginateAdminSessionsBySessionStart,
 	passesAdminInboxStaleFilter
 } from "#convex/lib/adminSessionList";
+import {
+	archiveSessionWhenFullyDone,
+	archiveDeadCheckoutBooking
+} from "#convex/lib/sessionArchive";
 import { formatBookingInvoiceNumber } from "#studio/features/booking-invoice/lib/build-booking-invoice-data";
 
 type PaginationArgs = { paginationOpts: { numItems: number; cursor: string | null } };
@@ -337,7 +341,8 @@ export function updateSessionEditStatusService(
 		)
 		.andThen(requireDeliverablesOwnership)
 		.andThen(requireDeliverablesEligibility)
-		.andThen((session) => saveSessionEditStatus(ctx, session, args.editStatus));
+		.andThen((session) => saveSessionEditStatus(ctx, session, args.editStatus))
+		.andThen(() => archiveSessionWhenFullyDone(ctx, args.bookingId));
 }
 
 export function markSessionCalendarEventDeletedService(
@@ -345,15 +350,11 @@ export function markSessionCalendarEventDeletedService(
 	args: MarkSessionCalendarEventDeletedArgs
 ) {
 	return getSessionFromDb(ctx, args.bookingId).andThen(() =>
-		okOrThrow(
-			ctx.db
-				.patch(args.bookingId, {
-					bookingFailureCode: undefined,
-					googleCalendarId: undefined,
-					googleEventId: undefined,
-					status: "cancelled"
-				})
-				.then(() => null)
-		)
+		archiveDeadCheckoutBooking(ctx, args.bookingId, {
+			bookingFailureCode: undefined,
+			googleCalendarId: undefined,
+			googleEventId: undefined,
+			status: "cancelled"
+		})
 	);
 }

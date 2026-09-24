@@ -15,7 +15,7 @@ Open locally: `mdxp plans/13-admin-sessions-inbox.mdx`
 		{
 			path: "convex/services/sessions.ts",
 			change: "modified",
-			note: "list queries by view; cancel + terminal archive"
+			note: "list queries by view; cancel + dead checkout archive"
 		},
 		{
 			path: "convex/services/sessionCheckout.ts",
@@ -38,6 +38,11 @@ Open locally: `mdxp plans/13-admin-sessions-inbox.mdx`
 			note: "assign on archived OK if confirmed"
 		},
 		{
+			path: "convex/lib/adminSessionList.ts",
+			change: "added",
+			note: "inbox pagination + includeStale filter (stage 2)"
+		},
+		{
 			path: "convex/lib/sessionArchive.ts",
 			change: "added",
 			note: "done + dead-status archive, unarchive hooks"
@@ -46,6 +51,11 @@ Open locally: `mdxp plans/13-admin-sessions-inbox.mdx`
 			path: "convex/http.ts",
 			change: "modified",
 			note: "invoice.paid → maybe auto-archive / unarchive"
+		},
+		{
+			path: "src/sites/studio/features/admin/components/SessionsListViewTabs.tsx",
+			change: "added",
+			note: "Inbox / All sessions tabs (stage 2)"
 		},
 		{
 			path: "src/sites/studio/features/admin/components/SessionsTable.tsx",
@@ -75,7 +85,7 @@ Open locally: `mdxp plans/13-admin-sessions-inbox.mdx`
 	body={`**Decisions from design review**
 
 - **Inbox** = bookings where \`hiddenAt\` is unset (server query only). Includes actionable problems: \`failed\` (paid but confirmation broke: slot conflict, calendar create, invalid input) and \`email_failed\` (confirmed, receipt email failed).
-- **All sessions** = every booking, archived and unarchived. Archive is a row state (badge / column), not what defines this tab.
+- **All sessions** = every booking, archived and unarchived. Archive is filing state (`hiddenAt`), not a separate booking status. Stage 2 does not add an archived badge; use **All sessions** tab or manual archive actions to see filed rows.
 - **Archive** = set \`hiddenAt\` (drops off inbox, still visible on **All sessions**). **Unarchive** = clear \`hiddenAt\` (back to inbox). Schema unchanged.
 - **Manual archive** stays; rare once auto-archive ships. Confirm if archiving while deliverables are not **Sent** and an editor is assigned.
 - **Auto-archive (done)** when \`confirmed\` or \`email_failed\`, past, no unpaid Stripe invoices, deliverables **Sent** (\`editStatus === "completed"\`). Event-driven only; no cron. \`email_failed\` is eligible for this path once work is truly finished (same as confirmed).
@@ -125,9 +135,8 @@ Open locally: `mdxp plans/13-admin-sessions-inbox.mdx`
 			caption="Default admin sessions view"
 			code={`┌──────────────────────────────────────────────┐
 │ Sessions                                     │
-│ [ Inbox * ]  [ All sessions ]                │
-│ Search…                    [ Filters ▾ ]     │
-│   ☑ Show unconfirmed                         │
+│ Search…     [ Inbox * ] [ All sessions ]       │
+│              ☑ Show unconfirmed   (Filters ▾)  │
 ├──────────────────────────────────────────────┤
 │  … unarchived: confirmed, email_failed,      │
 │    failed, pending_payment, …                │
@@ -143,10 +152,10 @@ Open locally: `mdxp plans/13-admin-sessions-inbox.mdx`
 			caption="Full history"
 			code={`┌──────────────────────────────────────────────┐
 │ Sessions                                     │
-│ [ Inbox ]  [ All sessions * ]                │
-│ Search…                    [ Filters ▾ ]     │
+│ Search…     [ Inbox ] [ All sessions * ]       │
+│              ☑ Show unconfirmed   (Filters ▾)  │
 ├──────────────────────────────────────────────┤
-│  … all bookings; archived badge when filed   │
+│  … all bookings (archived + unarchived)      │
 │  ⋮ Archive / Unarchive on row              │
 └──────────────────────────────────────────────┘`}
 		/>
@@ -157,14 +166,15 @@ Open locally: `mdxp plans/13-admin-sessions-inbox.mdx`
 
 ## Current vs target (data loading)
 
-|              | Now                                                | Target                                                                               |
-| ------------ | -------------------------------------------------- | ------------------------------------------------------------------------------------ |
-| List API     | Single `listSessions` paginates all bookings       | `listSessions` takes `view: "inbox" \| "all"`                                        |
-| Inbox filter | Client: `filterAdminSessions` + **Show due**       | Server: `hiddenAt` unset; optional `includeStale` for checkout noise                 |
-| All sessions | Hidden unless **Show archived** on                 | Server: no `hiddenAt` filter; archived rows visible with badge/column                |
-| Risk         | Due row on page 5 never loaded                     | Inbox query only loads unarchived rows                                               |
-| Archive      | Hides from editors                                 | Admin filing only; row remains on **All sessions**                                   |
-| Dead status  | `cancelled` / `expired` / etc. may stay unarchived | `cancelled` / `expired` / `abandoned` patch sets `hiddenAt`; `failed` stays in inbox |
+|              | Before stage 2                                     | Shipped (stage 2)                                                                                    |
+| ------------ | -------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| List API     | Single `listSessions` paginates all bookings       | `listSessions` takes `view: "inbox" \| "all"` and `includeStale`                                     |
+| Inbox filter | Client: `filterAdminSessions` + **Show due**       | Server: `hiddenAt` unset via compound index; `includeStale` drops stale checkout rows                |
+| All sessions | Hidden unless **Show archived** on                 | Server: no `hiddenAt` filter; same row styling as inbox (no archived badge)                          |
+| Search       | Client filter on loaded page                       | Still client-only on loaded page (`filterAdminSessions` + `customerFilter`); no server `searchQuery` |
+| Pagination   | One `usePaginatedQuery`; args change with tab/sort | One `usePaginatedQuery` in `AdminDashboard`; args `{ view, includeStale, sort… }`                    |
+| Archive      | Hides from editors (fixed stage 1)                 | Admin filing only; row remains queryable on **All sessions**                                         |
+| Dead status  | `cancelled` / `expired` / etc. may stay unarchived | Unchanged until stage 3: dead checkout statuses should set `hiddenAt`                                |
 
 ---
 
@@ -172,12 +182,12 @@ Open locally: `mdxp plans/13-admin-sessions-inbox.mdx`
 
 Four PR-sized chunks. Order matters for editor decoupling before admins rely on archive-heavy inbox.
 
-| Stage | Focus                              | Outcome                                                                |
-| ----- | ---------------------------------- | ---------------------------------------------------------------------- |
-| 1     | Editor decouple + assignment rules | Archive no longer affects editor list or deliverables mutations        |
-| 2     | Server list views + admin tabs     | Two paginated queries; remove **Show due** / **Show archived**         |
-| 3     | Auto-archive / unarchive           | Done + terminal status + invoice hooks; `convex/lib/sessionArchive.ts` |
-| 4     | UX polish                          | Manual archive warning; copy tweaks; backfill optional                 |
+| Stage | Focus                              | Outcome                                                                      |
+| ----- | ---------------------------------- | ---------------------------------------------------------------------------- |
+| 1     | Editor decouple + assignment rules | **Done.** Archive no longer affects editor list or deliverables mutations    |
+| 2     | Server list views + admin tabs     | **Done.** Inbox/all `listSessions`; removed **Show due** / **Show archived** |
+| 3     | Auto-archive / unarchive           | Done + dead checkout status + invoice hooks; `convex/lib/sessionArchive.ts` |
+| 4     | UX polish                          | Manual archive warning; copy tweaks; backfill optional                       |
 
 ---
 
@@ -239,21 +249,60 @@ return err({ reason: "SESSION_ARCHIVED" as const });
 	body="Search for \`SESSION_ARCHIVED\`, \`hiddenAt\`, and \`isEditorVisibleSession\` in tests (\`convex/lib/tests/editorSessions.test.ts\`, \`convex/tests/authorization.test.ts\`, editor dashboard tests). Update expectations: archived + confirmed still visible to assigned editor."
 />
 
+<Callout
+	tone="info"
+	body="**Stage 1 shipped.** Do not reintroduce \`SESSION_ARCHIVED\` or \`hiddenAt\` checks on editor visibility or deliverables eligibility."
+/>
+
 ---
 
-## Stage 2 — Server inbox / all lists + admin UI
+## Stage 2 — Server inbox / all lists + admin UI (shipped)
 
-**Goal:** Two tabs, two `usePaginatedQuery` calls. **Show unconfirmed** on **Inbox** (and optionally **All sessions** — pick one in PR).
+**Goal:** Inbox vs **All sessions** tabs drive server-side `listSessions`. Remove **Show due** and **Show archived**. Keep **Show unconfirmed** (`includeStale`).
 
-### Schema index
+<Callout
+	tone="info"
+	body="Implemented on branch \`convert-admin-sessions-inbox-archive-flow\`. Future agents: treat this section as reference, not a todo list."
+/>
 
-- **All sessions:** keep paginating on existing `by_sessionStartAt` (or `createdAt` sort). No `hiddenAt` filter.
-- **Inbox:** need efficient “`hiddenAt` unset” pagination. Pick one in the PR:
+### Schema index (shipped: Option A)
+
+Compound indexes on `bookings`:
+
+- `by_hiddenAt_and_sessionStartAt` — inbox pagination when sorting by session date
+- `by_hiddenAt_and_pendingPaymentCreatedAt` — inbox pagination when sorting by createdAt
+
+Inbox queries use `.withIndex(..., (q) => q.eq("hiddenAt", undefined))`. **All sessions** keeps existing `by_sessionStartAt` / `by_pendingPaymentCreatedAt` with no `hiddenAt` filter.
+
+Option B (denormalized `adminInboxVisible`) was not used.
+
+### List API (shipped)
+
+- **`convex/lib/adminSessionList.ts`**: `paginateAdminSessionsBySessionStart`, `paginateAdminSessionsByCreatedAt`, `passesAdminInboxStaleFilter` (stale = expired / abandoned / checkout past 24h; `cancelled` always excluded when `includeStale` is false).
+- **`listSessions` args**: `{ paginationOpts, sortBy, sortDirection, view?: "inbox" | "all", includeStale?: boolean }` (defaults: `view: "inbox"`, `includeStale: true`).
+- **`includeStale` applies to both views**, not inbox-only.
+- Tests: `convex/tests/adminSessionsList.test.ts` (inbox omits archived; all includes archived).
+
+### Admin UI (shipped)
+
+- **`AdminDashboard`**: one `usePaginatedQuery(api.sessions.listSessions, { view, includeStale, sort… })` (not two hook instances; args change when tab or stale toggle changes).
+- **`SessionsListViewTabs`**: Inbox / All sessions beside search; input-matched border/background; full-width tab bar on mobile.
+- **`SessionsTableFilters`**: **Show unconfirmed** on desktop and in mobile Filters menu for **both** tabs.
+- **`filterAdminSessions`**: client search only (`customerFilter` on loaded pages). No server `searchQuery`. Prefetch in `SessionsTable` when search hides all loaded rows.
+- **Preferences**: `sessionsView` + `showStaleBookings`; removed `showArchived` and `showUpcomingOnly`.
+- **Row UI**: no archived badge; past sessions keep existing muted styling only.
+
+### Not in stage 2
+
+- Auto-archive on deliverables **Sent** (stage 3).
+- Dead checkout status `hiddenAt` patches (stage 3).
+
+### Historical sketches (pre-ship)
 
 <Tabs>
 	<Tab
 		id="idx-a"
-		label="Option A — compound index">
+		label="Option A — compound index (chosen)">
 		<Code
 			language="ts"
 			filename="convex/schema.ts (sketch)"
@@ -263,7 +312,7 @@ return err({ reason: "SESSION_ARCHIVED" as const });
 	</Tab>
 	<Tab
 		id="idx-b"
-		label="Option B — denormalized bucket">
+		label="Option B — not used">
 		<Code
 			language="ts"
 			code={`// adminInboxVisible: boolean, true when hiddenAt unset; flip on archive/unarchive
@@ -271,47 +320,6 @@ return err({ reason: "SESSION_ARCHIVED" as const });
 		/>
 	</Tab>
 </Tabs>
-
-<Callout
-	tone="decision"
-	body="Read \`convex/_generated/ai/guidelines.md\` before adding indexes. **All sessions** must not filter on \`hiddenAt\`. Surface archived state in the table (badge, muted row, or column)."
-/>
-
-### List API
-
-<Diff
-	id="list-view-arg"
-	summary="Paginate by admin view"
-	filename="convex/services/sessions.ts"
-	language="ts"
-	before={`// single paginate on by_sessionStartAt; client filterAdminSessions`}
-	after={`type AdminSessionsView = "inbox" | "all";
-
-// listSessions args: { paginationOpts, sortBy, sortDirection, view, includeStale?: boolean }
-// inbox: hiddenAt unset (includeStale: stale pending_payment on inbox until expired/abandoned)
-// all: no hiddenAt filter — every booking
-// search: server-side if feasible, else document client search on loaded page only`}
-/>
-
-### Admin UI
-
-<Diff
-	id="sessions-table-tabs"
-	summary="Tabs drive which query runs"
-	filename="src/sites/studio/features/admin/components/SessionsTable.tsx"
-	language="tsx"
-	before={`const [showUpcomingOnly, setShowUpcomingOnly] = useState(true);
-const [showArchived, setShowArchived] = useState(false);
-// one usePaginatedQuery(api.sessions.listSessions)
-// filterAdminSessions(...)`}
-	after={`const [view, setView] = useState<"inbox" | "all">("inbox");
-// usePaginatedQuery(listSessions, { view, ...sort })
-// client filter: search + showStaleSessions (inbox; optional on all)`}
-/>
-
-Remove from filters: **Show due**, **Show archived**. Keep **Show unconfirmed** (maps to `includeStale` on inbox query).
-
-Delete or slim `filterAdminSessions` in `admin-sessions.ts` (remove `showUpcomingOnly` / `showArchived` from `AdminSessionFilters` and dashboard preferences).
 
 ---
 
@@ -321,11 +329,15 @@ Delete or slim `filterAdminSessions` in `admin-sessions.ts` (remove `showUpcomin
 
 Add `convex/lib/sessionArchive.ts` (names TBD) with:
 
-- `adminArchivePatch(now?)` → `{ hiddenAt: now ?? Date.now() }` (idempotent if already set)
-- `patchBookingWithAdminArchive(ctx, bookingId, patch)` → merges lifecycle patch + `hiddenAt` when needed
+- `archiveDeadCheckoutBooking(ctx, bookingId, updates)` → dead checkout field updates plus `hiddenAt`
 - `isSessionEligibleForAutoArchive(session, stripeSummary)` — “fully done” check below
-- `maybeAutoArchiveAfterWorkComplete(...)` — called from deliverables + invoice.paid paths
-- `maybeUnarchiveForNewWork(...)` — clear `hiddenAt` when new unpaid invoice on active booking
+- `archiveSessionWhenFullyDone(...)` (or equivalent) — evaluate rules and set `hiddenAt` when eligible
+- `unarchiveSessionForNewUnpaidInvoice(...)` — clear `hiddenAt` when a new unpaid booking invoice is recorded
+
+<Callout
+	tone="decision"
+	body="Stage 2 deliberately did **not** add \`sessionArchive.ts\` or archive-on-sent. Implement all auto-archive behavior in this stage only."
+/>
 
 ### “Fully done” (server)
 
@@ -357,7 +369,7 @@ Whenever a mutation sets booking `status` to one of these, set `hiddenAt` in the
 
 <Callout
 	tone="decision"
-	body={`Prefer \`patchBookingWithAdminArchive\` at dead-status sites. Grep \`bookings\` patches for \`cancelled\`, \`abandoned\`, \`expired\`. Do **not** add \`hiddenAt\` in \`markBookingConfirmationFailed\`.`}
+	body={`Prefer \`archiveDeadCheckoutBooking\` at dead-status sites. Grep \`bookings\` updates for \`cancelled\`, \`abandoned\`, \`expired\`. Do **not** add \`hiddenAt\` in \`markBookingConfirmationFailed\`.`}
 />
 
 <Tabs>
@@ -366,7 +378,7 @@ Whenever a mutation sets booking `status` to one of these, set `hiddenAt` in the
 		label="Admin cancel">
 		<Diff
 			id="cancel-archive"
-			summary="Terminal patch includes hiddenAt"
+			summary="Dead checkout patch includes hiddenAt"
 			filename="convex/services/sessions.ts"
 			language="ts"
 			before={`ctx.db.patch(args.bookingId, {
@@ -375,50 +387,66 @@ Whenever a mutation sets booking `status` to one of these, set `hiddenAt` in the
 	googleEventId: undefined,
 	status: "cancelled"
 })`}
-			after={`patchBookingWithAdminArchive(ctx, args.bookingId, {
+			after={`archiveDeadCheckoutBooking(ctx, args.bookingId, {
 	bookingFailureCode: undefined,
 	googleCalendarId: undefined,
 	googleEventId: undefined,
 	status: "cancelled"
-}) // sets hiddenAt when status is terminal`}
+}) // sets hiddenAt when status is a dead checkout value`}
 		/>
 	</Tab>
 	<Tab
 		id="checkout"
 		label="Checkout cleanup">
 		<Diff
-			id="checkout-terminal"
+			id="checkout-dead-status"
 			summary="Expired / abandoned archive"
 			filename="convex/services/sessionCheckout.ts"
 			language="ts"
 			before={`.patch(decision.bookingId, { status: "expired" })
 // ...
 .patch(args.bookingId, { status: "abandoned" })`}
-			after={`patchBookingWithAdminArchive(ctx, decision.bookingId, { status: "expired" })
+			after={`archiveDeadCheckoutBooking(ctx, decision.bookingId, { status: "expired" })
 // ...
-patchBookingWithAdminArchive(ctx, args.bookingId, { status: "abandoned" })`}
+archiveDeadCheckoutBooking(ctx, args.bookingId, { status: "abandoned" })`}
 		/>
 	</Tab>
 </Tabs>
 
-`pending_payment` stays in inbox until it becomes `expired` / `abandoned` or an admin cancels. **Show unconfirmed** on inbox still controls visibility of stale unarchived checkout rows (same intent as today).
+`pending_payment` stays in inbox until it becomes `expired` / `abandoned` or an admin cancels. **Show unconfirmed** controls visibility of stale unarchived checkout rows on **both** inbox and all lists (same as stage 2).
 
-### Triggers (done path)
+### Triggers (done path — editStatus **Sent**)
+
+All UI paths that mark deliverables **Sent** call the same mutation: `api.sessions.updateSessionEditStatus` with `editStatus: "completed"`. Stage 3 must run auto-archive from **`updateSessionEditStatusService`** after `saveSessionEditStatus` (one server hook, not separate client-only logic).
+
+| Caller                   | How **Sent** is set                                                                              |
+| ------------------------ | ------------------------------------------------------------------------------------------------ |
+| Admin deliverables tabs  | `useStatusActions` → `handleUpdateEditStatus("completed")`                                       |
+| Admin options menu       | **Set deliverables status to sent** → same hook (`SessionActionsMenu`)                           |
+| Admin deliverables email | `useDeliverablesEmailAction` → `updateSessionEditStatus({ editStatus: "completed" })` after send |
+| Editor dashboard         | `EditorDeliverableStatusBadge` → `updateSessionEditStatus`                                       |
+
+Manual **Set deliverables status to sent** must auto-archive when the “fully done” rules pass, same as sending the deliverables email or using the **Sent** tab. Do not wire archive only on the email action.
+
+After `invoice.paid`, call the same helper so a session that becomes fully paid + **Sent** archives without a second admin click.
 
 <Mermaid
 	caption="Event-driven archive"
 	source={`flowchart LR
-  D[editStatus → completed] --> M[maybeAutoArchive]
+  T1[deliverables tabs] --> U[updateSessionEditStatus completed]
+  T2[options Set status to sent] --> U
+  T3[deliverables email] --> U
+  U --> M[archiveSessionWhenFullyDone]
   P[invoice.paid webhook] --> M
-  M -->|all done| H[set hiddenAt]
-  T[terminal status patch] --> H
-  N[new unpaid invoice] --> U[maybeUnarchive]
-  U -->|confirmed or email_failed only| C[clear hiddenAt]`}
+  M -->|eligible| H[set hiddenAt]
+  X[dead checkout status patch] --> H
+  N[new unpaid invoice] --> R[unarchiveSessionForNewUnpaidInvoice]
+  R --> C[clear hiddenAt]`}
 />
 
 <Callout
 	tone="warning"
-	body="Wire every path that creates an unpaid invoice or marks paid. Package/adjustment invoices included if they surface on the session row admins see. Terminal statuses never auto-unarchive."
+	body="Wire every path that creates an unpaid invoice or marks paid. Package/adjustment invoices included if they surface on the session row admins see. Dead checkout statuses never auto-unarchive."
 />
 
 Internal mutation (no `archive:sessions` permission) used by hooks; manual archive keeps `archiveSession` + permission.
@@ -452,9 +480,11 @@ Optional: rename UI copy to **File from inbox** vs **Archive** to reduce confusi
 
 ## Testing
 
-- Convex: editor list includes archived confirmed session; deliverables update on archived session; inbox = `hiddenAt` unset; all view returns archived and unarchived; `failed` and `email_failed` remain unarchived until done path or manual archive; auto-archive on `cancelled` / `abandoned` / `expired` only; unarchive on new unpaid invoice for `confirmed` / `email_failed` only.
+- **Stage 2 (shipped):** `convex/tests/adminSessionsList.test.ts` — inbox vs all `hiddenAt` filtering.
+- **Stage 1 (shipped):** editor list includes archived confirmed session; assign on archived confirmed; deliverables eligibility ignores `hiddenAt`.
+- **Stage 3:** auto-archive when `updateSessionEditStatus` sets **Sent** (include manual menu action); auto-archive on `cancelled` / `abandoned` / `expired` only; unarchive on new unpaid invoice for `confirmed` / `email_failed` only; `failed` stays in inbox until manual archive or fix path.
 - Authorization: `archive:sessions` / `delete:sessions` unchanged for manual paths.
-- Admin E2E (if present): tab switch loads different lists; **Show unconfirmed** reveals stale rows on inbox.
+- Admin E2E (if present): tab switch changes `listSessions` args; **Show unconfirmed** toggles `includeStale` on both tabs.
 
 ---
 
@@ -466,5 +496,5 @@ Optional: rename UI copy to **File from inbox** vs **Archive** to reduce confusi
 
 <Callout
 	tone="info"
-	body="Optional backfill: set \`hiddenAt\` on existing \`cancelled\`, \`abandoned\`, or \`expired\` rows with unset \`hiddenAt\`. Leave \`failed\` and \`email_failed\` unarchived unless already filed. **All sessions** shows them either way once the all-query ships."
+	body="Optional backfill: set \`hiddenAt\` on existing \`cancelled\`, \`abandoned\`, or \`expired\` rows with unset \`hiddenAt\`. Leave \`failed\` and \`email_failed\` unarchived unless already filed. **All sessions** shows them once stage 2 is deployed."
 />
