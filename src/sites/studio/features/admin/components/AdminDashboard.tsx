@@ -97,14 +97,11 @@ function BookingsDashboardView({
 		initialNumItems: DASHBOARD_PAGE_SIZE
 	});
 
-	const sessionsForTable = useDisplayedWhileRefetching(
-		sessions.results,
-		sessions.status === "LoadingFirstPage"
-	);
+	const isLoadingFirstPage = sessions.status === "LoadingFirstPage";
 
 	return (
 		<SessionsTable
-			sessions={sessionsForTable}
+			sessions={isLoadingFirstPage ? [] : sessions.results}
 			canLoadMoreSessions={sessions.status === "CanLoadMore"}
 			isLoadingMoreSessions={sessions.status === "LoadingMore"}
 			isLoadingSessions={sessions.status === "LoadingFirstPage"}
