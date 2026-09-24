@@ -10,7 +10,7 @@ import {
 	DialogTitle
 } from "#/components/ui/dialog";
 import { SessionArchiveDialog } from "#studio/features/admin/components/SessionArchiveDialog";
-import { SessionDeleteDialog } from "#studio/features/admin/components/SessionDeleteDialog";
+import { SessionCancelBookingDialog } from "#studio/features/admin/components/SessionCancelBookingDialog";
 import { AdminEditConfirmationDialog } from "#studio/features/admin/components/AdminEditConfirmationDialog";
 import { SessionEditDialog } from "#studio/features/admin/components/SessionEditDialog";
 import { SessionAdminNotesDialog } from "#studio/features/admin/components/SessionAdminNotesDialog";
@@ -21,7 +21,7 @@ import { DeliverablesEmailDialog } from "#studio/features/admin/components/Deliv
 import type { SessionActionDetails } from "#studio/features/admin/lib/admin-sessions";
 import type { SessionRecord } from "#studio/features/admin/lib/admin-sessions";
 import { createStripeInvoiceContext } from "#studio/features/admin/lib/stripe-invoice-pricing";
-import type { useDeleteAction } from "#studio/features/admin/hooks/useDeleteAction";
+import type { useSessionArchiveAndCancelActions } from "#studio/features/admin/hooks/useSessionArchiveAndCancelActions";
 import type { useDeliverablesEmailAction } from "#studio/features/admin/hooks/useDeliverablesEmailAction";
 import type { useEditAction } from "#studio/features/admin/hooks/useEditAction";
 import type { useInvoiceActions } from "#studio/features/admin/hooks/useInvoiceActions";
@@ -31,7 +31,7 @@ import type { useRescheduleAction } from "#studio/features/admin/hooks/useResche
 type SessionActionsDialogsProps = {
 	session: SessionRecord;
 	details: SessionActionDetails;
-	deleteAction: ReturnType<typeof useDeleteAction>;
+	archiveAndCancelAction: ReturnType<typeof useSessionArchiveAndCancelActions>;
 	deliverablesEmailAction: ReturnType<typeof useDeliverablesEmailAction>;
 	editAction: ReturnType<typeof useEditAction>;
 	invoiceActions: ReturnType<typeof useInvoiceActions>;
@@ -108,23 +108,23 @@ function RescheduleLinkDialog({
 function SessionArchiveDialogHost({
 	session,
 	customerSessionId,
-	deleteAction
+	archiveAndCancelAction
 }: {
 	session: SessionRecord;
 	customerSessionId: string;
-	deleteAction: ReturnType<typeof useDeleteAction>;
+	archiveAndCancelAction: ReturnType<typeof useSessionArchiveAndCancelActions>;
 }) {
 	return (
 		<SessionArchiveDialog
-			open={deleteAction.isArchiveDialogOpen}
+			open={archiveAndCancelAction.isArchiveDialogOpen}
 			bookingName={session.name}
 			bookingId={customerSessionId}
 			sessionDate={session.date}
 			sessionTime={session.time}
 			editorDisplayName={session.assignedEditorDisplayName ?? null}
-			onOpenChange={deleteAction.setIsArchiveDialogOpen}
-			onConfirm={deleteAction.confirmArchiveFromInbox}
-			isArchiving={deleteAction.isUpdatingArchive}
+			onOpenChange={archiveAndCancelAction.setIsArchiveDialogOpen}
+			onConfirm={archiveAndCancelAction.confirmArchiveFromInbox}
+			isArchiving={archiveAndCancelAction.isUpdatingArchive}
 		/>
 	);
 }
@@ -157,7 +157,7 @@ function ReplacementEventDialog({ editAction }: { editAction: ReturnType<typeof 
 export function SessionActionsDialogs({
 	session,
 	details,
-	deleteAction,
+	archiveAndCancelAction,
 	deliverablesEmailAction,
 	editAction,
 	invoiceActions,
@@ -258,18 +258,18 @@ export function SessionActionsDialogs({
 			<SessionArchiveDialogHost
 				session={session}
 				customerSessionId={details.customerSessionId}
-				deleteAction={deleteAction}
+				archiveAndCancelAction={archiveAndCancelAction}
 			/>
 
-			<SessionDeleteDialog
-				open={deleteAction.isDeleteDialogOpen}
+			<SessionCancelBookingDialog
+				open={archiveAndCancelAction.isCancelBookingDialogOpen}
 				bookingName={session.name}
 				bookingId={details.customerSessionId}
 				sessionDate={session.date}
 				sessionTime={session.time}
-				onOpenChange={deleteAction.setIsDeleteDialogOpen}
-				onConfirm={deleteAction.handleDeleteBooking}
-				isDeleting={deleteAction.isDeleting}
+				onOpenChange={archiveAndCancelAction.setIsCancelBookingDialogOpen}
+				onConfirm={archiveAndCancelAction.handleCancelBooking}
+				isCancelling={archiveAndCancelAction.isCancellingBooking}
 			/>
 			<SessionEditDialog
 				open={editAction.isEditDialogOpen}

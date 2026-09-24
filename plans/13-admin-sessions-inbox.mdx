@@ -505,7 +505,7 @@ Optional backfill for old dead-status rows remains out of scope unless run manua
 - **Stage 2 (shipped):** `convex/tests/adminSessionsList.test.ts` — inbox vs all `hiddenAt` filtering.
 - **Stage 1 (shipped):** editor list includes archived confirmed session; assign on archived confirmed; deliverables eligibility ignores `hiddenAt`.
 - **Stage 3 (shipped):** `convex/lib/tests/sessionArchive.test.ts` (eligibility + `isDeadCheckoutStatus`); `convex/tests/sessionArchive.test.ts` (sent → archive, delete event, `failed` stays visible, unarchive on new booking invoice, pay → archive).
-- Authorization: `archive:sessions` / `delete:sessions` unchanged for manual paths.
+- Authorization: `archive:sessions` / `cancel:sessions` for manual archive and cancel booking.
 - Admin E2E (if present): tab switch changes `listSessions` args; **Show unconfirmed** toggles `includeStale` on both tabs.
 
 ---

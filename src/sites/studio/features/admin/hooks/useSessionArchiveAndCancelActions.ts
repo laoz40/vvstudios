@@ -8,18 +8,18 @@ import {
 	type SessionRecord
 } from "#studio/features/admin/lib/admin-sessions";
 
-export function useDeleteAction(session: SessionRecord) {
+export function useSessionArchiveAndCancelActions(session: SessionRecord) {
 	const archiveSession = useMutation(api.sessions.archiveSession);
-	const deleteSessionEvent = useAction(api.googleCalendar.deleteSessionFromAdmin);
-	const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+	const cancelBookingFromAdmin = useAction(api.googleCalendar.cancelBookingFromAdmin);
+	const [isCancelBookingDialogOpen, setIsCancelBookingDialogOpen] = useState(false);
 	const [isArchiveDialogOpen, setIsArchiveDialogOpen] = useState(false);
-	const [isDeleting, setIsDeleting] = useState(false);
+	const [isCancellingBooking, setIsCancellingBooking] = useState(false);
 	const [isUpdatingArchive, setIsUpdatingArchive] = useState(false);
 
-	async function handleDeleteBooking() {
-		setIsDeleting(true);
+	async function handleCancelBooking() {
+		setIsCancellingBooking(true);
 
-		const [error] = await tryCatch(deleteSessionEvent({ bookingId: session._id }));
+		const [error] = await tryCatch(cancelBookingFromAdmin({ bookingId: session._id }));
 
 		if (error !== null) {
 			const reason = error.reason;
@@ -50,14 +50,14 @@ export function useDeleteAction(session: SessionRecord) {
 					exhaustiveCheck(reason);
 			}
 
-			setIsDeleting(false);
+			setIsCancellingBooking(false);
 
 			return;
 		}
 
-		setIsDeleteDialogOpen(false);
+		setIsCancelBookingDialogOpen(false);
 		toast.success("Booking cancelled.");
-		setIsDeleting(false);
+		setIsCancellingBooking(false);
 	}
 
 	async function handleArchiveChange(archived: boolean) {
@@ -112,13 +112,13 @@ export function useDeleteAction(session: SessionRecord) {
 	return {
 		confirmArchiveFromInbox,
 		handleArchiveChange,
-		handleDeleteBooking,
+		handleCancelBooking,
 		isArchiveDialogOpen,
+		isCancelBookingDialogOpen,
+		isCancellingBooking,
 		isUpdatingArchive,
-		isDeleteDialogOpen,
-		isDeleting,
 		requestArchiveChange,
 		setIsArchiveDialogOpen,
-		setIsDeleteDialogOpen
+		setIsCancelBookingDialogOpen
 	};
 }

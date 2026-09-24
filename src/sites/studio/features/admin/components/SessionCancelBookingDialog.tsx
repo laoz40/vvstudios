@@ -11,7 +11,7 @@ import {
 } from "#/components/ui/dialog";
 import { formatBookingDateMedium, formatBookingTimeLabel } from "#studio/lib/bookingdatetime";
 
-export type SessionDeleteDialogProps = {
+export type SessionCancelBookingDialogProps = {
 	open: boolean;
 	bookingName: string;
 	bookingId: string;
@@ -19,10 +19,10 @@ export type SessionDeleteDialogProps = {
 	sessionTime: string;
 	onOpenChange: (open: boolean) => void;
 	onConfirm: () => Promise<void>;
-	isDeleting: boolean;
+	isCancelling: boolean;
 };
 
-export function SessionDeleteDialog({
+export function SessionCancelBookingDialog({
 	open,
 	bookingName,
 	bookingId,
@@ -30,13 +30,13 @@ export function SessionDeleteDialog({
 	sessionTime,
 	onOpenChange,
 	onConfirm,
-	isDeleting
-}: SessionDeleteDialogProps) {
+	isCancelling
+}: SessionCancelBookingDialogProps) {
 	return (
 		<Dialog
 			open={open}
 			onOpenChange={(nextOpen) => {
-				if (isDeleting && !nextOpen) {
+				if (isCancelling && !nextOpen) {
 					return;
 				}
 
@@ -45,12 +45,12 @@ export function SessionDeleteDialog({
 			<DialogContent
 				className="sm:max-w-lg"
 				onInteractOutside={(event) => {
-					if (isDeleting) {
+					if (isCancelling) {
 						event.preventDefault();
 					}
 				}}
 				onEscapeKeyDown={(event) => {
-					if (isDeleting) {
+					if (isCancelling) {
 						event.preventDefault();
 					}
 				}}>
@@ -61,7 +61,7 @@ export function SessionDeleteDialog({
 						size="icon-sm"
 						className="absolute top-2 right-2"
 						aria-label="Close cancel booking dialog"
-						disabled={isDeleting}>
+						disabled={isCancelling}>
 						<X />
 					</Button>
 				</DialogClose>
@@ -98,7 +98,7 @@ export function SessionDeleteDialog({
 						type="button"
 						variant="outline"
 						onClick={() => onOpenChange(false)}
-						disabled={isDeleting}>
+						disabled={isCancelling}>
 						Cancel
 					</Button>
 					<Button
@@ -107,9 +107,9 @@ export function SessionDeleteDialog({
 						onClick={() => {
 							void onConfirm();
 						}}
-						disabled={isDeleting}>
-						{isDeleting ? <LoaderCircle className="size-4 animate-spin" /> : null}
-						{isDeleting ? "Cancelling" : "Cancel booking"}
+						disabled={isCancelling}>
+						{isCancelling ? <LoaderCircle className="size-4 animate-spin" /> : null}
+						{isCancelling ? "Cancelling" : "Cancel booking"}
 					</Button>
 				</DialogFooter>
 			</DialogContent>

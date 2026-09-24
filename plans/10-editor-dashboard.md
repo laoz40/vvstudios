@@ -22,7 +22,7 @@ Treat every authenticated non-admin user with an active editor profile as an edi
 
 ## Permission model
 
-- Define permissions as a typed `action:resource` union, with one permission per capability rather than broad role checks. Initial permissions should include `view:sessions`, `view:packages`, `view:sensitive-booking-data`, `update:deliverables`, `send:deliverables-email`, `assign:session-editor`, `update:editor-access`, `edit:sessions`, `archive:sessions`, `delete:sessions`, `create:reschedule-links`, `update:payment-status`, `create:invoices`, `send:invoice-emails`, and `update:availability`.
+- Define permissions as a typed `action:resource` union, with one permission per capability rather than broad role checks. Initial permissions should include `view:sessions`, `view:packages`, `view:sensitive-booking-data`, `update:deliverables`, `send:deliverables-email`, `assign:session-editor`, `update:editor-access`, `edit:sessions`, `archive:sessions`, `cancel:sessions`, `create:reschedule-links`, `update:payment-status`, `create:invoices`, `send:invoice-emails`, and `update:availability`.
 - Define one role-to-permissions map. Admins receive every permission; editors receive only `view:sessions`, `update:deliverables`, and `send:deliverables-email`.
 - Use one backend `requirePermission(ctx, permission)` guard for authentication and authorization.
 - Use a shared frontend `hasPermission(permissions, permission)` helper for readable UI checks such as `hasPermission(access.permissions, "view:packages")`.

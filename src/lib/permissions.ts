@@ -8,7 +8,7 @@ export const PERMISSIONS = [
 	"update:editor-access",
 	"edit:sessions",
 	"archive:sessions",
-	"delete:sessions",
+	"cancel:sessions",
 	"create:reschedule-links",
 	"update:payment-status",
 	"create:invoices",

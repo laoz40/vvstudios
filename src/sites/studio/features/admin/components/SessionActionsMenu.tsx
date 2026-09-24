@@ -39,7 +39,7 @@ import {
 } from "#studio/features/admin/lib/session-edit-status";
 import type { SessionActionDetails } from "#studio/features/admin/lib/admin-sessions";
 import type { SessionRecord } from "#studio/features/admin/lib/admin-sessions";
-import type { useDeleteAction } from "#studio/features/admin/hooks/useDeleteAction";
+import type { useSessionArchiveAndCancelActions } from "#studio/features/admin/hooks/useSessionArchiveAndCancelActions";
 import type { useDeliverablesEmailAction } from "#studio/features/admin/hooks/useDeliverablesEmailAction";
 import type { useEditAction } from "#studio/features/admin/hooks/useEditAction";
 import type { useInvoiceActions } from "#studio/features/admin/hooks/useInvoiceActions";
@@ -51,7 +51,7 @@ import type { useStatusActions } from "#studio/features/admin/hooks/useStatusAct
 type SessionActionsMenuProps = {
 	session: SessionRecord;
 	details: SessionActionDetails;
-	deleteAction: ReturnType<typeof useDeleteAction>;
+	archiveAndCancelAction: ReturnType<typeof useSessionArchiveAndCancelActions>;
 	deliverablesEmailAction: ReturnType<typeof useDeliverablesEmailAction>;
 	editAction: ReturnType<typeof useEditAction>;
 	invoiceActions: ReturnType<typeof useInvoiceActions>;
@@ -203,7 +203,7 @@ function DeliverablesControls({
 export function SessionActionsMenu({
 	session,
 	details,
-	deleteAction,
+	archiveAndCancelAction,
 	deliverablesEmailAction,
 	editAction,
 	invoiceActions,
@@ -225,7 +225,7 @@ export function SessionActionsMenu({
 	const isArchived = session.hiddenAt !== undefined;
 
 	const archiveActionLabel = getSessionArchiveActionLabel(
-		deleteAction.isUpdatingArchive,
+		archiveAndCancelAction.isUpdatingArchive,
 		isArchived
 	);
 
@@ -513,7 +513,7 @@ export function SessionActionsMenu({
 				</AnimatedDropdownMenuItem>
 				<AnimatedDropdownMenuItem
 					className="hover:text-destructive focus:text-destructive"
-					onSelect={() => deleteAction.setIsDeleteDialogOpen(true)}
+					onSelect={() => archiveAndCancelAction.setIsCancelBookingDialogOpen(true)}
 					renderIcon={(iconRef) => (
 						<TrashIcon
 							ref={iconRef}
@@ -525,8 +525,8 @@ export function SessionActionsMenu({
 					Cancel booking
 				</AnimatedDropdownMenuItem>
 				<AnimatedDropdownMenuItem
-					disabled={deleteAction.isUpdatingArchive}
-					onSelect={() => deleteAction.requestArchiveChange(!isArchived)}
+					disabled={archiveAndCancelAction.isUpdatingArchive}
+					onSelect={() => archiveAndCancelAction.requestArchiveChange(!isArchived)}
 					renderIcon={(iconRef) => (
 						<Stack3Icon
 							ref={iconRef}

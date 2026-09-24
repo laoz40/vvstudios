@@ -232,7 +232,7 @@ export type UpdateSessionFromAdminError =
 	| { reason: "NOT_AUTHORIZED" }
 	| { reason: "BOOKING_NOT_FOUND" };
 
-export type DeleteSessionFromAdminError = {
+export type CancelBookingFromAdminError = {
 	reason:
 		| "NOT_AUTHENTICATED"
 		| "NOT_AUTHORIZED"
@@ -400,13 +400,13 @@ export function updateSessionFromAdminService(
 	);
 }
 
-export function deleteSessionFromAdminService(
+export function cancelBookingFromAdminService(
 	ctx: ActionCtx,
 	bookingId: Id<"bookings">
-): ResultAsync<{ deleted: boolean }, DeleteSessionFromAdminError> {
+): ResultAsync<{ cancelled: boolean }, CancelBookingFromAdminError> {
 	return (
-		requirePermissionActions(ctx, "delete:sessions")
-			// Load the booking only after delete:sessions authorization succeeds.
+		requirePermissionActions(ctx, "cancel:sessions")
+			// Load the booking only after cancel:sessions authorization succeeds.
 			.andThen(() => getSessionFromQuery(ctx, bookingId))
 			.andThen((session) =>
 				loadGoogleCalendarClient("GOOGLE_CALENDAR_DELETE_FAILED").map((client) => ({
@@ -422,7 +422,7 @@ export function deleteSessionFromAdminService(
 			.andThen(() =>
 				fromConvexTuple(
 					ctx.runMutation(internal.sessions.markSessionCalendarEventDeleted, { bookingId })
-				).map(() => ({ deleted: true }))
+				).map(() => ({ cancelled: true }))
 			)
 	);
 }
