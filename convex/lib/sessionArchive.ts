@@ -1,3 +1,4 @@
+import type { PaginationResult } from "convex/server";
 import { okAsync, type ResultAsync } from "neverthrow";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { MutationCtx } from "#convex/_generated/server";
@@ -24,18 +25,83 @@ export function isDeadCheckoutStatus(
 	return status === "cancelled" || status === "expired" || status === "abandoned";
 }
 
+export function shouldArchiveDeadCheckoutBooking(
+	sessionStartAt: number,
+	now = Date.now()
+): boolean {
+	return sessionStartAt < now;
+}
+
+export type ArchivePastDeadCheckoutBatchResult = {
+	continueCursor: string | null;
+	isDone: boolean;
+	newlyArchived: number;
+	scanned: number;
+};
+
+const PAST_DEAD_CHECKOUT_ARCHIVE_BATCH_SIZE = 25;
+
+/** Archives unarchived cancelled / expired / abandoned bookings after session start. */
+export async function archivePastDeadCheckoutSessionsBatch(
+	ctx: MutationCtx,
+	cursor: string | null,
+	numItems = PAST_DEAD_CHECKOUT_ARCHIVE_BATCH_SIZE,
+	now = Date.now()
+): Promise<ArchivePastDeadCheckoutBatchResult> {
+	const page: PaginationResult<Doc<"bookings">> = await ctx.db
+		.query("bookings")
+		.paginate({ cursor, numItems });
+
+	let newlyArchived = 0;
+
+	await page.page.reduce(async (chain, booking) => {
+		await chain;
+
+		if (isBookingArchived(booking)) {
+			return;
+		}
+
+		if (!isDeadCheckoutStatus(booking.status)) {
+			return;
+		}
+
+		if (!shouldArchiveDeadCheckoutBooking(booking.sessionStartAt, now)) {
+			return;
+		}
+
+		await setBookingArchived(ctx, booking._id, true);
+		newlyArchived += 1;
+	}, Promise.resolve());
+
+	return {
+		continueCursor: page.isDone ? null : page.continueCursor,
+		isDone: page.isDone,
+		newlyArchived,
+		scanned: page.page.length
+	};
+}
+
 export function archiveDeadCheckoutBooking(
 	ctx: MutationCtx,
 	bookingId: Id<"bookings">,
-	updates: Partial<Doc<"bookings">>
+	updates: Partial<Doc<"bookings">>,
+	now = Date.now()
 ): ResultAsync<null, never> {
-	const merged: Partial<Doc<"bookings">> = { ...updates };
+	return getSessionFromDb(ctx, bookingId)
+		.andThen((session) => {
+			const merged: Partial<Doc<"bookings">> = { ...updates };
 
-	if (updates.status !== undefined && isDeadCheckoutStatus(updates.status)) {
-		Object.assign(merged, bookingArchivedPatch());
-	}
+			if (updates.status !== undefined && isDeadCheckoutStatus(updates.status)) {
+				const sessionStartAt = merged.sessionStartAt ?? session.sessionStartAt;
 
-	return okOrThrow(ctx.db.patch(bookingId, merged).then(() => null));
+				if (shouldArchiveDeadCheckoutBooking(sessionStartAt, now)) {
+					Object.assign(merged, bookingArchivedPatch());
+				}
+			}
+
+			return okOrThrow(ctx.db.patch(bookingId, merged).then(() => null));
+		})
+		.orElse(() => okAsync(null));
 }
 
 export function isSessionEligibleForAutoArchive(
