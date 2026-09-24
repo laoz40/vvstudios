@@ -105,4 +105,3 @@ export function isDeliverableSession(session: SessionRecord) {
 
 	return !isUpcomingBooking(session.date, session.time);
 }
-
