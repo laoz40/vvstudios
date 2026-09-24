@@ -291,6 +291,8 @@ export default defineSchema({
 		.index("by_email", ["email"])
 		.index("by_pendingPaymentCreatedAt", ["pendingPaymentCreatedAt"])
 		.index("by_sessionStartAt", ["sessionStartAt"])
+		.index("by_hiddenAt_and_sessionStartAt", ["hiddenAt", "sessionStartAt"])
+		.index("by_hiddenAt_and_pendingPaymentCreatedAt", ["hiddenAt", "pendingPaymentCreatedAt"])
 		.index("by_stripeSessionId", ["stripeSessionId"])
 		.index("by_status_and_sessionStartAt", ["status", "sessionStartAt"])
 		.index("by_status_and_reminderEmailSentAt_and_sessionStartAt", [

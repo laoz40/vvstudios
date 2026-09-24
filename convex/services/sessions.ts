@@ -31,6 +31,12 @@ import {
 import { okOrThrow } from "#convex/lib/result";
 import { getSessionByStripeSessionId, getSessionFromDb } from "#convex/lib/sessionLookup";
 import { listStripeInvoicesForBooking, summarizeStripeInvoices } from "#convex/lib/stripeInvoices";
+import {
+	type AdminSessionsView,
+	paginateAdminSessionsByCreatedAt,
+	paginateAdminSessionsBySessionStart,
+	passesAdminInboxStaleFilter
+} from "#convex/lib/adminSessionList";
 import { formatBookingInvoiceNumber } from "#studio/features/booking-invoice/lib/build-booking-invoice-data";
 
 type PaginationArgs = { paginationOpts: { numItems: number; cursor: string | null } };
@@ -42,6 +48,8 @@ type SessionListSortDirection = "asc" | "desc";
 type ListSessionsArgs = PaginationArgs & {
 	sortBy?: SessionListSortBy;
 	sortDirection?: SessionListSortDirection;
+	view?: AdminSessionsView;
+	includeStale?: boolean;
 };
 
 type ListEditorSessionsArgs = PaginationArgs;
@@ -138,23 +146,21 @@ export async function listSessionsService(ctx: QueryCtx, args: ListSessionsArgs)
 	// Auth failures throw above so the hook can keep native cursor/page handling.
 	const sortBy = args.sortBy ?? "session";
 	const sortDirection = args.sortDirection ?? "asc";
+	const view = args.view ?? "inbox";
+	const includeStale = args.includeStale ?? true;
 
 	const bookingsPage =
 		sortBy === "createdAt"
-			? await ctx.db
-					.query("bookings")
-					.withIndex("by_pendingPaymentCreatedAt")
-					.order(sortDirection)
-					.paginate(args.paginationOpts)
-			: await ctx.db
-					.query("bookings")
-					.withIndex("by_sessionStartAt")
-					.order(sortDirection)
-					.paginate(args.paginationOpts);
+			? await paginateAdminSessionsByCreatedAt(ctx, view, sortDirection, args.paginationOpts)
+			: await paginateAdminSessionsBySessionStart(ctx, view, sortDirection, args.paginationOpts);
+
+	const sessionsPage = !includeStale
+		? bookingsPage.page.filter((session) => passesAdminInboxStaleFilter(session, includeStale))
+		: bookingsPage.page;
 
 	const assignedEditorTokens = [
 		...new Set(
-			bookingsPage.page
+			sessionsPage
 				.map((session) => session.assignedEditorTokenIdentifier)
 				.filter((tokenIdentifier): tokenIdentifier is string => tokenIdentifier !== undefined)
 		)
@@ -166,7 +172,7 @@ export async function listSessionsService(ctx: QueryCtx, args: ListSessionsArgs)
 	);
 
 	const page = await Promise.all(
-		bookingsPage.page.map(async (session) => {
+		sessionsPage.map(async (session) => {
 			const assignedEditorDisplayName = session.assignedEditorTokenIdentifier
 				? assignedEditorDisplayNamesByToken.get(session.assignedEditorTokenIdentifier)
 				: undefined;
