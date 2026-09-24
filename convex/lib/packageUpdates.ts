@@ -78,6 +78,7 @@ type PendingPackageRecord = {
 	invoiceLineItems: Doc<"packages">["invoiceLineItems"];
 	status: "pending_payment";
 	createdAt: number;
+	archived: false;
 };
 
 export function buildPendingPackageRecord(args: CreatePendingPackageArgs, createdAt: number) {
@@ -96,7 +97,8 @@ export function buildPendingPackageRecord(args: CreatePendingPackageArgs, create
 		totalDueAmount: args.totalDueAmount,
 		invoiceLineItems: args.invoiceLineItems,
 		status: "pending_payment",
-		createdAt
+		createdAt,
+		archived: false
 	};
 
 	if (args.abn !== undefined) {

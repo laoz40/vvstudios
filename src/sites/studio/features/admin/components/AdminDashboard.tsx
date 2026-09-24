@@ -1,7 +1,7 @@
 import { useUser } from "@clerk/clerk-react";
-import { exhaustiveCheck } from "#/lib/result";
-import { Suspense, useEffect, useMemo, useRef, useState } from "react";
-import { usePaginatedQuery, useQuery } from "convex/react";
+import { exhaustiveCheck, tryCatch, type Result } from "#/lib/result";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useMutation, usePaginatedQuery, useQuery, type ReactMutation } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { api } from "#convex/_generated/api";
 import { DashboardLoadingState } from "#studio/features/auth/components/DashboardLoadingState";
@@ -30,6 +30,35 @@ import {
 	readStoredSessionsTablePreferences
 } from "#studio/features/admin/lib/admin-dashboard-preferences";
 import { DASHBOARD_PAGE_SIZE } from "#studio/features/auth/lib/dashboard-loading-labels";
+
+type ArchivePastDeadCheckoutBatch = {
+	continueCursor: string | null;
+	isDone: boolean;
+	newlyArchived: number;
+	scanned: number;
+};
+
+async function archivePastDeadCheckoutSessionsUntilDone(
+	archivePastDeadCheckoutSessions: ReactMutation<
+		typeof api.sessions.archivePastDeadCheckoutSessions
+	>,
+	cursor: string | null = null
+) {
+	const [error, batch]: Result<ArchivePastDeadCheckoutBatch, { reason: string }> = await tryCatch(
+		archivePastDeadCheckoutSessions({ cursor })
+	);
+
+	if (error !== null) {
+		return;
+	}
+
+	if (!batch.isDone) {
+		await archivePastDeadCheckoutSessionsUntilDone(
+			archivePastDeadCheckoutSessions,
+			batch.continueCursor
+		);
+	}
+}
 
 type EmployeeListResult = FunctionReturnType<typeof api.employees.listEmployees>;
 
@@ -97,14 +126,11 @@ function BookingsDashboardView({
 		initialNumItems: DASHBOARD_PAGE_SIZE
 	});
 
-	const sessionsForTable = useDisplayedWhileRefetching(
-		sessions.results,
-		sessions.status === "LoadingFirstPage"
-	);
+	const isLoadingFirstPage = sessions.status === "LoadingFirstPage";
 
 	return (
 		<SessionsTable
-			sessions={sessionsForTable}
+			sessions={isLoadingFirstPage ? [] : sessions.results}
 			canLoadMoreSessions={sessions.status === "CanLoadMore"}
 			isLoadingMoreSessions={sessions.status === "LoadingMore"}
 			isLoadingSessions={sessions.status === "LoadingFirstPage"}
@@ -219,6 +245,17 @@ export function AdminDashboard({ dashboardRole }: { dashboardRole: DashboardRole
 		initialTablePreferences.sessions.showStaleBookings
 	);
 
+	const archivePastDeadCheckoutSessions = useMutation(api.sessions.archivePastDeadCheckoutSessions);
+
+	const handleShowStaleSessionsChange = useCallback(
+		(nextShowStaleSessions: boolean) => {
+			setShowStaleSessions(nextShowStaleSessions);
+
+			void archivePastDeadCheckoutSessionsUntilDone(archivePastDeadCheckoutSessions);
+		},
+		[archivePastDeadCheckoutSessions]
+	);
+
 	const [packageSorting, setPackageSorting] = useState(initialTablePreferences.packages.sorting);
 
 	const [packagesView, setPackagesView] = useState(initialTablePreferences.packages.packagesView);
@@ -281,7 +318,7 @@ export function AdminDashboard({ dashboardRole }: { dashboardRole: DashboardRole
 							onSessionSearchQueryChange={setSessionSearchQuery}
 							onSessionSortingChange={setSessionSorting}
 							onSessionsViewChange={setSessionsView}
-							onShowStaleSessionsChange={setShowStaleSessions}
+							onShowStaleSessionsChange={handleShowStaleSessionsChange}
 						/>
 					) : null}
 					{activeView === "packages" ? (

@@ -39,8 +39,9 @@ import {
 	passesAdminInboxStaleFilter
 } from "#convex/lib/adminSessionList";
 import {
-	archiveSessionWhenFullyDone,
-	archiveDeadCheckoutBooking
+	archiveDeadCheckoutBooking,
+	archivePastDeadCheckoutSessionsBatch,
+	archiveSessionWhenFullyDone
 } from "#convex/lib/sessionArchive";
 import { formatBookingInvoiceNumber } from "#studio/features/booking-invoice/lib/build-booking-invoice-data";
 
@@ -66,6 +67,8 @@ type GetDeliverablesCustomerTypeArgs = { bookingId: Id<"bookings"> };
 type SaveSessionInstagramHandleArgs = { stripeSessionId: string; instagramHandle: string };
 
 type ArchiveSessionArgs = { bookingId: Id<"bookings">; archived: boolean };
+
+type ArchivePastDeadCheckoutSessionsArgs = { cursor: string | null; numItems?: number };
 
 type UpdateSessionEditStatusArgs = {
 	bookingId: Id<"bookings">;
@@ -306,8 +309,19 @@ export function archiveSessionService(ctx: MutationCtx, args: ArchiveSessionArgs
 	return requirePermission(ctx, "archive:sessions")
 		.andThen(() => getSessionFromDb(ctx, args.bookingId))
 		.andThen(() =>
-			okOrThrow(setBookingArchived(ctx, args.bookingId, args.archived, Date.now()).then(() => null))
+			okOrThrow(setBookingArchived(ctx, args.bookingId, args.archived).then(() => null))
 		);
+}
+
+export function archivePastDeadCheckoutSessionsService(
+	ctx: MutationCtx,
+	args: ArchivePastDeadCheckoutSessionsArgs
+) {
+	return requirePermission(ctx, "archive:sessions").andThen(() =>
+		okOrThrow(
+			archivePastDeadCheckoutSessionsBatch(ctx, args.cursor, args.numItems).then((batch) => batch)
+		)
+	);
 }
 
 export function updateSessionAdminNotesService(

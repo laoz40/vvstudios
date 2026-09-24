@@ -208,6 +208,7 @@ async function seedBooking(t: TestClient, overrides: SeedBookingOverrides = {}) 
 			service: "Table Setup",
 			addons: [],
 			status: overrides.status ?? "confirmed",
+			archived: false,
 			pendingPaymentCreatedAt: now,
 			...overrides
 		})

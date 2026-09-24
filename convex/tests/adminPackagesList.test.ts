@@ -23,7 +23,7 @@ describe("listPackages admin views", () => {
 		const t = createConvexTest();
 		const visibleId = await seedPackage(t, "inbox-visible@example.com");
 		const archivedId = await seedPackage(t, "inbox-hidden@example.com");
-		await t.run((ctx) => ctx.db.patch(archivedId, { hiddenAt: Date.now() }));
+		await t.run((ctx) => ctx.db.patch(archivedId, { archived: true }));
 
 		const result = await t
 			.withIdentity(adminIdentity)
@@ -37,7 +37,7 @@ describe("listPackages admin views", () => {
 	test("all packages includes archived packages", async () => {
 		const t = createConvexTest();
 		const archivedId = await seedPackage(t, "all-tab-archived@example.com");
-		await t.run((ctx) => ctx.db.patch(archivedId, { hiddenAt: Date.now() }));
+		await t.run((ctx) => ctx.db.patch(archivedId, { archived: true }));
 
 		const result = await t
 			.withIdentity(adminIdentity)
@@ -65,6 +65,7 @@ async function seedPackage(t: TestClient, email: string): Promise<Id<"packages">
 			discountAmount: 160,
 			totalDueAmount: 1440,
 			status: "paid",
+			archived: false,
 			createdAt,
 			paidAt: createdAt,
 			expiresAt: createdAt + 100_000

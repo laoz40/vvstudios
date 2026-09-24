@@ -86,6 +86,7 @@ export function createPendingSessionService(
 								sessionStartAt,
 								status: "pending_payment",
 								pendingPaymentCreatedAt: Date.now(),
+								archived: false,
 								driveClientId
 							})
 						).map((bookingId) => ({ bookingId }))

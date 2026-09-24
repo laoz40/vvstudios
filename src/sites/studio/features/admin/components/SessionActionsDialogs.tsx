@@ -107,18 +107,15 @@ function RescheduleLinkDialog({
 
 function SessionArchiveDialogHost({
 	session,
-	customerSessionId,
 	archiveAndCancelAction
 }: {
 	session: SessionRecord;
-	customerSessionId: string;
 	archiveAndCancelAction: ReturnType<typeof useSessionArchiveAndCancelActions>;
 }) {
 	return (
 		<SessionArchiveDialog
 			open={archiveAndCancelAction.isArchiveDialogOpen}
 			bookingName={session.name}
-			bookingId={customerSessionId}
 			sessionDate={session.date}
 			sessionTime={session.time}
 			editorDisplayName={session.assignedEditorDisplayName ?? null}
@@ -257,7 +254,6 @@ export function SessionActionsDialogs({
 
 			<SessionArchiveDialogHost
 				session={session}
-				customerSessionId={details.customerSessionId}
 				archiveAndCancelAction={archiveAndCancelAction}
 			/>
 

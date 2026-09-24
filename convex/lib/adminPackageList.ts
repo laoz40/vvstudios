@@ -16,7 +16,7 @@ export function paginateAdminPackagesByCreatedAt(
 	if (view === "inbox") {
 		return ctx.db
 			.query("packages")
-			.withIndex("by_hiddenAt_and_createdAt", (query) => query.eq("hiddenAt", undefined))
+			.withIndex("by_archived_and_createdAt", (query) => query.eq("archived", false))
 			.order(sortDirection)
 			.paginate(paginationOpts);
 	}

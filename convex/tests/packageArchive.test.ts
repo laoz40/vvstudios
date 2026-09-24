@@ -2,7 +2,7 @@
  * Package auto-archive integration.
  *
  * 1. Dead checkout
- *    Abandoned pending packages set hiddenAt.
+ *    Abandoned pending packages archive.
  *
  * 2. Closed window
  *    Expired packages with a resolved no-charge adjustment archive after closeout.
@@ -31,7 +31,7 @@ afterEach(() => {
 });
 
 describe("package auto-archive", () => {
-	test("sets hiddenAt when a pending package is abandoned", async () => {
+	test("archives when a pending package is abandoned", async () => {
 		const t = createConvexTest();
 		const packageId = await seedPendingPackage(t, "cs_abandon_archive");
 
@@ -40,11 +40,7 @@ describe("package auto-archive", () => {
 			stripeSessionId: "cs_abandon_archive"
 		});
 
-		expect(await readPackage(t, packageId)).toMatchObject({
-			status: "abandoned",
-			hiddenAt: now,
-			archived: true
-		});
+		expect(await readPackage(t, packageId)).toMatchObject({ status: "abandoned", archived: true });
 	});
 
 	test("archives after expiry closeout with a no-charge adjustment", async () => {
@@ -57,7 +53,7 @@ describe("package auto-archive", () => {
 			expectedExpiresAt: now
 		});
 
-		expect(await readPackage(t, packageId)).toMatchObject({ hiddenAt: now, archived: true });
+		expect(await readPackage(t, packageId)).toMatchObject({ archived: true });
 	});
 
 	test("archives after the last custom package invoice is marked paid", async () => {
@@ -70,7 +66,7 @@ describe("package auto-archive", () => {
 			expectedExpiresAt: now
 		});
 
-		await t.run((ctx) => ctx.db.patch(packageId, { hiddenAt: undefined }));
+		await t.run((ctx) => ctx.db.patch(packageId, { archived: false }));
 
 		await t.mutation(internal.stripeInvoices.recordPackageStripeInvoice, {
 			packageId,
@@ -84,7 +80,7 @@ describe("package auto-archive", () => {
 			paidAt: now
 		});
 
-		expect(await readPackage(t, packageId)).toMatchObject({ hiddenAt: now, archived: true });
+		expect(await readPackage(t, packageId)).toMatchObject({ archived: true });
 	});
 });
 
@@ -105,6 +101,7 @@ async function seedPendingPackage(t: TestClient, stripeSessionId: string) {
 			totalDueAmount: 400,
 			status: "pending_payment",
 			createdAt: now,
+			archived: false,
 			stripeSessionId
 		})
 	);
@@ -126,6 +123,7 @@ async function seedPaidPackage(t: TestClient) {
 			discountAmount: 0,
 			totalDueAmount: 400,
 			status: "paid",
+			archived: false,
 			createdAt: now - 30 * 24 * 60 * 60 * 1000,
 			invoiceEmailStatus: "sent",
 			paidAt: now - 20 * 24 * 60 * 60 * 1000,
@@ -153,6 +151,7 @@ async function seedPackageSession(
 			service: "Table Setup",
 			addons,
 			status: "confirmed",
+			archived: false,
 			pendingPaymentCreatedAt: now,
 			packageId
 		})

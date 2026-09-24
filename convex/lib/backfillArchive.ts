@@ -12,14 +12,76 @@ export type ArchiveBackfillBatchResult = {
 	scanned: number;
 };
 
-export type ArchivedFieldBackfillBatchResult = {
+export type StripHiddenAtBackfillBatchResult = {
 	continueCursor: string | null;
 	isDone: boolean;
 	scanned: number;
-	updated: number;
+	stripped: number;
 };
 
 const DEFAULT_BATCH_SIZE = 25;
+
+/** One-off: remove deprecated hiddenAt from bookings before PR3 drops it from the schema. */
+export async function backfillStripBookingHiddenAtBatch(
+	ctx: MutationCtx,
+	cursor: string | null,
+	numItems = DEFAULT_BATCH_SIZE
+): Promise<StripHiddenAtBackfillBatchResult> {
+	const page: PaginationResult<Doc<"bookings">> = await ctx.db
+		.query("bookings")
+		.paginate({ cursor, numItems });
+
+	let stripped = 0;
+
+	await page.page.reduce(async (chain, booking) => {
+		await chain;
+
+		if (booking.hiddenAt === undefined) {
+			return;
+		}
+
+		await ctx.db.patch(booking._id, { hiddenAt: undefined });
+		stripped += 1;
+	}, Promise.resolve());
+
+	return {
+		continueCursor: page.isDone ? null : page.continueCursor,
+		isDone: page.isDone,
+		scanned: page.page.length,
+		stripped
+	};
+}
+
+/** One-off: remove deprecated hiddenAt from packages before PR3 drops it from the schema. */
+export async function backfillStripPackageHiddenAtBatch(
+	ctx: MutationCtx,
+	cursor: string | null,
+	numItems = DEFAULT_BATCH_SIZE
+): Promise<StripHiddenAtBackfillBatchResult> {
+	const page: PaginationResult<Doc<"packages">> = await ctx.db
+		.query("packages")
+		.paginate({ cursor, numItems });
+
+	let stripped = 0;
+
+	await page.page.reduce(async (chain, packageRecord) => {
+		await chain;
+
+		if (packageRecord.hiddenAt === undefined) {
+			return;
+		}
+
+		await ctx.db.patch(packageRecord._id, { hiddenAt: undefined });
+		stripped += 1;
+	}, Promise.resolve());
+
+	return {
+		continueCursor: page.isDone ? null : page.continueCursor,
+		isDone: page.isDone,
+		scanned: page.page.length,
+		stripped
+	};
+}
 
 export async function backfillEligibleSessionArchivesBatch(
 	ctx: MutationCtx,
@@ -29,9 +91,7 @@ export async function backfillEligibleSessionArchivesBatch(
 ): Promise<ArchiveBackfillBatchResult> {
 	const page: PaginationResult<Doc<"bookings">> = await ctx.db
 		.query("bookings")
-		.withIndex("by_hiddenAt_and_sessionStartAt", (indexQuery) =>
-			indexQuery.eq("hiddenAt", undefined)
-		)
+		.withIndex("by_archived_and_sessionStartAt", (indexQuery) => indexQuery.eq("archived", false))
 		.paginate({ cursor, numItems });
 
 	let newlyArchived = 0;
@@ -55,36 +115,6 @@ export async function backfillEligibleSessionArchivesBatch(
 	};
 }
 
-export async function backfillBookingArchivedFieldBatch(
-	ctx: MutationCtx,
-	cursor: string | null,
-	numItems = DEFAULT_BATCH_SIZE
-): Promise<ArchivedFieldBackfillBatchResult> {
-	const page: PaginationResult<Doc<"bookings">> = await ctx.db
-		.query("bookings")
-		.paginate({ cursor, numItems });
-
-	let updated = 0;
-
-	await page.page.reduce(async (chain, booking) => {
-		await chain;
-
-		if (booking.archived !== undefined) {
-			return;
-		}
-
-		await ctx.db.patch(booking._id, { archived: booking.hiddenAt !== undefined });
-		updated += 1;
-	}, Promise.resolve());
-
-	return {
-		continueCursor: page.isDone ? null : page.continueCursor,
-		isDone: page.isDone,
-		scanned: page.page.length,
-		updated
-	};
-}
-
 export async function backfillEligiblePackageArchivesBatch(
 	ctx: MutationCtx,
 	cursor: string | null,
@@ -93,7 +123,7 @@ export async function backfillEligiblePackageArchivesBatch(
 ): Promise<ArchiveBackfillBatchResult> {
 	const page: PaginationResult<Doc<"packages">> = await ctx.db
 		.query("packages")
-		.withIndex("by_hiddenAt_and_createdAt", (indexQuery) => indexQuery.eq("hiddenAt", undefined))
+		.withIndex("by_archived_and_createdAt", (indexQuery) => indexQuery.eq("archived", false))
 		.paginate({ cursor, numItems });
 
 	let newlyArchived = 0;
@@ -114,35 +144,5 @@ export async function backfillEligiblePackageArchivesBatch(
 		isDone: page.isDone,
 		newlyArchived,
 		scanned: page.page.length
-	};
-}
-
-export async function backfillPackageArchivedFieldBatch(
-	ctx: MutationCtx,
-	cursor: string | null,
-	numItems = DEFAULT_BATCH_SIZE
-): Promise<ArchivedFieldBackfillBatchResult> {
-	const page: PaginationResult<Doc<"packages">> = await ctx.db
-		.query("packages")
-		.paginate({ cursor, numItems });
-
-	let updated = 0;
-
-	await page.page.reduce(async (chain, packageRecord) => {
-		await chain;
-
-		if (packageRecord.archived !== undefined) {
-			return;
-		}
-
-		await ctx.db.patch(packageRecord._id, { archived: packageRecord.hiddenAt !== undefined });
-		updated += 1;
-	}, Promise.resolve());
-
-	return {
-		continueCursor: page.isDone ? null : page.continueCursor,
-		isDone: page.isDone,
-		scanned: page.page.length,
-		updated
 	};
 }

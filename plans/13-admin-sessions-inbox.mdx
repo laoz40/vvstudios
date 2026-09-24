@@ -489,20 +489,41 @@ Optional backfill for old dead-status rows remains out of scope unless run manua
 
 ## Archive rename (`hiddenAt` → `archived`)
 
-**PR1 (now):** optional `archived` on bookings/packages; code reads/writes both fields; inbox still indexes `hiddenAt`.
+Each merge is one Convex deployment. Removing a field from the validator requires **three deployments**: widen, switch (+ strip data), narrow schema. PR1 only copied archive state into `archived`; it did **not** delete `hiddenAt` from documents. Any row that was ever filed still has that key until a strip backfill runs.
 
-**After PR1 deploy (Convex dashboard → Functions → `backfillArchive`, run as internal mutations):**
+### Deployment 1 (PR1, shipped)
 
-| Function                          | Args                 | Until                         |
-| --------------------------------- | -------------------- | ----------------------------- |
-| `backfillBookingArchivedField`    | `{ "cursor": null }` | `isDone: true`                |
-| `backfillPackageArchivedField`    | `{ "cursor": null }` | `isDone: true`                |
-| `backfillEligibleSessionArchives` | `{ "cursor": null }` | optional; fully-done sessions |
-| `backfillEligiblePackageArchives` | `{ "cursor": null }` | optional; fully-done packages |
+Optional `archived` on bookings/packages; dual read/write; inbox indexed on `hiddenAt`.
 
-Next batch: pass returned `continueCursor` as `"cursor"`. The two `*ArchivedField` backfills are **required before PR2**.
+**After deploy (dashboard → `backfillArchive`, internal mutations):**
 
-**PR2:** make `archived` required, remove `hiddenAt`, switch inbox indexes to `archived === false`, delete dual-field helpers and field-copy backfills. Merge only after both `*ArchivedField` runs finish.
+| Function                       | Args                 | Until          |
+| ------------------------------ | -------------------- | -------------- |
+| `backfillBookingArchivedField` | `{ "cursor": null }` | `isDone: true` |
+| `backfillPackageArchivedField` | `{ "cursor": null }` | `isDone: true` |
+
+Next batch: pass `continueCursor` as `"cursor"`. Required before deployment 2.
+
+### Deployment 2 (current PR)
+
+- Required `archived: boolean` on new writes; app reads/writes **only** `archived` (no dual-write).
+- Inbox indexes use `by_archived_*` with `archived === false`.
+- `hiddenAt` stays **`v.optional` in the schema** so existing documents still validate. App code must not write it.
+
+**After deployment 2 deploy (required before deployment 3):**
+
+| Function                       | Args                 | Until          |
+| ------------------------------ | -------------------- | -------------- |
+| `backfillStripBookingHiddenAt` | `{ "cursor": null }` | `isDone: true` |
+| `backfillStripPackageHiddenAt` | `{ "cursor": null }` | `isDone: true` |
+
+Optional (same module): `backfillEligibleSessionArchives`, `backfillEligiblePackageArchives`.
+
+### Deployment 3 (follow-up PR)
+
+- Remove `hiddenAt` from `convex/schema.ts` (bookings + packages).
+- Remove strip backfill helpers if no longer needed.
+- Deploy only after **both** strip runs finish. If any document still has `hiddenAt`, schema validation fails like dev.
 
 ---
 
@@ -533,9 +554,4 @@ Next batch: pass returned `continueCursor` as `"cursor"`. The two `*ArchivedFiel
 
 - Packages inbox / all tabs shipped alongside sessions pattern.
 - Cron sweep for missed auto-archive.
-- Migrating old dead-status-but-unarchived rows (optional one-off backfill in stage 4).
-
-<Callout
-	tone="info"
-	body="Optional backfill: set \`hiddenAt\` on existing \`cancelled\`, \`abandoned\`, or \`expired\` rows with unset \`hiddenAt\`. Leave \`failed\` and \`email_failed\` unarchived unless already filed. **All sessions** lists them either way."
-/>
+- `hiddenAt` schema removal (deployment 3; see archive rename above).

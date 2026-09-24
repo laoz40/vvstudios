@@ -33,7 +33,7 @@ export function detectDeliverablesCustomerType(ctx: QueryCtx, session: Doc<"book
 }
 
 export function isEditorVisibleSession(session: Doc<"bookings">): boolean {
-	// Admin archive (hiddenAt) must not hide work from editors.
+	// Admin archive must not hide work from editors.
 	return session.status === "confirmed" || session.status === "email_failed";
 }
 

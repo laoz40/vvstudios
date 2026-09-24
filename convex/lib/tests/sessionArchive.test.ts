@@ -9,7 +9,11 @@
  */
 import { describe, expect, test } from "vitest";
 import type { Doc } from "#convex/_generated/dataModel";
-import { isDeadCheckoutStatus, isSessionEligibleForAutoArchive } from "#convex/lib/sessionArchive";
+import {
+	isDeadCheckoutStatus,
+	isSessionEligibleForAutoArchive,
+	shouldArchiveDeadCheckoutBooking
+} from "#convex/lib/sessionArchive";
 
 const pastStartAt = Date.parse("2020-01-01T00:00:00.000Z");
 
@@ -25,6 +29,15 @@ function booking(overrides: Partial<SessionAutoArchiveFields> = {}): SessionAuto
 		...overrides
 	};
 }
+
+describe("shouldArchiveDeadCheckoutBooking", () => {
+	test("archives only after the session start time has passed", () => {
+		expect(shouldArchiveDeadCheckoutBooking(pastStartAt, now)).toBe(true);
+		expect(shouldArchiveDeadCheckoutBooking(Date.parse("2099-01-01T00:00:00.000Z"), now)).toBe(
+			false
+		);
+	});
+});
 
 describe("isDeadCheckoutStatus", () => {
 	test("treats cancelled, expired, and abandoned as dead checkout statuses", () => {

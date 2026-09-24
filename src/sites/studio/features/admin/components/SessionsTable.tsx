@@ -13,7 +13,6 @@ import {
 } from "#studio/features/admin/components/AdminDashboardTableUtils";
 import { SessionTableRow } from "#studio/features/admin/components/SessionTableRow";
 import { SessionsTableFilters } from "#studio/features/admin/components/SessionsTableFilters";
-import { SessionsTableFooter } from "#studio/features/admin/components/SessionsTableFooter";
 import type { AdminSessionsView, SessionRecord } from "#studio/features/admin/lib/admin-sessions";
 import {
 	filterAdminSessions,
@@ -63,6 +62,17 @@ export function SessionsTable({
 	const filteredSessions = useMemo(() => {
 		return filterAdminSessions(sessions, { searchQuery });
 	}, [sessions, searchQuery]);
+
+	const isPrefetchingSessions =
+		filteredSessions.length === 0 &&
+		canLoadMoreSessions &&
+		!isLoadingSessions &&
+		isLoadingMoreSessions;
+
+	const showSessionsLoadingState =
+		isLoadingSessions ||
+		isPrefetchingSessions ||
+		(filteredSessions.length === 0 && canLoadMoreSessions);
 
 	// Prefetch another page when client-side filters hide every loaded session.
 	useEffect(() => {
@@ -159,7 +169,7 @@ export function SessionsTable({
 									onPackageFilterClick={onSearchQueryChange}
 								/>
 							))
-						) : isLoadingSessions ? (
+						) : showSessionsLoadingState ? (
 							<AdminTableLoadingRow
 								colSpan={11}
 								label="Loading sessions"
@@ -169,7 +179,7 @@ export function SessionsTable({
 								<TableCell
 									colSpan={11}
 									className="h-24 text-center text-muted-foreground">
-									No sessions yet. L business.
+									No sessions yet.
 								</TableCell>
 							</TableRow>
 						)}
@@ -177,16 +187,9 @@ export function SessionsTable({
 				</Table>
 			</div>
 
-			{isLoadingSessions && filteredSessions.length === 0 ? null : (
-				<SessionsTableFooter
-					filteredSessionsCount={filteredSessions.length}
-					totalSessionsCount={sessions.length}
-				/>
-			)}
-
 			<InfiniteScrollSentinel
-				canLoadMore={!isLoadingSessions && canLoadMoreSessions}
-				isLoadingMore={isLoadingMoreSessions}
+				canLoadMore={!showSessionsLoadingState && canLoadMoreSessions}
+				isLoadingMore={isLoadingMoreSessions && filteredSessions.length > 0}
 				onLoadMore={loadMoreSessions}
 			/>
 		</section>

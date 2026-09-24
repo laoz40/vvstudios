@@ -70,7 +70,7 @@ export function SessionCancelBookingDialog({
 					<DialogTitle>Cancel booking?</DialogTitle>
 					<DialogDescription>
 						This removes the Google Calendar event and marks the booking as cancelled. The session
-						is archived automatically and remains on All sessions.
+						will be archived automatically.
 					</DialogDescription>
 				</DialogHeader>
 

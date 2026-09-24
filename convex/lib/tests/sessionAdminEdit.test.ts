@@ -69,6 +69,7 @@ function baseBooking(overrides: Partial<Doc<"bookings">> = {}): Doc<"bookings"> 
 		service: "Table Setup",
 		addons: [],
 		status: "confirmed",
+		archived: false,
 		pendingPaymentCreatedAt: 0,
 		...overrides
 	};

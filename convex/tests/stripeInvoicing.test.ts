@@ -85,6 +85,7 @@ async function seedBookingWithoutStripeCustomer(t: TestClient) {
 			service: "Table Setup",
 			addons: [],
 			status: "confirmed",
+			archived: false,
 			pendingPaymentCreatedAt: now,
 			paymentCompletedAt: now
 		})
@@ -107,6 +108,7 @@ async function seedPackageWithoutStripeCustomer(t: TestClient) {
 			discountAmount: 40,
 			totalDueAmount: 760,
 			status: "paid",
+			archived: false,
 			createdAt: now,
 			invoiceEmailStatus: "sent",
 			paidAt: now

@@ -429,6 +429,7 @@ async function seedBooking(
 			service: "Table Setup",
 			addons: [],
 			status: overrides.status ?? "confirmed",
+			archived: false,
 			pendingPaymentCreatedAt: now,
 			paymentCompletedAt: overrides.paymentCompletedAt ?? now,
 			stripeSessionId: overrides.stripeSessionId
@@ -455,6 +456,7 @@ function packageFields(createdAt: number) {
 			{ amount: -123.45, description: "Stored package discount", quantity: 1, rate: -123.45 }
 		],
 		status: "pending_payment" as const,
+		archived: false,
 		createdAt,
 		invoiceNumber: "VV-STORED-001",
 		invoiceEmailStatus: "sent" as const
