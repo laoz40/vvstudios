@@ -2,7 +2,7 @@
  * Deliverables session eligibility guards.
  *
  * 1. requireDeliverablesEligibility
- *    Rejects unconfirmed, archived, and future sessions before deliverables work starts.
+ *    Rejects unconfirmed and future sessions before deliverables work starts.
  */
 import { describe, expect, test } from "vitest";
 import type { DeliverablesEligibilitySession } from "#convex/lib/editorSessions";
@@ -31,16 +31,6 @@ describe("requireDeliverablesEligibility", () => {
 
 		if (result.isErr()) {
 			expect(result.error).toEqual({ reason: "SESSION_NOT_CONFIRMED" });
-		}
-	});
-
-	test("rejects archived sessions", () => {
-		const result = requireDeliverablesEligibility(access({ hiddenAt: Date.now() }));
-
-		expect(result.isErr()).toBe(true);
-
-		if (result.isErr()) {
-			expect(result.error).toEqual({ reason: "SESSION_ARCHIVED" });
 		}
 	});
 

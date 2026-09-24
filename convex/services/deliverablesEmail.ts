@@ -27,7 +27,6 @@ type SendDeliverablesError =
 	| { reason: "BOOKING_NOT_FOUND" }
 	| { reason: "SESSION_NOT_ASSIGNED_TO_EDITOR" }
 	| { reason: "SESSION_NOT_CONFIRMED" }
-	| { reason: "SESSION_ARCHIVED" }
 	| { reason: "SESSION_NOT_IN_PAST" }
 	| { reason: "DELIVERABLES_FOLDER_MISSING" }
 	| { reason: "DELIVERABLES_FOLDER_EMPTY" }

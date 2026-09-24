@@ -39,7 +39,6 @@ export function useStatusActions(session: SessionRecord) {
 					toast.error("This session is assigned to another editor.");
 					break;
 				case "SESSION_NOT_CONFIRMED":
-				case "SESSION_ARCHIVED":
 				case "SESSION_NOT_IN_PAST":
 					toast.error("Deliverables can only be updated for completed sessions.");
 					break;

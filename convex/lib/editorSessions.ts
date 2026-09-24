@@ -7,7 +7,7 @@ import { okOrThrow } from "#convex/lib/result";
 
 export type DeliverablesEligibilitySession = Pick<
 	Doc<"bookings">,
-	"status" | "hiddenAt" | "sessionStartAt" | "assignedEditorTokenIdentifier"
+	"status" | "sessionStartAt" | "assignedEditorTokenIdentifier"
 >;
 
 export type DeliverablesSessionAccess<
@@ -33,9 +33,8 @@ export function detectDeliverablesCustomerType(ctx: QueryCtx, session: Doc<"book
 }
 
 export function isEditorVisibleSession(session: Doc<"bookings">): boolean {
-	const hasEligibleStatus = session.status === "confirmed" || session.status === "email_failed";
-
-	return hasEligibleStatus && session.hiddenAt === undefined;
+	// Admin archive (hiddenAt) must not hide work from editors.
+	return session.status === "confirmed" || session.status === "email_failed";
 }
 
 export function requireDeliverablesOwnership<T extends DeliverablesEligibilitySession>(
@@ -58,10 +57,6 @@ export function requireDeliverablesEligibility<T extends DeliverablesEligibility
 
 	if (session.status !== "confirmed" && session.status !== "email_failed") {
 		return err({ reason: "SESSION_NOT_CONFIRMED" as const });
-	}
-
-	if (session.hiddenAt !== undefined) {
-		return err({ reason: "SESSION_ARCHIVED" as const });
 	}
 
 	if (session.sessionStartAt >= Date.now()) {

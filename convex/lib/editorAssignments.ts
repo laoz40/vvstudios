@@ -3,7 +3,6 @@ import { internal } from "#convex/_generated/api";
 import type { Doc } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
 import { getEditorWorkStatus } from "#convex/lib/editorAccess";
-import { isEditorVisibleSession } from "#convex/lib/editorSessions";
 import { okOrThrow } from "#convex/lib/result";
 
 const ACTIVE_EDITOR_LIMIT = 200;
@@ -66,10 +65,14 @@ export function getActiveEditor(ctx: MutationCtx, editorTokenIdentifier: string)
 	});
 }
 
+function isEditorAssignableSession(session: Doc<"bookings">): boolean {
+	return session.status === "confirmed" || session.status === "email_failed";
+}
+
 function requireEditorAssignableSession(
 	session: Doc<"bookings">
 ): Result<Doc<"bookings">, { reason: "SESSION_NOT_ASSIGNABLE" }> {
-	if (!isEditorVisibleSession(session)) {
+	if (!isEditorAssignableSession(session)) {
 		return err({ reason: "SESSION_NOT_ASSIGNABLE" as const });
 	}
 

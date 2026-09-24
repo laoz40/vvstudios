@@ -15,7 +15,6 @@ const deliverablesEmailErrorMessage = {
 	BOOKING_NOT_FOUND: "That session no longer exists.",
 	SESSION_NOT_ASSIGNED_TO_EDITOR: "This session is not eligible for a deliverables email.",
 	SESSION_NOT_CONFIRMED: "This session is not eligible for a deliverables email.",
-	SESSION_ARCHIVED: "This session is not eligible for a deliverables email.",
 	SESSION_NOT_IN_PAST: "This session is not eligible for a deliverables email.",
 	DELIVERABLES_FOLDER_MISSING: "This session has no Deliverables folder yet.",
 	DELIVERABLES_FOLDER_EMPTY: "Deliverables is empty. Add the finished files before sending.",

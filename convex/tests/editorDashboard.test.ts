@@ -235,4 +235,35 @@ describe("restricted editor session query", () => {
 			expect(serializedResult).not.toContain(restrictedValue);
 		}
 	});
+
+	test("still lists assigned sessions after admin archives them", async () => {
+		const t = createConvexTest();
+		await seedEditorProfile(t, editorIdentity);
+		const bookingId = await seedBooking(t, "Archived Assignment Customer");
+		await assignBooking(t, bookingId);
+		await t.run((ctx) => ctx.db.patch(bookingId, { hiddenAt: Date.now() }));
+
+		const result = await t
+			.withIdentity(editorIdentity)
+			.query(listEditorSessions, { paginationOpts });
+
+		expect(result.page.map((session) => session._id)).toContain(bookingId);
+	});
+
+	test("allows assigning an editor to an admin-archived confirmed session", async () => {
+		const t = createConvexTest();
+		await seedEditorProfile(t, editorIdentity);
+		const bookingId = await seedBooking(t, "Archived Assign Target");
+		await t.run((ctx) => ctx.db.patch(bookingId, { hiddenAt: Date.now() }));
+
+		const [error] = await t
+			.withIdentity(adminIdentity)
+			.mutation(assignSessionEditor, {
+				bookingId,
+				editorTokenIdentifier: editorIdentity.tokenIdentifier,
+				adminNotes: "Finish deliverables after filing"
+			});
+
+		expect(error).toBeNull();
+	});
 });
