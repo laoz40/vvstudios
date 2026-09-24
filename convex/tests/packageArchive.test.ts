@@ -35,7 +35,7 @@ describe("package auto-archive", () => {
 		const t = createConvexTest();
 		const packageId = await seedPendingPackage(t, "cs_abandon_archive");
 
-		await t.mutation(internal.packageCheckout.deletePendingPackage, {
+		await t.mutation(internal.packageCheckout.abandonPendingPackage, {
 			packageId,
 			stripeSessionId: "cs_abandon_archive"
 		});

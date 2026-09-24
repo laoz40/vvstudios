@@ -3,8 +3,8 @@ import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { MutationCtx } from "#convex/_generated/server";
 import {
 	validatePackageExpiry,
-	validatePendingPackageDeletion,
-	type DeletePendingPackageSuccess
+	validatePendingPackageAbandonment,
+	type AbandonPendingPackageSuccess
 } from "#convex/lib/packageCheckout";
 import {
 	getPackageCheckoutClaimStatus,
@@ -41,23 +41,23 @@ export function markPackageExpiredByStripeSessionIdService(
 	);
 }
 
-export function deletePendingPackageService(
+export function abandonPendingPackageService(
 	ctx: MutationCtx,
 	args: { packageId: Id<"packages">; stripeSessionId: string }
 ) {
 	return (
 		getPackageFromDb(ctx, args.packageId)
 			.andThen((packageFromDb) =>
-				validatePendingPackageDeletion(packageFromDb, args.stripeSessionId)
+				validatePendingPackageAbandonment(packageFromDb, args.stripeSessionId)
 			)
 			// Preserve idempotency or abandon the pending package.
-			.andThen((deleteDecision) => {
-				if (deleteDecision.kind === "complete") {
-					return ok(deleteDecision.value);
+			.andThen((abandonDecision) => {
+				if (abandonDecision.kind === "complete") {
+					return ok(abandonDecision.value);
 				}
 
 				return archiveDeadPackage(ctx, args.packageId, { status: "abandoned" }).map(
-					(): DeletePendingPackageSuccess => ({ outcome: "abandoned" })
+					(): AbandonPendingPackageSuccess => ({ outcome: "abandoned" })
 				);
 			})
 			.orElse((error) =>

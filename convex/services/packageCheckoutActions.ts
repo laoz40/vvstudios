@@ -83,7 +83,7 @@ export function closeEmbeddedPackageCheckoutSessionService(
 		}
 
 		return fromConvexTuple(
-			ctx.runMutation(internal.packageCheckout.deletePendingPackage, args)
+			ctx.runMutation(internal.packageCheckout.abandonPendingPackage, args)
 		).map(({ outcome }) => ({ outcome }));
 	});
 }
