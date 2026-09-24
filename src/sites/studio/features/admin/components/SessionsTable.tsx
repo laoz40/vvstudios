@@ -13,7 +13,6 @@ import {
 } from "#studio/features/admin/components/AdminDashboardTableUtils";
 import { SessionTableRow } from "#studio/features/admin/components/SessionTableRow";
 import { SessionsTableFilters } from "#studio/features/admin/components/SessionsTableFilters";
-import { SessionsTableFooter } from "#studio/features/admin/components/SessionsTableFooter";
 import type { AdminSessionsView, SessionRecord } from "#studio/features/admin/lib/admin-sessions";
 import {
 	filterAdminSessions,
@@ -187,13 +186,6 @@ export function SessionsTable({
 					</TableBody>
 				</Table>
 			</div>
-
-			{showSessionsLoadingState && filteredSessions.length === 0 ? null : (
-				<SessionsTableFooter
-					filteredSessionsCount={filteredSessions.length}
-					totalSessionsCount={sessions.length}
-				/>
-			)}
 
 			<InfiniteScrollSentinel
 				canLoadMore={!showSessionsLoadingState && canLoadMoreSessions}
