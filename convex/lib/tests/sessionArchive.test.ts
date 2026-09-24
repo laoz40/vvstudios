@@ -9,10 +9,7 @@
  */
 import { describe, expect, test } from "vitest";
 import type { Doc } from "#convex/_generated/dataModel";
-import {
-	isDeadCheckoutStatus,
-	isSessionEligibleForAutoArchive
-} from "#convex/lib/sessionArchive";
+import { isDeadCheckoutStatus, isSessionEligibleForAutoArchive } from "#convex/lib/sessionArchive";
 
 const pastStartAt = Date.parse("2020-01-01T00:00:00.000Z");
 

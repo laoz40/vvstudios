@@ -377,6 +377,7 @@ export default defineSchema({
 		stripeCustomerId: v.optional(v.string())
 	})
 		.index("by_status_and_expiresAt", ["status", "expiresAt"])
+		.index("by_hiddenAt_and_createdAt", ["hiddenAt", "createdAt"])
 		.index("by_createdAt", ["createdAt"])
 		.index("by_scheduleTokenHash", ["scheduleTokenHash"])
 		.index("by_stripeSessionId", ["stripeSessionId"])

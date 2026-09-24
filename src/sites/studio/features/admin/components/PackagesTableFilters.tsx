@@ -10,114 +10,78 @@ import {
 } from "#/components/ui/dropdown-menu";
 import { Input } from "#/components/ui/input";
 import { Label } from "#/components/ui/label";
-import type { AdminPackageFilters } from "#studio/features/admin/lib/admin-packages";
-
-type PackageCheckboxFilterKey = Exclude<keyof AdminPackageFilters, "searchQuery">;
+import { AdminInboxAllViewTabs } from "#studio/features/admin/components/AdminInboxAllViewTabs";
+import type { AdminPackagesView } from "#studio/features/admin/lib/admin-packages";
 
 type PackagesTableFiltersProps = {
-	filters: AdminPackageFilters;
-	onFilterChange: (key: PackageCheckboxFilterKey, checked: boolean) => void;
+	onPackagesViewChange: (view: AdminPackagesView) => void;
 	onSearchQueryChange: (searchQuery: string) => void;
+	onShowStalePackagesChange: (checked: boolean) => void;
+	packagesView: AdminPackagesView;
+	searchQuery: string;
+	showStalePackages: boolean;
 };
 
 export function PackagesTableFilters({
-	filters,
-	onFilterChange,
-	onSearchQueryChange
+	onPackagesViewChange,
+	onSearchQueryChange,
+	onShowStalePackagesChange,
+	packagesView,
+	searchQuery,
+	showStalePackages
 }: PackagesTableFiltersProps) {
 	return (
-		<div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+		<div className="flex flex-col gap-3 md:flex-row md:items-center md:gap-4">
 			<div className="flex flex-col gap-3 md:flex-row md:items-center md:gap-4">
 				<Input
 					placeholder="Search packages..."
-					value={filters.searchQuery}
+					value={searchQuery}
 					onChange={(event) => onSearchQueryChange(event.target.value)}
 					className="w-full md:w-sm"
 				/>
-				<div className="flex items-center justify-end gap-3 md:contents">
-					<DropdownMenu>
-						<DropdownMenuTrigger asChild>
-							<Button
-								type="button"
-								variant="outline"
-								size="sm"
-								className="md:hidden">
-								<ListFilter aria-hidden />
-								Filters
-							</Button>
-						</DropdownMenuTrigger>
-						<DropdownMenuContent align="end">
-							<DropdownMenuGroup>
-								<DropdownMenuCheckboxItem
-									checked={filters.showDueOnly}
-									onCheckedChange={(checked) => onFilterChange("showDueOnly", checked)}
-									onSelect={(event) => event.preventDefault()}>
-									Show due
-								</DropdownMenuCheckboxItem>
-								<DropdownMenuCheckboxItem
-									checked={filters.showStalePackages}
-									onCheckedChange={(checked) => onFilterChange("showStalePackages", checked)}
-									onSelect={(event) => event.preventDefault()}>
-									Show unconfirmed
-								</DropdownMenuCheckboxItem>
-								<DropdownMenuCheckboxItem
-									checked={filters.showArchived}
-									onCheckedChange={(checked) => onFilterChange("showArchived", checked)}
-									onSelect={(event) => event.preventDefault()}>
-									Show archived
-								</DropdownMenuCheckboxItem>
-							</DropdownMenuGroup>
-						</DropdownMenuContent>
-					</DropdownMenu>
+				<AdminInboxAllViewTabs
+					allTabLabel="All packages"
+					view={packagesView}
+					onViewChange={onPackagesViewChange}
+				/>
+			</div>
+			<div className="flex items-center justify-end gap-3 md:ml-auto">
+				<DropdownMenu>
+					<DropdownMenuTrigger asChild>
+						<Button
+							type="button"
+							variant="outline"
+							size="sm"
+							className="md:hidden">
+							<ListFilter aria-hidden />
+							Filters
+						</Button>
+					</DropdownMenuTrigger>
+					<DropdownMenuContent align="end">
+						<DropdownMenuGroup>
+							<DropdownMenuCheckboxItem
+								checked={showStalePackages}
+								onCheckedChange={(checked) => onShowStalePackagesChange(checked)}
+								onSelect={(event) => event.preventDefault()}>
+								Show unconfirmed
+							</DropdownMenuCheckboxItem>
+						</DropdownMenuGroup>
+					</DropdownMenuContent>
+				</DropdownMenu>
+				<div className="hidden items-center gap-1.5 md:flex">
+					<Checkbox
+						id="show-stale-packages"
+						checked={showStalePackages}
+						onCheckedChange={(checked) => onShowStalePackagesChange(checked === true)}
+						className="size-4 rounded-sm"
+					/>
+					<Label
+						htmlFor="show-stale-packages"
+						className="text-sm font-normal text-muted-foreground">
+						Show unconfirmed
+					</Label>
 				</div>
 			</div>
-			<div className="hidden flex-col gap-3 md:flex md:flex-row md:flex-wrap md:items-center md:justify-end">
-				<PackageFilterCheckbox
-					checked={filters.showDueOnly}
-					id="show-due-packages"
-					label="Show due"
-					onCheckedChange={(checked) => onFilterChange("showDueOnly", checked)}
-				/>
-				<PackageFilterCheckbox
-					checked={filters.showStalePackages}
-					id="show-stale-packages"
-					label="Show unconfirmed"
-					onCheckedChange={(checked) => onFilterChange("showStalePackages", checked)}
-				/>
-				<PackageFilterCheckbox
-					checked={filters.showArchived}
-					id="show-archived-packages"
-					label="Show archived"
-					onCheckedChange={(checked) => onFilterChange("showArchived", checked)}
-				/>
-			</div>
-		</div>
-	);
-}
-
-function PackageFilterCheckbox({
-	checked,
-	id,
-	label,
-	onCheckedChange
-}: {
-	checked: boolean;
-	id: string;
-	label: string;
-	onCheckedChange: (checked: boolean) => void;
-}) {
-	return (
-		<div className="flex items-center gap-2">
-			<Checkbox
-				id={id}
-				checked={checked}
-				onCheckedChange={(nextChecked) => onCheckedChange(nextChecked === true)}
-			/>
-			<Label
-				htmlFor={id}
-				className="text-sm font-medium text-foreground">
-				{label}
-			</Label>
 		</div>
 	);
 }

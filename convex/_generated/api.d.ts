@@ -22,6 +22,7 @@ import type * as feedback from "../feedback.js";
 import type * as googleCalendar from "../googleCalendar.js";
 import type * as http from "../http.js";
 import type * as invoices from "../invoices.js";
+import type * as lib_adminPackageList from "../lib/adminPackageList.js";
 import type * as lib_adminSessionList from "../lib/adminSessionList.js";
 import type * as lib_auth from "../lib/auth.js";
 import type * as lib_bookingAddonQuantities from "../lib/bookingAddonQuantities.js";
@@ -166,6 +167,7 @@ declare const fullApi: ApiFromModules<{
   googleCalendar: typeof googleCalendar;
   http: typeof http;
   invoices: typeof invoices;
+  "lib/adminPackageList": typeof lib_adminPackageList;
   "lib/adminSessionList": typeof lib_adminSessionList;
   "lib/auth": typeof lib_auth;
   "lib/bookingAddonQuantities": typeof lib_bookingAddonQuantities;

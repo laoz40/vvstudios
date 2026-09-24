@@ -1,13 +1,15 @@
 import { z } from "zod";
-import type { AdminPackageSort } from "#studio/features/admin/lib/admin-packages";
+import type {
+	AdminPackageSort,
+	AdminPackagesView
+} from "#studio/features/admin/lib/admin-packages";
 import type { AdminSessionsView, SessionSorting } from "#studio/features/admin/lib/admin-sessions";
 
 const ADMIN_DASHBOARD_PREFERENCES_KEY = "vvstudios.adminDashboard.preferences";
 
 const DEFAULT_PACKAGES_TABLE_PREFERENCES: PackagesTablePreferences = {
 	sorting: { isDescending: true },
-	showArchived: false,
-	showDueOnly: false,
+	packagesView: "inbox",
 	showStalePackages: false
 };
 
@@ -26,8 +28,11 @@ const sessionSortingItemSchema = z.object({
 
 const storedPackageSortingSchema = z.object({ isDescending: z.boolean().optional() });
 
+const storedPackagesViewSchema = z.enum(["inbox", "all"]);
+
 const storedPackagesTablePreferencesSchema = z.object({
 	sorting: storedPackageSortingSchema.optional(),
+	packagesView: storedPackagesViewSchema.optional(),
 	showArchived: z.boolean().optional(),
 	showDueOnly: z.boolean().optional(),
 	showOverdue: z.boolean().optional(),
@@ -53,8 +58,7 @@ const adminDashboardPreferencesSchema = z.object({
 
 type PackagesTablePreferences = {
 	sorting: AdminPackageSort;
-	showArchived: boolean;
-	showDueOnly: boolean;
+	packagesView: AdminPackagesView;
 	showStalePackages: boolean;
 };
 
@@ -110,18 +114,18 @@ export function readStoredPackagesTablePreferences(): PackagesTablePreferences {
 		return DEFAULT_PACKAGES_TABLE_PREFERENCES;
 	}
 
+	const legacyAllView =
+		storedPreferences.showArchived === true || storedPreferences.packagesView === "all";
+
 	return {
 		sorting: {
 			isDescending:
 				storedPreferences.sorting?.isDescending ??
 				DEFAULT_PACKAGES_TABLE_PREFERENCES.sorting.isDescending
 		},
-		showArchived: storedPreferences.showArchived ?? false,
-		showDueOnly:
-			storedPreferences.showDueOnly ??
-			storedPreferences.showOverdue ??
-			storedPreferences.showUpcoming ??
-			false,
+		packagesView:
+			storedPreferences.packagesView ??
+			(legacyAllView ? "all" : DEFAULT_PACKAGES_TABLE_PREFERENCES.packagesView),
 		showStalePackages: storedPreferences.showStalePackages ?? false
 	};
 }

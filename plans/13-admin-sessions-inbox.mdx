@@ -53,7 +53,7 @@ Open locally: `mdxp plans/13-admin-sessions-inbox.mdx`
 			note: "booking invoice record unarchive; mark paid → archiveSessionWhenFullyDone"
 		},
 		{
-			path: "src/sites/studio/features/admin/components/SessionsListViewTabs.tsx",
+			path: "src/sites/studio/features/admin/components/AdminInboxAllViewTabs.tsx",
 			change: "added",
 			note: "Inbox / All sessions tabs (stage 2)"
 		},
@@ -183,12 +183,12 @@ Open locally: `mdxp plans/13-admin-sessions-inbox.mdx`
 
 Four PR-sized chunks. Order matters for editor decoupling before admins rely on archive-heavy inbox.
 
-| Stage | Focus                              | Outcome                                                                          |
-| ----- | ---------------------------------- | -------------------------------------------------------------------------------- |
-| 1     | Editor decouple + assignment rules | **Done.** Archive no longer affects editor list or deliverables mutations        |
-| 2     | Server list views + admin tabs     | **Done.** Inbox/all `listSessions`; removed **Show due** / **Show archived**     |
-| 3     | Auto-archive / unarchive           | **Done.** `convex/lib/sessionArchive.ts` + service hooks (see below)             |
-| 4     | UX polish                          | **Done.** Archive confirm when editor assigned and deliverables not sent |
+| Stage | Focus                              | Outcome                                                                      |
+| ----- | ---------------------------------- | ---------------------------------------------------------------------------- |
+| 1     | Editor decouple + assignment rules | **Done.** Archive no longer affects editor list or deliverables mutations    |
+| 2     | Server list views + admin tabs     | **Done.** Inbox/all `listSessions`; removed **Show due** / **Show archived** |
+| 3     | Auto-archive / unarchive           | **Done.** `convex/lib/sessionArchive.ts` + service hooks (see below)         |
+| 4     | UX polish                          | **Done.** Archive confirm when editor assigned and deliverables not sent     |
 
 ---
 
@@ -287,7 +287,7 @@ Option B (denormalized `adminInboxVisible`) was not used.
 ### Admin UI (shipped)
 
 - **`AdminDashboard`**: one `usePaginatedQuery(api.sessions.listSessions, { view, includeStale, sort… })` (not two hook instances; args change when tab or stale toggle changes).
-- **`SessionsListViewTabs`**: Inbox / All sessions beside search; input-matched border/background; full-width tab bar on mobile.
+- **`AdminInboxAllViewTabs`**: Inbox / All (sessions or packages) beside search; input-matched border/background; full-width tab bar on mobile.
 - **`SessionsTableFilters`**: **Show unconfirmed** on desktop and in mobile Filters menu for **both** tabs.
 - **`filterAdminSessions`**: client search only (`customerFilter` on loaded pages). No server `searchQuery`. Prefetch in `SessionsTable` when search hides all loaded rows.
 - **Preferences**: `sessionsView` + `showStaleBookings`; removed `showArchived` and `showUpcomingOnly`.
@@ -512,7 +512,7 @@ Optional backfill for old dead-status rows remains out of scope unless run manua
 
 ## Out of scope (for now)
 
-- Same tab pattern for **Packages** table (still has **Show due** / archive today).
+- Packages inbox / all tabs shipped alongside sessions pattern.
 - Cron sweep for missed auto-archive.
 - Migrating old dead-status-but-unarchived rows (optional one-off backfill in stage 4).
 

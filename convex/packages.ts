@@ -60,7 +60,9 @@ export const createPendingPackage = internalMutation({
 export const listPackages = query({
 	args: {
 		paginationOpts: paginationOptsValidator,
-		sortDirection: v.optional(v.union(v.literal("asc"), v.literal("desc")))
+		sortDirection: v.optional(v.union(v.literal("asc"), v.literal("desc"))),
+		view: v.optional(v.union(v.literal("inbox"), v.literal("all"))),
+		includeStale: v.optional(v.boolean())
 	},
 	handler: (ctx, args) =>
 		listPackagesService(ctx, args).match(

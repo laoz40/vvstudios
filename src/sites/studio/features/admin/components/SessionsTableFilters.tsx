@@ -10,7 +10,7 @@ import {
 } from "#/components/ui/dropdown-menu";
 import { Input } from "#/components/ui/input";
 import { Label } from "#/components/ui/label";
-import { SessionsListViewTabs } from "#studio/features/admin/components/SessionsListViewTabs";
+import { AdminInboxAllViewTabs } from "#studio/features/admin/components/AdminInboxAllViewTabs";
 import type { AdminSessionsView } from "#studio/features/admin/lib/admin-sessions";
 
 type SessionsTableFiltersProps = {
@@ -39,7 +39,8 @@ export function SessionsTableFilters({
 					onChange={(event) => onSearchQueryChange(event.target.value)}
 					className="w-full md:w-sm"
 				/>
-				<SessionsListViewTabs
+				<AdminInboxAllViewTabs
+					allTabLabel="All sessions"
 					view={sessionsView}
 					onViewChange={onSessionsViewChange}
 				/>

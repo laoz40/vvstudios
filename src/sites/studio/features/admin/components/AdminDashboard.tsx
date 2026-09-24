@@ -17,7 +17,8 @@ import { BackendAuthErrorPage } from "#studio/features/auth/components/BackendAu
 import { DashboardForbiddenPage } from "#studio/features/auth/components/DashboardForbiddenPage";
 import {
 	toPackageListQuerySort,
-	type AdminPackageSort
+	type AdminPackageSort,
+	type AdminPackagesView
 } from "#studio/features/admin/lib/admin-packages";
 import {
 	toSessionListQuerySort,
@@ -122,18 +123,30 @@ function BookingsDashboardView({
 
 type PackagesDashboardViewProps = {
 	packageSorting: AdminPackageSort;
+	packagesView: AdminPackagesView;
+	showStalePackages: boolean;
 	onPackageSortingChange: (sorting: AdminPackageSort) => void;
+	onPackagesViewChange: (view: AdminPackagesView) => void;
+	onShowStalePackagesChange: (showStalePackages: boolean) => void;
 	onViewPackageSessions: (invoiceNumber: string) => void;
 };
 
 function PackagesDashboardView({
 	packageSorting,
+	packagesView,
+	showStalePackages,
 	onPackageSortingChange,
+	onPackagesViewChange,
+	onShowStalePackagesChange,
 	onViewPackageSessions
 }: PackagesDashboardViewProps) {
-	const packageListSort = toPackageListQuerySort(packageSorting);
+	const packageListQuery = {
+		...toPackageListQuerySort(packageSorting),
+		view: packagesView,
+		includeStale: showStalePackages
+	};
 
-	const packages = usePaginatedQuery(api.packages.listPackages, packageListSort, {
+	const packages = usePaginatedQuery(api.packages.listPackages, packageListQuery, {
 		initialNumItems: DASHBOARD_PAGE_SIZE
 	});
 
@@ -149,7 +162,11 @@ function PackagesDashboardView({
 			isLoadingMorePackages={packages.status === "LoadingMore"}
 			isLoadingPackages={packages.status === "LoadingFirstPage"}
 			loadMorePackages={() => packages.loadMore(DASHBOARD_PAGE_SIZE)}
+			packagesView={packagesView}
+			showStalePackages={showStalePackages}
 			sorting={packageSorting}
+			onPackagesViewChange={onPackagesViewChange}
+			onShowStalePackagesChange={onShowStalePackagesChange}
 			onSortingChange={onPackageSortingChange}
 			onViewPackageSessions={onViewPackageSessions}
 		/>
@@ -203,6 +220,12 @@ export function AdminDashboard({ dashboardRole }: { dashboardRole: DashboardRole
 	);
 
 	const [packageSorting, setPackageSorting] = useState(initialTablePreferences.packages.sorting);
+
+	const [packagesView, setPackagesView] = useState(initialTablePreferences.packages.packagesView);
+
+	const [showStalePackages, setShowStalePackages] = useState(
+		initialTablePreferences.packages.showStalePackages
+	);
 
 	const [sessionSearchQuery, setSessionSearchQuery] = useState("");
 
@@ -264,7 +287,11 @@ export function AdminDashboard({ dashboardRole }: { dashboardRole: DashboardRole
 					{activeView === "packages" ? (
 						<PackagesDashboardView
 							packageSorting={packageSorting}
+							packagesView={packagesView}
+							showStalePackages={showStalePackages}
 							onPackageSortingChange={setPackageSorting}
+							onPackagesViewChange={setPackagesView}
+							onShowStalePackagesChange={setShowStalePackages}
 							onViewPackageSessions={viewPackageSessions}
 						/>
 					) : null}
