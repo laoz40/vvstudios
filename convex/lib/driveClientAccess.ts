@@ -33,9 +33,7 @@ export function areClientDrivePermissionsReadyForAssetsEmail(
 		return true;
 	}
 
-	return (
-		driveClient !== null && isClientFolderSharingDismissed(driveClient.clientFolderPermission)
-	);
+	return driveClient !== null && isClientFolderSharingDismissed(driveClient.clientFolderPermission);
 }
 
 export function saveClientDrivePermission(
