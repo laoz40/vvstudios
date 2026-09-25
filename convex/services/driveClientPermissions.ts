@@ -1,14 +1,14 @@
 "use node";
 
-import { errAsync, type ResultAsync } from "neverthrow";
+import type { ResultAsync } from "neverthrow";
 import { internal } from "#convex/_generated/api";
 import type { Id } from "#convex/_generated/dataModel";
 import type { ActionCtx } from "#convex/_generated/server";
 import { requirePermissionActions } from "#convex/lib/auth";
 import {
 	loadReadyBookingDriveFolders,
+	recordClientDrivePermissionsFailure,
 	requireClientDrivePermissions,
-	saveClientDrivePermissionsStatus,
 	sendClientAssetsFolderEmail,
 	type DriveClientPermissionsError
 } from "#convex/lib/driveClientPermissions";
@@ -23,9 +23,7 @@ export function requireClientDrivePermissionsAndSendAssetsEmail(
 	return loadReadyBookingDriveFolders(ctx, args.bookingId)
 		.andThen((setup) =>
 			requireClientDrivePermissions(ctx, setup).orElse((error) =>
-				saveClientDrivePermissionsStatus(ctx, setup.booking._id, "failed").andThen(() =>
-					errAsync(error)
-				)
+				recordClientDrivePermissionsFailure(ctx, setup, error)
 			)
 		)
 		.andThen(() => sendClientAssetsFolderEmail(ctx, args.bookingId, args.attempt));
@@ -49,9 +47,7 @@ export function retryClientDrivePermissionsService(
 		.andThen((setup) =>
 			backfillBookingDriveClientIdForRetry(ctx, args.bookingId).andThen(() =>
 				requireClientDrivePermissions(ctx, setup).orElse((error) =>
-					saveClientDrivePermissionsStatus(ctx, setup.booking._id, "failed").andThen(() =>
-						errAsync(error)
-					)
+					recordClientDrivePermissionsFailure(ctx, setup, error)
 				)
 			)
 		)

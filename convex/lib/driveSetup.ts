@@ -24,7 +24,8 @@ import {
 	type DriveChildFolderName,
 	type DriveClient,
 	type DriveError,
-	type SavedDriveFolder
+	type SavedDriveFolder,
+	type SavedDrivePermission
 } from "#convex/lib/googleDrive";
 
 type SavedFolder = { id: string; url: string };
@@ -54,6 +55,8 @@ export type DriveSetupInfo = {
 		displayName: string;
 		folderId?: string;
 		assetsFolder?: SavedFolder;
+		clientFolderPermission?: SavedDrivePermission;
+		assetsClientPermission?: SavedDrivePermission;
 	} | null;
 	driveSession: {
 		_id: Id<"driveSessions">;
