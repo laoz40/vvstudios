@@ -1,9 +1,6 @@
 {
 	"name": "VV Studios",
-	"build": {
-		"dockerfile": "Dockerfile",
-		"context": ".."
-	},
+	"build": { "dockerfile": "Dockerfile", "context": ".." },
 	"user": "ubuntu",
 	"install": "bun install --frozen-lockfile"
 }
