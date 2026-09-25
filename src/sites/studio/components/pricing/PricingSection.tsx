@@ -14,10 +14,8 @@ import { AnimatedIconButton } from "#/components/AnimatedIconButton";
 import ArrowNarrowRightIcon from "#/components/ui/arrow-narrow-right-icon";
 import { studioSite } from "#/config/sites";
 import { cn } from "#/lib/utils";
-import manAndWomanImage from "#studio/assets/gallery/man-and-woman.webp";
-import timelineImage from "#studio/assets/gallery/timeline.webp";
 import { ImageViewer, ImageViewerTrigger } from "#studio/components/photos/ImageViewer";
-import type { PhotoGalleryImage } from "#studio/content/photos";
+import { manAndWomanPhoto, timelinePhoto, type PhotoGalleryImage } from "#studio/content/photos";
 import {
 	ADDON_PRICES,
 	formatBookingPrice
@@ -132,20 +130,6 @@ const editingAddOns: readonly PricingAddOn[] = [
 		icon: Sparkles
 	}
 ];
-
-const productionAddOnsImage: PhotoGalleryImage = {
-	src: manAndWomanImage,
-	alt: "Man and woman recording at the VV Studios podcast studio table in Sydney",
-	width: 1205,
-	height: 1205
-};
-
-const editingAddOnsImage: PhotoGalleryImage = {
-	src: timelineImage,
-	alt: "Editing timeline for a VV Studios podcast session",
-	width: 1600,
-	height: 1600
-};
 
 type PricingAddonFeatureSectionProps = {
 	addOns: readonly PricingAddOn[];
@@ -325,7 +309,7 @@ export function PricingSection({
 					fadeInAnimation={fadeInAnimation}
 					title={pricingPageCopy.addOnsTitle}
 					addOns={productionAddOns}
-					image={productionAddOnsImage}
+					image={manAndWomanPhoto}
 					imageSide="left"
 					onSelectImage={setPreviewImage}
 				/>
@@ -333,7 +317,7 @@ export function PricingSection({
 					fadeInAnimation={fadeInAnimation}
 					title={pricingPageCopy.editingServicesTitle}
 					addOns={editingAddOns}
-					image={editingAddOnsImage}
+					image={timelinePhoto}
 					imageSide="right"
 					onSelectImage={setPreviewImage}
 					sectionId="editing-services"
