@@ -14,6 +14,10 @@ export function listEditorProfiles(ctx: QueryCtx) {
 }
 
 function isCurrentAssignedSession(booking: Doc<"bookings">) {
+	if (booking.editStatus === "completed") {
+		return false;
+	}
+
 	return booking.status === "confirmed" || booking.status === "email_failed";
 }
 
