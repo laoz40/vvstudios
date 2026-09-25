@@ -8,6 +8,7 @@ RUN apt-get update \
 		curl \
 		git \
 		sudo \
+		unzip \
 	&& rm -rf /var/lib/apt/lists/*
 
 USER ubuntu
