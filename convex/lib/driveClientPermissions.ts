@@ -233,45 +233,47 @@ export function sendClientAssetsFolderEmail(
 	bookingId: Id<"bookings">,
 	attempt: "automatic" | "retry"
 ): ResultAsync<null, DriveClientPermissionsError> {
-	return (
-		fromConvexTuple(
-			ctx.runMutation(internal.sessions.claimClientAssetsEmail, {
-				bookingId,
-				attempt,
-				now: Date.now()
+	return fromConvexTuple(
+		ctx.runMutation(internal.sessions.claimClientAssetsEmail, {
+			bookingId,
+			attempt,
+			now: Date.now()
+		})
+	)
+		.andThen((claim) =>
+			sendClientAssetsEmail({
+				assetsUrl: claim.assetsUrl,
+				bookingId: claim.bookingId,
+				email: claim.email,
+				name: claim.name
 			})
+				.andThen(() =>
+					fromConvexTuple(
+						ctx.runMutation(internal.sessions.saveClientAssetsEmailResult, {
+							assetsFolderId: claim.assetsFolderId,
+							bookingId: claim.bookingId,
+							claimedAt: claim.claimedAt,
+							status: "sent"
+						})
+					)
+				)
+				.orElse((emailError) =>
+					fromConvexTuple(
+						ctx.runMutation(internal.sessions.saveClientAssetsEmailResult, {
+							assetsFolderId: claim.assetsFolderId,
+							bookingId: claim.bookingId,
+							claimedAt: claim.claimedAt,
+							status: "failed"
+						})
+					).andThen(() => errAsync(emailError))
+				)
 		)
-			.andThen((claim) =>
-				sendClientAssetsEmail({
-					assetsUrl: claim.assetsUrl,
-					bookingId: claim.bookingId,
-					email: claim.email,
-					name: claim.name
-				})
-					.andThen(() =>
-						fromConvexTuple(
-							ctx.runMutation(internal.sessions.saveClientAssetsEmailResult, {
-								assetsFolderId: claim.assetsFolderId,
-								bookingId: claim.bookingId,
-								claimedAt: claim.claimedAt,
-								status: "sent"
-							})
-						)
-					)
-					.orElse((emailError) =>
-						fromConvexTuple(
-							ctx.runMutation(internal.sessions.saveClientAssetsEmailResult, {
-								assetsFolderId: claim.assetsFolderId,
-								bookingId: claim.bookingId,
-								claimedAt: claim.claimedAt,
-								status: "failed"
-							})
-						).andThen(() => errAsync(emailError))
-					)
-			)
-			// An existing email result means this replay has no message to send.
-			.orElse((error) =>
-				error.reason === "CLIENT_ASSETS_EMAIL_NOT_SENDABLE" ? okAsync(null) : errAsync(error)
-			)
-	);
+		.orElse((error) => {
+			if (error.reason !== "CLIENT_ASSETS_EMAIL_NOT_SENDABLE") {
+				return errAsync(error);
+			}
+
+			// Automatic sends may already be done; admin retry should surface a real failure.
+			return attempt === "automatic" ? okAsync(null) : errAsync(error);
+		});
 }
