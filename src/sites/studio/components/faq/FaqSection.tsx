@@ -1,12 +1,11 @@
 import { useState } from "react";
 import { motion } from "motion/react";
 import { cn } from "#/lib/utils";
-import behindTheScenesWideImage from "#studio/assets/gallery/behind-the-scenes-wide.webp";
 import { ContactActions } from "#studio/components/contact/ContactActions";
 import { FaqItemsAccordion } from "#studio/components/faq/FaqItemsAccordion";
 import { faqSectionCopy } from "#studio/components/faq/faq-section-copy";
 import { ImageViewer, ImageViewerTrigger } from "#studio/components/photos/ImageViewer";
-import type { PhotoGalleryImage } from "#studio/content/photos";
+import { behindTheScenesWidePhoto, type PhotoGalleryImage } from "#studio/content/photos";
 import { useFadeInAnimation } from "#studio/hooks/useFadeInAnimation";
 import {
 	landingSectionHeadingAfterClassName,
@@ -15,13 +14,6 @@ import {
 } from "#studio/lib/landing-styles";
 
 export { faqSectionCopy } from "#studio/components/faq/faq-section-copy";
-
-const faqImage: PhotoGalleryImage = {
-	src: behindTheScenesWideImage,
-	alt: "Behind the scenes view of VV Studios podcast studio hire space in Sydney",
-	width: 1971,
-	height: 1110
-};
 
 export type FaqSectionProps = { fadeIn?: boolean };
 
@@ -51,7 +43,7 @@ export function FaqSection({ fadeIn = true }: FaqSectionProps) {
 					)}>
 					<div className="order-2 flex w-full flex-col md:order-1">
 						<ImageViewerTrigger
-							image={faqImage}
+							image={behindTheScenesWidePhoto}
 							onSelect={setPreviewImage}
 							className="h-80 overflow-hidden rounded-lg bg-card shadow-xl shadow-background/40 md:h-128"
 							imageClassName="h-full w-full object-cover"

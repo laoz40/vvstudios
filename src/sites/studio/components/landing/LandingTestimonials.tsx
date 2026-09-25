@@ -4,10 +4,9 @@ import { motion } from "motion/react";
 import { Button } from "#/components/ui/button";
 import { Card, CardContent, CardFooter } from "#/components/ui/card";
 import { cn } from "#/lib/utils";
-import girlSingingImage from "#studio/assets/gallery/girl-singing.webp";
 import { ContactActions } from "#studio/components/contact/ContactActions";
 import { ImageViewer, ImageViewerTrigger } from "#studio/components/photos/ImageViewer";
-import type { PhotoGalleryImage } from "#studio/content/photos";
+import { girlSingingPhoto, type PhotoGalleryImage } from "#studio/content/photos";
 import {
 	landingSectionHeadingClassName,
 	landingSectionIntroGapClassName,
@@ -41,13 +40,6 @@ const testimonialCopy = {
 		}
 	]
 } as const;
-
-const testimonialImage: PhotoGalleryImage = {
-	src: girlSingingImage,
-	alt: "Creator singing into a microphone at VV Studios Sydney",
-	width: 1788,
-	height: 1117
-};
 
 function StarRating() {
 	return (
@@ -119,7 +111,7 @@ export function LandingTestimonials() {
 				<div className="flex w-full flex-col text-left">
 					<div className="grid gap-4 md:grid-cols-2 md:items-stretch md:gap-6">
 						<ImageViewerTrigger
-							image={testimonialImage}
+							image={girlSingingPhoto}
 							onSelect={setPreviewImage}
 							className="relative h-72 w-full overflow-hidden rounded-lg bg-card shadow-xl shadow-background/40 md:h-full"
 							imageClassName="h-full w-full object-cover"

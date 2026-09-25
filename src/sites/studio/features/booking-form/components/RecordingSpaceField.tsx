@@ -1,15 +1,17 @@
 import { Image } from "@unpic/react";
 import { Maximize2, Users } from "lucide-react";
 import { useState, type ReactNode } from "react";
-import armchairSetupImage from "#studio/assets/gallery/armchair-setup.webp";
-import musicSetupImage from "#studio/assets/gallery/music-setup.webp";
-import tableSetupImage from "#studio/assets/gallery/table-setup.webp";
 import { BookingSelectionCheck } from "#studio/features/booking-form/components/BookingSelectionCheck";
 import { Button } from "#/components/ui/button";
 import { FieldLegend, FieldSet } from "#/components/ui/field";
 import { RadioGroup, RadioGroupItem } from "#/components/ui/radio-group";
 import { ImageViewer } from "#studio/components/photos/ImageViewer";
-import type { PhotoGalleryImage } from "#studio/content/photos";
+import {
+	armchairSetupPhoto,
+	musicSetupPhoto,
+	tableSetupPhoto,
+	type PhotoGalleryImage
+} from "#studio/content/photos";
 import {
 	recordingSpaceSchema,
 	type BookingFormValues
@@ -24,29 +26,15 @@ import {
 import { toOptionId } from "#studio/lib/bookingdatetime";
 import { cn } from "#/lib/utils";
 
-const recordingSpaceImageDimensions = { width: 1885, height: 1060 } as const;
-
 const recordingSpaceOptions = [
-	{
-		value: "Table Setup" as const,
-		title: "Table Setup",
-		capacity: 4,
-		image: tableSetupImage,
-		imageAlt: "Podcast table setup with microphones and studio lighting"
-	},
+	{ value: "Table Setup" as const, title: "Table Setup", capacity: 4, photo: tableSetupPhoto },
 	{
 		value: "Armchair Setup" as const,
 		title: "Armchair Setup",
 		capacity: 2,
-		image: armchairSetupImage,
-		imageAlt: "Podcast open setup with warm lamps and casual seating"
+		photo: armchairSetupPhoto
 	},
-	{
-		value: "Music Setup" as const,
-		title: "Music Setup",
-		image: musicSetupImage,
-		imageAlt: "Music production setup inside VV Studios"
-	}
+	{ value: "Music Setup" as const, title: "Music Setup", photo: musicSetupPhoto }
 ] as const;
 
 type RecordingSpace = BookingFormValues["service"];
@@ -115,10 +103,11 @@ export function RecordingSpaceField({
 										className={cn("block cursor-pointer", disabled && "cursor-not-allowed")}>
 										<div className="overflow-hidden">
 											<Image
-												src={option.image}
-												alt={option.imageAlt}
+												src={option.photo.src}
+												alt={option.photo.alt}
 												layout="constrained"
-												{...recordingSpaceImageDimensions}
+												width={option.photo.width}
+												height={option.photo.height}
 												className={cn(
 													"h-auto w-full transition-transform duration-300 group-hover:scale-105",
 													value === option.value && "scale-[1.02]"
@@ -169,12 +158,7 @@ export function RecordingSpaceField({
 										onClick={(event) => {
 											event.preventDefault();
 											event.stopPropagation();
-											setPreviewImage({
-												src: option.image,
-												alt: option.imageAlt,
-												...recordingSpaceImageDimensions,
-												caption: option.title
-											});
+											setPreviewImage({ ...option.photo, caption: option.title });
 										}}>
 										<Maximize2
 											aria-hidden="true"

@@ -1,14 +1,10 @@
 import { useEffect, useRef } from "react";
 import { Image } from "@unpic/react";
-import micImage from "#studio/assets/mic.webp";
+import { studioMicPhoto } from "#studio/content/photos";
 import { CONTACT_EMAIL, CONTACT_PHONE } from "#/config/contact";
 import { cn } from "#/lib/utils";
 
-const contactCardCopy = {
-	title: "Contact",
-	contactInfoAriaLabel: "Contact information",
-	studioImageAlt: "Podcast studio microphone setup at VV Studios Sydney"
-} as const;
+const contactCardCopy = { title: "Contact", contactInfoAriaLabel: "Contact information" } as const;
 
 const directContactItems = [
 	{ label: "Phone", value: CONTACT_PHONE, href: `tel:${CONTACT_PHONE}` },
@@ -106,10 +102,10 @@ export function ContactCard() {
 					className="contact-card__glare"
 				/>
 				<Image
-					src={micImage}
-					alt={contactCardCopy.studioImageAlt}
-					width={1600}
-					height={1836}
+					src={studioMicPhoto.src}
+					alt={studioMicPhoto.alt}
+					width={studioMicPhoto.width}
+					height={studioMicPhoto.height}
 					layout="constrained"
 					className={cn(
 						// Contact card image styling
