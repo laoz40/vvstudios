@@ -69,9 +69,10 @@ export function SessionArchiveDialog({
 				<DialogHeader className="text-left">
 					<DialogTitle>Archive session with assigned editor?</DialogTitle>
 					<DialogDescription>
-						Archiving only hides this session from the Inbox tab. It stays on the editor dashboard
-						{editorDisplayName ? ` for ${editorDisplayName}` : ""} until you cancel the session or
-						mark deliverables as sent.
+						Archiving only hides this session from the Inbox tab. Deliverables are not sent yet, so
+						{editorDisplayName ? ` ${editorDisplayName} still` : " the editor still"} sees it under
+						Edits on their dashboard. Cancel the booking to remove it from their dashboard, or mark
+						deliverables as sent to move it to History.
 					</DialogDescription>
 				</DialogHeader>
 

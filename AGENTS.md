@@ -62,7 +62,8 @@ Writing code is cheap for you, which makes over-engineering easy. Counter it by 
 ### Verify changes
 
 - Run format, lint, test, typecheck, dead-code, dupes (bun scripts) once changes are complete and before creating any PRs. (e2e only if relevant)
-- dont run build or convex codegen unless asked to
+- dont run build unless asked to
+- dont run dev server if already running
 - never use eslint ignore to bypass linter
 
 ## TypeScript
@@ -77,13 +78,14 @@ Writing code is cheap for you, which makes over-engineering easy. Counter it by 
 ## Convex
 
 - For Convex code, always read `convex/_generated/ai/guidelines.md` first.
+- Prefer `npx convex dev --once` to verify changes when no long-running `convex dev` is already up and no deploy key is set (local backend).
+- Do not start a long-running `convex dev`.
+- If you are a Cloud Agent doing Convex work: see the `convex-cloud-agents` skill.
 
 - Dont duplicate constants/defaults between frontend and Convex; extract shared values to one importable source when possible.
 - Dont suffix internal Convex function names with `Internal` or similar; these things are obvious from looking at the code already
-
-- Dont blindly assume a migration needs to occur or backwards compatibility is necessary. Usually, feature being worked on isnt implemented so no live data. Always ask to clarify.
-
 - Services whose handlers are exported in the same API module may need an explicit `ResultAsync<..., { reason: string }>` return type to break circular inference.
+- Dont blindly assume a migration needs to occur or backwards compatibility is necessary. Usually, feature being worked on isnt implemented so no live data. Always ask to clarify.
 
 ### Neverthrow
 
