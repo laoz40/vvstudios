@@ -109,7 +109,13 @@ function isMissingGoogleAccountShare(error: ParsedGoogleShareError) {
 		...shareErrors.map((shareError) => shareError.message)
 	].filter((message): message is string => message !== undefined);
 
-	return messages.some((message) => /does not have a Google Account/i.test(message));
+	return messages.some((message) => isMissingGoogleAccountShareMessage(message));
+}
+
+function isMissingGoogleAccountShareMessage(message: string) {
+	return /does not have a Google Account|not connected to a Google account|no Google account associated/i.test(
+		message
+	);
 }
 
 function driveErrorReason(
@@ -166,14 +172,23 @@ function drivePermissionDeleteReason(
 function driveResultAsync<T>(promise: Promise<T>, fallback: DriveError["reason"]) {
 	return tryPromise({
 		try: () => promise,
-		catch: (error) =>
-			driveErrorReason(
+		catch: (error) => {
+			if (
+				fallback === "GOOGLE_DRIVE_PERMISSION_CREATE_FAILED" &&
+				error instanceof Error &&
+				isMissingGoogleAccountShareMessage(error.message)
+			) {
+				return { reason: "GOOGLE_DRIVE_SHARE_TARGET_MISSING" as const };
+			}
+
+			return driveErrorReason(
 				fallback,
 				googleProviderErrorSchema.safeParse(error),
 				fallback === "GOOGLE_DRIVE_PERMISSION_CREATE_FAILED"
 					? googleShareErrorSchema.safeParse(error)
 					: undefined
-			)
+			);
+		}
 	});
 }
 

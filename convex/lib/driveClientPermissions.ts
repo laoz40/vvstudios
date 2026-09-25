@@ -14,7 +14,10 @@ import {
 	type DriveError,
 	type SavedDrivePermission
 } from "#convex/lib/googleDrive";
-import { dismissedClientFolderPermission } from "#convex/lib/driveClientAccess";
+import {
+	dismissedClientFolderPermission,
+	isClientFolderSharingDismissed
+} from "#convex/lib/driveClientAccess";
 import { sendClientAssetsEmail } from "#convex/lib/emailTemplateSenders";
 import { fromConvexTuple } from "#convex/lib/result";
 
@@ -39,6 +42,8 @@ type ReadyBookingDriveFolders = DriveSetupInfo & {
 		normalizedEmail: string;
 		folderId: string;
 		assetsFolder: { id: string; url: string };
+		clientFolderPermission?: SavedDrivePermission;
+		assetsClientPermission?: SavedDrivePermission;
 	};
 	driveSession: {
 		_id: Id<"driveSessions">;
@@ -74,6 +79,8 @@ function getReadyBookingFolders(setupInfo: DriveSetupInfo) {
 		driveClient: {
 			_id: driveClient._id,
 			assetsFolder,
+			assetsClientPermission: driveClient.assetsClientPermission,
+			clientFolderPermission: driveClient.clientFolderPermission,
 			displayName: driveClient.displayName,
 			folderId: clientFolderId,
 			normalizedEmail: driveClient.normalizedEmail
@@ -143,46 +150,82 @@ export function saveClientDrivePermissionsStatus(
 	);
 }
 
-export function requireClientDrivePermissions(
+function applySkippedClientDrivePermissions(
 	ctx: ActionCtx,
-	setup: ReadyBookingDriveFolders
+	setup: ReadyBookingDriveFolders,
+	drive: DriveClient
 ): ResultAsync<ReadyBookingDriveFolders, DriveClientPermissionsError> {
-	return loadDriveClient()
-		.andThen((drive) =>
-			ensureAnyonePermission(drive, setup.driveClient.assetsFolder.id, "writer")
-				.andThen((permission) =>
-					saveClientDrivePermission(ctx, setup.booking._id, "Assets", {
-						id: permission.id,
-						role: permission.role
-					})
-				)
-				.andThen(() =>
-					requireClientDrivePermission(drive, setup, {
-						fileId: setup.driveClient.folderId,
-						name: "Client folder",
-						role: "reader"
-					})
-				)
-				.andThen((permission) =>
-					saveClientDrivePermission(ctx, setup.booking._id, "Client folder", permission)
-				)
+	return ensureAnyonePermission(drive, setup.driveClient.assetsFolder.id, "writer")
+		.andThen((permission) =>
+			saveClientDrivePermission(ctx, setup.booking._id, "Assets", {
+				id: permission.id,
+				role: permission.role
+			})
 		)
-		.andThen(() => saveClientDrivePermissionsStatus(ctx, setup.booking._id, "ready"))
-		.map(() => setup)
-		.orElse((error) => {
-			if (error.reason !== "GOOGLE_DRIVE_SHARE_TARGET_MISSING") {
-				return errAsync(error);
-			}
-
-			return saveClientDrivePermission(
+		.andThen(() =>
+			saveClientDrivePermission(
 				ctx,
 				setup.booking._id,
 				"Client folder",
 				dismissedClientFolderPermission
 			)
-				.andThen(() => saveClientDrivePermissionsStatus(ctx, setup.booking._id, "skipped"))
-				.map(() => setup);
-		});
+		)
+		.andThen(() => saveClientDrivePermissionsStatus(ctx, setup.booking._id, "skipped"))
+		.map(() => setup);
+}
+
+export function recordClientDrivePermissionsFailure(
+	ctx: ActionCtx,
+	setup: ReadyBookingDriveFolders,
+	error: DriveClientPermissionsError
+): ResultAsync<ReadyBookingDriveFolders, DriveClientPermissionsError> {
+	if (error.reason === "GOOGLE_DRIVE_SHARE_TARGET_MISSING") {
+		return loadDriveClient().andThen((drive) =>
+			applySkippedClientDrivePermissions(ctx, setup, drive)
+		);
+	}
+
+	return saveClientDrivePermissionsStatus(ctx, setup.booking._id, "failed").andThen(() =>
+		errAsync(error)
+	);
+}
+
+export function requireClientDrivePermissions(
+	ctx: ActionCtx,
+	setup: ReadyBookingDriveFolders
+): ResultAsync<ReadyBookingDriveFolders, DriveClientPermissionsError> {
+	return loadDriveClient().andThen((drive) => {
+		if (isClientFolderSharingDismissed(setup.driveClient.clientFolderPermission)) {
+			return applySkippedClientDrivePermissions(ctx, setup, drive);
+		}
+
+		return ensureAnyonePermission(drive, setup.driveClient.assetsFolder.id, "writer")
+			.andThen((permission) =>
+				saveClientDrivePermission(ctx, setup.booking._id, "Assets", {
+					id: permission.id,
+					role: permission.role
+				})
+			)
+			.andThen(() =>
+				requireClientDrivePermission(drive, setup, {
+					fileId: setup.driveClient.folderId,
+					name: "Client folder",
+					role: "reader"
+				})
+			)
+			.andThen((permission) =>
+				saveClientDrivePermission(ctx, setup.booking._id, "Client folder", permission)
+			)
+			.andThen(() => saveClientDrivePermissionsStatus(ctx, setup.booking._id, "ready"))
+			.map(() => setup)
+			.orElse((error) => {
+				if (error.reason !== "GOOGLE_DRIVE_SHARE_TARGET_MISSING") {
+					return errAsync(error);
+				}
+
+				return applySkippedClientDrivePermissions(ctx, setup, drive);
+			});
+	});
 }
 
 export function sendClientAssetsFolderEmail(

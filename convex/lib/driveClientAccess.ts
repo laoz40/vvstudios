@@ -14,6 +14,12 @@ export const dismissedClientFolderPermission: SavedDrivePermission = {
 	role: "reader"
 };
 
+export function isClientFolderSharingDismissed(
+	clientFolderPermission: SavedDrivePermission | undefined
+) {
+	return clientFolderPermission?.id === dismissedClientFolderPermission.id;
+}
+
 export function saveClientDrivePermission(
 	ctx: MutationCtx,
 	args: {
