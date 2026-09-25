@@ -9,12 +9,9 @@ RUN apt-get update \
 		git \
 		sudo \
 		unzip \
-	&& rm -rf /var/lib/apt/lists/*
+	&& rm -rf /var/lib/apt/lists/* \
+	&& curl -fsSL https://bun.sh/install | bash -s -- bun-v1.3.14 \
+	&& ln -sf /root/.bun/bin/bun /usr/local/bin/bun \
+	&& ln -sf /root/.bun/bin/bunx /usr/local/bin/bunx
 
-USER ubuntu
 WORKDIR /home/ubuntu
-
-ENV BUN_INSTALL="/home/ubuntu/.bun"
-ENV PATH="/home/ubuntu/.bun/bin:${PATH}"
-
-RUN curl -fsSL https://bun.sh/install | bash -s -- bun-v1.3.14
