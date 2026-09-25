@@ -98,7 +98,11 @@ function shouldRetryClientDrivePermissions(client: ClientDrivePermissions | unde
 }
 
 function shouldRetryClientAssetsEmail(client: ClientDrivePermissions | undefined) {
-	if (client === undefined || client.assetsEmailStatus === "sent") return false;
+	if (client === undefined) return false;
+
+	if (client.assetsEmailStatus === "sent" || client.assetsEmailStatus === "not_applicable") {
+		return false;
+	}
 
 	return areClientFolderPermissionsReadyForAssetsEmail(client.status);
 }

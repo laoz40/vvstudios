@@ -20,6 +20,24 @@ export function isClientFolderSharingDismissed(
 	return clientFolderPermission?.id === dismissedClientFolderPermission.id;
 }
 
+export function areClientDrivePermissionsReadyForAssetsEmail(
+	driveClient: Doc<"driveClients"> | null,
+	driveSession: Doc<"driveSessions"> | null
+) {
+	if (driveSession === null) return false;
+
+	if (
+		driveSession.clientDrivePermissionsStatus === "ready" ||
+		driveSession.clientDrivePermissionsStatus === "skipped"
+	) {
+		return true;
+	}
+
+	return (
+		driveClient !== null && isClientFolderSharingDismissed(driveClient.clientFolderPermission)
+	);
+}
+
 export function saveClientDrivePermission(
 	ctx: MutationCtx,
 	args: {
@@ -100,6 +118,7 @@ function canClaimClientAssetsEmail(
 function canClaimClientAssetsEmailSend(args: {
 	attempt: "automatic" | "retry";
 	assetsFolder: { id: string; url: string } | undefined;
+	driveClient: Doc<"driveClients"> | null;
 	driveSession: Doc<"driveSessions"> | null;
 	isEmailCurrent: boolean;
 	now: number;
@@ -110,9 +129,10 @@ function canClaimClientAssetsEmailSend(args: {
 
 	const { driveSession } = args;
 
-	const permissionsReady =
-		driveSession.clientDrivePermissionsStatus === "ready" ||
-		driveSession.clientDrivePermissionsStatus === "skipped";
+	const permissionsReady = areClientDrivePermissionsReadyForAssetsEmail(
+		args.driveClient,
+		driveSession
+	);
 
 	const claimStillActive =
 		driveSession.assetsEmailClaimedAt !== undefined &&
@@ -158,6 +178,7 @@ export function claimClientAssetsEmail(
 				!canClaimClientAssetsEmailSend({
 					attempt: args.attempt,
 					assetsFolder,
+					driveClient: driveClient ?? null,
 					driveSession,
 					isEmailCurrent,
 					now: args.now

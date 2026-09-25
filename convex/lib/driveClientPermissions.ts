@@ -269,9 +269,13 @@ export function sendClientAssetsFolderEmail(
 						).andThen(() => errAsync(emailError))
 					)
 			)
-			// An existing email result means this replay has no message to send.
-			.orElse((error) =>
-				error.reason === "CLIENT_ASSETS_EMAIL_NOT_SENDABLE" ? okAsync(null) : errAsync(error)
-			)
+			.orElse((error) => {
+				if (error.reason !== "CLIENT_ASSETS_EMAIL_NOT_SENDABLE") {
+					return errAsync(error);
+				}
+
+				// Automatic sends may already be done; admin retry should surface a real failure.
+				return attempt === "automatic" ? okAsync(null) : errAsync(error);
+			})
 	);
 }
