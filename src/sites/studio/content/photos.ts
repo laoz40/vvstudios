@@ -42,21 +42,21 @@ export const armchairSetupPhoto: PhotoGalleryImage = {
 	height: 1060
 };
 
-export const expressiveManPhoto: PhotoGalleryImage = {
+const expressiveManPhoto: PhotoGalleryImage = {
 	src: expressiveManImage,
 	alt: "Host gesturing while recording at a desk with a camera and broadcast microphone",
 	width: 2560,
 	height: 1375
 };
 
-export const micSetupPhoto: PhotoGalleryImage = {
+const micSetupPhoto: PhotoGalleryImage = {
 	src: micSetupImage,
 	alt: "Rode PodMic on a desk with a lamp and wood slat wall",
 	width: 1280,
 	height: 1920
 };
 
-export const leonardoDicaprioPhoto: PhotoGalleryImage = {
+const leonardoDicaprioPhoto: PhotoGalleryImage = {
 	src: leonardoDicaprioImage,
 	alt: "Guest recording at a desk with a laptop and Rode microphone",
 	width: 2560,
@@ -70,14 +70,14 @@ export const behindTheScenesWidePhoto: PhotoGalleryImage = {
 	height: 1110
 };
 
-export const girlNotSadPhoto: PhotoGalleryImage = {
+const girlNotSadPhoto: PhotoGalleryImage = {
 	src: girlNotSadImage,
 	alt: "Guest wearing headphones and speaking into a condenser microphone",
 	width: 1060,
 	height: 1885
 };
 
-export const behindTheScenesPhoto: PhotoGalleryImage = {
+const behindTheScenesPhoto: PhotoGalleryImage = {
 	src: behindTheScenesImage,
 	alt: "Producer monitoring waveforms on a laptop while two guests record at a table",
 	width: 1305,
@@ -91,21 +91,21 @@ export const tableSetupPhoto: PhotoGalleryImage = {
 	height: 1060
 };
 
-export const trioTalkingAtTableSetupPhoto: PhotoGalleryImage = {
+const trioTalkingAtTableSetupPhoto: PhotoGalleryImage = {
 	src: trioTalkingAtTableSetupImage,
 	alt: "Three people recording at a table with microphones, iPad multiview, and waveforms on screen",
 	width: 1612,
 	height: 1612
 };
 
-export const screenPhoto: PhotoGalleryImage = {
+const screenPhoto: PhotoGalleryImage = {
 	src: screenImage,
 	alt: "iPad monitor showing a live camera feed of a guest during recording",
 	width: 1920,
 	height: 1081
 };
 
-export const armchairVerticalPhoto: PhotoGalleryImage = {
+const armchairVerticalPhoto: PhotoGalleryImage = {
 	src: armchairVerticalImage,
 	alt: "Single armchair with boom microphone, slat wall, and green wall",
 	width: 1060,
