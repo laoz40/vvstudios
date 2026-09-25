@@ -8,9 +8,7 @@ RUN apt-get update \
 		curl \
 		git \
 		sudo \
-	&& rm -rf /var/lib/apt/lists/* \
-	&& useradd -m -s /bin/bash -u 1000 ubuntu \
-	&& echo "ubuntu ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
+	&& rm -rf /var/lib/apt/lists/*
 
 USER ubuntu
 WORKDIR /home/ubuntu
