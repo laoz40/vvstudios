@@ -3,7 +3,6 @@ import { exhaustiveCheck } from "#/lib/result";
 import type { Doc } from "#convex/_generated/dataModel";
 import { isPackageArchived } from "#convex/lib/archiveState";
 import type { BookingAddon } from "#studio/features/booking-form/lib/booking-form-model";
-import { formatBookingInvoiceNumber } from "#studio/features/booking-invoice/lib/build-booking-invoice-data";
 
 export type AdminPackageStatus = Doc<"packages">["status"];
 
@@ -51,7 +50,7 @@ export type AdminPackageRow = {
 	expiresAt?: number;
 	createdAt: number;
 	status: AdminPackageStatus;
-	invoiceNumber: string;
+	receiptNumber?: string;
 	stripeCustomerId?: string;
 	stripePaymentIntentId?: string;
 	archived: boolean;
@@ -261,7 +260,7 @@ export function mapPackageToAdminRow(packageRecord: AdminPackageRecord): AdminPa
 		expiresAt: packageRecord.expiresAt,
 		createdAt: packageRecord.createdAt,
 		status: packageRecord.status,
-		invoiceNumber: formatBookingInvoiceNumber(packageRecord._id, packageRecord.createdAt),
+		receiptNumber: packageRecord.receiptNumber,
 		stripeCustomerId: packageRecord.stripeCustomerId,
 		stripePaymentIntentId: packageRecord.stripePaymentIntentId,
 		archived: isPackageArchived(packageRecord)

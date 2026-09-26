@@ -182,7 +182,7 @@ export function PackageTableRow({
 	onViewPackageSessions,
 	packageRow
 }: {
-	onViewPackageSessions: (invoiceNumber: string) => void;
+	onViewPackageSessions: (receiptNumber: string) => void;
 	packageRow: AdminPackageRow;
 }) {
 	const {
@@ -243,7 +243,12 @@ export function PackageTableRow({
 					type="button"
 					variant="link"
 					className="h-auto flex-col items-start gap-1 p-0 text-left"
-					onClick={() => onViewPackageSessions(packageRow.invoiceNumber)}>
+					disabled={!packageRow.receiptNumber}
+					onClick={() => {
+						if (packageRow.receiptNumber) {
+							onViewPackageSessions(packageRow.receiptNumber);
+						}
+					}}>
 					<span className="font-medium text-foreground">
 						{packageRow.packageSize} sessions ({packageRow.duration})
 					</span>

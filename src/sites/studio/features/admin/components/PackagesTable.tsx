@@ -40,7 +40,7 @@ export function PackagesTable({
 	onSearchQueryChange: (searchQuery: string) => void;
 	onShowStalePackagesChange: (showStalePackages: boolean) => void;
 	onSortingChange: (sorting: AdminPackageSort) => void;
-	onViewPackageSessions: (invoiceNumber: string) => void;
+	onViewPackageSessions: (receiptNumber: string) => void;
 	packages: AdminPackageRecord[];
 	packagesView: AdminPackagesView;
 	searchQuery: string;

@@ -15,7 +15,6 @@ import {
 	type SessionRecord,
 	isManageableConfirmedSession
 } from "#studio/features/admin/lib/admin-sessions";
-import { formatBookingInvoiceNumber } from "#studio/features/booking-invoice/lib/build-booking-invoice-data";
 import { isUpcomingBooking } from "#studio/lib/bookingdatetime";
 
 export type SessionActionsProps = {
@@ -31,9 +30,7 @@ export function SessionActions({ deliverablesEmailAction, session }: SessionActi
 
 	const details: SessionActionDetails = {
 		canGenerateRescheduleLink: getCanGenerateRescheduleLink(session, isPastSession),
-		customerSessionId:
-			session.packageInvoiceNumber ??
-			formatBookingInvoiceNumber(session._id, session.pendingPaymentCreatedAt),
+		customerSessionId: session.receiptNumber ?? session.packageInvoiceNumber ?? session._id,
 		canManageConfirmedSession,
 		isPastSession
 	};

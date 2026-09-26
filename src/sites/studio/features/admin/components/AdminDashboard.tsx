@@ -165,7 +165,7 @@ type PackagesDashboardViewProps = {
 	onPackageSortingChange: (sorting: AdminPackageSort) => void;
 	onPackagesViewChange: (view: AdminPackagesView) => void;
 	onShowStalePackagesChange: (showStalePackages: boolean) => void;
-	onViewPackageSessions: (invoiceNumber: string) => void;
+	onViewPackageSessions: (receiptNumber: string) => void;
 };
 
 function PackagesDashboardView({
@@ -291,8 +291,8 @@ export function AdminDashboard({ dashboardRole }: { dashboardRole: DashboardRole
 
 	const email = user?.primaryEmailAddress?.emailAddress ?? user?.emailAddresses[0]?.emailAddress;
 
-	function viewPackageSessions(invoiceNumber: string) {
-		setInitialSessionSearchQuery(invoiceNumber);
+	function viewPackageSessions(receiptNumber: string) {
+		setInitialSessionSearchQuery(receiptNumber);
 		setActiveView("bookings");
 	}
 
