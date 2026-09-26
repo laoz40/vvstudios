@@ -8,12 +8,12 @@ Open locally: `mdxp plans/14-admin-search.mdx`
 
 Review in **four** launch PRs (plus shell already in flight); **deploy once** when PRs 2–4 are merged. Prod has live **bookings** only (no packages yet).
 
-| PR | Scope |
-| --- | --- |
-| **1. Shell** | `searchQuery` wired; client-side filter removed (current branch). No schema. |
-| **2. Receipt model** | Rename package `invoice*` → `receipt*`; optional `bookings.receiptNumber`; `by_receiptNumber` indexes; set at pay; copy to package session bookings; admin/emails read stored value (blank when pending). |
+| PR                    | Scope                                                                                                                                                                                                                                                 |
+| --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **1. Shell**          | `searchQuery` wired; client-side filter removed (current branch). No schema.                                                                                                                                                                          |
+| **2. Receipt model**  | Rename package `invoice*` → `receipt*`; optional `bookings.receiptNumber`; `by_receiptNumber` indexes; set at pay; copy to package session bookings; admin/emails read stored value (blank when pending).                                             |
 | **3. Search backend** | `searchBlob` + search index; router; prefix routes; write-path `searchBlob` maintenance; unprefixed blob sets `refineSearch: true` when **> 40** matches (pagination unchanged). Code tolerates missing blob/receipt on old rows until backfill runs. |
-| **4. Search UX** | Unprefixed guardrails only: min length, refine-search banner, sentinel pagination unchanged, narrow chips (sessions + packages). Merge order vs PR 3 flexible; **both** must ship before prod backfill. |
+| **4. Search UX**      | Unprefixed guardrails only: min length, refine-search banner, sentinel pagination unchanged, narrow chips (sessions + packages). Merge order vs PR 3 flexible; **both** must ship before prod backfill.                                               |
 
 **After deploy (ops, not blocking merge):** run **one backfill** on prod bookings (and packages when they exist): **`receiptNumber`** on paid rows, **`searchBlob`**. New writes populate both going forward.
 
@@ -57,16 +57,8 @@ Timeline-walk search backend was removed. What remains on `rework-search-query-s
 			change: "modified",
 			note: "loadAdminPackageListRows; searchQuery reserved"
 		},
-		{
-			path: "convex/sessions.ts",
-			change: "modified",
-			note: "searchQuery arg"
-		},
-		{
-			path: "convex/packages.ts",
-			change: "modified",
-			note: "searchQuery arg"
-		},
+		{ path: "convex/sessions.ts", change: "modified", note: "searchQuery arg" },
+		{ path: "convex/packages.ts", change: "modified", note: "searchQuery arg" },
 		{
 			path: "src/lib/use-debounced-value.ts",
 			change: "added",
@@ -86,7 +78,7 @@ Timeline-walk search backend was removed. What remains on `rework-search-query-s
 			path: "src/sites/studio/features/admin/components/PackagesTable.tsx",
 			change: "modified",
 			note: "search state lifted to dashboard"
-		},
+		}
 	]}
 />
 
@@ -113,9 +105,9 @@ Read `receiptNumber` from the document everywhere (admin table, PDFs, emails). R
 
 Prefix: `receipt:VV-20250327-ABCD` (trim value; exact match on stored string).
 
-| List | Lookup |
-| --- | --- |
-| **Packages** | `packages` index `by_receiptNumber` → eq query value, then apply inbox/archive/stale like today. Unpaid rows have no `receiptNumber` → never match. |
+| List         | Lookup                                                                                                                                                        |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Packages** | `packages` index `by_receiptNumber` → eq query value, then apply inbox/archive/stale like today. Unpaid rows have no `receiptNumber` → never match.           |
 | **Sessions** | `bookings` index `by_receiptNumber` → eq query value, then apply session list view/sort. Package-linked rows match via copied package receipt on the booking. |
 
 No parsing `VV-` date segments or recomputing from `_id` at query time. No extra column for blob: when `searchBlob` exists, append `receiptNumber` into the blob on write if present.
@@ -132,17 +124,17 @@ Replace shape-based auto-routing. User states intent in the query string; unpref
 
 One targeted clause per search for now; combined filters deferred.
 
-| Prefix | Field | Route |
-| --- | --- | --- |
-| `name:` | Customer name | Blob or dedicated index (TBD) |
-| `account:` | Business name | `accountName` or blob |
-| `email:` | Contact email | `by_email` exact match |
-| `phone:` | Phone | `normalizePhone(query)` vs `normalizePhone(stored)`; filter under hit cap (no raw-phone index) |
-| `abn:` | ABN | `normalizeAbn(query)` vs `normalizeAbn(stored)`; filter under hit cap |
-| `receipt:` | Receipt number | `by_receiptNumber` exact match (`VV-…`) |
-| `ig:` | Instagram | Normalize query (strip `@`, case); match stored handle as-is |
-| `editor:` | Assigned editor | Resolve display name → `assignedEditorTokenIdentifier`, then `by_assignedEditorTokenIdentifier` (sessions only) |
-| `date:` | Session day | Day bounds on `sessionStartAt` / `date`; sort by time within day |
+| Prefix     | Field           | Route                                                                                                           |
+| ---------- | --------------- | --------------------------------------------------------------------------------------------------------------- |
+| `name:`    | Customer name   | Blob or dedicated index (TBD)                                                                                   |
+| `account:` | Business name   | `accountName` or blob                                                                                           |
+| `email:`   | Contact email   | `by_email` exact match                                                                                          |
+| `phone:`   | Phone           | `normalizePhone(query)` vs `normalizePhone(stored)`; filter under hit cap (no raw-phone index)                  |
+| `abn:`     | ABN             | `normalizeAbn(query)` vs `normalizeAbn(stored)`; filter under hit cap                                           |
+| `receipt:` | Receipt number  | `by_receiptNumber` exact match (`VV-…`)                                                                         |
+| `ig:`      | Instagram       | Normalize query (strip `@`, case); match stored handle as-is                                                    |
+| `editor:`  | Assigned editor | Resolve display name → `assignedEditorTokenIdentifier`, then `by_assignedEditorTokenIdentifier` (sessions only) |
+| `date:`    | Session day     | Day bounds on `sessionStartAt` / `date`; sort by time within day                                                |
 
 **Unprefixed query:** `searchBlob` via `.withSearchIndex` (token search, relevance unless `date:` overrides).
 
@@ -179,13 +171,13 @@ Shared `normalizePhone` / `normalizeAbn` in `convex/lib`.
 
 **Narrow chips:** ship in PR 4 when loaded unprefixed blob results **> 10** (was 12; aligns with short-page autoload behavior). Also show when `refineSearch: true` even if the first page is small. Chips map to planned `field:` prefixes. Tap replaces the query with `{prefix}{current unprefixed text}` (e.g. `acme` → `email:acme`). Both sessions and packages tables.
 
-| Concern | Behavior |
-| --- | --- |
-| Min length | Client only, unprefixed only, ≥ 3 chars before sending `searchQuery` |
-| `refineSearch` | `true` when unprefixed blob matches **> 40**; does not stop pagination |
-| Load more | Sentinel + normal `loadMore` until search pagination completes |
-| Banner | Shown while `refineSearch`; nudge to use `field:` syntax |
-| Chips | `refineSearch` **or** loaded count > 10; tap → `field:` + same free text |
+| Concern        | Behavior                                                                 |
+| -------------- | ------------------------------------------------------------------------ |
+| Min length     | Client only, unprefixed only, ≥ 3 chars before sending `searchQuery`     |
+| `refineSearch` | `true` when unprefixed blob matches **> 40**; does not stop pagination   |
+| Load more      | Sentinel + normal `loadMore` until search pagination completes           |
+| Banner         | Shown while `refineSearch`; nudge to use `field:` syntax                 |
+| Chips          | `refineSearch` **or** loaded count > 10; tap → `field:` + same free text |
 
 ### Implementation phases (PRs 2–4)
 
@@ -220,10 +212,10 @@ Work order within the stack; **no prod backfill until deploy**, then one batch j
 
 ### Shell vs v2 at a glance
 
-| | Branch shell (now) | v2 (planned) |
-| --- | --- | --- |
-| Unprefixed search | Not implemented | `searchBlob` search index |
-| Targeted search | Not implemented | `field:value` → index or normalized match |
-| Auto-detect shape | N/A | Rejected |
-| Receipt in admin | Often computed | Stored when paid; blank when pending |
-| Sort while searching | Normal list sort | Blob: relevance; `date:`: day + time |
+|                      | Branch shell (now) | v2 (planned)                              |
+| -------------------- | ------------------ | ----------------------------------------- |
+| Unprefixed search    | Not implemented    | `searchBlob` search index                 |
+| Targeted search      | Not implemented    | `field:value` → index or normalized match |
+| Auto-detect shape    | N/A                | Rejected                                  |
+| Receipt in admin     | Often computed     | Stored when paid; blank when pending      |
+| Sort while searching | Normal list sort   | Blob: relevance; `date:`: day + time      |

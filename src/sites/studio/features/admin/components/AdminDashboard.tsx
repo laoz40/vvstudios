@@ -130,8 +130,7 @@ function BookingsDashboardView({
 		...toSessionListQuerySort(sessionSorting),
 		view: sessionsView,
 		includeStale: showStaleSessions,
-		searchQuery:
-			trimmedSessionSearchQuery.length > 0 ? trimmedSessionSearchQuery : undefined
+		searchQuery: trimmedSessionSearchQuery.length > 0 ? trimmedSessionSearchQuery : undefined
 	};
 
 	const sessions = usePaginatedQuery(api.sessions.listSessions, sessionListQuery, {
@@ -191,8 +190,7 @@ function PackagesDashboardView({
 		...toPackageListQuerySort(packageSorting),
 		view: packagesView,
 		includeStale: showStalePackages,
-		searchQuery:
-			trimmedPackageSearchQuery.length > 0 ? trimmedPackageSearchQuery : undefined
+		searchQuery: trimmedPackageSearchQuery.length > 0 ? trimmedPackageSearchQuery : undefined
 	};
 
 	const packages = usePaginatedQuery(api.packages.listPackages, packageListQuery, {
