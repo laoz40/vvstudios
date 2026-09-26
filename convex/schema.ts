@@ -235,6 +235,7 @@ export default defineSchema({
 		),
 		pendingPaymentCreatedAt: v.number(),
 		paymentCompletedAt: v.optional(v.number()),
+		receiptNumber: v.optional(v.string()),
 		bookingConfirmedAt: v.optional(v.number()),
 		bookingFailureCode: v.optional(v.string()),
 
@@ -308,7 +309,8 @@ export default defineSchema({
 			"driveClientId"
 		])
 		.index("by_packageId", ["packageId"])
-		.index("by_packageId_and_status_and_sessionStartAt", ["packageId", "status", "sessionStartAt"]),
+		.index("by_packageId_and_status_and_sessionStartAt", ["packageId", "status", "sessionStartAt"])
+		.index("by_receiptNumber", ["receiptNumber"]),
 
 	packages: defineTable({
 		// Customer/contact fields
@@ -352,13 +354,13 @@ export default defineSchema({
 		archived: v.boolean(),
 
 		// Receipt metadata (receipt number + email delivery status)
-		invoiceNumber: v.optional(v.string()),
-		invoiceEmailStatus: v.optional(
+		receiptNumber: v.optional(v.string()),
+		receiptEmailStatus: v.optional(
 			v.union(v.literal("pending"), v.literal("sent"), v.literal("failed"))
 		),
-		invoiceEmailSentAt: v.optional(v.number()),
-		invoiceEmailFailureCode: v.optional(v.string()),
-		lastInvoiceEmailAttemptAt: v.optional(v.number()),
+		receiptEmailSentAt: v.optional(v.number()),
+		receiptEmailFailureCode: v.optional(v.string()),
+		lastReceiptEmailAttemptAt: v.optional(v.number()),
 
 		// Reminder state for the package's current payment or expiry lifecycle stage
 		packageReminderState: v.optional(packageReminderStateValidator),
@@ -381,4 +383,5 @@ export default defineSchema({
 		.index("by_createdAt", ["createdAt"])
 		.index("by_scheduleTokenHash", ["scheduleTokenHash"])
 		.index("by_stripeSessionId", ["stripeSessionId"])
+		.index("by_receiptNumber", ["receiptNumber"])
 });
