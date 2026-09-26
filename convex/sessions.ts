@@ -285,7 +285,8 @@ export const listSessions = query({
 		sortBy: v.optional(v.union(v.literal("session"), v.literal("createdAt"))),
 		sortDirection: v.optional(v.union(v.literal("asc"), v.literal("desc"))),
 		view: v.optional(v.union(v.literal("inbox"), v.literal("all"))),
-		includeStale: v.optional(v.boolean())
+		includeStale: v.optional(v.boolean()),
+		searchQuery: v.optional(v.string())
 	},
 	handler: (ctx, args) => listSessionsService(ctx, args)
 });

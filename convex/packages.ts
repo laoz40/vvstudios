@@ -62,7 +62,8 @@ export const listPackages = query({
 		paginationOpts: paginationOptsValidator,
 		sortDirection: v.optional(v.union(v.literal("asc"), v.literal("desc"))),
 		view: v.optional(v.union(v.literal("inbox"), v.literal("all"))),
-		includeStale: v.optional(v.boolean())
+		includeStale: v.optional(v.boolean()),
+		searchQuery: v.optional(v.string())
 	},
 	handler: (ctx, args) =>
 		listPackagesService(ctx, args).match(

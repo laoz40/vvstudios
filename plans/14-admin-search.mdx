@@ -1,0 +1,221 @@
+# Admin dashboard search
+
+Server-side search for sessions and packages tables, plus v2 (`field:value` syntax and `searchBlob`).
+
+Open locally: `mdxp plans/14-admin-search.mdx`
+
+## PR stack
+
+Review in **four** launch PRs (plus shell already in flight); **deploy once** when PRs 2–4 are merged. Prod has live **bookings** only (no packages yet).
+
+| PR                    | Scope                                                                                                                                                                                                                                                 |
+| --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **1. Shell**          | `searchQuery` wired; client-side filter removed (current branch). No schema.                                                                                                                                                                          |
+| **2. Receipt model**  | Rename package `invoice*` → `receipt*`; optional `bookings.receiptNumber`; `by_receiptNumber` indexes; set at pay; copy to package session bookings; admin/emails read stored value (blank when pending).                                             |
+| **3. Search backend** | `searchBlob` + search index; router; prefix routes; write-path `searchBlob` maintenance; unprefixed blob sets `refineSearch: true` when **> 40** matches (pagination unchanged). Code tolerates missing blob/receipt on old rows until backfill runs. |
+| **4. Search UX**      | Unprefixed guardrails only: min length, refine-search banner, sentinel pagination unchanged, narrow chips (sessions + packages). Merge order vs PR 3 flexible; **both** must ship before prod backfill.                                               |
+
+**After deploy (ops, not blocking merge):** run **one backfill** on prod bookings (and packages when they exist): **`receiptNumber`** on paid rows, **`searchBlob`**. New writes populate both going forward.
+
+**Not in this backfill:** rewriting stored `phone` / `abn` (see below — optional later).
+
+**Follow-up PR 5 (post-deploy, after backfill finishes):** narrow schema — drop deprecated package `invoice*` fields if any linger, remove dead compute paths, tighten optional fields to required where every prod row has a value (e.g. `searchBlob` / `receiptNumber` on paid bookings only if you model it that way). Do not require fields on rows that legitimately omit them (pending checkout, unpaid).
+
+<Callout
+	tone="info"
+	body="Convex: new booking fields stay optional in PRs 2–4 so prod validates before backfill. PR 5 is widen-migrate-narrow cleanup, not part of the initial admin search launch."
+/>
+
+## Branch shell (kept for v2)
+
+Timeline-walk search backend was removed. What remains on `rework-search-query-server-side`:
+
+<Callout
+	tone="info"
+	body="Admin UI sends debounced `searchQuery` to list APIs, but handlers ignore it until v2. Tables no longer client-filter or prefetch. List enrichment helpers stay in services."
+/>
+
+### Behavior today
+
+- Optional `searchQuery` on `listSessions` / `listPackages` (Convex args + dashboard wiring).
+- List pagination unchanged (inbox, stale, sort). Typing in search does not filter yet.
+- Debounced input (~300ms) via `useDebouncedValue`.
+- No client `filterAdminPackages` / prefetch loops in sessions or packages tables.
+
+### Main files
+
+<FileTree
+	title="current branch (search shell)"
+	entries={[
+		{
+			path: "convex/services/sessions.ts",
+			change: "modified",
+			note: "loadAdminSessionListRows; searchQuery reserved"
+		},
+		{
+			path: "convex/services/packages.ts",
+			change: "modified",
+			note: "loadAdminPackageListRows; searchQuery reserved"
+		},
+		{ path: "convex/sessions.ts", change: "modified", note: "searchQuery arg" },
+		{ path: "convex/packages.ts", change: "modified", note: "searchQuery arg" },
+		{
+			path: "src/lib/use-debounced-value.ts",
+			change: "added",
+			note: "debounce for list query args"
+		},
+		{
+			path: "src/sites/studio/features/admin/components/AdminDashboard.tsx",
+			change: "modified",
+			note: "debounced searchQuery on both tables"
+		},
+		{
+			path: "src/sites/studio/features/admin/components/SessionsTable.tsx",
+			change: "modified",
+			note: "no local filter / prefetch"
+		},
+		{
+			path: "src/sites/studio/features/admin/components/PackagesTable.tsx",
+			change: "modified",
+			note: "search state lifted to dashboard"
+		}
+	]}
+/>
+
+---
+
+## Receipt numbers (before search)
+
+Checkout documents are **receipts** (paid), not open invoices. One stored string per paid package or booking.
+
+### Storage
+
+- **Packages:** rename `invoiceNumber` → `receiptNumber` (and `invoiceEmail*` → `receiptEmail*`). No package bookings in prod yet, so rename is low risk.
+- **Bookings:** add optional `receiptNumber`. Standalone sessions get it when paid. Package sessions copy the package `receiptNumber` when the package is paid (denormalized for list/search without joining packages).
+- **Set once** at payment / receipt email time using `formatBookingInvoiceNumber(id, paidAt)` (or the same rule everywhere — pick one timestamp and stick to it). Do **not** assign at create.
+- **Pending payment:** no receipt number. Admin shows blank (stop calling `formatBookingInvoiceNumber` in `mapPackageToAdminRow` for unpaid rows). Nothing to search.
+
+Out of scope for admin customer search: `packageAdjustments`, `customInvoices`, `stripeInvoices` (Stripe billing invoices).
+
+### Admin + emails
+
+Read `receiptNumber` from the document everywhere (admin table, PDFs, emails). Remove duplicate compute paths that use `createdAt` vs `paidAt` differently.
+
+### How `receipt:` queries work
+
+Prefix: `receipt:VV-20250327-ABCD` (trim value; exact match on stored string).
+
+| List         | Lookup                                                                                                                                                        |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Packages** | `packages` index `by_receiptNumber` → eq query value, then apply inbox/archive/stale like today. Unpaid rows have no `receiptNumber` → never match.           |
+| **Sessions** | `bookings` index `by_receiptNumber` → eq query value, then apply session list view/sort. Package-linked rows match via copied package receipt on the booking. |
+
+No parsing `VV-` date segments or recomputing from `_id` at query time. No extra column for blob: when `searchBlob` exists, append `receiptNumber` into the blob on write if present.
+
+Add `.index("by_receiptNumber", ["receiptNumber"])` on `packages` and `bookings` when the field is populated.
+
+---
+
+## Planned v2: explicit `field:value` + `searchBlob`
+
+Replace shape-based auto-routing. User states intent in the query string; unprefixed text uses `searchBlob` and a Convex search index.
+
+### Query syntax
+
+One targeted clause per search for now; combined filters deferred.
+
+| Prefix     | Field           | Route                                                                                                           |
+| ---------- | --------------- | --------------------------------------------------------------------------------------------------------------- |
+| `name:`    | Customer name   | Blob or dedicated index (TBD)                                                                                   |
+| `account:` | Business name   | `accountName` or blob                                                                                           |
+| `email:`   | Contact email   | `by_email` exact match                                                                                          |
+| `phone:`   | Phone           | `normalizePhone(query)` vs `normalizePhone(stored)`; filter under hit cap (no raw-phone index)                  |
+| `abn:`     | ABN             | `normalizeAbn(query)` vs `normalizeAbn(stored)`; filter under hit cap                                           |
+| `receipt:` | Receipt number  | `by_receiptNumber` exact match (`VV-…`)                                                                         |
+| `ig:`      | Instagram       | Normalize query (strip `@`, case); match stored handle as-is                                                    |
+| `editor:`  | Assigned editor | Resolve display name → `assignedEditorTokenIdentifier`, then `by_assignedEditorTokenIdentifier` (sessions only) |
+| `date:`    | Session day     | Day bounds on `sessionStartAt` / `date`; sort by time within day                                                |
+
+**Unprefixed query:** `searchBlob` via `.withSearchIndex` (token search, relevance unless `date:` overrides).
+
+**Rejected:** inferring field from value shape (`VV-` → receipt, `@` → email).
+
+**Deferred:** multiple `field:value` clauses in one query.
+
+### Phone / ABN (query-time only)
+
+Shared `normalizePhone` / `normalizeAbn` in `convex/lib`.
+
+**In scope (PR 3):** for `phone:` / `abn:`, normalize the prefix value and the stored field at compare time (spaces, `+61` vs `04`, etc.). No migration rewriting contact columns. No `phoneNormalized` / `abnNormalized` fields.
+
+**Blob:** when building `searchBlob` on write/backfill, include normalized phone/ABN **in the blob text only** so unprefixed search can still hit numbers; leave displayed `phone` / `abn` as entered.
+
+**Optional later (not planned now):** backfill or write-path cleanup to canonicalize stored `phone` / `abn` in place for nicer data and possible indexes.
+
+### Instagram
+
+- **`ig:`** normalize only the query (strip `@`, case); match stored handle as-is.
+
+### UX guardrails (PR 4)
+
+<Callout
+	tone="decision"
+	body="Prefix queries (`email:`, `receipt:`, …) skip unprefixed min length. Unprefixed min length is client-only: omit `searchQuery` until trimmed length ≥ 3; table stays normal inbox list (no search) while typing 1–2 chars."
+/>
+
+**`refineSearch`:** for unprefixed blob search, set **`refineSearch: true`** when the query has **more than 40** matching rows (41+). At 40 or fewer, `refineSearch: false`. Pagination is **unchanged**: keep returning pages until Convex search pagination is done. **`refineSearch` does not block** further pages or cap total rows returned. Use one shared constant (e.g. `40`) in list services so PR 4 only reads the flag.
+
+**Pagination / sentinel:** same as today — `usePaginatedQuery` + `InfiniteScrollSentinel`. Short first pages sit above the sentinel, so the observer fires and **auto-loads** the next page until the table fills or `canLoadMore` is false. No special “blocked load more” state.
+
+**Refine-search banner:** muted strip **above the table** while an active unprefixed search has `refineSearch: true`. Copy is an **accuracy nudge**, not a hard limit, e.g. “Lots of matches — refine your search (email:, phone:, …) for more accurate results.”
+
+**Narrow chips:** ship in PR 4 when loaded unprefixed blob results **> 10** (was 12; aligns with short-page autoload behavior). Also show when `refineSearch: true` even if the first page is small. Chips map to planned `field:` prefixes. Tap replaces the query with `{prefix}{current unprefixed text}` (e.g. `acme` → `email:acme`). Both sessions and packages tables.
+
+| Concern        | Behavior                                                                 |
+| -------------- | ------------------------------------------------------------------------ |
+| Min length     | Client only, unprefixed only, ≥ 3 chars before sending `searchQuery`     |
+| `refineSearch` | `true` when unprefixed blob matches **> 40**; does not stop pagination   |
+| Load more      | Sentinel + normal `loadMore` until search pagination completes           |
+| Banner         | Shown while `refineSearch`; nudge to use `field:` syntax                 |
+| Chips          | `refineSearch` **or** loaded count > 10; tap → `field:` + same free text |
+
+### Implementation phases (PRs 2–4)
+
+Work order within the stack; **no prod backfill until deploy**, then one batch job covers everything. PR 3 and PR 4 can merge in either order; deploy once both are in.
+
+**PR 2 — receipt model**
+
+- Rename package receipt + email metadata fields.
+- Optional `bookings.receiptNumber`; indexes on packages and bookings.
+- Write path at payment; denormalize onto package session bookings.
+- Admin UI: show stored receipt when paid, blank when pending.
+
+**PR 3 — search backend**
+
+1. Schema: optional `searchBlob` on packages and bookings + search index definition.
+2. Router: single `field:value` or unprefixed branch in list services.
+3. Prefixes: `email:`, `editor:`, `date:`, `receipt:` (indexes from PR 2); then `phone:`, `abn:`, `ig:`.
+4. Write path: maintain `searchBlob` on create/update (and editor assignment for sessions). Blob includes normalized phone/ABN tokens; do not rewrite contact fields.
+5. Unprefixed blob path: paginate with existing list page size until search pagination completes; set `refineSearch: true` when total matches **> 40** (detect while paging — e.g. once a page would imply a 41st match, or equivalent count in the service).
+
+**PR 4 — search UX**
+
+1. Client min length (unprefixed only); no inline hint required for v1.
+2. Read `refineSearch` from list API; banner above table (no pagination blocking).
+3. Sentinel pagination unchanged (`InfiniteScrollSentinel` + `DASHBOARD_PAGE_SIZE`).
+4. Narrow chips when `refineSearch` or loaded count > 10; chip → `field:` + unprefixed text.
+
+**Deploy → backfill → PR 5**
+
+- Backfill: paid rows get `receiptNumber` + `searchBlob` only.
+- PR 5: remove unused fields/code; optional → required only where backfill guarantees presence.
+
+### Shell vs v2 at a glance
+
+|                      | Branch shell (now) | v2 (planned)                              |
+| -------------------- | ------------------ | ----------------------------------------- |
+| Unprefixed search    | Not implemented    | `searchBlob` search index                 |
+| Targeted search      | Not implemented    | `field:value` → index or normalized match |
+| Auto-detect shape    | N/A                | Rejected                                  |
+| Receipt in admin     | Often computed     | Stored when paid; blank when pending      |
+| Sort while searching | Normal list sort   | Blob: relevance; `date:`: day + time      |

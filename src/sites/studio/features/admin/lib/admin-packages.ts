@@ -4,7 +4,6 @@ import type { Doc } from "#convex/_generated/dataModel";
 import { isPackageArchived } from "#convex/lib/archiveState";
 import type { BookingAddon } from "#studio/features/booking-form/lib/booking-form-model";
 import { formatBookingInvoiceNumber } from "#studio/features/booking-invoice/lib/build-booking-invoice-data";
-import { formatAudAmount } from "#studio/features/admin/lib/remaining-balance";
 
 export type AdminPackageStatus = Doc<"packages">["status"];
 
@@ -87,29 +86,6 @@ const PAYMENT_REMINDER_DAYS_BEFORE_DUE = 2;
 const PACKAGE_EXPIRY_REMINDER_DAYS_PER_REMAINING_SESSION = 7;
 
 export type AdminPackagesView = "inbox" | "all";
-
-export type AdminPackageSearchFilters = { searchQuery: string };
-
-function getAdminPackageStatusLabel(status: AdminPackageStatus) {
-	switch (status) {
-		case "pending_payment":
-			return "Pending";
-
-		case "paid":
-			return "Paid";
-
-		case "schedule_email_failed":
-			return "Receipt and scheduling email failed";
-
-		case "abandoned":
-			return "Abandoned";
-
-		case "expired":
-			return "Expired";
-		default:
-			return exhaustiveCheck(status);
-	}
-}
 
 export type AdminPackageStatusDisplay = { className: string; icon: LucideIcon; label: string };
 
@@ -290,36 +266,4 @@ export function mapPackageToAdminRow(packageRecord: AdminPackageRecord): AdminPa
 		stripePaymentIntentId: packageRecord.stripePaymentIntentId,
 		archived: isPackageArchived(packageRecord)
 	};
-}
-
-function packageMatchesSearch(packageRow: AdminPackageRow, searchQuery: string) {
-	const normalizedSearchQuery = searchQuery.trim().toLowerCase();
-
-	if (normalizedSearchQuery.length === 0) {
-		return true;
-	}
-
-	const searchableText = [
-		packageRow.customerName,
-		packageRow.customerEmail,
-		packageRow.customerPhone,
-		packageRow.accountName,
-		packageRow.abn,
-		packageRow.instagramHandle,
-		packageRow.invoiceNumber,
-		`${packageRow.packageSize} sessions`,
-		`${packageRow.bookedSessions} booked`,
-		packageRow.duration,
-		packageRow.addons.join(" "),
-		formatAudAmount(packageRow.totalDueAmount),
-		getAdminPackageStatusLabel(packageRow.status)
-	]
-		.join(" ")
-		.toLowerCase();
-
-	return searchableText.includes(normalizedSearchQuery);
-}
-
-export function filterAdminPackages(rows: AdminPackageRow[], filters: AdminPackageSearchFilters) {
-	return rows.filter((packageRow) => packageMatchesSearch(packageRow, filters.searchQuery));
 }
