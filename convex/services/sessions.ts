@@ -43,7 +43,6 @@ import {
 	archivePastDeadCheckoutSessionsBatch,
 	archiveSessionWhenFullyDone
 } from "#convex/lib/sessionArchive";
-import { formatBookingInvoiceNumber } from "#studio/features/booking-invoice/lib/build-booking-invoice-data";
 
 type PaginationArgs = { paginationOpts: { numItems: number; cursor: string | null } };
 
@@ -201,10 +200,7 @@ async function loadAdminSessionListRows(ctx: QueryCtx, sessionsPage: Doc<"bookin
 				assignedEditorDisplayName,
 				hasDriveWorkflowFailure,
 				stripeInvoicesSummary,
-				packageInvoiceNumber: formatBookingInvoiceNumber(
-					packageRecord._id,
-					packageRecord.createdAt
-				),
+				packageInvoiceNumber: packageRecord.receiptNumber,
 				linkedPackageSize: packageRecord.packageSize,
 				packageStripeCustomerId: packageRecord.stripeCustomerId,
 				packageSessionPosition: sessionConsumesPackageCapacity(session)
