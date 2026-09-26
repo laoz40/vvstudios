@@ -245,7 +245,7 @@ async function seedPackage(t: TestClient) {
 			createdAt: now,
 			paidAt: now,
 			expiresAt: now + 100_000,
-			invoiceEmailStatus: "sent"
+			receiptEmailStatus: "sent"
 		})
 	);
 }
@@ -298,7 +298,7 @@ async function seedPendingPackage(t: TestClient) {
 			status: "pending_payment",
 			archived: false,
 			createdAt: now,
-			invoiceEmailStatus: "sent"
+			receiptEmailStatus: "sent"
 		})
 	);
 }
@@ -325,7 +325,7 @@ async function seedPaidPackageWithToken(t: TestClient) {
 			createdAt: now,
 			paidAt: now,
 			expiresAt: getPackageExpiresAt(now, 4),
-			invoiceEmailStatus: "sent",
+			receiptEmailStatus: "sent",
 			scheduleTokenHash,
 			scheduleLinkStatus: "active"
 		})

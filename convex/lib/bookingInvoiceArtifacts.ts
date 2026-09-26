@@ -62,7 +62,7 @@ export type PackageInvoiceInput = Pick<
 	| "notes"
 	| "packageSize"
 	| "createdAt"
-	| "invoiceNumber"
+	| "receiptNumber"
 	| "singleSessionAmount"
 	| "packageSubtotalAmount"
 	| "discountPercent"
@@ -403,7 +403,7 @@ export function createPackageReceiptArtifacts(
 		totalDueAmount: packageRecord.totalDueAmount,
 		invoiceLineItems,
 		leadTimeMinutes: options.leadTimeMinutes,
-		receiptNumber: packageRecord.invoiceNumber,
+		receiptNumber: packageRecord.receiptNumber,
 		scheduleExpiresAtLabel,
 		scheduleUrl: options.scheduleUrl
 	});

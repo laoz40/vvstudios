@@ -297,23 +297,22 @@ export function markPackageReceiptEmailAttemptService(
 	return getPackageFromDb(ctx, args.packageId).andThen(() => {
 		const now = Date.now();
 
-		// Receipt fields still use invoice* columns until a schema migration renames them.
 		return okOrThrow(
 			ctx.db
 				.patch(
 					args.packageId,
 					args.status === "sent"
 						? {
-								invoiceEmailFailureCode: undefined,
-								invoiceEmailSentAt: now,
-								invoiceEmailStatus: "sent" as const,
-								invoiceNumber: args.receiptNumber,
-								lastInvoiceEmailAttemptAt: now
+								receiptEmailFailureCode: undefined,
+								receiptEmailSentAt: now,
+								receiptEmailStatus: "sent" as const,
+								receiptNumber: args.receiptNumber,
+								lastReceiptEmailAttemptAt: now
 							}
 						: {
-								invoiceEmailFailureCode: args.failureCode,
-								invoiceEmailStatus: "failed" as const,
-								lastInvoiceEmailAttemptAt: now
+								receiptEmailFailureCode: args.failureCode,
+								receiptEmailStatus: "failed" as const,
+								lastReceiptEmailAttemptAt: now
 							}
 				)
 				.then(() => null)

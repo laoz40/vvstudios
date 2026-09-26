@@ -114,7 +114,7 @@ async function seedPackage(
 			createdAt: now - 1_000,
 			paidAt: now - 100,
 			expiresAt: overrides.expiresAt ?? Date.parse("2030-01-20T00:00:00.000Z"),
-			invoiceEmailStatus: "sent",
+			receiptEmailStatus: "sent",
 			scheduleTokenHash,
 			scheduleLinkStatus: overrides.scheduleLinkStatus ?? "active"
 		})
