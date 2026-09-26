@@ -319,9 +319,7 @@ export function markPackageReceiptEmailAttemptService(
 					if (args.status === "sent" && args.receiptNumber) {
 						const bookings = await ctx.db
 							.query("bookings")
-							.withIndex("by_packageId", (indexQuery) =>
-								indexQuery.eq("packageId", args.packageId)
-							)
+							.withIndex("by_packageId", (indexQuery) => indexQuery.eq("packageId", args.packageId))
 							.collect();
 
 						await Promise.all(
