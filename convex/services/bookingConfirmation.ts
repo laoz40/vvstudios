@@ -192,6 +192,21 @@ export function markSessionInvoiceEmailFailedService(
 	});
 }
 
+export function recordBookingReceiptNumberService(
+	ctx: MutationCtx,
+	args: { bookingId: Id<"bookings">; receiptNumber: string }
+) {
+	return getSessionFromDb(ctx, args.bookingId).andThen((session) => {
+		if (session.receiptNumber === args.receiptNumber) {
+			return ok(null);
+		}
+
+		return okOrThrow(
+			ctx.db.patch(args.bookingId, { receiptNumber: args.receiptNumber }).then(() => null)
+		);
+	});
+}
+
 export function markSessionInvoiceEmailRetrySentService(
 	ctx: MutationCtx,
 	args: { bookingId: Id<"bookings"> }

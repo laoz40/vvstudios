@@ -151,5 +151,21 @@ export async function sendConfirmedBookingInvoice(
 			message: "Booking invoice email failed during booking confirmation",
 			reason: emailResult.error.reason
 		});
+
+		return;
+	}
+
+	const recordReceiptResult = await fromConvexTuple(
+		ctx.runMutation(internal.bookingConfirmation.recordBookingReceiptNumber, {
+			bookingId: session._id,
+			receiptNumber: emailResult.value.receiptNumber
+		})
+	);
+
+	if (recordReceiptResult.isErr()) {
+		console.error("Failed to store booking receipt number after email send", {
+			bookingId: session._id,
+			reason: recordReceiptResult.error.reason
+		});
 	}
 }

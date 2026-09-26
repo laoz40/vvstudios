@@ -39,14 +39,22 @@ export function resendBookingReceiptService(
 					leadTimeMinutes: settings.leadTimeMinutes,
 					rescheduleUrl,
 					skipHostEmail: true
-				}).map(() => session)
+				}).map(({ receiptNumber }) => ({ session, receiptNumber }))
 			)
 		)
-		.andThen((session) =>
+		.andThen(({ session, receiptNumber }) =>
 			fromConvexTuple(
-				ctx.runMutation(internal.bookingConfirmation.markSessionInvoiceEmailRetrySent, {
-					bookingId: session._id
+				ctx.runMutation(internal.bookingConfirmation.recordBookingReceiptNumber, {
+					bookingId: session._id,
+					receiptNumber
 				})
-			).map(() => null)
-		);
+			).andThen(() =>
+				fromConvexTuple(
+					ctx.runMutation(internal.bookingConfirmation.markSessionInvoiceEmailRetrySent, {
+						bookingId: session._id
+					})
+				)
+			)
+		)
+		.map(() => null);
 }
