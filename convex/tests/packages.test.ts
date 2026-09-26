@@ -221,6 +221,29 @@ describe("admin package management", () => {
 	});
 });
 
+describe("package receipt number", () => {
+	test("stores receipt on the package and copies it to package session bookings", async () => {
+		const t = createConvexTest();
+		const packageId = await seedPendingPackage(t);
+		const bookingId = await seedPackageSession(t, packageId, 0, "confirmed");
+		const receiptNumber = "VV-20300101-ABCD";
+
+		const [error] = await t.mutation(internal.packages.markPackageReceiptEmailAttempt, {
+			packageId,
+			receiptNumber,
+			status: "sent"
+		});
+
+		expect(error).toBeNull();
+
+		const packageRecord = await readPackage(t, packageId);
+		expect(packageRecord?.receiptNumber).toBe(receiptNumber);
+
+		const booking = await t.run((ctx) => ctx.db.get(bookingId));
+		expect(booking?.receiptNumber).toBe(receiptNumber);
+	});
+});
+
 async function seedPackage(t: TestClient) {
 	return await t.run((ctx) =>
 		ctx.db.insert("packages", {
@@ -256,7 +279,7 @@ async function seedPackageSession(
 	index: number,
 	status: "confirmed" | "email_failed"
 ) {
-	await t.run((ctx) =>
+	return await t.run((ctx) =>
 		ctx.db.insert("bookings", {
 			name: "Test customer",
 			phone: "0400 000 000",

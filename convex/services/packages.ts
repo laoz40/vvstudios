@@ -315,7 +315,24 @@ export function markPackageReceiptEmailAttemptService(
 								lastReceiptEmailAttemptAt: now
 							}
 				)
-				.then(() => null)
+				.then(async () => {
+					if (args.status === "sent" && args.receiptNumber) {
+						const bookings = await ctx.db
+							.query("bookings")
+							.withIndex("by_packageId", (indexQuery) =>
+								indexQuery.eq("packageId", args.packageId)
+							)
+							.collect();
+
+						await Promise.all(
+							bookings.map((booking) =>
+								ctx.db.patch(booking._id, { receiptNumber: args.receiptNumber })
+							)
+						);
+					}
+
+					return null;
+				})
 		);
 	});
 }
