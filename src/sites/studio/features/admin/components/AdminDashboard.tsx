@@ -30,6 +30,9 @@ import {
 	readStoredSessionsTablePreferences
 } from "#studio/features/admin/lib/admin-dashboard-preferences";
 import { DASHBOARD_PAGE_SIZE } from "#studio/features/auth/lib/dashboard-loading-labels";
+import { useDebouncedValue } from "#/lib/use-debounced-value";
+
+const ADMIN_TABLE_SEARCH_DEBOUNCE_MS = 300;
 
 type ArchivePastDeadCheckoutBatch = {
 	continueCursor: string | null;
@@ -116,10 +119,19 @@ function BookingsDashboardView({
 	onSessionsViewChange,
 	onShowStaleSessionsChange
 }: BookingsDashboardViewProps) {
+	const debouncedSessionSearchQuery = useDebouncedValue(
+		sessionSearchQuery,
+		ADMIN_TABLE_SEARCH_DEBOUNCE_MS
+	);
+
+	const trimmedSessionSearchQuery = debouncedSessionSearchQuery.trim();
+
 	const sessionListQuery = {
 		...toSessionListQuerySort(sessionSorting),
 		view: sessionsView,
-		includeStale: showStaleSessions
+		includeStale: showStaleSessions,
+		searchQuery:
+			trimmedSessionSearchQuery.length > 0 ? trimmedSessionSearchQuery : undefined
 	};
 
 	const sessions = usePaginatedQuery(api.sessions.listSessions, sessionListQuery, {
@@ -166,10 +178,21 @@ function PackagesDashboardView({
 	onShowStalePackagesChange,
 	onViewPackageSessions
 }: PackagesDashboardViewProps) {
+	const [packageSearchQuery, setPackageSearchQuery] = useState("");
+
+	const debouncedPackageSearchQuery = useDebouncedValue(
+		packageSearchQuery,
+		ADMIN_TABLE_SEARCH_DEBOUNCE_MS
+	);
+
+	const trimmedPackageSearchQuery = debouncedPackageSearchQuery.trim();
+
 	const packageListQuery = {
 		...toPackageListQuerySort(packageSorting),
 		view: packagesView,
-		includeStale: showStalePackages
+		includeStale: showStalePackages,
+		searchQuery:
+			trimmedPackageSearchQuery.length > 0 ? trimmedPackageSearchQuery : undefined
 	};
 
 	const packages = usePaginatedQuery(api.packages.listPackages, packageListQuery, {
@@ -189,9 +212,11 @@ function PackagesDashboardView({
 			isLoadingPackages={packages.status === "LoadingFirstPage"}
 			loadMorePackages={() => packages.loadMore(DASHBOARD_PAGE_SIZE)}
 			packagesView={packagesView}
+			searchQuery={packageSearchQuery}
 			showStalePackages={showStalePackages}
 			sorting={packageSorting}
 			onPackagesViewChange={onPackagesViewChange}
+			onSearchQueryChange={setPackageSearchQuery}
 			onShowStalePackagesChange={onShowStalePackagesChange}
 			onSortingChange={onPackageSortingChange}
 			onViewPackageSessions={onViewPackageSessions}

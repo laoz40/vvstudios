@@ -6,8 +6,6 @@ import { Button } from "#/components/ui/button";
 import CopyIcon from "#/components/ui/copy-icon";
 import { TableCell, TableRow } from "#/components/ui/table";
 import { cn } from "#/lib/utils";
-import { formatBookingInvoiceNumber } from "#studio/features/booking-invoice/lib/build-booking-invoice-data";
-import type { SessionRecord } from "#studio/features/admin/lib/admin-sessions";
 
 export function formatInstagramHandle(instagramHandle: string) {
 	const trimmedHandle = instagramHandle.trim();
@@ -131,32 +129,4 @@ export function CopyableText({ value, label, children, onTextClick }: CopyableTe
 			</AnimatedIconButton>
 		</span>
 	);
-}
-
-export function customerFilter(row: { original: SessionRecord }, value: string) {
-	const query = value.trim().toLowerCase();
-
-	if (!query) {
-		return true;
-	}
-
-	const invoiceNumber =
-		row.original.packageInvoiceNumber ??
-		formatBookingInvoiceNumber(row.original._id, row.original.pendingPaymentCreatedAt);
-
-	return [
-		row.original._id,
-		invoiceNumber,
-		row.original.name,
-		row.original.email,
-		row.original.accountName,
-		row.original.phone,
-		row.original.instagramHandle,
-		// Let users include the @ symbol when searching for displayed handles.
-		row.original.instagramHandle ? formatInstagramHandle(row.original.instagramHandle) : null,
-		row.original.service,
-		row.original.date
-	]
-		.filter((field): field is string => Boolean(field))
-		.some((field) => field.toLowerCase().includes(query));
 }
