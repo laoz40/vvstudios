@@ -13,7 +13,7 @@ export type AdminBookingPartialFieldSearchArgs =
 			indexName: "search_admin_editor";
 			searchField: "assignedEditorDisplayName";
 			searchText: string;
-		};
+	  };
 
 export type AdminPartialFieldSearchQuery = Exclude<
 	ParsedAdminSearchQuery,
