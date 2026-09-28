@@ -4,8 +4,38 @@ import type { Doc } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
 import { getEditorWorkStatus } from "#convex/lib/editorAccess";
 import { okOrThrow } from "#convex/lib/result";
+import { searchBlobPatchForBooking } from "#convex/lib/adminSearchBlob";
 
 const ACTIVE_EDITOR_LIMIT = 200;
+
+export function editorProfileDisplayName(
+	editor: Pick<Doc<"editorProfiles">, "displayName" | "email">
+) {
+	return editor.displayName || editor.email;
+}
+
+export async function patchBookingsAssignedEditorDisplayName(
+	ctx: MutationCtx,
+	editorTokenIdentifier: string,
+	assignedEditorDisplayName: string
+) {
+	const bookings = await ctx.db
+		.query("bookings")
+		.withIndex("by_assignedEditorTokenIdentifier", (query) =>
+			query.eq("assignedEditorTokenIdentifier", editorTokenIdentifier)
+		)
+		.collect();
+
+	await Promise.all(
+		bookings.map(async (booking) => {
+			const searchBlobPatch = await searchBlobPatchForBooking(ctx, booking, {
+				assignedEditorDisplayName
+			});
+
+			return ctx.db.patch(booking._id, searchBlobPatch);
+		})
+	);
+}
 
 export function listActiveEditorProfiles(ctx: QueryCtx) {
 	return okOrThrow(
@@ -88,9 +118,20 @@ function saveSessionEditorAssignment(
 	return okOrThrow(
 		(async () => {
 			const previousEditorTokenIdentifier = session.assignedEditorTokenIdentifier;
+
+			const assignedEditorDisplayName =
+				editor !== undefined ? editorProfileDisplayName(editor) : undefined;
+
+			const searchBlobPatch = await searchBlobPatchForBooking(ctx, {
+				...session,
+				assignedEditorTokenIdentifier: editor?.tokenIdentifier,
+				assignedEditorDisplayName
+			});
+
 			await ctx.db.patch(session._id, {
 				adminNotes: adminNotes.trim() || undefined,
-				assignedEditorTokenIdentifier: editor?.tokenIdentifier
+				assignedEditorTokenIdentifier: editor?.tokenIdentifier,
+				...searchBlobPatch
 			});
 
 			// Assignment and the editor's latest-assignment timestamp are saved in one transaction.

@@ -5,6 +5,7 @@ import { internal } from "#convex/_generated/api";
 import type { ActionCtx, MutationCtx } from "#convex/_generated/server";
 import { scheduleDriveSetup } from "#convex/lib/driveScheduling";
 import { fromConvexTuple, okOrThrow } from "#convex/lib/result";
+import { searchBlobPatchForBooking } from "#convex/lib/adminSearchBlob";
 import { getSessionFromDb } from "#convex/lib/sessionLookup";
 import {
 	getBookingClaimStatus,
@@ -202,7 +203,12 @@ export function recordBookingReceiptNumberService(
 		}
 
 		return okOrThrow(
-			ctx.db.patch(args.bookingId, { receiptNumber: args.receiptNumber }).then(() => null)
+			searchBlobPatchForBooking(ctx, session, { receiptNumber: args.receiptNumber }).then(
+				(searchBlobPatch) =>
+					ctx.db
+						.patch(args.bookingId, { receiptNumber: args.receiptNumber, ...searchBlobPatch })
+						.then(() => null)
+			)
 		);
 	});
 }

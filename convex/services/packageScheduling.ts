@@ -3,6 +3,8 @@ import { api, internal } from "#convex/_generated/api";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { ActionCtx, MutationCtx, QueryCtx } from "#convex/_generated/server";
 import { getOrCreateDriveClientId } from "#convex/lib/driveFolders";
+import { buildBookingSearchBlob } from "#convex/lib/adminSearchBlob";
+import { contactNormalizedIndexFields } from "#convex/lib/contactNormalization";
 import { scheduleDriveSetup } from "#convex/lib/driveScheduling";
 import { formatDriveClientFolderName } from "#studio/lib/bookingdatetime";
 import { processPackageAdjustment } from "#convex/lib/packageAdjustments";
@@ -472,36 +474,42 @@ export function saveCreatedPackageSessionService(
 						accountName: packageFromDb.accountName,
 						contactName: packageFromDb.name
 					})
-				}).andThen((driveClientId) =>
-					okOrThrow(
+				}).andThen((driveClientId) => {
+					const bookingFields = {
+						name: packageFromDb.name,
+						phone: packageFromDb.phone,
+						accountName: packageFromDb.accountName,
+						abn: packageFromDb.abn,
+						email: packageFromDb.email,
+						instagramHandle: packageFromDb.instagramHandle,
+						date: args.date,
+						time: args.time,
+						sessionStartAt,
+						duration: packageFromDb.duration,
+						service: args.service,
+						addons: getPackageSessionAddons(packageFromDb.addons, args.remotePodcast),
+						essentialEditQuantity: packageFromDb.essentialEditQuantity,
+						completeEditQuantity: packageFromDb.completeEditQuantity,
+						clipsPackageQuantity: packageFromDb.clipsPackageQuantity,
+						handcraftedClipsQuantity: packageFromDb.handcraftedClipsQuantity,
+						notes: args.notes,
+						status: "confirmed" as const,
+						pendingPaymentCreatedAt: packageFromDb.createdAt,
+						paymentCompletedAt: packageFromDb.paidAt,
+						bookingConfirmedAt: args.now,
+						googleCalendarId: args.googleCalendarId,
+						googleEventId: args.googleEventId,
+						packageId: packageFromDb._id,
+						receiptNumber: packageFromDb.receiptNumber,
+						archived: false,
+						driveClientId
+					};
+
+					return okOrThrow(
 						ctx.db.insert("bookings", {
-							name: packageFromDb.name,
-							phone: packageFromDb.phone,
-							accountName: packageFromDb.accountName,
-							abn: packageFromDb.abn,
-							email: packageFromDb.email,
-							instagramHandle: packageFromDb.instagramHandle,
-							date: args.date,
-							time: args.time,
-							sessionStartAt,
-							duration: packageFromDb.duration,
-							service: args.service,
-							addons: getPackageSessionAddons(packageFromDb.addons, args.remotePodcast),
-							essentialEditQuantity: packageFromDb.essentialEditQuantity,
-							completeEditQuantity: packageFromDb.completeEditQuantity,
-							clipsPackageQuantity: packageFromDb.clipsPackageQuantity,
-							handcraftedClipsQuantity: packageFromDb.handcraftedClipsQuantity,
-							notes: args.notes,
-							status: "confirmed",
-							pendingPaymentCreatedAt: packageFromDb.createdAt,
-							paymentCompletedAt: packageFromDb.paidAt,
-							bookingConfirmedAt: args.now,
-							googleCalendarId: args.googleCalendarId,
-							googleEventId: args.googleEventId,
-							packageId: packageFromDb._id,
-							receiptNumber: packageFromDb.receiptNumber,
-							archived: false,
-							driveClientId
+							...bookingFields,
+							...contactNormalizedIndexFields(packageFromDb.phone),
+							searchBlob: buildBookingSearchBlob(bookingFields)
 						})
 					).andThen((bookingId) =>
 						okOrThrow(
@@ -512,8 +520,8 @@ export function saveCreatedPackageSessionService(
 								packageId: packageFromDb._id
 							})
 						).andThen((scheduled) => scheduled.map(() => ({ bookingId, packageFromDb })))
-					)
-				)
+					);
+				})
 			)
 			// Clear expiry reminder after the customer schedules another session.
 			.andThen(({ bookingId, packageFromDb }) => {

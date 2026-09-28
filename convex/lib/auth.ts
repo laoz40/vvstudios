@@ -4,6 +4,10 @@ import { z } from "zod";
 import { internal } from "#convex/_generated/api";
 import type { Doc } from "#convex/_generated/dataModel";
 import type { ActionCtx, MutationCtx, QueryCtx } from "#convex/_generated/server";
+import {
+	editorProfileDisplayName,
+	patchBookingsAssignedEditorDisplayName
+} from "#convex/lib/editorAssignments";
 import { fromConvexTuple, okOrThrow } from "#convex/lib/result";
 import { hasPermission, ROLE_PERMISSIONS, type Permission } from "#/lib/permissions";
 
@@ -126,7 +130,24 @@ export function saveEditorDetails(
 	const details = { displayName: identity.name ?? "", email: identity.email ?? "" };
 
 	if (editor !== null) {
-		return okOrThrow(ctx.db.patch(editor._id, details).then(() => null));
+		return okOrThrow(
+			(async () => {
+				const nextAssignedEditorDisplayName = editorProfileDisplayName(details);
+				const previousAssignedEditorDisplayName = editorProfileDisplayName(editor);
+
+				await ctx.db.patch(editor._id, details);
+
+				if (nextAssignedEditorDisplayName !== previousAssignedEditorDisplayName) {
+					await patchBookingsAssignedEditorDisplayName(
+						ctx,
+						editor.tokenIdentifier,
+						nextAssignedEditorDisplayName
+					);
+				}
+
+				return null;
+			})()
+		);
 	}
 
 	return okOrThrow(
