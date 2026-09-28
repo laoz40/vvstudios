@@ -7,6 +7,7 @@ import type {
 	AdminBookingPartialFieldSearchArgs,
 	AdminPackagePartialFieldSearchArgs
 } from "#convex/lib/adminSearchPrefixFilters";
+import { exhaustiveCheck } from "#/lib/result";
 
 export type AdminArchivedListView = "inbox" | "all";
 
@@ -102,26 +103,55 @@ function adminBookingsFieldSearchQuery(
 	ctx: QueryCtx,
 	args: Pick<AdminBookingFieldSearchIndexArgs, "indexName" | "searchField" | "searchText" | "view">
 ) {
-	if (args.indexName === "search_admin_editor") {
-		return ctx.db.query("bookings").withSearchIndex("search_admin_editor", (indexQuery) => {
-			const searchQuery = indexQuery.search("assignedEditorDisplayName", args.searchText);
+	switch (args.indexName) {
+		case "search_admin_editor":
+			return ctx.db.query("bookings").withSearchIndex("search_admin_editor", (indexQuery) => {
+				const searchQuery = indexQuery.search("assignedEditorDisplayName", args.searchText);
 
-			if (args.view === "inbox") {
-				return searchQuery.eq("archived", false);
-			}
+				if (args.view === "inbox") {
+					return searchQuery.eq("archived", false);
+				}
 
-			return searchQuery;
-		});
+				return searchQuery;
+			});
+
+		case "search_admin_name":
+			return adminBookingsPackageFieldSearchQuery(ctx, {
+				indexName: args.indexName,
+				searchField: "name",
+				searchText: args.searchText,
+				view: args.view
+			});
+
+		case "search_admin_account":
+			return adminBookingsPackageFieldSearchQuery(ctx, {
+				indexName: args.indexName,
+				searchField: "accountName",
+				searchText: args.searchText,
+				view: args.view
+			});
+
+		case "search_admin_ig":
+			return adminBookingsPackageFieldSearchQuery(ctx, {
+				indexName: args.indexName,
+				searchField: "instagramHandle",
+				searchText: args.searchText,
+				view: args.view
+			});
+
+		default:
+			return exhaustiveCheck(args.indexName);
 	}
+}
 
-	const fieldArgs = args as AdminPackagePartialFieldSearchArgs & {
-		view: AdminArchivedListView;
-	};
+function adminBookingsPackageFieldSearchQuery(
+	ctx: QueryCtx,
+	args: AdminPackagePartialFieldSearchArgs & { view: AdminArchivedListView }
+) {
+	return ctx.db.query("bookings").withSearchIndex(args.indexName, (indexQuery) => {
+		const searchQuery = indexQuery.search(args.searchField, args.searchText);
 
-	return ctx.db.query("bookings").withSearchIndex(fieldArgs.indexName, (indexQuery) => {
-		const searchQuery = indexQuery.search(fieldArgs.searchField, fieldArgs.searchText);
-
-		if (fieldArgs.view === "inbox") {
+		if (args.view === "inbox") {
 			return searchQuery.eq("archived", false);
 		}
 
