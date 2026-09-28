@@ -30,14 +30,16 @@ import {
 	getEditorSessionDriveFolders
 } from "#convex/lib/driveStatus";
 import { okOrThrow } from "#convex/lib/result";
+import { searchBlobPatchForBooking } from "#convex/lib/adminSearchBlob";
 import { getSessionByStripeSessionId, getSessionFromDb } from "#convex/lib/sessionLookup";
 import { listStripeInvoicesForBooking, summarizeStripeInvoices } from "#convex/lib/stripeInvoices";
 import {
-	type AdminSessionsView,
-	paginateAdminSessionsByCreatedAt,
-	paginateAdminSessionsBySessionStart,
-	passesAdminInboxStaleFilter
-} from "#convex/lib/adminSessionList";
+	paginateAdminSessionsWithoutSearch,
+	paginateAdminSessionsWithSearch,
+	type AdminSessionSearchArgs
+} from "#convex/lib/adminBookingSearch";
+import { parseTrimmedAdminSearchQuery } from "#convex/lib/adminSearchQuery";
+import { passesAdminInboxStaleFilter, type AdminSessionsView } from "#convex/lib/adminSessionList";
 import {
 	archiveDeadCheckoutBooking,
 	archivePastDeadCheckoutSessionsBatch,
@@ -225,11 +227,22 @@ export async function listSessionsService(ctx: QueryCtx, args: ListSessionsArgs)
 	const sortDirection = args.sortDirection ?? "asc";
 	const view = args.view ?? "inbox";
 	const includeStale = args.includeStale ?? true;
+	const parsedSearchQuery = parseTrimmedAdminSearchQuery(args.searchQuery);
 
-	const bookingsPage =
-		sortBy === "createdAt"
-			? await paginateAdminSessionsByCreatedAt(ctx, view, sortDirection, args.paginationOpts)
-			: await paginateAdminSessionsBySessionStart(ctx, view, sortDirection, args.paginationOpts);
+	const searchContext: Omit<AdminSessionSearchArgs, "parsedQuery"> = {
+		sortBy,
+		sortDirection,
+		view,
+		includeStale,
+		paginationOpts: args.paginationOpts
+	};
+
+	const bookingsPage = parsedSearchQuery
+		? await paginateAdminSessionsWithSearch(ctx, {
+				...searchContext,
+				parsedQuery: parsedSearchQuery
+			})
+		: await paginateAdminSessionsWithoutSearch(ctx, searchContext);
 
 	const sessionsPage = !includeStale
 		? bookingsPage.page.filter((session) => passesAdminInboxStaleFilter(session, includeStale))
@@ -293,7 +306,12 @@ export function saveSessionInstagramHandleService(
 		})
 		.andThen((session) =>
 			okOrThrow(
-				ctx.db.patch(session._id, { instagramHandle: args.instagramHandle }).then(() => null)
+				searchBlobPatchForBooking(ctx, session, { instagramHandle: args.instagramHandle }).then(
+					(searchBlobPatch) =>
+						ctx.db
+							.patch(session._id, { instagramHandle: args.instagramHandle, ...searchBlobPatch })
+							.then(() => null)
+				)
 			)
 		);
 }

@@ -20,7 +20,18 @@ import {
 	validatePackageUpdate
 } from "#convex/lib/packageUpdates";
 import {
-	paginateAdminPackagesByCreatedAt,
+	paginateAdminPackagesWithoutSearch,
+	paginateAdminPackagesWithSearch,
+	type AdminPackageSearchArgs
+} from "#convex/lib/adminPackageSearch";
+import { parseTrimmedAdminSearchQuery } from "#convex/lib/adminSearchQuery";
+import {
+	searchBlobPatchForBooking,
+	searchBlobPatchForPackage,
+	patchPackageSessionBookingsContactSearch,
+	type PackageContactSearchFields
+} from "#convex/lib/adminSearchBlob";
+import {
 	passesAdminPackageStaleFilter,
 	type AdminPackagesView
 } from "#convex/lib/adminPackageList";
@@ -119,13 +130,21 @@ async function buildAdminPackagesListPage(ctx: QueryCtx, args: ListPackagesArgs)
 	const sortDirection = args.sortDirection ?? "desc";
 	const view = args.view ?? "inbox";
 	const includeStale = args.includeStale ?? false;
+	const parsedSearchQuery = parseTrimmedAdminSearchQuery(args.searchQuery);
 
-	const packagesPage = await paginateAdminPackagesByCreatedAt(
-		ctx,
-		view,
+	const searchContext: Omit<AdminPackageSearchArgs, "parsedQuery"> = {
 		sortDirection,
-		args.paginationOpts
-	);
+		view,
+		includeStale,
+		paginationOpts: args.paginationOpts
+	};
+
+	const packagesPage = parsedSearchQuery
+		? await paginateAdminPackagesWithSearch(ctx, {
+				...searchContext,
+				parsedQuery: parsedSearchQuery
+			})
+		: await paginateAdminPackagesWithoutSearch(ctx, searchContext);
 
 	const packagesOnPage = !includeStale
 		? packagesPage.page.filter((packageFromDb) =>
@@ -153,16 +172,50 @@ export function updatePackageService(ctx: MutationCtx, args: UpdatePackageArgs) 
 		.andThen(({ existingPackage, updatedPackage }) =>
 			okOrThrow(
 				getCapacityConsumingPackageSessions(ctx, existingPackage._id, existingPackage.packageSize)
-			).map((activeBookedSessions) => ({ activeBookedSessions, updatedPackage }))
+			).map((activeBookedSessions) => ({ activeBookedSessions, existingPackage, updatedPackage }))
 		)
-		.andThen(({ activeBookedSessions, updatedPackage }) =>
-			validatePackageUpdate(args, updatedPackage, activeBookedSessions.length)
+		.andThen(({ activeBookedSessions, existingPackage, updatedPackage }) =>
+			validatePackageUpdate(args, updatedPackage, activeBookedSessions.length).map(() => ({
+				existingPackage,
+				updatedPackage
+			}))
 		)
-		.andThen((updatedPackage) =>
-			okOrThrow(
-				ctx.db.patch(args.packageId, buildPackageUpdatePatch(args, updatedPackage)).then(() => null)
-			)
-		);
+		.andThen(({ existingPackage, updatedPackage }) => {
+			const contactFields: PackageContactSearchFields = {
+				name: updatedPackage.name,
+				phone: updatedPackage.phone,
+				accountName: updatedPackage.accountName,
+				abn: updatedPackage.abn,
+				email: updatedPackage.email.trim().toLowerCase(),
+				instagramHandle: existingPackage.instagramHandle
+			};
+
+			return okOrThrow(
+				ctx.db
+					.patch(args.packageId, {
+						...buildPackageUpdatePatch(args, updatedPackage),
+						...searchBlobPatchForPackage(existingPackage, {
+							...contactFields,
+							notes: updatedPackage.notes,
+							receiptNumber: existingPackage.receiptNumber
+						})
+					})
+					.then(async () => {
+						const contactChanged =
+							existingPackage.name !== contactFields.name ||
+							existingPackage.phone !== contactFields.phone ||
+							existingPackage.accountName !== contactFields.accountName ||
+							existingPackage.abn !== contactFields.abn ||
+							existingPackage.email !== contactFields.email;
+
+						if (contactChanged) {
+							await patchPackageSessionBookingsContactSearch(ctx, args.packageId, contactFields);
+						}
+
+						return null;
+					})
+			);
+		});
 }
 
 export function savePackageInstagramHandleService(
@@ -179,7 +232,23 @@ export function savePackageInstagramHandleService(
 		})
 		.andThen((packageFromDb) =>
 			okOrThrow(
-				ctx.db.patch(packageFromDb._id, { instagramHandle: args.instagramHandle }).then(() => null)
+				ctx.db
+					.patch(packageFromDb._id, {
+						instagramHandle: args.instagramHandle,
+						...searchBlobPatchForPackage(packageFromDb, { instagramHandle: args.instagramHandle })
+					})
+					.then(async () => {
+						await patchPackageSessionBookingsContactSearch(ctx, packageFromDb._id, {
+							name: packageFromDb.name,
+							phone: packageFromDb.phone,
+							accountName: packageFromDb.accountName,
+							abn: packageFromDb.abn,
+							email: packageFromDb.email,
+							instagramHandle: args.instagramHandle
+						});
+
+						return null;
+					})
 			)
 		);
 }
@@ -294,43 +363,47 @@ export function markPackageReceiptEmailAttemptService(
 	ctx: MutationCtx,
 	args: MarkPackageReceiptEmailAttemptArgs
 ) {
-	return getPackageFromDb(ctx, args.packageId).andThen(() => {
+	return getPackageFromDb(ctx, args.packageId).andThen((packageFromDb) => {
 		const now = Date.now();
 
-		return okOrThrow(
-			ctx.db
-				.patch(
-					args.packageId,
-					args.status === "sent"
-						? {
-								receiptEmailFailureCode: undefined,
-								receiptEmailSentAt: now,
-								receiptEmailStatus: "sent" as const,
-								receiptNumber: args.receiptNumber,
-								lastReceiptEmailAttemptAt: now
-							}
-						: {
-								receiptEmailFailureCode: args.failureCode,
-								receiptEmailStatus: "failed" as const,
-								lastReceiptEmailAttemptAt: now
-							}
-				)
-				.then(async () => {
-					if (args.status === "sent" && args.receiptNumber) {
-						const bookings = await ctx.db
-							.query("bookings")
-							.withIndex("by_packageId", (indexQuery) => indexQuery.eq("packageId", args.packageId))
-							.collect();
-
-						await Promise.all(
-							bookings.map((booking) =>
-								ctx.db.patch(booking._id, { receiptNumber: args.receiptNumber })
-							)
-						);
+		const sentPatch =
+			args.status === "sent"
+				? {
+						receiptEmailFailureCode: undefined,
+						receiptEmailSentAt: now,
+						receiptEmailStatus: "sent" as const,
+						receiptNumber: args.receiptNumber,
+						lastReceiptEmailAttemptAt: now,
+						...searchBlobPatchForPackage(packageFromDb, { receiptNumber: args.receiptNumber })
 					}
+				: {
+						receiptEmailFailureCode: args.failureCode,
+						receiptEmailStatus: "failed" as const,
+						lastReceiptEmailAttemptAt: now
+					};
 
-					return null;
-				})
+		return okOrThrow(
+			ctx.db.patch(args.packageId, sentPatch).then(async () => {
+				if (args.status === "sent" && args.receiptNumber) {
+					const bookings = await ctx.db
+						.query("bookings")
+						.withIndex("by_packageId", (indexQuery) => indexQuery.eq("packageId", args.packageId))
+						.collect();
+
+					await Promise.all(
+						bookings.map(async (booking) =>
+							ctx.db.patch(booking._id, {
+								receiptNumber: args.receiptNumber,
+								...(await searchBlobPatchForBooking(ctx, booking, {
+									receiptNumber: args.receiptNumber
+								}))
+							})
+						)
+					);
+				}
+
+				return null;
+			})
 		);
 	});
 }
