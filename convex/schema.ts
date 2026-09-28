@@ -207,6 +207,7 @@ export default defineSchema({
 		abn: v.optional(v.string()),
 		email: v.string(),
 		instagramHandle: v.optional(v.string()),
+		phoneNormalized: v.optional(v.string()),
 
 		// Scheduled session
 		date: v.string(),
@@ -236,6 +237,7 @@ export default defineSchema({
 		pendingPaymentCreatedAt: v.number(),
 		paymentCompletedAt: v.optional(v.number()),
 		receiptNumber: v.optional(v.string()),
+		searchBlob: v.optional(v.string()),
 		bookingConfirmedAt: v.optional(v.number()),
 		bookingFailureCode: v.optional(v.string()),
 
@@ -253,6 +255,7 @@ export default defineSchema({
 
 		// Editor assignment and internal editing instructions
 		assignedEditorTokenIdentifier: v.optional(v.string()),
+		assignedEditorDisplayName: v.optional(v.string()),
 		adminNotes: v.optional(v.string()),
 		editorNotes: v.optional(v.string()),
 		deliverablesClientNotes: v.optional(v.string()),
@@ -310,7 +313,17 @@ export default defineSchema({
 		])
 		.index("by_packageId", ["packageId"])
 		.index("by_packageId_and_status_and_sessionStartAt", ["packageId", "status", "sessionStartAt"])
-		.index("by_receiptNumber", ["receiptNumber"]),
+		.index("by_receiptNumber", ["receiptNumber"])
+		.index("by_phoneNormalized", ["phoneNormalized"])
+		.index("by_abn", ["abn"])
+		.searchIndex("search_admin_blob", { searchField: "searchBlob", filterFields: ["archived"] })
+		.searchIndex("search_admin_name", { searchField: "name", filterFields: ["archived"] })
+		.searchIndex("search_admin_account", { searchField: "accountName", filterFields: ["archived"] })
+		.searchIndex("search_admin_ig", { searchField: "instagramHandle", filterFields: ["archived"] })
+		.searchIndex("search_admin_editor", {
+			searchField: "assignedEditorDisplayName",
+			filterFields: ["archived"]
+		}),
 
 	packages: defineTable({
 		// Customer/contact fields
@@ -320,6 +333,7 @@ export default defineSchema({
 		abn: v.optional(v.string()),
 		email: v.string(),
 		instagramHandle: v.optional(v.string()),
+		phoneNormalized: v.optional(v.string()),
 
 		// Package booking details
 		duration: v.string(),
@@ -355,6 +369,7 @@ export default defineSchema({
 
 		// Receipt metadata (receipt number + email delivery status)
 		receiptNumber: v.optional(v.string()),
+		searchBlob: v.optional(v.string()),
 		receiptEmailStatus: v.optional(
 			v.union(v.literal("pending"), v.literal("sent"), v.literal("failed"))
 		),
@@ -384,4 +399,11 @@ export default defineSchema({
 		.index("by_scheduleTokenHash", ["scheduleTokenHash"])
 		.index("by_stripeSessionId", ["stripeSessionId"])
 		.index("by_receiptNumber", ["receiptNumber"])
+		.index("by_email", ["email"])
+		.index("by_phoneNormalized", ["phoneNormalized"])
+		.index("by_abn", ["abn"])
+		.searchIndex("search_admin_blob", { searchField: "searchBlob", filterFields: ["archived"] })
+		.searchIndex("search_admin_name", { searchField: "name", filterFields: ["archived"] })
+		.searchIndex("search_admin_account", { searchField: "accountName", filterFields: ["archived"] })
+		.searchIndex("search_admin_ig", { searchField: "instagramHandle", filterFields: ["archived"] })
 });
