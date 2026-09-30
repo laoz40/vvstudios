@@ -11,6 +11,7 @@
  *    Marking the last custom package invoice paid archives a finished package.
  */
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
+import { bookingDocument, packageDocument } from "#convex/tests/insertDocumentDefaults";
 import { internal } from "#convex/_generated/api";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import { createConvexTest } from "#convex/test.setup";
@@ -86,50 +87,56 @@ describe("package auto-archive", () => {
 
 async function seedPendingPackage(t: TestClient, stripeSessionId: string) {
 	return await t.run((ctx) =>
-		ctx.db.insert("packages", {
-			name: "Test customer",
-			phone: "0400000000",
-			accountName: "Test account",
-			email: "pending@example.com",
-			duration: "1h",
-			addons: [],
-			packageSize: 4,
-			singleSessionAmount: 100,
-			packageSubtotalAmount: 400,
-			discountPercent: 0,
-			discountAmount: 0,
-			totalDueAmount: 400,
-			status: "pending_payment",
-			createdAt: now,
-			archived: false,
-			stripeSessionId
-		})
+		ctx.db.insert(
+			"packages",
+			packageDocument({
+				name: "Test customer",
+				phone: "0400000000",
+				accountName: "Test account",
+				email: "pending@example.com",
+				duration: "1h",
+				addons: [],
+				packageSize: 4,
+				singleSessionAmount: 100,
+				packageSubtotalAmount: 400,
+				discountPercent: 0,
+				discountAmount: 0,
+				totalDueAmount: 400,
+				status: "pending_payment",
+				createdAt: now,
+				archived: false,
+				stripeSessionId
+			})
+		)
 	);
 }
 
 async function seedPaidPackage(t: TestClient) {
 	return await t.run((ctx) =>
-		ctx.db.insert("packages", {
-			name: "Test customer",
-			phone: "0400000000",
-			accountName: "Test account",
-			email: "customer@example.com",
-			duration: "1h",
-			addons: [],
-			packageSize: 4,
-			singleSessionAmount: 100,
-			packageSubtotalAmount: 400,
-			discountPercent: 0,
-			discountAmount: 0,
-			totalDueAmount: 400,
-			status: "paid",
-			archived: false,
-			createdAt: now - 30 * 24 * 60 * 60 * 1000,
-			receiptEmailStatus: "sent",
-			paidAt: now - 20 * 24 * 60 * 60 * 1000,
-			expiresAt: now,
-			stripeCustomerId: "cus_test_package"
-		})
+		ctx.db.insert(
+			"packages",
+			packageDocument({
+				name: "Test customer",
+				phone: "0400000000",
+				accountName: "Test account",
+				email: "customer@example.com",
+				duration: "1h",
+				addons: [],
+				packageSize: 4,
+				singleSessionAmount: 100,
+				packageSubtotalAmount: 400,
+				discountPercent: 0,
+				discountAmount: 0,
+				totalDueAmount: 400,
+				status: "paid",
+				archived: false,
+				createdAt: now - 30 * 24 * 60 * 60 * 1000,
+				receiptEmailStatus: "sent",
+				paidAt: now - 20 * 24 * 60 * 60 * 1000,
+				expiresAt: now,
+				stripeCustomerId: "cus_test_package"
+			})
+		)
 	);
 }
 
@@ -139,22 +146,25 @@ async function seedPackageSession(
 	addons: Doc<"bookings">["addons"]
 ) {
 	return await t.run((ctx) =>
-		ctx.db.insert("bookings", {
-			name: "Test customer",
-			phone: "0400000000",
-			accountName: "Test account",
-			email: "customer@example.com",
-			date: "2030-01-09",
-			time: "10:00",
-			sessionStartAt: completedSessionStartAt,
-			duration: "1h",
-			service: "Table Setup",
-			addons,
-			status: "confirmed",
-			archived: false,
-			pendingPaymentCreatedAt: now,
-			packageId
-		})
+		ctx.db.insert(
+			"bookings",
+			bookingDocument({
+				name: "Test customer",
+				phone: "0400000000",
+				accountName: "Test account",
+				email: "customer@example.com",
+				date: "2030-01-09",
+				time: "10:00",
+				sessionStartAt: completedSessionStartAt,
+				duration: "1h",
+				service: "Table Setup",
+				addons,
+				status: "confirmed",
+				archived: false,
+				pendingPaymentCreatedAt: now,
+				packageId
+			})
+		)
 	);
 }
 

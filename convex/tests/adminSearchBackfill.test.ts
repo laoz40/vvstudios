@@ -8,6 +8,7 @@
  *    Copies package receipt numbers onto package session bookings.
  */
 import { describe, expect, test } from "vitest";
+import { bookingDocument, packageDocument } from "#convex/tests/insertDocumentDefaults";
 import { internal } from "#convex/_generated/api";
 import type { Id } from "#convex/_generated/dataModel";
 import { receiptNumberForPaidBooking } from "#convex/lib/adminSearchBackfill";
@@ -36,47 +37,53 @@ describe("admin search backfill", () => {
 		const t = createConvexTest();
 
 		const receiptNumber = await t.run(async (ctx) => {
-			const packageId = await ctx.db.insert("packages", {
-				name: "Package",
-				phone: "0400000000",
-				accountName: "Account",
-				email: "pkg@example.com",
-				duration: "1 hour",
-				addons: [],
-				packageSize: 4,
-				singleSessionAmount: 100,
-				packageSubtotalAmount: 400,
-				discountPercent: 0,
-				discountAmount: 0,
-				totalDueAmount: 400,
-				createdAt: 1,
-				paidAt: 2,
-				status: "paid",
-				archived: false,
-				receiptNumber: "VV-PKG-SESSION"
-			});
+			const packageId = await ctx.db.insert(
+				"packages",
+				packageDocument({
+					name: "Package",
+					phone: "0400000000",
+					accountName: "Account",
+					email: "pkg@example.com",
+					duration: "1 hour",
+					addons: [],
+					packageSize: 4,
+					singleSessionAmount: 100,
+					packageSubtotalAmount: 400,
+					discountPercent: 0,
+					discountAmount: 0,
+					totalDueAmount: 400,
+					createdAt: 1,
+					paidAt: 2,
+					status: "paid",
+					archived: false,
+					receiptNumber: "VV-PKG-SESSION"
+				})
+			);
 
 			const booking = await ctx.db.get(
 				"bookings",
-				await ctx.db.insert("bookings", {
-					name: "Session",
-					phone: "0400000000",
-					accountName: "Account",
-					email: "session@example.com",
-					date: "2099-06-01",
-					time: "10:00",
-					sessionStartAt: 4_071_268_800_000,
-					duration: "1 hour",
-					service: "Remote Podcast",
-					addons: [],
-					status: "confirmed",
-					archived: false,
-					pendingPaymentCreatedAt: 1,
-					paymentCompletedAt: 2,
-					packageId,
-					googleEventId: "event-id",
-					googleCalendarId: "calendar-id"
-				})
+				await ctx.db.insert(
+					"bookings",
+					bookingDocument({
+						name: "Session",
+						phone: "0400000000",
+						accountName: "Account",
+						email: "session@example.com",
+						date: "2099-06-01",
+						time: "10:00",
+						sessionStartAt: 4_071_268_800_000,
+						duration: "1 hour",
+						service: "Remote Podcast",
+						addons: [],
+						status: "confirmed",
+						archived: false,
+						pendingPaymentCreatedAt: 1,
+						paymentCompletedAt: 2,
+						packageId,
+						googleEventId: "event-id",
+						googleCalendarId: "calendar-id"
+					})
+				)
 			);
 
 			if (booking === null) {
@@ -113,7 +120,8 @@ async function seedLegacyBooking(
 			pendingPaymentCreatedAt: paymentCompletedAt,
 			paymentCompletedAt,
 			googleEventId: "event-id",
-			googleCalendarId: "calendar-id"
+			googleCalendarId: "calendar-id",
+			searchBlob: ""
 		});
 	});
 }

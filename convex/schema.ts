@@ -237,7 +237,7 @@ export default defineSchema({
 		pendingPaymentCreatedAt: v.number(),
 		paymentCompletedAt: v.optional(v.number()),
 		receiptNumber: v.optional(v.string()),
-		searchBlob: v.optional(v.string()),
+		searchBlob: v.string(),
 		bookingConfirmedAt: v.optional(v.number()),
 		bookingFailureCode: v.optional(v.string()),
 
@@ -369,7 +369,7 @@ export default defineSchema({
 
 		// Receipt metadata (receipt number + email delivery status)
 		receiptNumber: v.optional(v.string()),
-		searchBlob: v.optional(v.string()),
+		searchBlob: v.string(),
 		receiptEmailStatus: v.optional(
 			v.union(v.literal("pending"), v.literal("sent"), v.literal("failed"))
 		),

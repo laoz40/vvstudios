@@ -6,6 +6,7 @@
  *    payment, or calendar identifiers.
  */
 import type { UserIdentity } from "convex/server";
+import { bookingDocument } from "#convex/tests/insertDocumentDefaults";
 import { makeFunctionReference } from "convex/server";
 import { describe, expect, test } from "vitest";
 import type { Id } from "#convex/_generated/dataModel";
@@ -93,41 +94,44 @@ async function seedEditorProfile(t: TestClient, identity: UserIdentity): Promise
 
 async function seedBooking(t: TestClient, name: string): Promise<Id<"bookings">> {
 	return await t.run(async (ctx) =>
-		ctx.db.insert("bookings", {
-			name,
-			phone: "0400 000 000",
-			accountName: `${name} Pty Ltd`,
-			abn: "12 345 678 901",
-			email: `${name.toLowerCase().replaceAll(" ", ".")}@example.com`,
-			instagramHandle: `@${name.toLowerCase().replaceAll(" ", "")}`,
-			date: "2030-02-03",
-			time: "10:30",
-			sessionStartAt: Date.parse("2030-02-02T23:30:00.000Z"),
-			duration: "1 hour",
-			service: "Remote Podcast",
-			addons: [
-				"Essential Edit",
-				"Clip Volume Pack",
-				"Teleprompter",
-				"4K UHD Recording",
-				"Remote Podcast"
-			],
-			essentialEditQuantity: "2",
-			completeEditQuantity: "3",
-			clipsPackageQuantity: "3",
-			handcraftedClipsQuantity: "4",
-			notes: `${name} production notes`,
-			status: "confirmed",
-			archived: false,
-			pendingPaymentCreatedAt: Date.parse("2030-01-01T00:00:00.000Z"),
-			paidRemainingBalance: false,
-			remainingBalanceAmount: 150,
-			editStatus: "editing",
-			stripeSessionId: `stripe-${name}`,
-			stripePaymentIntentId: `payment-${name}`,
-			googleEventId: `event-${name}`,
-			googleCalendarId: `calendar-${name}`
-		})
+		ctx.db.insert(
+			"bookings",
+			bookingDocument({
+				name,
+				phone: "0400 000 000",
+				accountName: `${name} Pty Ltd`,
+				abn: "12 345 678 901",
+				email: `${name.toLowerCase().replaceAll(" ", ".")}@example.com`,
+				instagramHandle: `@${name.toLowerCase().replaceAll(" ", "")}`,
+				date: "2030-02-03",
+				time: "10:30",
+				sessionStartAt: Date.parse("2030-02-02T23:30:00.000Z"),
+				duration: "1 hour",
+				service: "Remote Podcast",
+				addons: [
+					"Essential Edit",
+					"Clip Volume Pack",
+					"Teleprompter",
+					"4K UHD Recording",
+					"Remote Podcast"
+				],
+				essentialEditQuantity: "2",
+				completeEditQuantity: "3",
+				clipsPackageQuantity: "3",
+				handcraftedClipsQuantity: "4",
+				notes: `${name} production notes`,
+				status: "confirmed",
+				archived: false,
+				pendingPaymentCreatedAt: Date.parse("2030-01-01T00:00:00.000Z"),
+				paidRemainingBalance: false,
+				remainingBalanceAmount: 150,
+				editStatus: "editing",
+				stripeSessionId: `stripe-${name}`,
+				stripePaymentIntentId: `payment-${name}`,
+				googleEventId: `event-${name}`,
+				googleCalendarId: `calendar-${name}`
+			})
+		)
 	);
 }
 

@@ -15,6 +15,7 @@
  *    reservation fields from the booking.
  */
 import { describe, expect, test } from "vitest";
+import { bookingDocument } from "#convex/tests/insertDocumentDefaults";
 import { internal } from "#convex/_generated/api";
 import type { Id } from "#convex/_generated/dataModel";
 import { createConvexTest } from "#convex/test.setup";
@@ -148,21 +149,24 @@ async function seedBooking(
 	startOffset = 0
 ) {
 	return await t.run((ctx) =>
-		ctx.db.insert("bookings", {
-			name: "Test customer",
-			phone: "0400000000",
-			accountName: "Test account",
-			email,
-			date: "2030-01-10",
-			time: "10:00",
-			sessionStartAt: originalStartAt + startOffset,
-			duration: "1h",
-			service: "Remote Podcast",
-			addons: [],
-			status,
-			archived: false,
-			pendingPaymentCreatedAt: now
-		})
+		ctx.db.insert(
+			"bookings",
+			bookingDocument({
+				name: "Test customer",
+				phone: "0400000000",
+				accountName: "Test account",
+				email,
+				date: "2030-01-10",
+				time: "10:00",
+				sessionStartAt: originalStartAt + startOffset,
+				duration: "1h",
+				service: "Remote Podcast",
+				addons: [],
+				status,
+				archived: false,
+				pendingPaymentCreatedAt: now
+			})
+		)
 	);
 }
 

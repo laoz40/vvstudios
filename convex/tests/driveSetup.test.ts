@@ -8,6 +8,7 @@
  *    Repeated session folder saves keep the first folder id on the driveSessions row.
  */
 import { describe, expect, test } from "vitest";
+import { bookingDocument } from "#convex/tests/insertDocumentDefaults";
 import { internal } from "#convex/_generated/api";
 import type { Id } from "#convex/_generated/dataModel";
 import { getOrCreateDriveClientId } from "#convex/lib/driveFolders";
@@ -49,21 +50,24 @@ describe("drive setup guards", () => {
 		const bookingId = await seedBooking(t);
 
 		const deletedBookingId = await t.run(async (ctx) => {
-			const id = await ctx.db.insert("bookings", {
-				name: "Deleted customer",
-				phone: "0400000000",
-				accountName: "Deleted account",
-				email: "deleted@example.com",
-				date: "2030-01-10",
-				time: "10:00",
-				sessionStartAt,
-				duration: "1h",
-				service: "Remote Podcast",
-				addons: [],
-				status: "confirmed",
-				archived: false,
-				pendingPaymentCreatedAt: now
-			});
+			const id = await ctx.db.insert(
+				"bookings",
+				bookingDocument({
+					name: "Deleted customer",
+					phone: "0400000000",
+					accountName: "Deleted account",
+					email: "deleted@example.com",
+					date: "2030-01-10",
+					time: "10:00",
+					sessionStartAt,
+					duration: "1h",
+					service: "Remote Podcast",
+					addons: [],
+					status: "confirmed",
+					archived: false,
+					pendingPaymentCreatedAt: now
+				})
+			);
 
 			await ctx.db.delete(id);
 
@@ -137,21 +141,24 @@ async function createDriveClient(t: TestClient, client: { email: string; display
 
 async function seedBooking(t: TestClient) {
 	return await t.run((ctx) =>
-		ctx.db.insert("bookings", {
-			name: "Test customer",
-			phone: "0400000000",
-			accountName: "Test account",
-			email: "customer@example.com",
-			date: "2030-01-10",
-			time: "10:00",
-			sessionStartAt,
-			duration: "1h",
-			service: "Remote Podcast",
-			addons: [],
-			status: "confirmed",
-			archived: false,
-			pendingPaymentCreatedAt: now
-		})
+		ctx.db.insert(
+			"bookings",
+			bookingDocument({
+				name: "Test customer",
+				phone: "0400000000",
+				accountName: "Test account",
+				email: "customer@example.com",
+				date: "2030-01-10",
+				time: "10:00",
+				sessionStartAt,
+				duration: "1h",
+				service: "Remote Podcast",
+				addons: [],
+				status: "confirmed",
+				archived: false,
+				pendingPaymentCreatedAt: now
+			})
+		)
 	);
 }
 

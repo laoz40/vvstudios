@@ -8,6 +8,7 @@
  *    Returns archived and unarchived packages.
  */
 import { describe, expect, test } from "vitest";
+import { packageDocument } from "#convex/tests/insertDocumentDefaults";
 import { api } from "#convex/_generated/api";
 import type { Id } from "#convex/_generated/dataModel";
 import { createConvexTest } from "#convex/test.setup";
@@ -51,24 +52,27 @@ async function seedPackage(t: TestClient, email: string): Promise<Id<"packages">
 	const createdAt = Date.now();
 
 	return await t.run((ctx) =>
-		ctx.db.insert("packages", {
-			name: "Test customer",
-			phone: "0400000000",
-			accountName: "Test account",
-			email,
-			duration: "1h",
-			addons: [],
-			packageSize: 8,
-			singleSessionAmount: 200,
-			packageSubtotalAmount: 1600,
-			discountPercent: 10,
-			discountAmount: 160,
-			totalDueAmount: 1440,
-			status: "paid",
-			archived: false,
-			createdAt,
-			paidAt: createdAt,
-			expiresAt: createdAt + 100_000
-		})
+		ctx.db.insert(
+			"packages",
+			packageDocument({
+				name: "Test customer",
+				phone: "0400000000",
+				accountName: "Test account",
+				email,
+				duration: "1h",
+				addons: [],
+				packageSize: 8,
+				singleSessionAmount: 200,
+				packageSubtotalAmount: 1600,
+				discountPercent: 10,
+				discountAmount: 160,
+				totalDueAmount: 1440,
+				status: "paid",
+				archived: false,
+				createdAt,
+				paidAt: createdAt,
+				expiresAt: createdAt + 100_000
+			})
+		)
 	);
 }

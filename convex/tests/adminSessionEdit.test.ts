@@ -20,6 +20,7 @@
  *    confirmBooking promotes failed bookings to confirmed and clears failure codes.
  */
 import { beforeEach, describe, expect, test, vi } from "vitest";
+import { bookingDocument } from "#convex/tests/insertDocumentDefaults";
 import { internal } from "#convex/_generated/api";
 import type { Id } from "#convex/_generated/dataModel";
 import type { BookingAddon } from "#studio/features/booking-form/lib/booking-form-model";
@@ -196,22 +197,25 @@ type SeedBookingOverrides = {
 
 async function seedBooking(t: TestClient, overrides: SeedBookingOverrides = {}) {
 	return await t.run((ctx) =>
-		ctx.db.insert("bookings", {
-			name: "Test customer",
-			phone: "0400000000",
-			accountName: "Test account",
-			email: "customer@example.com",
-			date: "2030-01-10",
-			time: "10:00",
-			sessionStartAt: originalSessionStartAt,
-			duration: "1h",
-			service: "Table Setup",
-			addons: [],
-			status: overrides.status ?? "confirmed",
-			archived: false,
-			pendingPaymentCreatedAt: now,
-			...overrides
-		})
+		ctx.db.insert(
+			"bookings",
+			bookingDocument({
+				name: "Test customer",
+				phone: "0400000000",
+				accountName: "Test account",
+				email: "customer@example.com",
+				date: "2030-01-10",
+				time: "10:00",
+				sessionStartAt: originalSessionStartAt,
+				duration: "1h",
+				service: "Table Setup",
+				addons: [],
+				status: overrides.status ?? "confirmed",
+				archived: false,
+				pendingPaymentCreatedAt: now,
+				...overrides
+			})
+		)
 	);
 }
 

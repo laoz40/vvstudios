@@ -8,6 +8,7 @@
  *    Returns archived and unarchived bookings.
  */
 import { describe, expect, test } from "vitest";
+import { bookingDocument } from "#convex/tests/insertDocumentDefaults";
 import { api } from "#convex/_generated/api";
 import type { Id } from "#convex/_generated/dataModel";
 import { createConvexTest } from "#convex/test.setup";
@@ -49,22 +50,25 @@ describe("listSessions admin views", () => {
 
 async function seedBooking(t: TestClient, name: string): Promise<Id<"bookings">> {
 	return await t.run(async (ctx) =>
-		ctx.db.insert("bookings", {
-			name,
-			phone: "0400000000",
-			accountName: "Test account",
-			email: `${name.replaceAll(" ", "-").toLowerCase()}@example.com`,
-			date: "2099-01-01",
-			time: "10:00",
-			sessionStartAt: 4_071_268_800_000,
-			duration: "1 hour",
-			service: "Remote Podcast",
-			addons: [],
-			status: "confirmed",
-			archived: false,
-			pendingPaymentCreatedAt: 1,
-			googleEventId: "event-id",
-			googleCalendarId: "calendar-id"
-		})
+		ctx.db.insert(
+			"bookings",
+			bookingDocument({
+				name,
+				phone: "0400000000",
+				accountName: "Test account",
+				email: `${name.replaceAll(" ", "-").toLowerCase()}@example.com`,
+				date: "2099-01-01",
+				time: "10:00",
+				sessionStartAt: 4_071_268_800_000,
+				duration: "1 hour",
+				service: "Remote Podcast",
+				addons: [],
+				status: "confirmed",
+				archived: false,
+				pendingPaymentCreatedAt: 1,
+				googleEventId: "event-id",
+				googleCalendarId: "calendar-id"
+			})
+		)
 	);
 }

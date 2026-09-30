@@ -8,6 +8,7 @@
  *    Sending a package invoice without stripeCustomerId fails before Stripe is called.
  */
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
+import { bookingDocument, packageDocument } from "#convex/tests/insertDocumentDefaults";
 import { api } from "#convex/_generated/api";
 import type { BookingAddon } from "#studio/features/booking-form/lib/booking-form-model";
 import { createConvexTest } from "#convex/test.setup";
@@ -73,45 +74,51 @@ describe("sendStripeInvoice without stripeCustomerId", () => {
 
 async function seedBookingWithoutStripeCustomer(t: TestClient) {
 	return await t.run((ctx) =>
-		ctx.db.insert("bookings", {
-			name: "Legacy customer",
-			phone: "0400000000",
-			accountName: "Legacy account",
-			email: "legacy@example.com",
-			date: "2030-01-20",
-			time: "10:00",
-			sessionStartAt: now,
-			duration: "1h",
-			service: "Table Setup",
-			addons: [],
-			status: "confirmed",
-			archived: false,
-			pendingPaymentCreatedAt: now,
-			paymentCompletedAt: now
-		})
+		ctx.db.insert(
+			"bookings",
+			bookingDocument({
+				name: "Legacy customer",
+				phone: "0400000000",
+				accountName: "Legacy account",
+				email: "legacy@example.com",
+				date: "2030-01-20",
+				time: "10:00",
+				sessionStartAt: now,
+				duration: "1h",
+				service: "Table Setup",
+				addons: [],
+				status: "confirmed",
+				archived: false,
+				pendingPaymentCreatedAt: now,
+				paymentCompletedAt: now
+			})
+		)
 	);
 }
 
 async function seedPackageWithoutStripeCustomer(t: TestClient) {
 	return await t.run((ctx) =>
-		ctx.db.insert("packages", {
-			name: "Legacy package customer",
-			phone: "0400000000",
-			accountName: "Legacy package account",
-			email: "legacy-package@example.com",
-			duration: "1h",
-			addons: [] satisfies BookingAddon[],
-			packageSize: 4,
-			singleSessionAmount: 200,
-			packageSubtotalAmount: 800,
-			discountPercent: 5,
-			discountAmount: 40,
-			totalDueAmount: 760,
-			status: "paid",
-			archived: false,
-			createdAt: now,
-			receiptEmailStatus: "sent",
-			paidAt: now
-		})
+		ctx.db.insert(
+			"packages",
+			packageDocument({
+				name: "Legacy package customer",
+				phone: "0400000000",
+				accountName: "Legacy package account",
+				email: "legacy-package@example.com",
+				duration: "1h",
+				addons: [] satisfies BookingAddon[],
+				packageSize: 4,
+				singleSessionAmount: 200,
+				packageSubtotalAmount: 800,
+				discountPercent: 5,
+				discountAmount: 40,
+				totalDueAmount: 760,
+				status: "paid",
+				archived: false,
+				createdAt: now,
+				receiptEmailStatus: "sent",
+				paidAt: now
+			})
+		)
 	);
 }

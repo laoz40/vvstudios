@@ -12,6 +12,7 @@
  *    Reschedule saves swap reservations and failed confirmation stores a booking failure code.
  */
 import { beforeEach, describe, expect, test, vi } from "vitest";
+import { bookingDocument } from "#convex/tests/insertDocumentDefaults";
 import { internal } from "#convex/_generated/api";
 import type { Id } from "#convex/_generated/dataModel";
 import { createConvexTest } from "#convex/test.setup";
@@ -186,22 +187,25 @@ describe("reschedule reservation and failure guards", () => {
 				updatedAt: now
 			});
 
-			return await ctx.db.insert("bookings", {
-				name: "Test customer",
-				phone: "0400000000",
-				accountName: "Test account",
-				email: "customer@example.com",
-				date: "2030-01-10",
-				time: "10:00",
-				sessionStartAt: originalSessionStartAt,
-				duration: "1h",
-				service: "Remote Podcast",
-				addons: [],
-				status: "pending_payment",
-				archived: false,
-				pendingPaymentCreatedAt: now,
-				stripeSessionId: "cs-1"
-			});
+			return await ctx.db.insert(
+				"bookings",
+				bookingDocument({
+					name: "Test customer",
+					phone: "0400000000",
+					accountName: "Test account",
+					email: "customer@example.com",
+					date: "2030-01-10",
+					time: "10:00",
+					sessionStartAt: originalSessionStartAt,
+					duration: "1h",
+					service: "Remote Podcast",
+					addons: [],
+					status: "pending_payment",
+					archived: false,
+					pendingPaymentCreatedAt: now,
+					stripeSessionId: "cs-1"
+				})
+			);
 		});
 
 		expect(
@@ -232,26 +236,29 @@ async function seedReschedulableSession(t: TestClient) {
 			updatedAt: now
 		});
 
-		return await ctx.db.insert("bookings", {
-			name: "Test customer",
-			phone: "0400000000",
-			accountName: "Test account",
-			email: "customer@example.com",
-			date: "2030-01-10",
-			time: "10:00",
-			sessionStartAt: originalSessionStartAt,
-			duration: "1h",
-			service: "Remote Podcast",
-			addons: [],
-			status: "confirmed",
-			archived: false,
-			pendingPaymentCreatedAt: now,
-			googleCalendarId: "primary-calendar",
-			googleEventId: "original-event",
-			reminderEmailClaimedAt: now - 3,
-			reminderEmailSentAt: now - 2,
-			reminderEmailFailureCode: "SEND_FAILED"
-		});
+		return await ctx.db.insert(
+			"bookings",
+			bookingDocument({
+				name: "Test customer",
+				phone: "0400000000",
+				accountName: "Test account",
+				email: "customer@example.com",
+				date: "2030-01-10",
+				time: "10:00",
+				sessionStartAt: originalSessionStartAt,
+				duration: "1h",
+				service: "Remote Podcast",
+				addons: [],
+				status: "confirmed",
+				archived: false,
+				pendingPaymentCreatedAt: now,
+				googleCalendarId: "primary-calendar",
+				googleEventId: "original-event",
+				reminderEmailClaimedAt: now - 3,
+				reminderEmailSentAt: now - 2,
+				reminderEmailFailureCode: "SEND_FAILED"
+			})
+		);
 	});
 
 	const linkResult = await t.mutation(internal.sessionReschedule.createActiveRescheduleLink, {
