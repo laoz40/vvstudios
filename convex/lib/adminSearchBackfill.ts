@@ -1,7 +1,7 @@
 import type { Doc } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
 import { searchBlobPatchForBooking, searchBlobPatchForPackage } from "#convex/lib/adminSearchBlob";
-import { contactNormalizedIndexFields } from "#convex/lib/contactNormalization";
+import { normalizePhone } from "#convex/lib/contactNormalization";
 
 export const ADMIN_SEARCH_BACKFILL_BATCH_SIZE = 25;
 
@@ -54,14 +54,14 @@ export async function receiptNumberForPaidBooking(
 }
 
 type BookingAdminSearchBackfillPatch = {
-	phoneNormalized: string;
+	phone: string;
 	searchBlob: string;
 	receiptNumber?: string;
 	assignedEditorDisplayName?: string;
 };
 
 type PackageAdminSearchBackfillPatch = {
-	phoneNormalized: string;
+	phone: string;
 	searchBlob: string;
 	receiptNumber?: string;
 };
@@ -70,16 +70,18 @@ export async function adminSearchBackfillPatchForBooking(
 	ctx: QueryCtx,
 	booking: Doc<"bookings">
 ): Promise<BookingAdminSearchBackfillPatch> {
+	const phone = normalizePhone(booking.phone);
 	const receiptNumber = await receiptNumberForPaidBooking(ctx, booking);
 
 	const searchBlobOverrides = receiptNumber !== undefined ? { receiptNumber } : {};
 
-	const searchBlobPatch = await searchBlobPatchForBooking(ctx, booking, searchBlobOverrides);
+	const searchBlobPatch = await searchBlobPatchForBooking(
+		ctx,
+		{ ...booking, phone },
+		searchBlobOverrides
+	);
 
-	const patch: BookingAdminSearchBackfillPatch = {
-		...contactNormalizedIndexFields(booking.phone),
-		searchBlob: searchBlobPatch.searchBlob
-	};
+	const patch: BookingAdminSearchBackfillPatch = { phone, searchBlob: searchBlobPatch.searchBlob };
 
 	if (searchBlobPatch.assignedEditorDisplayName !== undefined) {
 		patch.assignedEditorDisplayName = searchBlobPatch.assignedEditorDisplayName;
@@ -95,16 +97,17 @@ export async function adminSearchBackfillPatchForBooking(
 export function adminSearchBackfillPatchForPackage(
 	packageRecord: Doc<"packages">
 ): PackageAdminSearchBackfillPatch {
+	const phone = normalizePhone(packageRecord.phone);
 	const receiptNumber = receiptNumberForPaidPackage(packageRecord);
 
 	const searchBlobOverrides = receiptNumber !== undefined ? { receiptNumber } : {};
 
-	const searchBlobPatch = searchBlobPatchForPackage(packageRecord, searchBlobOverrides);
+	const searchBlobPatch = searchBlobPatchForPackage(
+		{ ...packageRecord, phone },
+		searchBlobOverrides
+	);
 
-	const patch: PackageAdminSearchBackfillPatch = {
-		...contactNormalizedIndexFields(packageRecord.phone),
-		searchBlob: searchBlobPatch.searchBlob
-	};
+	const patch: PackageAdminSearchBackfillPatch = { phone, searchBlob: searchBlobPatch.searchBlob };
 
 	if (receiptNumber !== undefined) {
 		patch.receiptNumber = receiptNumber;
@@ -117,7 +120,7 @@ function bookingAdminSearchBackfillNeedsPatch(
 	booking: Doc<"bookings">,
 	patch: BookingAdminSearchBackfillPatch
 ) {
-	if (booking.phoneNormalized !== patch.phoneNormalized) {
+	if (booking.phone !== patch.phone) {
 		return true;
 	}
 
@@ -143,7 +146,7 @@ function packageAdminSearchBackfillNeedsPatch(
 	packageRecord: Doc<"packages">,
 	patch: PackageAdminSearchBackfillPatch
 ) {
-	if (packageRecord.phoneNormalized !== patch.phoneNormalized) {
+	if (packageRecord.phone !== patch.phone) {
 		return true;
 	}
 

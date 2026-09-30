@@ -208,6 +208,7 @@ describe("admin package management", () => {
 		expect(calculatedResult).toEqual([null, null]);
 		expect(calculatedPackage).toMatchObject({
 			...editedPackage,
+			phone: "0411111111",
 			singleSessionAmount: 328,
 			packageSubtotalAmount: 2624,
 			discountPercent: 10,

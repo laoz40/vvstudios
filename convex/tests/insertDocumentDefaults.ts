@@ -1,6 +1,6 @@
 import type { Doc } from "#convex/_generated/dataModel";
 import { buildBookingSearchBlob, buildPackageSearchBlob } from "#convex/lib/adminSearchBlob";
-import { contactNormalizedIndexFields } from "#convex/lib/contactNormalization";
+import { normalizePhone } from "#convex/lib/contactNormalization";
 
 type BookingInsert = Omit<Doc<"bookings">, "_id" | "_creationTime">;
 
@@ -17,27 +17,27 @@ type PackageSearchBlobSource = Pick<
 >;
 
 export function bookingDocument(
-	fields: Omit<BookingInsert, "searchBlob" | "phoneNormalized"> &
-		Partial<Pick<BookingInsert, "searchBlob" | "phoneNormalized">>
+	fields: Omit<BookingInsert, "searchBlob" | "phone"> &
+		Partial<Pick<BookingInsert, "searchBlob">> & { phone: string }
 ): BookingInsert {
-	const phoneNormalized =
-		fields.phoneNormalized ?? contactNormalizedIndexFields(fields.phone).phoneNormalized;
+	const phone = normalizePhone(fields.phone);
+	const merged = { ...fields, phone };
 
 	const searchBlob =
-		fields.searchBlob ?? buildBookingSearchBlob(fields satisfies BookingSearchBlobSource);
+		merged.searchBlob ?? buildBookingSearchBlob(merged satisfies BookingSearchBlobSource);
 
-	return { ...fields, phoneNormalized, searchBlob };
+	return { ...merged, searchBlob };
 }
 
 export function packageDocument(
-	fields: Omit<PackageInsert, "searchBlob" | "phoneNormalized"> &
-		Partial<Pick<PackageInsert, "searchBlob" | "phoneNormalized">>
+	fields: Omit<PackageInsert, "searchBlob" | "phone"> &
+		Partial<Pick<PackageInsert, "searchBlob">> & { phone: string }
 ): PackageInsert {
-	const phoneNormalized =
-		fields.phoneNormalized ?? contactNormalizedIndexFields(fields.phone).phoneNormalized;
+	const phone = normalizePhone(fields.phone);
+	const merged = { ...fields, phone };
 
 	const searchBlob =
-		fields.searchBlob ?? buildPackageSearchBlob(fields satisfies PackageSearchBlobSource);
+		merged.searchBlob ?? buildPackageSearchBlob(merged satisfies PackageSearchBlobSource);
 
-	return { ...fields, phoneNormalized, searchBlob };
+	return { ...merged, searchBlob };
 }

@@ -1,5 +1,5 @@
 export function normalizePhone(phone: string): string {
-	const digits = phone.replace(/\D/g, "");
+	const digits = phone.trim().replace(/\D/g, "");
 
 	if (digits.startsWith("61") && digits.length >= 11) {
 		return `0${digits.slice(2)}`;
@@ -10,10 +10,6 @@ export function normalizePhone(phone: string): string {
 
 export function normalizeAbn(abn: string): string {
 	return abn.replace(/\D/g, "");
-}
-
-export function contactNormalizedIndexFields(phone: string) {
-	return { phoneNormalized: normalizePhone(phone) };
 }
 
 export function normalizeInstagramSearchQuery(query: string): string {

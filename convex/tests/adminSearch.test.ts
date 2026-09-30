@@ -11,6 +11,7 @@ import { describe, expect, test } from "vitest";
 import { api } from "#convex/_generated/api";
 import type { Id } from "#convex/_generated/dataModel";
 import { buildBookingSearchBlob } from "#convex/lib/adminSearchBlob";
+import { normalizePhone } from "#convex/lib/contactNormalization";
 import { createConvexTest } from "#convex/test.setup";
 
 // Convex tests cannot import admin-list-pagination.ts; use the same numItems as ADMIN_SEARCH_PAGE_SIZE (40).
@@ -19,6 +20,28 @@ const adminSearchPaginationOpts = { cursor: null, numItems: 40 };
 const adminIdentity = { publicMetadata: { role: "admin" } };
 
 describe("admin list search", () => {
+	test("phone prefix on sessions", async () => {
+		const t = createConvexTest();
+
+		const targetId = await seedBooking(t, {
+			name: "Phone target",
+			email: "phone-target@example.com",
+			phone: "+61 412 345 678"
+		});
+
+		await seedBooking(t, { name: "Other", email: "other-phone@example.com", phone: "0400000001" });
+
+		const result = await t
+			.withIdentity(adminIdentity)
+			.query(api.sessions.listSessions, {
+				paginationOpts: adminSearchPaginationOpts,
+				view: "inbox",
+				searchQuery: "phone:+61 412 345 678"
+			});
+
+		expect(result.page.map((session) => session._id)).toEqual([targetId]);
+	});
+
 	test("email prefix on sessions", async () => {
 		const t = createConvexTest();
 		const targetEmail = "search-target@example.com";
@@ -89,12 +112,12 @@ describe("admin list search", () => {
 
 async function seedBooking(
 	t: ReturnType<typeof createConvexTest>,
-	args: { name: string; email: string; searchToken?: string }
+	args: { name: string; email: string; phone?: string; searchToken?: string }
 ): Promise<Id<"bookings">> {
 	return await t.run(async (ctx) => {
 		const bookingFields = {
 			name: args.name,
-			phone: "0400000000",
+			phone: normalizePhone(args.phone ?? "0400000000"),
 			accountName: "Test account",
 			email: args.email,
 			date: "2099-01-01",

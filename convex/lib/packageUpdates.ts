@@ -10,7 +10,7 @@ import type { BookingAddonQuantitiesArgs } from "#convex/lib/bookingAddonQuantit
 import type { BookingAddon } from "#studio/features/booking-form/lib/booking-form-model";
 import { getPackageUpdateValidationError } from "#convex/lib/packageScheduling";
 import { buildPackageSearchBlob } from "#convex/lib/adminSearchBlob";
-import { contactNormalizedIndexFields } from "#convex/lib/contactNormalization";
+import { normalizePhone } from "#convex/lib/contactNormalization";
 
 export type CreatePendingPackageArgs = {
 	name: string;
@@ -84,9 +84,11 @@ type PendingPackageRecord = {
 };
 
 export function buildPendingPackageRecord(args: CreatePendingPackageArgs, createdAt: number) {
+	const phone = normalizePhone(args.phone);
+
 	const record: PendingPackageRecord = {
 		name: args.name,
-		phone: args.phone,
+		phone,
 		accountName: args.accountName,
 		email: args.email.trim().toLowerCase(),
 		duration: args.duration,
@@ -127,11 +129,7 @@ export function buildPendingPackageRecord(args: CreatePendingPackageArgs, create
 		record.notes = args.notes;
 	}
 
-	return {
-		...record,
-		...contactNormalizedIndexFields(record.phone),
-		searchBlob: buildPackageSearchBlob(record)
-	};
+	return { ...record, searchBlob: buildPackageSearchBlob(record) };
 }
 
 export function parsePackageRequest(
@@ -184,7 +182,6 @@ export function validatePackageUpdate(
 type PackageUpdatePatch = {
 	name: string;
 	phone: string;
-	phoneNormalized: string;
 	accountName: string;
 	abn: string | undefined;
 	email: string;
@@ -216,7 +213,7 @@ export function buildPackageUpdatePatch(args: UpdatePackageArgs, updatedPackage:
 
 	const patch: PackageUpdatePatch = {
 		name: updatedPackage.name,
-		phone: updatedPackage.phone,
+		phone: normalizePhone(updatedPackage.phone),
 		accountName: updatedPackage.accountName,
 		abn: updatedPackage.abn,
 		email: updatedPackage.email.trim().toLowerCase(),
@@ -233,8 +230,7 @@ export function buildPackageUpdatePatch(args: UpdatePackageArgs, updatedPackage:
 		discountPercent: amounts.discountPercent,
 		discountAmount: amounts.discountAmount,
 		totalDueAmount: amounts.totalDueAmount,
-		invoiceLineItems,
-		...contactNormalizedIndexFields(updatedPackage.phone)
+		invoiceLineItems
 	};
 
 	if (args.expiresAt !== undefined) {

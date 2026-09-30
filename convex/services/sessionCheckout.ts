@@ -8,7 +8,7 @@ import type { BookingAddonQuantitiesArgs } from "#convex/lib/bookingAddonQuantit
 import type { BookingAddon } from "#studio/features/booking-form/lib/booking-form-model";
 import { getOrCreateDriveClientId } from "#convex/lib/driveFolders";
 import { buildBookingSearchBlob } from "#convex/lib/adminSearchBlob";
-import { contactNormalizedIndexFields } from "#convex/lib/contactNormalization";
+import { normalizePhone } from "#convex/lib/contactNormalization";
 import { okOrThrow } from "#convex/lib/result";
 import { getSessionStartAt } from "#convex/lib/sessionAdminEdit";
 import {
@@ -83,8 +83,11 @@ export function createPendingSessionService(
 					}).andThen((driveClientId) => {
 						const email = args.email.trim().toLowerCase();
 
+						const phone = normalizePhone(args.phone);
+
 						const bookingFields = {
 							...args,
+							phone,
 							email,
 							sessionStartAt,
 							status: "pending_payment" as const,
@@ -96,7 +99,6 @@ export function createPendingSessionService(
 						return okOrThrow(
 							ctx.db.insert("bookings", {
 								...bookingFields,
-								...contactNormalizedIndexFields(args.phone),
 								searchBlob: buildBookingSearchBlob(bookingFields)
 							})
 						).map((bookingId) => ({ bookingId }));

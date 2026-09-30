@@ -2,7 +2,7 @@
  * Admin search backfill integration.
  *
  * 1. backfillBookingAdminSearch
- *    Fills searchBlob, phoneNormalized, and receipt on legacy bookings.
+ *    Fills canonical phone, searchBlob, and receipt on legacy bookings.
  *
  * 2. receiptNumberForPaidBooking
  *    Copies package receipt numbers onto package session bookings.
@@ -16,7 +16,7 @@ import { normalizePhone } from "#convex/lib/contactNormalization";
 import { createConvexTest } from "#convex/test.setup";
 
 describe("admin search backfill", () => {
-	test("backfillBookingAdminSearch fills phoneNormalized and searchBlob on legacy rows", async () => {
+	test("backfillBookingAdminSearch fills canonical phone and searchBlob on legacy rows", async () => {
 		const t = createConvexTest();
 		const bookingId = await seedLegacyBooking(t, { phone: "+61 400 111 222" });
 
@@ -28,7 +28,7 @@ describe("admin search backfill", () => {
 
 		const booking = await t.run((ctx) => ctx.db.get("bookings", bookingId));
 
-		expect(booking?.phoneNormalized).toBe(normalizePhone("+61 400 111 222"));
+		expect(booking?.phone).toBe(normalizePhone("+61 400 111 222"));
 		expect(booking?.searchBlob).toContain("0400111222");
 		expect(booking?.receiptNumber).toBeUndefined();
 	});

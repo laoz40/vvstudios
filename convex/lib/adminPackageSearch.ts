@@ -97,9 +97,7 @@ async function paginatePackagesByPhone(
 		fetchPage: (cursor, numItems) =>
 			ctx.db
 				.query("packages")
-				.withIndex("by_phoneNormalized", (indexQuery) =>
-					indexQuery.eq("phoneNormalized", phoneNormalized)
-				)
+				.withIndex("by_phone", (indexQuery) => indexQuery.eq("phone", phoneNormalized))
 				.paginate({ cursor, numItems }),
 		includeRow: includePackageRow(args)
 	});

@@ -7,6 +7,8 @@
  * | backfillPackageAdminSearch    | `{ "cursor": null }` | `isDone: true` |
  *
  * Next batch: pass returned `continueCursor` as `"cursor"`. Run packages before bookings if both exist.
+ *
+ * Also canonicalizes stored `phone` and refreshes `searchBlob` when contact text changes.
  */
 import { v } from "convex/values";
 import { internalMutation } from "#convex/_generated/server";
