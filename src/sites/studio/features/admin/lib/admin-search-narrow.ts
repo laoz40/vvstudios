@@ -24,7 +24,7 @@ export const ADMIN_PACKAGE_SEARCH_NARROW_FIELDS: AdminSearchNarrowField[] = [
 	{ prefix: "abn", label: "ABN" }
 ];
 
-export function adminSearchNarrowValue(rawQuery: string): string {
+function adminSearchNarrowValue(rawQuery: string): string {
 	const trimmed = rawQuery.trim();
 
 	if (trimmed.length === 0) {
