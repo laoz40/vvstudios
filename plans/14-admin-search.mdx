@@ -13,7 +13,7 @@ Review in **four** launch PRs (plus shell already in flight); **deploy once** wh
 | **1. Shell**          | `searchQuery` wired; client-side filter removed (current branch). No schema.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
 | **2. Receipt model**  | Rename package `invoice*` → `receipt*`; optional `bookings.receiptNumber`; `by_receiptNumber` indexes; set at pay; copy to package session bookings; admin/emails read stored value (blank when pending).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
 | **3. Search backend** | `searchBlob` + `search_admin_blob` (unprefixed only); per-field search indexes for `name:` / `account:` / `ig:` / `editor:`; optional `assignedEditorDisplayName` on bookings (denormalized; sessions only); optional `phoneNormalized` + `by_phoneNormalized`; router; prefix routes (see **Search semantics**); write-path `searchBlob`, `phoneNormalized`, and editor display name maintenance; sets `refineSearch: true` on the **first** list page when the active search route has **`!isDone`** after its single `.paginate()` (any unprefixed or prefix query). Client uses **`ADMIN_SEARCH_PAGE_SIZE` (40)** while searching so the nudge aligns with ~41+ matches. No extra count query. Code tolerates missing blob/receipt/`phoneNormalized`/editor name on old rows until backfill runs. **No** `abnNormalized` column. |
-| **4. Search UX**      | Min length (unprefixed), **blocking** refine banner + opt-in to load more, sentinel pagination, narrow chips (sessions + packages). Merge order vs PR 3 flexible; **both** must ship before prod backfill.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| **4. Search UX**      | **Blocking** floating refine banner + opt-in to load more, field-prefix narrow actions on the banner, sentinel pagination (inbox). Merge order vs PR 3 flexible; **both** must ship before prod backfill.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
 
 **After deploy (ops, not blocking merge):** run **one backfill** on prod bookings (and packages when they exist): **`receiptNumber`** on paid rows, **`searchBlob`**, **`phoneNormalized`** (from stored `phone` via `normalizePhone`). New writes populate all three going forward.
 
@@ -28,7 +28,7 @@ Review in **four** launch PRs (plus shell already in flight); **deploy once** wh
 
 ## Branch `feat/admin-search-ux` (PR 3 merged; PR 4 in progress)
 
-PR 1 shell and PR 2 receipts are merged. PR 3 search backend is implemented on this branch. PR 4 adds min length, refine banner, batched load-all, and narrow chips.
+PR 1 shell and PR 2 receipts are merged. PR 3 search backend is implemented on this branch. PR 4 adds refine banner, batched load-all, and field-prefix narrow on the banner.
 
 ### Behavior today
 
@@ -157,7 +157,7 @@ Two match tiers (same mental model for admins: **paste fields = whole value**, *
 
 - Set **`refineSearch: true`** on the **first** response only when the search route’s **first** `.paginate()` returns **`isDone: false`** (at least one more page in that index stream). One paginate per request; no secondary `.take()` / count pass.
 - **`refineSearch: false`:** only one page (or fewer rows than a full page) in the index stream for this query. PR 4 may still batched load-all for partial prefixes when not gated.
-- **`refineSearch: true`:** show banner; **no further batches** until opt-in (e.g. “Load all matches”). First batch/preview may still render.
+- **`refineSearch: true`:** show a **floating banner** near the bottom of the screen; **no further batches** until opt-in (e.g. “Load all matches”). First batch/preview may still render. Banner offers **field-prefix** actions (tap → `{prefix}{current free text}`) to narrow without loading the rest.
 - **After opt-in:** **batched load-all** for every search mode until `isDone` or user stops (see below).
 
 ### Batched load-all (PR 4)
@@ -206,28 +206,25 @@ On `bookings` and `packages` (same `filterFields: ["archived"]` pattern as `sear
 
 <Callout
 	tone="decision"
-	body="Prefix queries (`email:`, `receipt:`, …) skip unprefixed min length. Unprefixed min length is client-only: omit `searchQuery` until trimmed length ≥ 3; table stays normal inbox list (no search) while typing 1–2 chars."
+	body="No client min length on unprefixed search. Short queries still only fetch the first search page; when the index has more pages, refineSearch blocks batched load-all until the admin confirms or picks a field prefix on the banner."
 />
 
 **`refineSearch`:** **unprefixed and prefix** searches. `true` on first page when **`!isDone`** after the route’s paginate call (shared rule in list/search helpers).
 
 **Pagination / sentinel:** inbox list without search keeps today’s sentinel. **Active search** (unprefixed or prefix): prefer **batched load-all** over scroll-to-load when fetching remaining matches; gate with banner when `refineSearch` until opt-in.
 
-**Refine-search banner:** when **`refineSearch: true`**. Copy: many matches — **load all** (starts batched load-all) or **narrow**. While loading all: show progress + **stop loading**.
-
-**Narrow chips:** ship in PR 4 when loaded unprefixed blob results **> 10** (was 12; aligns with short-page autoload behavior). Also show when `refineSearch: true` even if the first page is small. Chips map to planned `field:` prefixes. Tap replaces the query with `{prefix}{current unprefixed text}` (e.g. `acme` → `email:acme`). Both sessions and packages tables.
+**Refine-search banner:** when **`refineSearch: true` only**. Floating near the bottom (sessions + packages). Copy: many matches — **load all** (starts batched load-all) or **narrow** via field actions that rewrite the query to planned `field:` prefixes (e.g. `acme` → `email:acme`). While loading all: show progress + **stop loading**.
 
 | Concern        | Behavior                                                                                   |
 | -------------- | ------------------------------------------------------------------------------------------ |
-| Min length     | Client only, unprefixed only, ≥ 3 chars before sending `searchQuery`                       |
+| Query length   | No client min length; debounced `searchQuery` sent as typed (trimmed)                      |
 | Page sizes     | Inbox `DASHBOARD_PAGE_SIZE` (20); active search `ADMIN_SEARCH_PAGE_SIZE` (40)              |
 | `refineSearch` | Any search; first page; `true` when index has another page (`!isDone`) at search page size |
 | Load more      | Batched auto `loadMore` until `isDone` or **stop**; paused at `refineSearch` until opt-in  |
 | Partial prefix | Same batched load-all; no scroll required                                                  |
 | Exact prefix   | Index/blob pages; same batched load-all when many rows                                     |
-| Banner         | Blocks batch loop until load-all or narrow                                                 |
+| Banner         | Only when `refineSearch`; blocks batch loop until load-all or field-prefix narrow          |
 | Stop loading   | Cancels loop; keeps rows fetched so far                                                    |
-| Chips          | `refineSearch` **or** loaded count > 10; tap → `field:` + same free text                   |
 
 ### Implementation phases (PRs 2–4)
 
@@ -250,10 +247,8 @@ Work order within the stack; **no prod backfill until deploy**, then one batch j
 
 **PR 4 — search UX**
 
-1. Client min length (unprefixed only); no inline hint required for v1.
-2. `refineSearch` + banner; **load all** starts batched auto-pagination; **stop loading** aborts with partial results kept.
-3. Inbox list: sentinel as today. Search: batched load-all (partial prefixes included); optional sentinel only for unprefixed under threshold if desired.
-4. Narrow chips when `refineSearch` or loaded count > 10; chip → `field:` + unprefixed text.
+1. `refineSearch` + floating bottom banner; **load all** starts batched auto-pagination; field-prefix actions on the banner; **stop loading** aborts with partial results kept.
+2. Inbox list: sentinel as today. Search: batched load-all (partial prefixes included); optional sentinel only for unprefixed under threshold if desired.
 
 **Deploy → backfill → PR 5**
 
