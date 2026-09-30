@@ -1,36 +1,51 @@
 import type { ReactNode } from "react";
-import { CopyableText } from "#studio/features/admin/components/AdminDashboardTableUtils";
+import {
+	AdminSearchFieldPopover,
+	type AdminSearchFieldPopoverExtraField
+} from "#studio/features/admin/components/AdminSearchFieldPopover";
 import { useAdminPrivacyMode } from "#studio/features/admin/components/AdminPrivacyMode";
 
 type PrivacySensitiveTextProps = {
+	additionalPopoverFields?: AdminSearchFieldPopoverExtraField[];
 	children: ReactNode;
 	copyable?: boolean;
 	label: string;
+	onSearch?: (searchQuery: string) => void;
 	rowId: string;
+	searchPrefix?: string;
 	value: string;
 };
 
 export function PrivacySensitiveText({
+	additionalPopoverFields,
 	children,
 	copyable = true,
 	label,
+	onSearch,
 	rowId,
+	searchPrefix,
 	value
 }: PrivacySensitiveTextProps) {
 	const { isPrivacyModeEnabled, isRowRevealed, toggleRowPrivacy } = useAdminPrivacyMode();
 	const isBlurred = isPrivacyModeEnabled && !isRowRevealed(rowId);
 
+	const canOpenFieldActions =
+		copyable && onSearch !== undefined && searchPrefix !== undefined && searchPrefix.length > 0;
+
 	if (!isPrivacyModeEnabled) {
-		if (!copyable) {
+		if (!canOpenFieldActions) {
 			return <span>{children}</span>;
 		}
 
 		return (
-			<CopyableText
-				value={value}
-				label={label}>
+			<AdminSearchFieldPopover
+				additionalFields={additionalPopoverFields}
+				fieldLabel={label}
+				onSearch={onSearch}
+				searchPrefix={searchPrefix}
+				value={value}>
 				{children}
-			</CopyableText>
+			</AdminSearchFieldPopover>
 		);
 	}
 
@@ -46,7 +61,7 @@ export function PrivacySensitiveText({
 		);
 	}
 
-	if (!copyable) {
+	if (!canOpenFieldActions) {
 		return (
 			<button
 				type="button"
@@ -59,11 +74,13 @@ export function PrivacySensitiveText({
 	}
 
 	return (
-		<CopyableText
-			value={value}
-			label={label}
-			onTextClick={() => toggleRowPrivacy(rowId)}>
+		<AdminSearchFieldPopover
+			additionalFields={additionalPopoverFields}
+			fieldLabel={label}
+			onSearch={onSearch}
+			searchPrefix={searchPrefix}
+			value={value}>
 			{children}
-		</CopyableText>
+		</AdminSearchFieldPopover>
 	);
 }
