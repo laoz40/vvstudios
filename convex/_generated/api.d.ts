@@ -8,6 +8,7 @@
  * @module
  */
 
+import type * as adminSearchBackfill from "../adminSearchBackfill.js";
 import type * as auth from "../auth.js";
 import type * as bookingConfirmation from "../bookingConfirmation.js";
 import type * as bookingSettings from "../bookingSettings.js";
@@ -26,6 +27,7 @@ import type * as invoices from "../invoices.js";
 import type * as lib_adminBookingSearch from "../lib/adminBookingSearch.js";
 import type * as lib_adminPackageList from "../lib/adminPackageList.js";
 import type * as lib_adminPackageSearch from "../lib/adminPackageSearch.js";
+import type * as lib_adminSearchBackfill from "../lib/adminSearchBackfill.js";
 import type * as lib_adminSearchBlob from "../lib/adminSearchBlob.js";
 import type * as lib_adminSearchPagination from "../lib/adminSearchPagination.js";
 import type * as lib_adminSearchPrefixFilters from "../lib/adminSearchPrefixFilters.js";
@@ -163,6 +165,7 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  adminSearchBackfill: typeof adminSearchBackfill;
   auth: typeof auth;
   bookingConfirmation: typeof bookingConfirmation;
   bookingSettings: typeof bookingSettings;
@@ -181,6 +184,7 @@ declare const fullApi: ApiFromModules<{
   "lib/adminBookingSearch": typeof lib_adminBookingSearch;
   "lib/adminPackageList": typeof lib_adminPackageList;
   "lib/adminPackageSearch": typeof lib_adminPackageSearch;
+  "lib/adminSearchBackfill": typeof lib_adminSearchBackfill;
   "lib/adminSearchBlob": typeof lib_adminSearchBlob;
   "lib/adminSearchPagination": typeof lib_adminSearchPagination;
   "lib/adminSearchPrefixFilters": typeof lib_adminSearchPrefixFilters;
