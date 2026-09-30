@@ -20,30 +20,42 @@ export function PackagesTable({
 	canLoadMorePackages,
 	isLoadingMorePackages,
 	isLoadingPackages,
+	isSearchBatchPaused,
+	loadedSearchMatchCount,
 	loadMorePackages,
+	onContinueSearchBatchLoading,
 	onPackagesViewChange,
 	onSearchQueryChange,
 	onShowStalePackagesChange,
 	onSortingChange,
+	onStopSearchBatchLoading,
 	onViewPackageSessions,
 	packages,
 	packagesView,
 	searchQuery,
+	showSearchLoadingControls,
+	showSearchLoadingStop,
 	showStalePackages,
 	sorting
 }: {
 	canLoadMorePackages: boolean;
 	isLoadingMorePackages: boolean;
 	isLoadingPackages: boolean;
+	isSearchBatchPaused: boolean;
+	loadedSearchMatchCount: number;
 	loadMorePackages: () => void;
+	onContinueSearchBatchLoading: () => void;
 	onPackagesViewChange: (view: AdminPackagesView) => void;
 	onSearchQueryChange: (searchQuery: string) => void;
 	onShowStalePackagesChange: (showStalePackages: boolean) => void;
 	onSortingChange: (sorting: AdminPackageSort) => void;
+	onStopSearchBatchLoading: () => void;
 	onViewPackageSessions: (receiptNumber: string) => void;
 	packages: AdminPackageRecord[];
 	packagesView: AdminPackagesView;
 	searchQuery: string;
+	showSearchLoadingControls: boolean;
+	showSearchLoadingStop: boolean;
 	showStalePackages: boolean;
 	sorting: AdminPackageSort;
 }) {
@@ -64,12 +76,18 @@ export function PackagesTable({
 	return (
 		<section className="flex flex-col gap-4">
 			<PackagesTableFilters
+				isSearchBatchPaused={isSearchBatchPaused}
+				loadedSearchMatchCount={loadedSearchMatchCount}
 				packagesView={packagesView}
 				searchQuery={searchQuery}
+				showSearchLoadingControls={showSearchLoadingControls}
+				showSearchLoadingStop={showSearchLoadingStop}
 				showStalePackages={showStalePackages}
+				onContinueSearchBatchLoading={onContinueSearchBatchLoading}
 				onPackagesViewChange={onPackagesViewChange}
 				onSearchQueryChange={onSearchQueryChange}
 				onShowStalePackagesChange={onShowStalePackagesChange}
+				onStopSearchBatchLoading={onStopSearchBatchLoading}
 			/>
 
 			<div className="overflow-x-auto border-y">

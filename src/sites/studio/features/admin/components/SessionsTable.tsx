@@ -23,13 +23,19 @@ type SessionsTableProps = {
 	canLoadMoreSessions: boolean;
 	isLoadingMoreSessions: boolean;
 	isLoadingSessions: boolean;
+	isSearchBatchPaused: boolean;
+	loadedSearchMatchCount: number;
 	loadMoreSessions: () => void;
+	onContinueSearchBatchLoading: () => void;
 	onSearchQueryChange: (searchQuery: string) => void;
 	onSessionsViewChange: (view: AdminSessionsView) => void;
 	onShowStaleSessionsChange: (showStaleSessions: boolean) => void;
 	onSortingChange: (sorting: SessionSorting) => void;
+	onStopSearchBatchLoading: () => void;
 	searchQuery: string;
 	sessionsView: AdminSessionsView;
+	showSearchLoadingControls: boolean;
+	showSearchLoadingStop: boolean;
 	showStaleSessions: boolean;
 	sorting: SessionSorting;
 };
@@ -39,13 +45,19 @@ export function SessionsTable({
 	canLoadMoreSessions,
 	isLoadingMoreSessions,
 	isLoadingSessions,
+	isSearchBatchPaused,
+	loadedSearchMatchCount,
 	loadMoreSessions,
+	onContinueSearchBatchLoading,
 	onSearchQueryChange,
 	onSessionsViewChange,
 	onShowStaleSessionsChange,
 	onSortingChange,
+	onStopSearchBatchLoading,
 	searchQuery,
 	sessionsView,
+	showSearchLoadingControls,
+	showSearchLoadingStop,
 	showStaleSessions,
 	sorting
 }: SessionsTableProps) {
@@ -84,12 +96,18 @@ export function SessionsTable({
 	return (
 		<section className="flex flex-col gap-4">
 			<SessionsTableFilters
+				isSearchBatchPaused={isSearchBatchPaused}
+				loadedSearchMatchCount={loadedSearchMatchCount}
 				searchQuery={searchQuery}
 				sessionsView={sessionsView}
+				showSearchLoadingControls={showSearchLoadingControls}
+				showSearchLoadingStop={showSearchLoadingStop}
 				showStaleSessions={showStaleSessions}
+				onContinueSearchBatchLoading={onContinueSearchBatchLoading}
 				onSearchQueryChange={onSearchQueryChange}
 				onSessionsViewChange={onSessionsViewChange}
 				onShowStaleSessionsChange={onShowStaleSessionsChange}
+				onStopSearchBatchLoading={onStopSearchBatchLoading}
 			/>
 
 			<div className="overflow-x-auto border-y">
