@@ -31,7 +31,8 @@ import {
 } from "#studio/features/admin/lib/admin-dashboard-preferences";
 import {
 	ADMIN_PACKAGE_SEARCH_NARROW_FIELDS,
-	ADMIN_SESSION_SEARCH_NARROW_FIELDS
+	ADMIN_SESSION_SEARCH_NARROW_FIELDS,
+	formatAdminSearchNarrowQuery
 } from "#studio/features/admin/lib/admin-search-narrow";
 import { adminTablePageSize } from "#studio/features/admin/lib/admin-list-pagination";
 import { useAdminTableSearchPagination } from "#studio/features/admin/lib/use-admin-table-search-pagination";
@@ -362,7 +363,7 @@ export function AdminDashboard({ dashboardRole }: { dashboardRole: DashboardRole
 	const email = user?.primaryEmailAddress?.emailAddress ?? user?.emailAddresses[0]?.emailAddress;
 
 	function viewPackageSessions(receiptNumber: string) {
-		setInitialSessionSearchQuery(receiptNumber);
+		setInitialSessionSearchQuery(formatAdminSearchNarrowQuery("receipt", receiptNumber));
 		setActiveView("bookings");
 	}
 
