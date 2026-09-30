@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from "react";
+import { useEffect } from "react";
 import {
 	Table,
 	TableBody,
@@ -14,11 +14,7 @@ import {
 import { SessionTableRow } from "#studio/features/admin/components/SessionTableRow";
 import { SessionsTableFilters } from "#studio/features/admin/components/SessionsTableFilters";
 import type { AdminSessionsView, SessionRecord } from "#studio/features/admin/lib/admin-sessions";
-import {
-	filterAdminSessions,
-	type SessionSortId,
-	type SessionSorting
-} from "#studio/features/admin/lib/admin-sessions";
+import type { SessionSortId, SessionSorting } from "#studio/features/admin/lib/admin-sessions";
 import { storeSessionsTableFilters } from "#studio/features/admin/lib/admin-dashboard-preferences";
 import { InfiniteScrollSentinel } from "#studio/components/InfiniteScrollSentinel";
 
@@ -27,13 +23,19 @@ type SessionsTableProps = {
 	canLoadMoreSessions: boolean;
 	isLoadingMoreSessions: boolean;
 	isLoadingSessions: boolean;
+	isSearchBatchPaused: boolean;
+	loadedSearchMatchCount: number;
 	loadMoreSessions: () => void;
+	onContinueSearchBatchLoading: () => void;
 	onSearchQueryChange: (searchQuery: string) => void;
 	onSessionsViewChange: (view: AdminSessionsView) => void;
 	onShowStaleSessionsChange: (showStaleSessions: boolean) => void;
 	onSortingChange: (sorting: SessionSorting) => void;
+	onStopSearchBatchLoading: () => void;
 	searchQuery: string;
 	sessionsView: AdminSessionsView;
+	showSearchLoadingControls: boolean;
+	showSearchLoadingStop: boolean;
 	showStaleSessions: boolean;
 	sorting: SessionSorting;
 };
@@ -43,13 +45,19 @@ export function SessionsTable({
 	canLoadMoreSessions,
 	isLoadingMoreSessions,
 	isLoadingSessions,
+	isSearchBatchPaused,
+	loadedSearchMatchCount,
 	loadMoreSessions,
+	onContinueSearchBatchLoading,
 	onSearchQueryChange,
 	onSessionsViewChange,
 	onShowStaleSessionsChange,
 	onSortingChange,
+	onStopSearchBatchLoading,
 	searchQuery,
 	sessionsView,
+	showSearchLoadingControls,
+	showSearchLoadingStop,
 	showStaleSessions,
 	sorting
 }: SessionsTableProps) {
@@ -57,40 +65,6 @@ export function SessionsTable({
 	useEffect(() => {
 		storeSessionsTableFilters({ sorting, sessionsView, showStaleBookings: showStaleSessions });
 	}, [sorting, sessionsView, showStaleSessions]);
-
-	// Visible session rows after dashboard-level filters.
-	const filteredSessions = useMemo(() => {
-		return filterAdminSessions(sessions, { searchQuery });
-	}, [sessions, searchQuery]);
-
-	const isPrefetchingSessions =
-		filteredSessions.length === 0 &&
-		canLoadMoreSessions &&
-		!isLoadingSessions &&
-		isLoadingMoreSessions;
-
-	const showSessionsLoadingState =
-		isLoadingSessions ||
-		isPrefetchingSessions ||
-		(filteredSessions.length === 0 && canLoadMoreSessions);
-
-	// Prefetch another page when client-side filters hide every loaded session.
-	useEffect(() => {
-		if (
-			filteredSessions.length === 0 &&
-			canLoadMoreSessions &&
-			!isLoadingSessions &&
-			!isLoadingMoreSessions
-		) {
-			loadMoreSessions();
-		}
-	}, [
-		filteredSessions.length,
-		canLoadMoreSessions,
-		isLoadingSessions,
-		isLoadingMoreSessions,
-		loadMoreSessions
-	]);
 
 	function updateSorting(id: SessionSortId) {
 		const currentSort = sorting.at(0);
@@ -122,12 +96,18 @@ export function SessionsTable({
 	return (
 		<section className="flex flex-col gap-4">
 			<SessionsTableFilters
+				isSearchBatchPaused={isSearchBatchPaused}
+				loadedSearchMatchCount={loadedSearchMatchCount}
 				searchQuery={searchQuery}
 				sessionsView={sessionsView}
+				showSearchLoadingControls={showSearchLoadingControls}
+				showSearchLoadingStop={showSearchLoadingStop}
 				showStaleSessions={showStaleSessions}
+				onContinueSearchBatchLoading={onContinueSearchBatchLoading}
 				onSearchQueryChange={onSearchQueryChange}
 				onSessionsViewChange={onSessionsViewChange}
 				onShowStaleSessionsChange={onShowStaleSessionsChange}
+				onStopSearchBatchLoading={onStopSearchBatchLoading}
 			/>
 
 			<div className="overflow-x-auto border-y">
@@ -161,15 +141,15 @@ export function SessionsTable({
 						</TableRow>
 					</TableHeader>
 					<TableBody>
-						{filteredSessions.length > 0 ? (
-							filteredSessions.map((session) => (
+						{sessions.length > 0 ? (
+							sessions.map((session) => (
 								<SessionTableRow
 									key={session._id}
+									onReceiptSearch={onSearchQueryChange}
 									session={session}
-									onPackageFilterClick={onSearchQueryChange}
 								/>
 							))
-						) : showSessionsLoadingState ? (
+						) : isLoadingSessions ? (
 							<AdminTableLoadingRow
 								colSpan={11}
 								label="Loading sessions"
@@ -188,8 +168,8 @@ export function SessionsTable({
 			</div>
 
 			<InfiniteScrollSentinel
-				canLoadMore={!showSessionsLoadingState && canLoadMoreSessions}
-				isLoadingMore={isLoadingMoreSessions && filteredSessions.length > 0}
+				canLoadMore={!isLoadingSessions && canLoadMoreSessions}
+				isLoadingMore={isLoadingMoreSessions}
 				onLoadMore={loadMoreSessions}
 			/>
 		</section>

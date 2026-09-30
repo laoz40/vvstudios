@@ -7,6 +7,8 @@ import { env } from "#convex/env";
 import type { BookingAddonQuantitiesArgs } from "#convex/lib/bookingAddonQuantities";
 import type { BookingAddon } from "#studio/features/booking-form/lib/booking-form-model";
 import { getOrCreateDriveClientId } from "#convex/lib/driveFolders";
+import { buildBookingSearchBlob } from "#convex/lib/adminSearchBlob";
+import { contactNormalizedIndexFields } from "#convex/lib/contactNormalization";
 import { okOrThrow } from "#convex/lib/result";
 import { getSessionStartAt } from "#convex/lib/sessionAdminEdit";
 import {
@@ -78,19 +80,27 @@ export function createPendingSessionService(
 							accountName: args.accountName,
 							contactName: args.name
 						})
-					}).andThen((driveClientId) =>
-						okOrThrow(
+					}).andThen((driveClientId) => {
+						const email = args.email.trim().toLowerCase();
+
+						const bookingFields = {
+							...args,
+							email,
+							sessionStartAt,
+							status: "pending_payment" as const,
+							pendingPaymentCreatedAt: Date.now(),
+							archived: false,
+							driveClientId
+						};
+
+						return okOrThrow(
 							ctx.db.insert("bookings", {
-								...args,
-								email: args.email.trim().toLowerCase(),
-								sessionStartAt,
-								status: "pending_payment",
-								pendingPaymentCreatedAt: Date.now(),
-								archived: false,
-								driveClientId
+								...bookingFields,
+								...contactNormalizedIndexFields(args.phone),
+								searchBlob: buildBookingSearchBlob(bookingFields)
 							})
-						).map((bookingId) => ({ bookingId }))
-					);
+						).map((bookingId) => ({ bookingId }));
+					});
 				})
 			)
 	);

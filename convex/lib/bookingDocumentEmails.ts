@@ -47,7 +47,7 @@ export function sendBookingReceiptEmailsForBooking(
 		rescheduleUrl?: string;
 		skipHostEmail?: boolean;
 	}
-): ResultAsync<null, BookingReceiptEmailError> {
+): ResultAsync<{ receiptNumber: string }, BookingReceiptEmailError> {
 	return createBookingReceiptEmailArtifactsForBooking(booking, bookingPaidAt(booking), {
 		leadTimeMinutes: options.leadTimeMinutes,
 		rescheduleUrl: options.rescheduleUrl
@@ -68,12 +68,14 @@ export function sendBookingReceiptEmailsForBooking(
 			}).map(() => ({ artifacts, parsedBooking }))
 		)
 		.andThen(({ artifacts, parsedBooking }) => {
+			const receiptNumber = artifacts.data.receipt.number;
+
 			if (options.skipHostEmail) {
-				return okAsync(null);
+				return okAsync({ receiptNumber });
 			}
 
 			return sendSessionHostDetailsEmail({
-				invoiceNumber: artifacts.data.receipt.number,
+				invoiceNumber: receiptNumber,
 				name: parsedBooking.name,
 				email: parsedBooking.email,
 				phone: parsedBooking.phone,
@@ -86,14 +88,16 @@ export function sendBookingReceiptEmailsForBooking(
 				addons: parsedBooking.addons,
 				notes: parsedBooking.notes,
 				reschedule: options.reschedule
-			}).orElse((error) => {
-				console.error("Booking receipt host email send failed", {
-					bookingId: booking._id,
-					reason: error.reason
-				});
+			})
+				.orElse((error) => {
+					console.error("Booking receipt host email send failed", {
+						bookingId: booking._id,
+						reason: error.reason
+					});
 
-				return ok(null);
-			});
+					return ok(null);
+				})
+				.map(() => ({ receiptNumber }));
 		});
 }
 

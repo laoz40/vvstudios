@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo } from "react";
 import { TableCell, TableRow } from "#/components/ui/table";
 import { FixedDataTable } from "#studio/components/FixedDataTable";
 import {
@@ -8,7 +8,6 @@ import {
 import { PackageTableRow } from "#studio/features/admin/components/PackageTableRow";
 import { PackagesTableFilters } from "#studio/features/admin/components/PackagesTableFilters";
 import {
-	filterAdminPackages,
 	mapPackageToAdminRow,
 	type AdminPackageRecord,
 	type AdminPackageSort,
@@ -21,58 +20,53 @@ export function PackagesTable({
 	canLoadMorePackages,
 	isLoadingMorePackages,
 	isLoadingPackages,
+	isSearchBatchPaused,
+	loadedSearchMatchCount,
 	loadMorePackages,
+	onContinueSearchBatchLoading,
 	onPackagesViewChange,
+	onSearchQueryChange,
 	onShowStalePackagesChange,
 	onSortingChange,
+	onStopSearchBatchLoading,
 	onViewPackageSessions,
 	packages,
 	packagesView,
+	searchQuery,
+	showSearchLoadingControls,
+	showSearchLoadingStop,
 	showStalePackages,
 	sorting
 }: {
 	canLoadMorePackages: boolean;
 	isLoadingMorePackages: boolean;
 	isLoadingPackages: boolean;
+	isSearchBatchPaused: boolean;
+	loadedSearchMatchCount: number;
 	loadMorePackages: () => void;
+	onContinueSearchBatchLoading: () => void;
 	onPackagesViewChange: (view: AdminPackagesView) => void;
+	onSearchQueryChange: (searchQuery: string) => void;
 	onShowStalePackagesChange: (showStalePackages: boolean) => void;
 	onSortingChange: (sorting: AdminPackageSort) => void;
-	onViewPackageSessions: (invoiceNumber: string) => void;
+	onStopSearchBatchLoading: () => void;
+	onViewPackageSessions: (receiptNumber: string) => void;
 	packages: AdminPackageRecord[];
 	packagesView: AdminPackagesView;
+	searchQuery: string;
+	showSearchLoadingControls: boolean;
+	showSearchLoadingStop: boolean;
 	showStalePackages: boolean;
 	sorting: AdminPackageSort;
 }) {
-	const [searchQuery, setSearchQuery] = useState("");
-
 	// Persist table preferences.
 	useEffect(() => {
 		storePackagesTableFilters({ sorting, packagesView, showStalePackages });
 	}, [sorting, packagesView, showStalePackages]);
 
-	// Visible package rows after client search on loaded pages.
 	const visiblePackages = useMemo(() => {
-		return filterAdminPackages(packages.map(mapPackageToAdminRow), { searchQuery });
-	}, [packages, searchQuery]);
-
-	// Prefetch another page when client-side search hides every loaded package.
-	useEffect(() => {
-		if (
-			visiblePackages.length === 0 &&
-			canLoadMorePackages &&
-			!isLoadingPackages &&
-			!isLoadingMorePackages
-		) {
-			loadMorePackages();
-		}
-	}, [
-		visiblePackages.length,
-		canLoadMorePackages,
-		isLoadingPackages,
-		isLoadingMorePackages,
-		loadMorePackages
-	]);
+		return packages.map(mapPackageToAdminRow);
+	}, [packages]);
 
 	function updateCreatedSort() {
 		onSortingChange({ isDescending: !sorting.isDescending });
@@ -82,12 +76,18 @@ export function PackagesTable({
 	return (
 		<section className="flex flex-col gap-4">
 			<PackagesTableFilters
+				isSearchBatchPaused={isSearchBatchPaused}
+				loadedSearchMatchCount={loadedSearchMatchCount}
 				packagesView={packagesView}
 				searchQuery={searchQuery}
+				showSearchLoadingControls={showSearchLoadingControls}
+				showSearchLoadingStop={showSearchLoadingStop}
 				showStalePackages={showStalePackages}
+				onContinueSearchBatchLoading={onContinueSearchBatchLoading}
 				onPackagesViewChange={onPackagesViewChange}
-				onSearchQueryChange={setSearchQuery}
+				onSearchQueryChange={onSearchQueryChange}
 				onShowStalePackagesChange={onShowStalePackagesChange}
+				onStopSearchBatchLoading={onStopSearchBatchLoading}
 			/>
 
 			<div className="overflow-x-auto border-y">
@@ -130,6 +130,7 @@ export function PackagesTable({
 						visiblePackages.map((packageRow) => (
 							<PackageTableRow
 								key={packageRow.id}
+								onReceiptSearch={onSearchQueryChange}
 								onViewPackageSessions={onViewPackageSessions}
 								packageRow={packageRow}
 							/>

@@ -217,7 +217,7 @@ async function seedPaidPackage(t: TestClient) {
 			status: "paid",
 			archived: false,
 			createdAt: now - 30 * 24 * 60 * 60 * 1000,
-			invoiceEmailStatus: "sent",
+			receiptEmailStatus: "sent",
 			paidAt: now - 20 * 24 * 60 * 60 * 1000,
 			expiresAt: now,
 			stripeCustomerId: "cus_test_package"

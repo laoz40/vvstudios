@@ -21,6 +21,7 @@ import {
 import { sessionConsumesPackageCapacity } from "#convex/lib/packageScheduling";
 import type { BookingAddon } from "#studio/features/booking-form/lib/booking-form-model";
 import { okOrThrow } from "#convex/lib/result";
+import { searchBlobPatchForBooking } from "#convex/lib/adminSearchBlob";
 
 type AdminSessionDatabasePatch = AdminSessionTimingPatch & {
 	googleCalendarId?: string;
@@ -91,7 +92,11 @@ export function saveAdminSessionUpdateService(ctx: MutationCtx, args: SaveAdminS
 					Object.assign(patch, clearedSessionReservationPatch);
 				}
 
-				return okOrThrow(ctx.db.patch(args.bookingId, patch)).andThen(() => {
+				return okOrThrow(
+					searchBlobPatchForBooking(ctx, session, updatePatch).then((searchBlobPatch) =>
+						ctx.db.patch(args.bookingId, { ...patch, ...searchBlobPatch }).then(() => null)
+					)
+				).andThen(() => {
 					const nextStatus = args.confirmBooking ? "confirmed" : session.status;
 
 					const timingChanged =
@@ -147,16 +152,26 @@ export function saveClientSessionRescheduleService(
 			// Save the new time and clear the old reminder and reservation state.
 			.andThen((session) =>
 				okOrThrow(
-					ctx.db.patch(args.bookingId, {
+					searchBlobPatchForBooking(ctx, {
+						...session,
 						date: args.date,
 						time: args.time,
-						sessionStartAt: args.sessionStartAt,
-						reminderEmailClaimedAt: undefined,
-						reminderEmailSentAt: undefined,
-						reminderEmailFailureCode: undefined,
-						...buildClientSessionRescheduleOptionalPatch(args),
-						...clearedSessionReservationPatch
-					})
+						service: args.service ?? session.service,
+						addons: args.addons ?? session.addons,
+						notes: args.notes ?? session.notes
+					}).then((searchBlobPatch) =>
+						ctx.db.patch(args.bookingId, {
+							date: args.date,
+							time: args.time,
+							sessionStartAt: args.sessionStartAt,
+							reminderEmailClaimedAt: undefined,
+							reminderEmailSentAt: undefined,
+							reminderEmailFailureCode: undefined,
+							...buildClientSessionRescheduleOptionalPatch(args),
+							...clearedSessionReservationPatch,
+							...searchBlobPatch
+						})
+					)
 				).andThen(() => {
 					const nextStatus = args.confirmBooking ? "confirmed" : session.status;
 

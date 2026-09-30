@@ -1,0 +1,319 @@
+# Admin dashboard search
+
+Server-side search for sessions and packages tables, plus v2 (`field:value` syntax and `searchBlob`).
+
+Open locally: `mdxp plans/14-admin-search.mdx`
+
+## PR stack
+
+Review in **five** launch PRs (plus shell already in flight); **deploy once** when PRs **2–5** are merged. Prod has live **bookings** only (no packages yet). **PR 5 must be in prod before** you run the dashboard backfill (mutations are not optional ops glue).
+
+| PR                    | Scope                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **1. Shell**          | `searchQuery` wired; client-side filter removed (current branch). No schema.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| **2. Receipt model**  | Rename package `invoice*` → `receipt*`; optional `bookings.receiptNumber`; `by_receiptNumber` indexes; set at pay; copy to package session bookings; admin/emails read stored value (blank when pending).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| **3. Search backend** | `searchBlob` + `search_admin_blob` (unprefixed only); per-field search indexes for `name:` / `account:` / `ig:` / `editor:`; optional `assignedEditorDisplayName` on bookings (denormalized; sessions only); optional `phoneNormalized` + `by_phoneNormalized`; router; prefix routes (see **Search semantics**); write-path `searchBlob`, `phoneNormalized`, and editor display name maintenance; sets `refineSearch: true` on the **first** list page when the active search route has **`!isDone`** after its single `.paginate()` (any unprefixed or prefix query). Client uses **`ADMIN_SEARCH_PAGE_SIZE` (40)** while searching so the nudge aligns with ~41+ matches. No extra count query. Code tolerates missing blob/receipt/`phoneNormalized`/editor name on old rows until backfill runs. **No** `abnNormalized` column. |
+| **4. Search UX**      | **Blocking** floating refine banner + opt-in to load more, field-prefix narrow actions on the banner, sentinel pagination (inbox). Merge order vs PR 3 flexible; **both** must ship before deploy.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| **5. Backfill ops**   | `convex/adminSearchBackfill.ts` + `convex/lib/adminSearchBackfill.ts`: cursor-batch internal mutations for prod dashboard (`backfillPackageAdminSearch`, `backfillBookingAdminSearch`). No user-facing behavior; safe to merge before deploy. **Block prod deploy for search launch until this is merged** so backfill is available immediately after deploy.                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+
+**After deploy (ops):** run **one backfill** on prod bookings (and packages when they exist): **`receiptNumber`** on paid rows, **`searchBlob`**, **`phoneNormalized`** (from stored `phone` via `normalizePhone`). New writes populate all three going forward. Dashboard → `adminSearchBackfill` (`backfillPackageAdminSearch` first if needed, then `backfillBookingAdminSearch`); args `{ "cursor": null }` until `isDone: true`, then pass `continueCursor` as `"cursor"`.
+
+**Not in launch backfill:** rewriting displayed `phone` / `abn` strings. **ABN:** backfill only if prod audit finds non–11-digit stored values; booking form already stores 11 digits.
+
+**Follow-up PR 6 (post-deploy, after launch backfill finishes):** one cleanup PR — drop deprecated package `invoice*` fields if any linger, remove dead compute paths, tighten optional fields to required where every prod row has a value (e.g. `searchBlob` / `receiptNumber` on paid bookings only if you model it that way), **and** [canonical `phone`](#canonical-phone-pr-6) (normalize stored `phone`, drop `phoneNormalized`). Do not require fields on rows that legitimately omit them (pending checkout, unpaid).
+
+<Callout
+	tone="info"
+	body="Convex: new booking fields stay optional in PRs 2–5 so prod validates before backfill. PR 6 is post-backfill widen-migrate-narrow cleanup (schema + canonical phone), not part of the initial deploy."
+/>
+
+## Branch `feat/admin-search-ux` (PR 3 merged; PR 4 + PR 5 in progress)
+
+PR 1 shell and PR 2 receipts are merged. PR 3 search backend is on this branch. PR 4 adds refine banner, batched load-all, and field-prefix narrow. **PR 5** (`adminSearchBackfill`) can land on the same branch or a thin follow-up; it must merge before prod deploy so backfill mutations exist when ops runs dashboard jobs.
+
+### Behavior today
+
+- Debounced `searchQuery` (~300ms) on sessions and packages; list handlers route unprefixed text to `searchBlob` and `field:` prefixes to indexes (see **Search semantics**).
+- **Inbox pagination:** `DASHBOARD_PAGE_SIZE` (20) + `InfiniteScrollSentinel` when not searching.
+- **Search pagination:** client sends `ADMIN_SEARCH_PAGE_SIZE` (40) in `paginationOpts` while a search is active; backend sets `refineSearch` on the first page when that route’s paginate returns `!isDone` (~41+ index matches).
+- **Search UX (PR 4):** when the first search page has more results, a floating refine banner blocks batched load-all until the admin confirms or picks a field prefix; after opt-in, the client auto-fetches pages with a loading strip and **Stop loading**; inbox scroll sentinel stays off during active search.
+- No client-side table filtering.
+
+### Main files
+
+<FileTree
+	title="search backend + UX branch"
+	entries={[
+		{
+			path: "convex/lib/adminSearchQuery.ts",
+			change: "added",
+			note: "parse field: prefixes and unprefixed blob"
+		},
+		{
+			path: "convex/lib/adminSearchPagination.ts",
+			change: "added",
+			note: "paginate search routes; refineSearch on first page"
+		},
+		{
+			path: "convex/lib/adminBookingSearch.ts",
+			change: "added",
+			note: "session list search router"
+		},
+		{
+			path: "convex/lib/adminPackageSearch.ts",
+			change: "added",
+			note: "package list search router"
+		},
+		{
+			path: "src/sites/studio/features/admin/lib/admin-list-pagination.ts",
+			change: "added",
+			note: "inbox page size 20 vs search page size 40"
+		},
+		{
+			path: "src/sites/studio/features/admin/components/AdminDashboard.tsx",
+			change: "modified",
+			note: "debounced searchQuery; search page size when filtering"
+		}
+	]}
+/>
+
+---
+
+## Receipt numbers (before search)
+
+Checkout documents are **receipts** (paid), not open invoices. One stored string per paid package or booking.
+
+### Storage
+
+- **Packages:** rename `invoiceNumber` → `receiptNumber` (and `invoiceEmail*` → `receiptEmail*`). No package bookings in prod yet, so rename is low risk.
+- **Bookings:** add optional `receiptNumber`. Standalone sessions get it when paid. Package sessions copy the package `receiptNumber` when the package is paid (denormalized for list/search without joining packages).
+- **Set once** at payment / receipt email time using `formatBookingInvoiceNumber(id, paidAt)` (or the same rule everywhere — pick one timestamp and stick to it). Do **not** assign at create.
+- **Pending payment:** no receipt number. Admin shows blank (stop calling `formatBookingInvoiceNumber` in `mapPackageToAdminRow` for unpaid rows). Nothing to search.
+
+Out of scope for admin customer search: `packageAdjustments`, `customInvoices`, `stripeInvoices` (Stripe billing invoices).
+
+### Admin + emails
+
+Read `receiptNumber` from the document everywhere (admin table, PDFs, emails). Remove duplicate compute paths that use `createdAt` vs `paidAt` differently.
+
+### How `receipt:` queries work
+
+Prefix: `receipt:VV-20250327-ABCD` (trim value; exact match on stored string).
+
+| List         | Lookup                                                                                                                                                        |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Packages** | `packages` index `by_receiptNumber` → eq query value, then apply inbox/archive/stale like today. Unpaid rows have no `receiptNumber` → never match.           |
+| **Sessions** | `bookings` index `by_receiptNumber` → eq query value, then apply session list view/sort. Package-linked rows match via copied package receipt on the booking. |
+
+No parsing `VV-` date segments or recomputing from `_id` at query time. No extra column for blob: when `searchBlob` exists, append `receiptNumber` into the blob on write if present.
+
+Add `.index("by_receiptNumber", ["receiptNumber"])` on `packages` and `bookings` when the field is populated.
+
+---
+
+## Planned v2: explicit `field:value` + `searchBlob`
+
+Replace shape-based auto-routing. User states intent in the query string; unprefixed text uses `searchBlob` and a Convex search index.
+
+### Query syntax
+
+One targeted clause per search for now; combined filters deferred.
+
+Two match tiers (same mental model for admins: **paste fields = whole value**, **type-to-find fields = word search on that field only**).
+
+| Prefix     | Field           | Match rule                                                                | Route (PR 3)                                                                                                                                                                          |
+| ---------- | --------------- | ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `email:`   | Contact email   | **Exact** (trim; case-insensitive compare on stored email)                | `by_email` → eq, then inbox/stale; **paginate** index pages until `isDone` if many rows share an email                                                                                |
+| `receipt:` | Receipt number  | **Exact** (trim; full `VV-…` string)                                      | `by_receiptNumber` → eq, then inbox/stale; paginate if needed                                                                                                                         |
+| `phone:`   | Phone           | **Exact** on normalized form (not substring)                              | `normalizePhone(query)` → `by_phoneNormalized` eq, then inbox/stale; paginate if many rows share a number. Rows without `phoneNormalized` (pre-backfill) do not match until backfill. |
+| `abn:`     | ABN             | **Exact** on stored `abn`                                                 | `normalizeAbn(query)` at parse boundary → `by_abn` eq on stored field, then inbox/stale; paginate if needed. No separate normalized column (form stores 11 digits).                   |
+| `name:`    | Customer name   | **Partial** — Convex word search on `name` only (not full-string exact)   | `.withSearchIndex("search_admin_name")` → `.search("name", query)`; filter `archived` in inbox; paginate like unprefixed (see **Partial prefix UX**)                                  |
+| `account:` | Business name   | **Partial** — word search on `accountName` only                           | `search_admin_account` on `accountName`; same pagination                                                                                                                              |
+| `ig:`      | Instagram       | **Partial** — word search on handle; normalize query at parse (strip `@`) | `search_admin_ig` on `instagramHandle`; same pagination                                                                                                                               |
+| `editor:`  | Assigned editor | **Partial** — word search on denormalized display name; sessions only     | `search_admin_editor` on `assignedEditorDisplayName`; inbox `archived` filter in index; same pagination / `refineSearch` as other partial prefixes (no per-token index merge)         |
+| `date:`    | Session day     | Calendar day on `sessionStartAt`                                          | Day bounds index path; sort by time within day                                                                                                                                        |
+
+**Unprefixed query:** `searchBlob` via `.withSearchIndex` (token search, relevance). Normal Convex search pagination.
+
+**Rejected:** inferring field from value shape (`VV-` → receipt, `@` → email). **Rejected:** one global “exact match” rule for all prefixes (confusing for `name:jo` vs `email:jo`). **Rejected:** `abnNormalized` (stored `abn` is already canonical for new data; normalize query only).
+
+**Deferred:** multiple `field:value` clauses in one query.
+
+### Search semantics (detail)
+
+**Paste-friendly (exact):** `email:`, `receipt:`, `phone:`, `abn:` — admins paste or type the full value. `phone:` / `abn:` compare **whole normalized values**, not “digits appear anywhere in the number.”
+
+**Type-to-find (partial):** `name:`, `account:`, `ig:`, `editor:` — Convex **search index on that column** (word tokens, same family as unprefixed search, but scoped to one field). `editor:` searches **`assignedEditorDisplayName`** on the booking (denormalized from the assigned editor’s display name at assign time; updated on reassign and when the editor profile display name changes). Not “email contains jo” and not paste-style full-string exact. Backend returns **paginated batches** (`ADMIN_SEARCH_PAGE_SIZE` while searching). PR 4 **auto-fetches** the next batch until `isDone` (no scroll required). When **`refineSearch` is true**, show a preview/first batch only until banner opt-in (see **Refine banner** and **Batched load-all**).
+
+**Heavy-query guard:** **`refineSearch` applies to unprefixed and prefix searches** on the **first** page only (`cursor === null`): `true` when that route’s paginated query returns **`isDone: false`** (more index pages exist). The client uses **`ADMIN_SEARCH_PAGE_SIZE` (40)** for active search requests, so the nudge typically means **~41+ index matches**, not “one page over inbox size.” Inbox browsing stays at **`DASHBOARD_PAGE_SIZE` (20)**. The banner blocks batched load-all until the admin confirms. Stale/inbox rows are still **removed from the response** when Show unconfirmed is off; `isDone` is index-level, so the first visible page can be shorter than `numItems` while `refineSearch` is still `true`. Acceptable (low stale volume).
+
+**Not the same as unprefixed search:** unprefixed text matches tokens in **`searchBlob`** (all contact fields). `name:acme` searches the **`name`** search index only.
+
+### Partial prefix UX (PR 3 + PR 4)
+
+- **`name:` / `account:` / `ig:` / `editor:`:** PR 3 paginates the matching **per-field search index** (no `searchBlob` walk, no field post-filter). PR 4: **batched load-all** (not scroll-sentinel); rows append as each batch arrives.
+- **`editor:`:** sessions only; same partial-index path as `name:` (denormalized `assignedEditorDisplayName` on bookings).
+- **Exact paste prefixes** (`email:`, `receipt:`, `phone:`, `abn:`): index lookup in **pages** when many rows share a key; same batched load-all UX after gate when needed.
+
+### Refine banner (unprefixed + prefix)
+
+- Set **`refineSearch: true`** on the **first** response only when the search route’s **first** `.paginate()` returns **`isDone: false`** (at least one more page in that index stream). One paginate per request; no secondary `.take()` / count pass.
+- **`refineSearch: false`:** only one page (or fewer rows than a full page) in the index stream for this query. PR 4 may still batched load-all for partial prefixes when not gated.
+- **`refineSearch: true`:** show a **floating banner** near the bottom of the screen; **no further batches** until opt-in (e.g. “Load all matches”). First batch/preview may still render. Banner offers **field-prefix** actions (tap → `{prefix}{current free text}`) to narrow without loading the rest.
+- **After opt-in:** **batched load-all** for every search mode until `isDone` or user stops (see below).
+
+### Batched load-all (PR 4)
+
+Use when the user should get **all** matches without scrolling to trigger each page:
+
+1. **Auto `loadMore` loop** — after opt-in (or immediately when `refineSearch` is false), client requests the next Convex page on a timer/microtask chain until `isDone`.
+2. **Loading state** — persistent indicator while batches are in flight (e.g. strip above table: “Loading matches… 120 loaded”). Update count as rows append.
+3. **Stop loading** — button aborts the loop and in-flight requests; **keep rows already loaded**; clear loading state. User can narrow the query or opt in again later.
+4. **No single giant response** — each batch stays within normal list page size and Convex limits; avoids one long server hang.
+5. **Unprefixed after opt-in** — same batched load-all (not only scroll-sentinel), so behavior matches prefix searches.
+
+Scroll sentinel remains acceptable for **non-search** inbox list and optionally unprefixed under threshold if you want lazy loading without loading everything.
+
+### Phone / ABN
+
+Shared `normalizePhone` / `normalizeAbn` in `convex/lib`.
+
+**Phone (PR 3):** optional `phoneNormalized` on `bookings` and `packages`, index `by_phoneNormalized`. Set on every write that sets `phone` (same helper as backfill). **`phone:`** prefix uses index equality on `normalizePhone(query)`; does not scan the blob. Displayed `phone` stays as entered.
+
+**ABN (PR 3):** index `by_abn` on the existing optional `abn` field. **`abn:`** prefix: `normalizeAbn(query)` then eq on stored `abn`. Booking form already strips spaces and enforces 11 digits, so no `abnNormalized` column. Legacy rows with formatted ABNs: fix in ops backfill on `abn` itself if any exist, not a second column.
+
+**Blob:** on write/backfill, include normalized phone and ABN digits **in `searchBlob` text** for unprefixed search; leave displayed contact fields as entered.
+
+**`normalizePhone` today:** strip non-digits; if digits start with `61` and length ≥ 11, store AU local form (`0` + rest) so `+61 434 367 184` and `04 34 367 184` share one `phoneNormalized`. Other numbers stay as digits-only (no country-code rewrite). Same helper on write, backfill, and `phone:` query parsing.
+
+**Canonical `phone` in storage** (rewrite `phone`, remove `phoneNormalized`) ships in [PR 6](#canonical-phone-pr-6), not launch backfill. **ABN** can still be fixed in place on `abn` only if prod audit needs it; no `abnNormalized` column.
+
+### Per-field search indexes (`name:` / `account:` / `ig:` / `editor:`)
+
+On `bookings` and `packages` (same `filterFields: ["archived"]` pattern as `search_admin_blob`):
+
+- `search_admin_name` → `searchField: "name"`
+- `search_admin_account` → `searchField: "accountName"`
+- `search_admin_ig` → `searchField: "instagramHandle"`
+
+**`ig:`** still strips `@` in the query parser before search.
+
+**`editor:` (bookings only):** optional `assignedEditorDisplayName`; `search_admin_editor` → `searchField: "assignedEditorDisplayName"`. Clear the field when no editor is assigned. **Write path:** set on assign/reassign; patch all bookings with that `assignedEditorTokenIdentifier` when an editor’s display name changes (reassign/rename is rare). Unassigned or pre-backfill rows do not match `editor:` until populated.
+
+**Rejected for these prefixes:** walk `search_admin_blob` and post-filter one field (too many false hits from other blob tokens).
+
+### Instagram
+
+- **`ig:`** uses `search_admin_ig` (word search on stored handle), not blob + filter.
+
+### UX guardrails (PR 4)
+
+<Callout
+	tone="decision"
+	body="No client min length on unprefixed search. Short queries still only fetch the first search page; when the index has more pages, refineSearch blocks batched load-all until the admin confirms or picks a field prefix on the banner."
+/>
+
+**`refineSearch`:** **unprefixed and prefix** searches. `true` on first page when **`!isDone`** after the route’s paginate call (shared rule in list/search helpers).
+
+**Pagination / sentinel:** inbox list without search keeps today’s sentinel. **Active search** (unprefixed or prefix): prefer **batched load-all** over scroll-to-load when fetching remaining matches; gate with banner when `refineSearch` until opt-in.
+
+**Refine-search banner:** when **`refineSearch: true` only**. Floating near the bottom (sessions + packages). Copy: many matches — **load all** (starts batched load-all) or **narrow** via field actions that rewrite the query to planned `field:` prefixes (e.g. `acme` → `email:acme`). While loading all: show progress + **stop loading**.
+
+| Concern        | Behavior                                                                                   |
+| -------------- | ------------------------------------------------------------------------------------------ |
+| Query length   | No client min length; debounced `searchQuery` sent as typed (trimmed)                      |
+| Page sizes     | Inbox `DASHBOARD_PAGE_SIZE` (20); active search `ADMIN_SEARCH_PAGE_SIZE` (40)              |
+| `refineSearch` | Any search; first page; `true` when index has another page (`!isDone`) at search page size |
+| Load more      | Batched auto `loadMore` until `isDone` or **stop**; paused at `refineSearch` until opt-in  |
+| Partial prefix | Same batched load-all; no scroll required                                                  |
+| Exact prefix   | Index/blob pages; same batched load-all when many rows                                     |
+| Banner         | Only when `refineSearch`; blocks batch loop until load-all or field-prefix narrow          |
+| Stop loading   | Cancels loop; keeps rows fetched so far                                                    |
+
+### Implementation phases (PRs 2–5)
+
+Work order within the stack; **no prod backfill until deploy**, then one batch job covers everything. PR 3 and PR 4 can merge in either order. **PR 5 (backfill mutations) must merge before deploy**; deploy once PRs 2–5 are in.
+
+**PR 2 — receipt model**
+
+- Rename package receipt + email metadata fields.
+- Optional `bookings.receiptNumber`; indexes on packages and bookings.
+- Write path at payment; denormalize onto package session bookings.
+- Admin UI: show stored receipt when paid, blank when pending.
+
+**PR 3 — search backend**
+
+1. Schema: optional `searchBlob` + `search_admin_blob` (unprefixed); `search_admin_name` / `search_admin_account` / `search_admin_ig`; optional `assignedEditorDisplayName` + `search_admin_editor` on **bookings**; optional `phoneNormalized` + `by_phoneNormalized`; `by_abn` on `abn` (packages and bookings).
+2. Router: single `field:value` or unprefixed branch in list services.
+3. Prefixes: exact btree — `email:`, `receipt:`, `phone:` (`by_phoneNormalized`), `abn:` (`by_abn`); partial **search index on one field** — `name:`, `account:`, `ig:`, `editor:`; special — `date:` (sessions).
+4. Write path: maintain `searchBlob` and `phoneNormalized` on contact-changing mutations; maintain `assignedEditorDisplayName` on assign/reassign/editor rename (sessions). Blob includes normalized phone/ABN tokens; do not rewrite displayed `phone` / `abn`.
+5. All search paths: on first page, `refineSearch: !isDone` after the single paginate for that route. Every search route returns normal **pagination cursors** until `isDone` (no monolithic “all rows” payload). Remove any refine-only `.take()` / second paginate workaround.
+
+**PR 4 — search UX**
+
+1. `refineSearch` + floating bottom banner; **load all** starts batched auto-pagination; field-prefix actions on the banner; **stop loading** aborts with partial results kept.
+2. Inbox list: sentinel as today. Search: batched load-all (partial prefixes included); optional sentinel only for unprefixed under threshold if desired.
+
+**PR 5 — backfill ops**
+
+1. `backfillPackageAdminSearch` / `backfillBookingAdminSearch` internal mutations; shared batch helpers in `convex/lib/adminSearchBackfill.ts`.
+2. Tests for receipt derivation + one integration path per mutation.
+3. Plan/runbook comment in module header (dashboard args, package-before-booking order).
+
+**Deploy → ops backfill → PR 6**
+
+- Ops: paid rows get `receiptNumber` + `searchBlob` + `phoneNormalized` on all bookings/packages with a `phone`; assigned bookings get `assignedEditorDisplayName` from current editor profile when `assignedEditorTokenIdentifier` is set.
+- PR 6: schema narrow + dead code removal + [canonical phone](#canonical-phone-pr-6) in the **same** PR (may need multiple Convex deploys inside that PR for strip/narrow).
+
+### Shell vs v2 at a glance
+
+|                      | Before PR 3      | Implemented (PR 3+)                                                                    |
+| -------------------- | ---------------- | -------------------------------------------------------------------------------------- |
+| Unprefixed search    | Not implemented  | `searchBlob` search index                                                              |
+| Targeted search      | Not implemented  | `field:value` → exact (paste) or per-field search index (`name:` / `account:` / `ig:`) |
+| Auto-detect shape    | N/A              | Rejected                                                                               |
+| Receipt in admin     | Often computed   | Stored when paid; blank when pending                                                   |
+| Sort while searching | Normal list sort | Blob: relevance; `date:`: day + time                                                   |
+
+---
+
+## Canonical phone (PR 6)
+
+**Goal:** one stored `phone` per booking/package in canonical form (same output as `normalizePhone` today), stricter booking-form validation, and **no** duplicate `phoneNormalized` column or `by_phoneNormalized` index.
+
+**Ship with PR 6** (post-backfill cleanup), not as a separate PR. Launch PR 5 only adds dashboard backfill for `searchBlob` / `phoneNormalized` / receipts; it does not rewrite `phone`.
+
+**Why two fields until PR 6:** launch keeps `phone` as entered (spaces, `+61`, etc.) and uses optional `phoneNormalized` only for exact `phone:` btree lookup. That avoids rewriting customer-visible data during the search rollout.
+
+### Widen → migrate → narrow (Convex)
+
+Each schema change that removes a field needs staged deploys. Order:
+
+| Phase                   | Code / schema                                                                                                                                                                                                                                       | Ops                                                          |
+| ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
+| **1. Widen**            | Normalize on every write that sets `phone` (store canonical string in `phone`; keep writing `phoneNormalized` in parallel for one deploy if you want zero search gap). Tighten Zod / form validation to match (AU mobile rules as you define them). | None required if dual-write.                                 |
+| **2. Backfill `phone`** | New dashboard batch (or extend `adminSearchBackfill`) patches `phone` → `normalizePhone(phone)` where it differs; refresh `searchBlob` tokens if blob text should match stored `phone`.                                                             | Run until `isDone`; spot-check `+61` / `04` pairs converged. |
+| **3. Switch reads**     | `phone:` search: eq on `phone` with `normalizePhone(query)` (add `by_phone` index on `phone` if needed). Stop reading `phoneNormalized`. Unprefixed blob search unchanged (blob already carries normalized digits).                                 | —                                                            |
+| **4. Stop dual-write**  | Writes set only `phone`; remove `contactNormalizedIndexFields` and blob-only duplication if `phone` is already canonical in blob builder.                                                                                                           | —                                                            |
+| **5. Narrow schema**    | Strip `phoneNormalized` from all documents (batch mutation), then remove optional field + `by_phoneNormalized` from `schema.ts`. Deploy only after strip completes.                                                                                 | Strip backfill until `isDone`.                               |
+
+<Callout
+	tone="warning"
+	body="Do not remove `phoneNormalized` from the schema until every prod row has canonical `phone` and `phone:` queries no longer use the old index. A one-deploy dual-read on `phone:` (try `by_phone`, fall back to `by_phoneNormalized`) is optional if you want overlap during backfill."
+/>
+
+### Product / display
+
+- Admin and PDFs will show canonical digits unless you **format in the UI only** (e.g. `04xx xxx xxx`).
+- Saved booking info / localStorage may need a one-time normalize on read or clear-after-migrate.
+- `normalizePhone` remains AU-biased (`61` → leading `0`). If you support non-AU numbers, define canonical rules before shipping PR 6 and extend the helper; do not assume `+61`/`04` equivalence outside AU mobiles.
+
+### Relation to launch backfill (PR 5 deploy + ops)
+
+- **Launch backfill** (`adminSearchBackfill`, merged in PR 5): `searchBlob`, `phoneNormalized`, receipts, editor names. Does **not** rewrite `phone`.
+- **PR 6 ops** (inside cleanup PR): backfill `phone` in place, switch `phone:` index, strip `phoneNormalized`, then narrow schema. Remove or narrow `adminSearchBackfill` once no longer needed.
+
+### Out of scope for PR 6 (canonical slice)
+
+- Rewriting displayed `abn` (still optional ops fix on `abn` itself if needed).
+- Changing receipt or `searchBlob` requiredness unless the `phone` backfill forces a blob refresh anyway.

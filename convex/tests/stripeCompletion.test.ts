@@ -172,7 +172,7 @@ async function seedPendingPackage(t: TestClient) {
 			status: "pending_payment",
 			archived: false,
 			createdAt: now,
-			invoiceEmailStatus: "sent",
+			receiptEmailStatus: "sent",
 			stripeSessionId: "cs-1"
 		})
 	);

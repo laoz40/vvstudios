@@ -458,8 +458,8 @@ function packageFields(createdAt: number) {
 		status: "pending_payment" as const,
 		archived: false,
 		createdAt,
-		invoiceNumber: "VV-STORED-001",
-		invoiceEmailStatus: "sent" as const
+		receiptNumber: "VV-STORED-001",
+		receiptEmailStatus: "sent" as const
 	};
 }
 

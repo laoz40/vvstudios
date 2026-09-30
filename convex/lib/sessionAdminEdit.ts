@@ -14,6 +14,7 @@ import {
 	type SessionAvailabilitySettings,
 	type SessionTimeParseError
 } from "#convex/lib/sessionCalendarTime";
+import { contactNormalizedIndexFields } from "#convex/lib/contactNormalization";
 import { getBusyWindows } from "#convex/lib/googleCalendarAvailability";
 import { calendarResultAsync } from "#convex/lib/googleCalendarErrors";
 
@@ -144,6 +145,7 @@ export function getSessionEditFieldChanges(
 export type AdminSessionTimingPatch = {
 	name: string;
 	phone: string;
+	phoneNormalized: string;
 	accountName: string;
 	abn: string | undefined;
 	email: string;
@@ -192,7 +194,8 @@ export function buildAdminSessionUpdatePatch({
 			completeEditQuantity: values.completeEditQuantity,
 			clipsPackageQuantity: values.clipsPackageQuantity,
 			handcraftedClipsQuantity: values.handcraftedClipsQuantity,
-			notes: values.notes
+			notes: values.notes,
+			...contactNormalizedIndexFields(values.phone)
 		};
 
 		if (scheduleChanged) {

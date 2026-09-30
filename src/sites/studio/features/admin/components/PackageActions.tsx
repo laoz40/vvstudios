@@ -22,7 +22,13 @@ import {
 	type AdminPackageRow
 } from "#studio/features/admin/lib/admin-packages";
 
-export function PackageActions({ packageRow }: { packageRow: AdminPackageRow }) {
+export function PackageActions({
+	onReceiptSearch,
+	packageRow
+}: {
+	onReceiptSearch: (searchQuery: string) => void;
+	packageRow: AdminPackageRow;
+}) {
 	const actions = usePackageActions(packageRow);
 
 	const { editAction, handleArchiveChange, isActionPending, pendingAction } = actions;
@@ -91,6 +97,7 @@ export function PackageActions({ packageRow }: { packageRow: AdminPackageRow }) 
 					<DropdownMenuSeparator />
 					<PackageOtherActionsMenu
 						actions={actions}
+						onReceiptSearch={onReceiptSearch}
 						packageRow={packageRow}
 					/>
 					<DropdownMenuSeparator />

@@ -29,7 +29,17 @@ import {
 	readStoredPackagesTablePreferences,
 	readStoredSessionsTablePreferences
 } from "#studio/features/admin/lib/admin-dashboard-preferences";
-import { DASHBOARD_PAGE_SIZE } from "#studio/features/auth/lib/dashboard-loading-labels";
+import {
+	ADMIN_PACKAGE_SEARCH_NARROW_FIELDS,
+	ADMIN_SESSION_SEARCH_NARROW_FIELDS,
+	formatAdminSearchNarrowQuery
+} from "#studio/features/admin/lib/admin-search-narrow";
+import { adminTablePageSize } from "#studio/features/admin/lib/admin-list-pagination";
+import { useAdminTableSearchPagination } from "#studio/features/admin/lib/use-admin-table-search-pagination";
+import { AdminSearchRefineBanner } from "#studio/features/admin/components/AdminSearchRefineBanner";
+import { useDebouncedValue } from "#/lib/use-debounced-value";
+
+const ADMIN_TABLE_SEARCH_DEBOUNCE_MS = 300;
 
 type ArchivePastDeadCheckoutBatch = {
 	continueCursor: string | null;
@@ -116,34 +126,75 @@ function BookingsDashboardView({
 	onSessionsViewChange,
 	onShowStaleSessionsChange
 }: BookingsDashboardViewProps) {
+	const debouncedSessionSearchQuery = useDebouncedValue(
+		sessionSearchQuery,
+		ADMIN_TABLE_SEARCH_DEBOUNCE_MS
+	);
+
+	const trimmedSessionSearchQuery = debouncedSessionSearchQuery.trim();
+
+	const hasActiveSessionSearch = trimmedSessionSearchQuery.length > 0;
+	const sessionPageSize = adminTablePageSize(hasActiveSessionSearch);
+
 	const sessionListQuery = {
 		...toSessionListQuerySort(sessionSorting),
 		view: sessionsView,
-		includeStale: showStaleSessions
+		includeStale: showStaleSessions,
+		searchQuery: hasActiveSessionSearch ? trimmedSessionSearchQuery : undefined
 	};
 
 	const sessions = usePaginatedQuery(api.sessions.listSessions, sessionListQuery, {
-		initialNumItems: DASHBOARD_PAGE_SIZE
+		initialNumItems: sessionPageSize
 	});
 
 	const isLoadingFirstPage = sessions.status === "LoadingFirstPage";
+	const sessionResults = isLoadingFirstPage ? [] : sessions.results;
+
+	const sessionSearchPagination = useAdminTableSearchPagination({
+		hasActiveSearch: hasActiveSessionSearch,
+		isLoadingFirstPage,
+		isLoadingMore: sessions.status === "LoadingMore",
+		loadMore: (pageSize) => sessions.loadMore(pageSize),
+		pageSize: sessionPageSize,
+		resultCount: sessionResults.length,
+		searchKey: trimmedSessionSearchQuery,
+		status: sessions.status
+	});
 
 	return (
-		<SessionsTable
-			sessions={isLoadingFirstPage ? [] : sessions.results}
-			canLoadMoreSessions={sessions.status === "CanLoadMore"}
-			isLoadingMoreSessions={sessions.status === "LoadingMore"}
-			isLoadingSessions={sessions.status === "LoadingFirstPage"}
-			loadMoreSessions={() => sessions.loadMore(DASHBOARD_PAGE_SIZE)}
-			searchQuery={sessionSearchQuery}
-			sessionsView={sessionsView}
-			showStaleSessions={showStaleSessions}
-			sorting={sessionSorting}
-			onSearchQueryChange={onSessionSearchQueryChange}
-			onSessionsViewChange={onSessionsViewChange}
-			onShowStaleSessionsChange={onShowStaleSessionsChange}
-			onSortingChange={onSessionSortingChange}
-		/>
+		<>
+			<SessionsTable
+				sessions={sessionResults}
+				canLoadMoreSessions={
+					sessionSearchPagination.useScrollSentinelPagination && sessions.status === "CanLoadMore"
+				}
+				isLoadingMoreSessions={sessions.status === "LoadingMore"}
+				isLoadingSessions={isLoadingFirstPage}
+				isSearchBatchPaused={sessionSearchPagination.isSearchBatchPaused}
+				loadedSearchMatchCount={sessionSearchPagination.loadedMatchCount}
+				loadMoreSessions={() => sessions.loadMore(sessionPageSize)}
+				searchQuery={sessionSearchQuery}
+				sessionsView={sessionsView}
+				showSearchLoadingControls={sessionSearchPagination.showSearchLoadingControls}
+				showSearchLoadingStop={sessionSearchPagination.showSearchLoadingStop}
+				showStaleSessions={showStaleSessions}
+				sorting={sessionSorting}
+				onContinueSearchBatchLoading={sessionSearchPagination.continueSearchBatchLoading}
+				onSearchQueryChange={onSessionSearchQueryChange}
+				onSessionsViewChange={onSessionsViewChange}
+				onShowStaleSessionsChange={onShowStaleSessionsChange}
+				onSortingChange={onSessionSortingChange}
+				onStopSearchBatchLoading={sessionSearchPagination.stopSearchBatchLoading}
+			/>
+			{sessionSearchPagination.showRefineSearchBanner ? (
+				<AdminSearchRefineBanner
+					narrowFields={ADMIN_SESSION_SEARCH_NARROW_FIELDS}
+					searchQuery={sessionSearchQuery}
+					onConfirmLoadAll={sessionSearchPagination.confirmLoadAllMatches}
+					onNarrowSearch={onSessionSearchQueryChange}
+				/>
+			) : null}
+		</>
 	);
 }
 
@@ -154,7 +205,7 @@ type PackagesDashboardViewProps = {
 	onPackageSortingChange: (sorting: AdminPackageSort) => void;
 	onPackagesViewChange: (view: AdminPackagesView) => void;
 	onShowStalePackagesChange: (showStalePackages: boolean) => void;
-	onViewPackageSessions: (invoiceNumber: string) => void;
+	onViewPackageSessions: (receiptNumber: string) => void;
 };
 
 function PackagesDashboardView({
@@ -166,36 +217,79 @@ function PackagesDashboardView({
 	onShowStalePackagesChange,
 	onViewPackageSessions
 }: PackagesDashboardViewProps) {
+	const [packageSearchQuery, setPackageSearchQuery] = useState("");
+
+	const debouncedPackageSearchQuery = useDebouncedValue(
+		packageSearchQuery,
+		ADMIN_TABLE_SEARCH_DEBOUNCE_MS
+	);
+
+	const trimmedPackageSearchQuery = debouncedPackageSearchQuery.trim();
+
+	const hasActivePackageSearch = trimmedPackageSearchQuery.length > 0;
+	const packagePageSize = adminTablePageSize(hasActivePackageSearch);
+
 	const packageListQuery = {
 		...toPackageListQuerySort(packageSorting),
 		view: packagesView,
-		includeStale: showStalePackages
+		includeStale: showStalePackages,
+		searchQuery: hasActivePackageSearch ? trimmedPackageSearchQuery : undefined
 	};
 
 	const packages = usePaginatedQuery(api.packages.listPackages, packageListQuery, {
-		initialNumItems: DASHBOARD_PAGE_SIZE
+		initialNumItems: packagePageSize
 	});
 
-	const packagesForTable = useDisplayedWhileRefetching(
-		packages.results,
-		packages.status === "LoadingFirstPage"
-	);
+	const isLoadingFirstPackagePage = packages.status === "LoadingFirstPage";
+
+	const packagesForTable = useDisplayedWhileRefetching(packages.results, isLoadingFirstPackagePage);
+
+	const packageSearchPagination = useAdminTableSearchPagination({
+		hasActiveSearch: hasActivePackageSearch,
+		isLoadingFirstPage: isLoadingFirstPackagePage,
+		isLoadingMore: packages.status === "LoadingMore",
+		loadMore: (pageSize) => packages.loadMore(pageSize),
+		pageSize: packagePageSize,
+		resultCount: packagesForTable.length,
+		searchKey: trimmedPackageSearchQuery,
+		status: packages.status
+	});
 
 	return (
-		<PackagesTable
-			packages={packagesForTable}
-			canLoadMorePackages={packages.status === "CanLoadMore"}
-			isLoadingMorePackages={packages.status === "LoadingMore"}
-			isLoadingPackages={packages.status === "LoadingFirstPage"}
-			loadMorePackages={() => packages.loadMore(DASHBOARD_PAGE_SIZE)}
-			packagesView={packagesView}
-			showStalePackages={showStalePackages}
-			sorting={packageSorting}
-			onPackagesViewChange={onPackagesViewChange}
-			onShowStalePackagesChange={onShowStalePackagesChange}
-			onSortingChange={onPackageSortingChange}
-			onViewPackageSessions={onViewPackageSessions}
-		/>
+		<>
+			<PackagesTable
+				packages={packagesForTable}
+				canLoadMorePackages={
+					packageSearchPagination.useScrollSentinelPagination && packages.status === "CanLoadMore"
+				}
+				isLoadingMorePackages={packages.status === "LoadingMore"}
+				isLoadingPackages={isLoadingFirstPackagePage}
+				isSearchBatchPaused={packageSearchPagination.isSearchBatchPaused}
+				loadedSearchMatchCount={packageSearchPagination.loadedMatchCount}
+				loadMorePackages={() => packages.loadMore(packagePageSize)}
+				packagesView={packagesView}
+				searchQuery={packageSearchQuery}
+				showSearchLoadingControls={packageSearchPagination.showSearchLoadingControls}
+				showSearchLoadingStop={packageSearchPagination.showSearchLoadingStop}
+				showStalePackages={showStalePackages}
+				sorting={packageSorting}
+				onContinueSearchBatchLoading={packageSearchPagination.continueSearchBatchLoading}
+				onPackagesViewChange={onPackagesViewChange}
+				onSearchQueryChange={setPackageSearchQuery}
+				onShowStalePackagesChange={onShowStalePackagesChange}
+				onSortingChange={onPackageSortingChange}
+				onStopSearchBatchLoading={packageSearchPagination.stopSearchBatchLoading}
+				onViewPackageSessions={onViewPackageSessions}
+			/>
+			{packageSearchPagination.showRefineSearchBanner ? (
+				<AdminSearchRefineBanner
+					narrowFields={ADMIN_PACKAGE_SEARCH_NARROW_FIELDS}
+					searchQuery={packageSearchQuery}
+					onConfirmLoadAll={packageSearchPagination.confirmLoadAllMatches}
+					onNarrowSearch={setPackageSearchQuery}
+				/>
+			) : null}
+		</>
 	);
 }
 
@@ -268,8 +362,8 @@ export function AdminDashboard({ dashboardRole }: { dashboardRole: DashboardRole
 
 	const email = user?.primaryEmailAddress?.emailAddress ?? user?.emailAddresses[0]?.emailAddress;
 
-	function viewPackageSessions(invoiceNumber: string) {
-		setInitialSessionSearchQuery(invoiceNumber);
+	function viewPackageSessions(receiptNumber: string) {
+		setInitialSessionSearchQuery(formatAdminSearchNarrowQuery("receipt", receiptNumber));
 		setActiveView("bookings");
 	}
 

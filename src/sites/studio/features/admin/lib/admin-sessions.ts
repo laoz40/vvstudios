@@ -1,6 +1,5 @@
 import type { Doc } from "#convex/_generated/dataModel";
 import { sessionConsumesPackageCapacity } from "#convex/lib/packageSessionCapacity";
-import { customerFilter } from "#studio/features/admin/components/AdminDashboardTableUtils";
 import {
 	DURATION_OPTIONS,
 	type BookingFormValues
@@ -20,6 +19,26 @@ export function toAdminSessionDuration(
 	duration: string | undefined
 ): BookingFormValues["duration"] {
 	return DURATION_OPTIONS.find((option) => option === duration) ?? "";
+}
+
+export function formatAdminDashboardDuration(duration: string | undefined) {
+	if (!duration) {
+		return "";
+	}
+
+	const normalizedDuration = toAdminSessionDuration(duration);
+
+	if (normalizedDuration) {
+		return normalizedDuration;
+	}
+
+	const hourMatch = /^(\d+)\s+hours?$/i.exec(duration.trim());
+
+	if (hourMatch) {
+		return `${hourMatch[1]}h`;
+	}
+
+	return duration;
 }
 
 function isCapacityConsumingPackageSession(session: SessionRecord) {
@@ -72,8 +91,6 @@ export function toSessionListQuerySort(sorting: SessionSorting): SessionListQuer
 	return { sortBy: activeSort.id, sortDirection: activeSort.desc ? "desc" : "asc" };
 }
 
-export type AdminSessionFilters = { searchQuery: string };
-
 type SessionArchiveConfirmInput = Pick<
 	SessionRecord,
 	"assignedEditorTokenIdentifier" | "editStatus"
@@ -86,11 +103,4 @@ export function shouldConfirmSessionArchive(session: SessionArchiveConfirmInput)
 	}
 
 	return session.editStatus !== "completed";
-}
-
-// Client-side search on whatever usePaginatedQuery has loaded so far. listSessions does not
-// take searchQuery; matching rows on later pages only appear after loadMore (see prefetch in
-// SessionsTable). Inbox vs all and stale checkout rows are server-side on listSessions.
-export function filterAdminSessions(sessions: SessionRecord[], filters: AdminSessionFilters) {
-	return sessions.filter((session) => customerFilter({ original: session }, filters.searchQuery));
 }

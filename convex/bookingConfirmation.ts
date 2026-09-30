@@ -7,7 +7,8 @@ import {
 	markBookingConfirmationFailedService,
 	markBookingConfirmedService,
 	markSessionInvoiceEmailFailedService,
-	markSessionInvoiceEmailRetrySentService
+	markSessionInvoiceEmailRetrySentService,
+	recordBookingReceiptNumberService
 } from "#convex/services/bookingConfirmation";
 
 export const claimBookingConfirmation = internalMutation({
@@ -39,6 +40,11 @@ export const markSessionInvoiceEmailRetrySent = internalMutation({
 	args: { bookingId: v.id("bookings") },
 	handler: (ctx, args) =>
 		markSessionInvoiceEmailRetrySentService(ctx, args).match(tupleOk, tupleErr)
+});
+
+export const recordBookingReceiptNumber = internalMutation({
+	args: { bookingId: v.id("bookings"), receiptNumber: v.string() },
+	handler: (ctx, args) => recordBookingReceiptNumberService(ctx, args).match(tupleOk, tupleErr)
 });
 
 export const markBookingConfirmationFailed = internalMutation({

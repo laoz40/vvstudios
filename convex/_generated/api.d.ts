@@ -8,12 +8,14 @@
  * @module
  */
 
+import type * as adminSearchBackfill from "../adminSearchBackfill.js";
 import type * as auth from "../auth.js";
 import type * as bookingConfirmation from "../bookingConfirmation.js";
 import type * as bookingSettings from "../bookingSettings.js";
 import type * as crons from "../crons.js";
 import type * as customInvoices from "../customInvoices.js";
 import type * as deliverablesEmail from "../deliverablesEmail.js";
+import type * as devSeed from "../devSeed.js";
 import type * as drive from "../drive.js";
 import type * as employeeInvitations from "../employeeInvitations.js";
 import type * as employees from "../employees.js";
@@ -22,7 +24,14 @@ import type * as feedback from "../feedback.js";
 import type * as googleCalendar from "../googleCalendar.js";
 import type * as http from "../http.js";
 import type * as invoices from "../invoices.js";
+import type * as lib_adminBookingSearch from "../lib/adminBookingSearch.js";
 import type * as lib_adminPackageList from "../lib/adminPackageList.js";
+import type * as lib_adminPackageSearch from "../lib/adminPackageSearch.js";
+import type * as lib_adminSearchBackfill from "../lib/adminSearchBackfill.js";
+import type * as lib_adminSearchBlob from "../lib/adminSearchBlob.js";
+import type * as lib_adminSearchPagination from "../lib/adminSearchPagination.js";
+import type * as lib_adminSearchPrefixFilters from "../lib/adminSearchPrefixFilters.js";
+import type * as lib_adminSearchQuery from "../lib/adminSearchQuery.js";
 import type * as lib_adminSessionList from "../lib/adminSessionList.js";
 import type * as lib_archiveState from "../lib/archiveState.js";
 import type * as lib_auth from "../lib/auth.js";
@@ -35,6 +44,7 @@ import type * as lib_bookingInvoicePdfRender from "../lib/bookingInvoicePdfRende
 import type * as lib_bookingSettings from "../lib/bookingSettings.js";
 import type * as lib_bookingSubmission from "../lib/bookingSubmission.js";
 import type * as lib_clerkInvitations from "../lib/clerkInvitations.js";
+import type * as lib_contactNormalization from "../lib/contactNormalization.js";
 import type * as lib_customInvoices from "../lib/customInvoices.js";
 import type * as lib_driveClientAccess from "../lib/driveClientAccess.js";
 import type * as lib_driveClientPermissions from "../lib/driveClientPermissions.js";
@@ -155,12 +165,14 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  adminSearchBackfill: typeof adminSearchBackfill;
   auth: typeof auth;
   bookingConfirmation: typeof bookingConfirmation;
   bookingSettings: typeof bookingSettings;
   crons: typeof crons;
   customInvoices: typeof customInvoices;
   deliverablesEmail: typeof deliverablesEmail;
+  devSeed: typeof devSeed;
   drive: typeof drive;
   employeeInvitations: typeof employeeInvitations;
   employees: typeof employees;
@@ -169,7 +181,14 @@ declare const fullApi: ApiFromModules<{
   googleCalendar: typeof googleCalendar;
   http: typeof http;
   invoices: typeof invoices;
+  "lib/adminBookingSearch": typeof lib_adminBookingSearch;
   "lib/adminPackageList": typeof lib_adminPackageList;
+  "lib/adminPackageSearch": typeof lib_adminPackageSearch;
+  "lib/adminSearchBackfill": typeof lib_adminSearchBackfill;
+  "lib/adminSearchBlob": typeof lib_adminSearchBlob;
+  "lib/adminSearchPagination": typeof lib_adminSearchPagination;
+  "lib/adminSearchPrefixFilters": typeof lib_adminSearchPrefixFilters;
+  "lib/adminSearchQuery": typeof lib_adminSearchQuery;
   "lib/adminSessionList": typeof lib_adminSessionList;
   "lib/archiveState": typeof lib_archiveState;
   "lib/auth": typeof lib_auth;
@@ -182,6 +201,7 @@ declare const fullApi: ApiFromModules<{
   "lib/bookingSettings": typeof lib_bookingSettings;
   "lib/bookingSubmission": typeof lib_bookingSubmission;
   "lib/clerkInvitations": typeof lib_clerkInvitations;
+  "lib/contactNormalization": typeof lib_contactNormalization;
   "lib/customInvoices": typeof lib_customInvoices;
   "lib/driveClientAccess": typeof lib_driveClientAccess;
   "lib/driveClientPermissions": typeof lib_driveClientPermissions;

@@ -110,7 +110,7 @@ async function seedPackageWithoutStripeCustomer(t: TestClient) {
 			status: "paid",
 			archived: false,
 			createdAt: now,
-			invoiceEmailStatus: "sent",
+			receiptEmailStatus: "sent",
 			paidAt: now
 		})
 	);

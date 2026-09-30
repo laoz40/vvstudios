@@ -9,6 +9,8 @@ import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { BookingAddonQuantitiesArgs } from "#convex/lib/bookingAddonQuantities";
 import type { BookingAddon } from "#studio/features/booking-form/lib/booking-form-model";
 import { getPackageUpdateValidationError } from "#convex/lib/packageScheduling";
+import { buildPackageSearchBlob } from "#convex/lib/adminSearchBlob";
+import { contactNormalizedIndexFields } from "#convex/lib/contactNormalization";
 
 export type CreatePendingPackageArgs = {
 	name: string;
@@ -125,7 +127,11 @@ export function buildPendingPackageRecord(args: CreatePendingPackageArgs, create
 		record.notes = args.notes;
 	}
 
-	return record;
+	return {
+		...record,
+		...contactNormalizedIndexFields(record.phone),
+		searchBlob: buildPackageSearchBlob(record)
+	};
 }
 
 export function parsePackageRequest(
@@ -178,6 +184,7 @@ export function validatePackageUpdate(
 type PackageUpdatePatch = {
 	name: string;
 	phone: string;
+	phoneNormalized: string;
 	accountName: string;
 	abn: string | undefined;
 	email: string;
@@ -226,7 +233,8 @@ export function buildPackageUpdatePatch(args: UpdatePackageArgs, updatedPackage:
 		discountPercent: amounts.discountPercent,
 		discountAmount: amounts.discountAmount,
 		totalDueAmount: amounts.totalDueAmount,
-		invoiceLineItems
+		invoiceLineItems,
+		...contactNormalizedIndexFields(updatedPackage.phone)
 	};
 
 	if (args.expiresAt !== undefined) {

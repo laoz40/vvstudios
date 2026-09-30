@@ -30,20 +30,21 @@ import {
 	getEditorSessionDriveFolders
 } from "#convex/lib/driveStatus";
 import { okOrThrow } from "#convex/lib/result";
+import { searchBlobPatchForBooking } from "#convex/lib/adminSearchBlob";
 import { getSessionByStripeSessionId, getSessionFromDb } from "#convex/lib/sessionLookup";
 import { listStripeInvoicesForBooking, summarizeStripeInvoices } from "#convex/lib/stripeInvoices";
 import {
-	type AdminSessionsView,
-	paginateAdminSessionsByCreatedAt,
-	paginateAdminSessionsBySessionStart,
-	passesAdminInboxStaleFilter
-} from "#convex/lib/adminSessionList";
+	paginateAdminSessionsWithoutSearch,
+	paginateAdminSessionsWithSearch,
+	type AdminSessionSearchArgs
+} from "#convex/lib/adminBookingSearch";
+import { parseTrimmedAdminSearchQuery } from "#convex/lib/adminSearchQuery";
+import { passesAdminInboxStaleFilter, type AdminSessionsView } from "#convex/lib/adminSessionList";
 import {
 	archiveDeadCheckoutBooking,
 	archivePastDeadCheckoutSessionsBatch,
 	archiveSessionWhenFullyDone
 } from "#convex/lib/sessionArchive";
-import { formatBookingInvoiceNumber } from "#studio/features/booking-invoice/lib/build-booking-invoice-data";
 
 type PaginationArgs = { paginationOpts: { numItems: number; cursor: string | null } };
 
@@ -56,6 +57,7 @@ type ListSessionsArgs = PaginationArgs & {
 	sortDirection?: SessionListSortDirection;
 	view?: AdminSessionsView;
 	includeStale?: boolean;
+	searchQuery?: string;
 };
 
 type ListEditorSessionsArgs = PaginationArgs;
@@ -142,35 +144,12 @@ export function listEditorSessionsService(ctx: QueryCtx, args: ListEditorSession
 		});
 }
 
-export async function listSessionsService(ctx: QueryCtx, args: ListSessionsArgs) {
-	await requirePermission(ctx, "view:sensitive-booking-data").match(
-		() => null,
-		(authError) => {
-			throw new ConvexError(authError);
-		}
-	);
-
-	// usePaginatedQuery requires the raw Convex PaginationResult, not our Result tuple.
-	// Auth failures throw above so the hook can keep native cursor/page handling.
-	const sortBy = args.sortBy ?? "session";
-	const sortDirection = args.sortDirection ?? "asc";
-	const view = args.view ?? "inbox";
-	const includeStale = args.includeStale ?? true;
-
-	const bookingsPage =
-		sortBy === "createdAt"
-			? await paginateAdminSessionsByCreatedAt(ctx, view, sortDirection, args.paginationOpts)
-			: await paginateAdminSessionsBySessionStart(ctx, view, sortDirection, args.paginationOpts);
-
-	const sessionsPage = !includeStale
-		? bookingsPage.page.filter((session) => passesAdminInboxStaleFilter(session, includeStale))
-		: bookingsPage.page;
-
+async function loadAdminSessionListRows(ctx: QueryCtx, sessionsPage: Doc<"bookings">[]) {
 	const assignedEditorTokens = [
 		...new Set(
-			sessionsPage
-				.map((session) => session.assignedEditorTokenIdentifier)
-				.filter((tokenIdentifier): tokenIdentifier is string => tokenIdentifier !== undefined)
+			sessionsPage.flatMap((session) =>
+				session.assignedEditorTokenIdentifier ? [session.assignedEditorTokenIdentifier] : []
+			)
 		)
 	];
 
@@ -179,7 +158,7 @@ export async function listSessionsService(ctx: QueryCtx, args: ListSessionsArgs)
 		assignedEditorTokens
 	);
 
-	const page = await Promise.all(
+	return Promise.all(
 		sessionsPage.map(async (session) => {
 			const assignedEditorDisplayName = session.assignedEditorTokenIdentifier
 				? assignedEditorDisplayNamesByToken.get(session.assignedEditorTokenIdentifier)
@@ -223,10 +202,7 @@ export async function listSessionsService(ctx: QueryCtx, args: ListSessionsArgs)
 				assignedEditorDisplayName,
 				hasDriveWorkflowFailure,
 				stripeInvoicesSummary,
-				packageInvoiceNumber: formatBookingInvoiceNumber(
-					packageRecord._id,
-					packageRecord.createdAt
-				),
+				packageInvoiceNumber: packageRecord.receiptNumber,
 				linkedPackageSize: packageRecord.packageSize,
 				packageStripeCustomerId: packageRecord.stripeCustomerId,
 				packageSessionPosition: sessionConsumesPackageCapacity(session)
@@ -235,6 +211,44 @@ export async function listSessionsService(ctx: QueryCtx, args: ListSessionsArgs)
 			};
 		})
 	);
+}
+
+export async function listSessionsService(ctx: QueryCtx, args: ListSessionsArgs) {
+	await requirePermission(ctx, "view:sensitive-booking-data").match(
+		() => null,
+		(authError) => {
+			throw new ConvexError(authError);
+		}
+	);
+
+	// usePaginatedQuery requires the raw Convex PaginationResult, not our Result tuple.
+	// Auth failures throw above so the hook can keep native cursor/page handling.
+	const sortBy = args.sortBy ?? "session";
+	const sortDirection = args.sortDirection ?? "asc";
+	const view = args.view ?? "inbox";
+	const includeStale = args.includeStale ?? true;
+	const parsedSearchQuery = parseTrimmedAdminSearchQuery(args.searchQuery);
+
+	const searchContext: Omit<AdminSessionSearchArgs, "parsedQuery"> = {
+		sortBy,
+		sortDirection,
+		view,
+		includeStale,
+		paginationOpts: args.paginationOpts
+	};
+
+	const bookingsPage = parsedSearchQuery
+		? await paginateAdminSessionsWithSearch(ctx, {
+				...searchContext,
+				parsedQuery: parsedSearchQuery
+			})
+		: await paginateAdminSessionsWithoutSearch(ctx, searchContext);
+
+	const sessionsPage = !includeStale
+		? bookingsPage.page.filter((session) => passesAdminInboxStaleFilter(session, includeStale))
+		: bookingsPage.page;
+
+	const page = await loadAdminSessionListRows(ctx, sessionsPage);
 
 	return { ...bookingsPage, page };
 }
@@ -292,7 +306,12 @@ export function saveSessionInstagramHandleService(
 		})
 		.andThen((session) =>
 			okOrThrow(
-				ctx.db.patch(session._id, { instagramHandle: args.instagramHandle }).then(() => null)
+				searchBlobPatchForBooking(ctx, session, { instagramHandle: args.instagramHandle }).then(
+					(searchBlobPatch) =>
+						ctx.db
+							.patch(session._id, { instagramHandle: args.instagramHandle, ...searchBlobPatch })
+							.then(() => null)
+				)
 			)
 		);
 }

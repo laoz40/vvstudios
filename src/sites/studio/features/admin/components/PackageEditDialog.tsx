@@ -585,8 +585,8 @@ export function PackageEditDialog({
 				<DialogHeader className="space-y-1 text-left">
 					<DialogTitle>Edit package</DialogTitle>
 					<DialogDescription>
-						This will make changes to package {packageRow.invoiceNumber}. There is no turning back
-						from this. USE CAUTION.
+						This will make changes to package {packageRow.receiptNumber ?? packageRow.id}. There is
+						no turning back from this. USE CAUTION.
 					</DialogDescription>
 				</DialogHeader>
 

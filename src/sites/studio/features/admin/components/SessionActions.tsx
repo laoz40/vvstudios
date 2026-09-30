@@ -15,15 +15,19 @@ import {
 	type SessionRecord,
 	isManageableConfirmedSession
 } from "#studio/features/admin/lib/admin-sessions";
-import { formatBookingInvoiceNumber } from "#studio/features/booking-invoice/lib/build-booking-invoice-data";
 import { isUpcomingBooking } from "#studio/lib/bookingdatetime";
 
 export type SessionActionsProps = {
 	deliverablesEmailAction: ReturnType<typeof useDeliverablesEmailAction>;
+	onReceiptSearch: (searchQuery: string) => void;
 	session: SessionRecord;
 };
 
-export function SessionActions({ deliverablesEmailAction, session }: SessionActionsProps) {
+export function SessionActions({
+	deliverablesEmailAction,
+	onReceiptSearch,
+	session
+}: SessionActionsProps) {
 	const [isAdminNotesDialogOpen, setIsAdminNotesDialogOpen] = useState(false);
 	const [isDriveDialogOpen, setIsDriveDialogOpen] = useState(false);
 	const canManageConfirmedSession = isManageableConfirmedSession(session);
@@ -31,9 +35,7 @@ export function SessionActions({ deliverablesEmailAction, session }: SessionActi
 
 	const details: SessionActionDetails = {
 		canGenerateRescheduleLink: getCanGenerateRescheduleLink(session, isPastSession),
-		customerSessionId:
-			session.packageInvoiceNumber ??
-			formatBookingInvoiceNumber(session._id, session.pendingPaymentCreatedAt),
+		customerSessionId: session.receiptNumber ?? session.packageInvoiceNumber ?? session._id,
 		canManageConfirmedSession,
 		isPastSession
 	};
@@ -67,6 +69,7 @@ export function SessionActions({ deliverablesEmailAction, session }: SessionActi
 				statusActions={statusActions}
 				onOpenDrive={() => setIsDriveDialogOpen(true)}
 				onEditAdminNotes={() => setIsAdminNotesDialogOpen(true)}
+				onReceiptSearch={onReceiptSearch}
 			/>
 			<DriveFoldersDialog
 				bookingId={session._id}

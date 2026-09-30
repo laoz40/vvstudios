@@ -5,6 +5,7 @@ import { internal } from "#convex/_generated/api";
 import type { ActionCtx, MutationCtx } from "#convex/_generated/server";
 import { scheduleDriveSetup } from "#convex/lib/driveScheduling";
 import { fromConvexTuple, okOrThrow } from "#convex/lib/result";
+import { searchBlobPatchForBooking } from "#convex/lib/adminSearchBlob";
 import { getSessionFromDb } from "#convex/lib/sessionLookup";
 import {
 	getBookingClaimStatus,
@@ -188,6 +189,26 @@ export function markSessionInvoiceEmailFailedService(
 					bookingFailureCode: "BOOKING_INVOICE_EMAIL_FAILED"
 				})
 				.then(() => null)
+		);
+	});
+}
+
+export function recordBookingReceiptNumberService(
+	ctx: MutationCtx,
+	args: { bookingId: Id<"bookings">; receiptNumber: string }
+) {
+	return getSessionFromDb(ctx, args.bookingId).andThen((session) => {
+		if (session.receiptNumber === args.receiptNumber) {
+			return ok(null);
+		}
+
+		return okOrThrow(
+			searchBlobPatchForBooking(ctx, session, { receiptNumber: args.receiptNumber }).then(
+				(searchBlobPatch) =>
+					ctx.db
+						.patch(args.bookingId, { receiptNumber: args.receiptNumber, ...searchBlobPatch })
+						.then(() => null)
+			)
 		);
 	});
 }
