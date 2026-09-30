@@ -4,7 +4,6 @@ import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { ActionCtx, MutationCtx, QueryCtx } from "#convex/_generated/server";
 import { getOrCreateDriveClientId } from "#convex/lib/driveFolders";
 import { buildBookingSearchBlob } from "#convex/lib/adminSearchBlob";
-import { contactNormalizedIndexFields } from "#convex/lib/contactNormalization";
 import { scheduleDriveSetup } from "#convex/lib/driveScheduling";
 import { formatDriveClientFolderName } from "#studio/lib/bookingdatetime";
 import { processPackageAdjustment } from "#convex/lib/packageAdjustments";
@@ -508,7 +507,6 @@ export function saveCreatedPackageSessionService(
 					return okOrThrow(
 						ctx.db.insert("bookings", {
 							...bookingFields,
-							...contactNormalizedIndexFields(packageFromDb.phone),
 							searchBlob: buildBookingSearchBlob(bookingFields)
 						})
 					).andThen((bookingId) =>

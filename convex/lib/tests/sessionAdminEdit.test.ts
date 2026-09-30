@@ -71,6 +71,7 @@ function baseBooking(overrides: Partial<Doc<"bookings">> = {}): Doc<"bookings"> 
 		status: "confirmed",
 		archived: false,
 		pendingPaymentCreatedAt: 0,
+		searchBlob: "test customer",
 		...overrides
 	};
 }

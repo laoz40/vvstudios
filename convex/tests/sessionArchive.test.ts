@@ -11,6 +11,7 @@
  *    Recording a booking invoice unarchives confirmed archived sessions only.
  */
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
+import { bookingDocument } from "#convex/tests/insertDocumentDefaults";
 import { api, internal } from "#convex/_generated/api";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import { createConvexTest } from "#convex/test.setup";
@@ -107,45 +108,51 @@ async function seedPastConfirmedBooking(
 	overrides: Partial<Doc<"bookings">> = {}
 ): Promise<Id<"bookings">> {
 	return await t.run(async (ctx) =>
-		ctx.db.insert("bookings", {
-			name: "Past Session",
-			phone: "0400000000",
-			accountName: "Test account",
-			email: "past@example.com",
-			date: "2029-12-01",
-			time: "10:00",
-			sessionStartAt: pastSessionStartAt,
-			duration: "1 hour",
-			service: "Remote Podcast",
-			addons: [],
-			status: "confirmed",
-			archived: false,
-			pendingPaymentCreatedAt: 1,
-			googleEventId: "event-id",
-			googleCalendarId: "calendar-id",
-			...overrides
-		})
+		ctx.db.insert(
+			"bookings",
+			bookingDocument({
+				name: "Past Session",
+				phone: "0400000000",
+				accountName: "Test account",
+				email: "past@example.com",
+				date: "2029-12-01",
+				time: "10:00",
+				sessionStartAt: pastSessionStartAt,
+				duration: "1 hour",
+				service: "Remote Podcast",
+				addons: [],
+				status: "confirmed",
+				archived: false,
+				pendingPaymentCreatedAt: 1,
+				googleEventId: "event-id",
+				googleCalendarId: "calendar-id",
+				...overrides
+			})
+		)
 	);
 }
 
 async function seedPendingBooking(t: TestClient, stripeSessionId: string): Promise<Id<"bookings">> {
 	return await t.run(async (ctx) =>
-		ctx.db.insert("bookings", {
-			name: "Pending",
-			phone: "0400000000",
-			accountName: "Test account",
-			email: "pending@example.com",
-			date: "2099-01-01",
-			time: "10:00",
-			sessionStartAt: Date.parse("2099-01-01T10:00:00.000Z"),
-			duration: "1 hour",
-			service: "Remote Podcast",
-			addons: [],
-			status: "pending_payment",
-			archived: false,
-			pendingPaymentCreatedAt: 1,
-			stripeSessionId
-		})
+		ctx.db.insert(
+			"bookings",
+			bookingDocument({
+				name: "Pending",
+				phone: "0400000000",
+				accountName: "Test account",
+				email: "pending@example.com",
+				date: "2099-01-01",
+				time: "10:00",
+				sessionStartAt: Date.parse("2099-01-01T10:00:00.000Z"),
+				duration: "1 hour",
+				service: "Remote Podcast",
+				addons: [],
+				status: "pending_payment",
+				archived: false,
+				pendingPaymentCreatedAt: 1,
+				stripeSessionId
+			})
+		)
 	);
 }
 

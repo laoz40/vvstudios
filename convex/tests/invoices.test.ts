@@ -14,6 +14,7 @@
  *    the one-hour access window. Admin package receipt downloads remain available after that window.
  */
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
+import { bookingDocument, packageDocument } from "#convex/tests/insertDocumentDefaults";
 import { api } from "#convex/_generated/api";
 import type { BookingAddon } from "#studio/features/booking-form/lib/booking-form-model";
 import { createBookingInvoiceArtifactsForBooking } from "#convex/lib/bookingInvoiceArtifacts";
@@ -416,24 +417,30 @@ async function seedBooking(
 		stripeSessionId?: string;
 	} = {}
 ) {
+	const status = overrides.status ?? "confirmed";
+
 	return await t.run((ctx) =>
-		ctx.db.insert("bookings", {
-			name: "Test customer",
-			phone: "0400000000",
-			accountName: "Test account",
-			email: overrides.email ?? "customer@example.com",
-			date: "2030-01-20",
-			time: "10:00",
-			sessionStartAt: Date.parse("2030-01-19T23:00:00.000Z"),
-			duration: "1h",
-			service: "Table Setup",
-			addons: [],
-			status: overrides.status ?? "confirmed",
-			archived: false,
-			pendingPaymentCreatedAt: now,
-			paymentCompletedAt: overrides.paymentCompletedAt ?? now,
-			stripeSessionId: overrides.stripeSessionId
-		})
+		ctx.db.insert(
+			"bookings",
+			bookingDocument({
+				name: "Test customer",
+				phone: "0400000000",
+				accountName: "Test account",
+				email: overrides.email ?? "customer@example.com",
+				date: "2030-01-20",
+				time: "10:00",
+				sessionStartAt: Date.parse("2030-01-19T23:00:00.000Z"),
+				duration: "1h",
+				service: "Table Setup",
+				addons: [],
+				status,
+				archived: false,
+				pendingPaymentCreatedAt: now,
+				paymentCompletedAt: overrides.paymentCompletedAt ?? now,
+				stripeSessionId: overrides.stripeSessionId,
+				receiptNumber: status === "pending_payment" ? undefined : "VV-TEST-BOOK-001"
+			})
+		)
 	);
 }
 
@@ -472,11 +479,14 @@ async function seedPackage(
 	}
 ) {
 	return await t.run((ctx) =>
-		ctx.db.insert("packages", {
-			...packageFields(options.createdAt),
-			status: options.status ?? "pending_payment",
-			paidAt: options.paidAt
-		})
+		ctx.db.insert(
+			"packages",
+			packageDocument({
+				...packageFields(options.createdAt),
+				status: options.status ?? "pending_payment",
+				paidAt: options.paidAt
+			})
+		)
 	);
 }
 

@@ -15,7 +15,6 @@ import {
 	getAddonAmount,
 	getAddonQuantity
 } from "#studio/features/booking-invoice/lib/calculate-booking-receipt-amounts";
-import { formatBookingInvoiceNumber } from "#studio/features/booking-invoice/lib/build-booking-invoice-data";
 import type {
 	BookingInvoiceLineItem,
 	BookingReceiptBuilderInput,
@@ -107,7 +106,7 @@ export function buildBookingReceiptData(input: BookingReceiptBuilderInput): Book
 		lineItems,
 		notes: { cancellationPolicy: BOOKING_RECEIPT_NOTES.getCancellationPolicy(noticeWindowLabel) },
 		receipt: {
-			number: input.receiptNumber ?? formatBookingInvoiceNumber(input.bookingId, receiptDate),
+			number: input.receiptNumber,
 			receiptDate: new Date(receiptDate).toISOString(),
 			receiptDateLabel,
 			title: BOOKING_RECEIPT_TITLE
@@ -176,7 +175,7 @@ export function buildPackageReceiptData(input: PackageReceiptBuilderInput): Book
 		leadTimeMinutes: input.leadTimeMinutes,
 		package: { size: input.packageSize },
 		receipt: {
-			number: input.receiptNumber ?? formatBookingInvoiceNumber(input.packageId, input.paidAt),
+			number: input.receiptNumber,
 			receiptDate: new Date(input.paidAt).toISOString(),
 			receiptDateLabel,
 			title: BOOKING_RECEIPT_TITLE

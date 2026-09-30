@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { bookingPhoneSchema } from "#studio/features/booking-form/lib/booking-phone";
 
 export const BOOKING_MODES = ["single", "package"] as const;
 
@@ -271,11 +272,7 @@ const name = z
 			.regex(/^[\p{L}\p{M}' ,-]+$/u, "Name contains invalid characters.")
 	);
 
-const phone = z
-	.string()
-	.trim()
-	.min(1, "Phone number is required.")
-	.pipe(z.string().regex(/^[\d\s().+-]{6,20}$/, "Please enter a valid phone number."));
+const phone = bookingPhoneSchema;
 
 const accountName = z
 	.string()

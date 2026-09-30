@@ -2,21 +2,21 @@
  * Admin search backfill integration.
  *
  * 1. backfillBookingAdminSearch
- *    Fills searchBlob, phoneNormalized, and receipt on legacy bookings.
+ *    Fills canonical phone, searchBlob, and receipt on legacy bookings.
  *
  * 2. receiptNumberForPaidBooking
  *    Copies package receipt numbers onto package session bookings.
  */
 import { describe, expect, test } from "vitest";
+import { bookingDocument, packageDocument } from "#convex/tests/insertDocumentDefaults";
 import { internal } from "#convex/_generated/api";
 import type { Id } from "#convex/_generated/dataModel";
 import { receiptNumberForPaidBooking } from "#convex/lib/adminSearchBackfill";
 import { normalizePhone } from "#convex/lib/contactNormalization";
-import { formatBookingInvoiceNumber } from "#studio/features/booking-invoice/lib/build-booking-invoice-data";
 import { createConvexTest } from "#convex/test.setup";
 
 describe("admin search backfill", () => {
-	test("backfillBookingAdminSearch fills phoneNormalized and searchBlob on legacy rows", async () => {
+	test("backfillBookingAdminSearch fills canonical phone and searchBlob on legacy rows", async () => {
 		const t = createConvexTest();
 		const bookingId = await seedLegacyBooking(t, { phone: "+61 400 111 222" });
 
@@ -28,58 +28,62 @@ describe("admin search backfill", () => {
 
 		const booking = await t.run((ctx) => ctx.db.get("bookings", bookingId));
 
-		expect(booking?.phoneNormalized).toBe(normalizePhone("+61 400 111 222"));
+		expect(booking?.phone).toBe(normalizePhone("+61 400 111 222"));
 		expect(booking?.searchBlob).toContain("0400111222");
-		expect(booking?.receiptNumber).toBe(
-			formatBookingInvoiceNumber(bookingId, booking!.paymentCompletedAt!)
-		);
+		expect(booking?.receiptNumber).toBeUndefined();
 	});
 
 	test("receiptNumberForPaidBooking copies package receipt for paid package sessions", async () => {
 		const t = createConvexTest();
 
 		const receiptNumber = await t.run(async (ctx) => {
-			const packageId = await ctx.db.insert("packages", {
-				name: "Package",
-				phone: "0400000000",
-				accountName: "Account",
-				email: "pkg@example.com",
-				duration: "1 hour",
-				addons: [],
-				packageSize: 4,
-				singleSessionAmount: 100,
-				packageSubtotalAmount: 400,
-				discountPercent: 0,
-				discountAmount: 0,
-				totalDueAmount: 400,
-				createdAt: 1,
-				paidAt: 2,
-				status: "paid",
-				archived: false,
-				receiptNumber: "VV-PKG-SESSION"
-			});
+			const packageId = await ctx.db.insert(
+				"packages",
+				packageDocument({
+					name: "Package",
+					phone: "0400000000",
+					accountName: "Account",
+					email: "pkg@example.com",
+					duration: "1 hour",
+					addons: [],
+					packageSize: 4,
+					singleSessionAmount: 100,
+					packageSubtotalAmount: 400,
+					discountPercent: 0,
+					discountAmount: 0,
+					totalDueAmount: 400,
+					createdAt: 1,
+					paidAt: 2,
+					status: "paid",
+					archived: false,
+					receiptNumber: "VV-PKG-SESSION"
+				})
+			);
 
 			const booking = await ctx.db.get(
 				"bookings",
-				await ctx.db.insert("bookings", {
-					name: "Session",
-					phone: "0400000000",
-					accountName: "Account",
-					email: "session@example.com",
-					date: "2099-06-01",
-					time: "10:00",
-					sessionStartAt: 4_071_268_800_000,
-					duration: "1 hour",
-					service: "Remote Podcast",
-					addons: [],
-					status: "confirmed",
-					archived: false,
-					pendingPaymentCreatedAt: 1,
-					paymentCompletedAt: 2,
-					packageId,
-					googleEventId: "event-id",
-					googleCalendarId: "calendar-id"
-				})
+				await ctx.db.insert(
+					"bookings",
+					bookingDocument({
+						name: "Session",
+						phone: "0400000000",
+						accountName: "Account",
+						email: "session@example.com",
+						date: "2099-06-01",
+						time: "10:00",
+						sessionStartAt: 4_071_268_800_000,
+						duration: "1 hour",
+						service: "Remote Podcast",
+						addons: [],
+						status: "confirmed",
+						archived: false,
+						pendingPaymentCreatedAt: 1,
+						paymentCompletedAt: 2,
+						packageId,
+						googleEventId: "event-id",
+						googleCalendarId: "calendar-id"
+					})
+				)
 			);
 
 			if (booking === null) {
@@ -116,7 +120,8 @@ async function seedLegacyBooking(
 			pendingPaymentCreatedAt: paymentCompletedAt,
 			paymentCompletedAt,
 			googleEventId: "event-id",
-			googleCalendarId: "calendar-id"
+			googleCalendarId: "calendar-id",
+			searchBlob: ""
 		});
 	});
 }

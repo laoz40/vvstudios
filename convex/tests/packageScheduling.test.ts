@@ -8,6 +8,7 @@
  *    An unknown or expired token cannot create any records.
  */
 import { beforeEach, describe, expect, test, vi } from "vitest";
+import { packageDocument } from "#convex/tests/insertDocumentDefaults";
 import { api } from "#convex/_generated/api";
 import { hashRescheduleToken } from "#convex/lib/sessionRescheduleLinks";
 import { createConvexTest } from "#convex/test.setup";
@@ -96,28 +97,31 @@ async function seedPackage(
 	const scheduleTokenHash = await hashRescheduleToken(token);
 
 	const packageId = await t.run((ctx) =>
-		ctx.db.insert("packages", {
-			name: "Test customer",
-			phone: "0400000000",
-			accountName: "Test account",
-			email: "customer@example.com",
-			duration: "1h",
-			addons: ["4K UHD Recording"],
-			packageSize: 4,
-			singleSessionAmount: 100,
-			packageSubtotalAmount: 400,
-			discountPercent: 10,
-			discountAmount: 40,
-			totalDueAmount: 360,
-			status: overrides.status ?? "paid",
-			archived: false,
-			createdAt: now - 1_000,
-			paidAt: now - 100,
-			expiresAt: overrides.expiresAt ?? Date.parse("2030-01-20T00:00:00.000Z"),
-			receiptEmailStatus: "sent",
-			scheduleTokenHash,
-			scheduleLinkStatus: overrides.scheduleLinkStatus ?? "active"
-		})
+		ctx.db.insert(
+			"packages",
+			packageDocument({
+				name: "Test customer",
+				phone: "0400000000",
+				accountName: "Test account",
+				email: "customer@example.com",
+				duration: "1h",
+				addons: ["4K UHD Recording"],
+				packageSize: 4,
+				singleSessionAmount: 100,
+				packageSubtotalAmount: 400,
+				discountPercent: 10,
+				discountAmount: 40,
+				totalDueAmount: 360,
+				status: overrides.status ?? "paid",
+				archived: false,
+				createdAt: now - 1_000,
+				paidAt: now - 100,
+				expiresAt: overrides.expiresAt ?? Date.parse("2030-01-20T00:00:00.000Z"),
+				receiptEmailStatus: "sent",
+				scheduleTokenHash,
+				scheduleLinkStatus: overrides.scheduleLinkStatus ?? "active"
+			})
+		)
 	);
 
 	return { packageId, token };

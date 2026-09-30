@@ -8,5 +8,6 @@ const bookingReceiptIdSchema = z.custom<BookingReceiptBuilderInput["bookingId"]>
 
 export const SAMPLE_BOOKING_RECEIPT_INPUT: BookingReceiptBuilderInput = {
 	...SAMPLE_BOOKING_INVOICE_INPUT,
-	bookingId: bookingReceiptIdSchema.parse("preview-booking-receipt-001")
+	bookingId: bookingReceiptIdSchema.parse("preview-booking-receipt-001"),
+	receiptNumber: "VV-20260419-BOOK"
 };

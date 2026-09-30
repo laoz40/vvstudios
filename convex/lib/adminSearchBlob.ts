@@ -1,10 +1,6 @@
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
-import {
-	contactNormalizedIndexFields,
-	normalizeAbn,
-	normalizePhone
-} from "#convex/lib/contactNormalization";
+import { normalizeAbn, normalizePhone } from "#convex/lib/contactNormalization";
 
 type BookingSearchBlobFields = Pick<
 	Doc<"bookings">,
@@ -124,13 +120,14 @@ export async function patchPackageSessionBookingsContactSearch(
 
 	await Promise.all(
 		bookings.map(async (booking) => {
-			const searchBlobPatch = await searchBlobPatchForBooking(ctx, booking, contactFields);
+			const phone = normalizePhone(contactFields.phone);
 
-			return ctx.db.patch(booking._id, {
+			const searchBlobPatch = await searchBlobPatchForBooking(ctx, booking, {
 				...contactFields,
-				...contactNormalizedIndexFields(contactFields.phone),
-				...searchBlobPatch
+				phone
 			});
+
+			return ctx.db.patch(booking._id, { ...contactFields, phone, ...searchBlobPatch });
 		})
 	);
 }

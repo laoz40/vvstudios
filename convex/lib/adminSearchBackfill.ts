@@ -1,8 +1,7 @@
 import type { Doc } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
 import { searchBlobPatchForBooking, searchBlobPatchForPackage } from "#convex/lib/adminSearchBlob";
-import { contactNormalizedIndexFields } from "#convex/lib/contactNormalization";
-import { formatBookingInvoiceNumber } from "#studio/features/booking-invoice/lib/build-booking-invoice-data";
+import { normalizePhone } from "#convex/lib/contactNormalization";
 
 export const ADMIN_SEARCH_BACKFILL_BATCH_SIZE = 25;
 
@@ -17,24 +16,16 @@ function isPaidBooking(booking: Doc<"bookings">) {
 	return booking.status === "confirmed" || booking.status === "email_failed";
 }
 
-function bookingReceiptTimestamp(booking: Doc<"bookings">) {
-	return (
-		booking.paymentCompletedAt ?? booking.bookingConfirmedAt ?? booking.pendingPaymentCreatedAt
-	);
-}
-
 export function receiptNumberForPaidPackage(packageRecord: Doc<"packages">): string | undefined {
 	if (packageRecord.status !== "paid") {
 		return undefined;
 	}
 
-	if (packageRecord.receiptNumber !== undefined && packageRecord.receiptNumber.length > 0) {
-		return packageRecord.receiptNumber;
+	if (packageRecord.receiptNumber === undefined || packageRecord.receiptNumber.length === 0) {
+		return undefined;
 	}
 
-	const paidAt = packageRecord.paidAt ?? packageRecord.createdAt;
-
-	return formatBookingInvoiceNumber(packageRecord._id, paidAt);
+	return packageRecord.receiptNumber;
 }
 
 export async function receiptNumberForPaidBooking(
@@ -59,18 +50,18 @@ export async function receiptNumberForPaidBooking(
 		return receiptNumberForPaidPackage(packageRecord);
 	}
 
-	return formatBookingInvoiceNumber(booking._id, bookingReceiptTimestamp(booking));
+	return undefined;
 }
 
 type BookingAdminSearchBackfillPatch = {
-	phoneNormalized: string;
+	phone: string;
 	searchBlob: string;
 	receiptNumber?: string;
 	assignedEditorDisplayName?: string;
 };
 
 type PackageAdminSearchBackfillPatch = {
-	phoneNormalized: string;
+	phone: string;
 	searchBlob: string;
 	receiptNumber?: string;
 };
@@ -79,16 +70,18 @@ export async function adminSearchBackfillPatchForBooking(
 	ctx: QueryCtx,
 	booking: Doc<"bookings">
 ): Promise<BookingAdminSearchBackfillPatch> {
+	const phone = normalizePhone(booking.phone);
 	const receiptNumber = await receiptNumberForPaidBooking(ctx, booking);
 
 	const searchBlobOverrides = receiptNumber !== undefined ? { receiptNumber } : {};
 
-	const searchBlobPatch = await searchBlobPatchForBooking(ctx, booking, searchBlobOverrides);
+	const searchBlobPatch = await searchBlobPatchForBooking(
+		ctx,
+		{ ...booking, phone },
+		searchBlobOverrides
+	);
 
-	const patch: BookingAdminSearchBackfillPatch = {
-		...contactNormalizedIndexFields(booking.phone),
-		searchBlob: searchBlobPatch.searchBlob
-	};
+	const patch: BookingAdminSearchBackfillPatch = { phone, searchBlob: searchBlobPatch.searchBlob };
 
 	if (searchBlobPatch.assignedEditorDisplayName !== undefined) {
 		patch.assignedEditorDisplayName = searchBlobPatch.assignedEditorDisplayName;
@@ -104,16 +97,17 @@ export async function adminSearchBackfillPatchForBooking(
 export function adminSearchBackfillPatchForPackage(
 	packageRecord: Doc<"packages">
 ): PackageAdminSearchBackfillPatch {
+	const phone = normalizePhone(packageRecord.phone);
 	const receiptNumber = receiptNumberForPaidPackage(packageRecord);
 
 	const searchBlobOverrides = receiptNumber !== undefined ? { receiptNumber } : {};
 
-	const searchBlobPatch = searchBlobPatchForPackage(packageRecord, searchBlobOverrides);
+	const searchBlobPatch = searchBlobPatchForPackage(
+		{ ...packageRecord, phone },
+		searchBlobOverrides
+	);
 
-	const patch: PackageAdminSearchBackfillPatch = {
-		...contactNormalizedIndexFields(packageRecord.phone),
-		searchBlob: searchBlobPatch.searchBlob
-	};
+	const patch: PackageAdminSearchBackfillPatch = { phone, searchBlob: searchBlobPatch.searchBlob };
 
 	if (receiptNumber !== undefined) {
 		patch.receiptNumber = receiptNumber;
@@ -126,7 +120,7 @@ function bookingAdminSearchBackfillNeedsPatch(
 	booking: Doc<"bookings">,
 	patch: BookingAdminSearchBackfillPatch
 ) {
-	if (booking.phoneNormalized !== patch.phoneNormalized) {
+	if (booking.phone !== patch.phone) {
 		return true;
 	}
 
@@ -152,7 +146,7 @@ function packageAdminSearchBackfillNeedsPatch(
 	packageRecord: Doc<"packages">,
 	patch: PackageAdminSearchBackfillPatch
 ) {
-	if (packageRecord.phoneNormalized !== patch.phoneNormalized) {
+	if (packageRecord.phone !== patch.phone) {
 		return true;
 	}
 

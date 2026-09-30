@@ -262,6 +262,10 @@ export function createBookingReceiptArtifactsForBooking(
 		return err({ reason: "INVALID_BOOKING_DATA" as const });
 	}
 
+	if (booking.receiptNumber === undefined || booking.receiptNumber.length === 0) {
+		return err({ reason: "INVALID_BOOKING_DATA" as const });
+	}
+
 	const data = buildBookingReceiptData({
 		bookingId: booking._id,
 		name: parsedBooking.data.name,
@@ -280,7 +284,8 @@ export function createBookingReceiptArtifactsForBooking(
 		handcraftedClipsQuantity: parsedBooking.data.handcraftedClipsQuantity || undefined,
 		createdAt,
 		leadTimeMinutes: options.leadTimeMinutes,
-		rescheduleUrl: options.rescheduleUrl
+		rescheduleUrl: options.rescheduleUrl,
+		receiptNumber: booking.receiptNumber
 	});
 
 	return ok({
@@ -363,6 +368,10 @@ export function createPackageReceiptArtifacts(
 	});
 
 	if (!parsedPackage.success) {
+		return err({ reason: "INVALID_BOOKING_DATA" as const });
+	}
+
+	if (packageRecord.receiptNumber === undefined || packageRecord.receiptNumber.length === 0) {
 		return err({ reason: "INVALID_BOOKING_DATA" as const });
 	}
 

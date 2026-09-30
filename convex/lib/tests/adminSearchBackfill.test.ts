@@ -5,7 +5,6 @@ import { describe, expect, test } from "vitest";
 import type { Doc } from "#convex/_generated/dataModel";
 import { receiptNumberForPaidPackage } from "#convex/lib/adminSearchBackfill";
 import { testPackageId } from "#convex/lib/tests/testIds";
-import { formatBookingInvoiceNumber } from "#studio/features/booking-invoice/lib/build-booking-invoice-data";
 
 describe("receiptNumberForPaidPackage", () => {
 	test("uses stored receipt when present", () => {
@@ -14,15 +13,10 @@ describe("receiptNumberForPaidPackage", () => {
 		expect(receiptNumberForPaidPackage(packageRecord)).toBe("VV-STORED-001");
 	});
 
-	test("derives receipt from paidAt when missing", () => {
-		const packageId = testPackageId("jd7abc123def456789012345");
-		const paidAt = 1_704_067_200_000;
+	test("returns undefined when paid package has no stored receipt", () => {
+		const packageRecord = createPackageFixture({ status: "paid" });
 
-		const packageRecord = createPackageFixture({ _id: packageId, paidAt, status: "paid" });
-
-		expect(receiptNumberForPaidPackage(packageRecord)).toBe(
-			formatBookingInvoiceNumber(packageId, paidAt)
-		);
+		expect(receiptNumberForPaidPackage(packageRecord)).toBeUndefined();
 	});
 });
 
@@ -48,6 +42,7 @@ function createPackageFixture(
 		totalDueAmount: 400,
 		createdAt,
 		archived: false,
+		searchBlob: "package",
 		...overrides
 	};
 }

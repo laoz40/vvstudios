@@ -14,6 +14,7 @@
  *    Concurrent package checkout webhooks must only let one handler run completion.
  */
 import { beforeEach, describe, expect, test, vi } from "vitest";
+import { bookingDocument, packageDocument } from "#convex/tests/insertDocumentDefaults";
 import { internal } from "#convex/_generated/api";
 import type { Id } from "#convex/_generated/dataModel";
 import { createConvexTest } from "#convex/test.setup";
@@ -122,22 +123,25 @@ async function seedBooking(t: TestClient, email = "customer@example.com") {
 	return await t.run(async (ctx) => {
 		await ensureBookingSettings(ctx);
 
-		return await ctx.db.insert("bookings", {
-			name: "Test customer",
-			phone: "0400000000",
-			accountName: "Test account",
-			email,
-			date: bookingDate,
-			time: bookingTime,
-			sessionStartAt,
-			duration: "1h",
-			service: "Remote Podcast",
-			addons: [],
-			status: "pending_payment",
-			archived: false,
-			pendingPaymentCreatedAt: now,
-			stripeSessionId: "cs-1"
-		});
+		return await ctx.db.insert(
+			"bookings",
+			bookingDocument({
+				name: "Test customer",
+				phone: "0400000000",
+				accountName: "Test account",
+				email,
+				date: bookingDate,
+				time: bookingTime,
+				sessionStartAt,
+				duration: "1h",
+				service: "Remote Podcast",
+				addons: [],
+				status: "pending_payment",
+				archived: false,
+				pendingPaymentCreatedAt: now,
+				stripeSessionId: "cs-1"
+			})
+		);
 	});
 }
 
@@ -156,25 +160,28 @@ async function readBooking(t: TestClient, bookingId: Id<"bookings">) {
 
 async function seedPendingPackage(t: TestClient) {
 	return await t.run((ctx) =>
-		ctx.db.insert("packages", {
-			name: "Test customer",
-			phone: "0400000000",
-			accountName: "Test account",
-			email: "customer@example.com",
-			duration: "1h",
-			addons: [],
-			packageSize: 4,
-			singleSessionAmount: 100,
-			packageSubtotalAmount: 400,
-			discountPercent: 0,
-			discountAmount: 0,
-			totalDueAmount: 400,
-			status: "pending_payment",
-			archived: false,
-			createdAt: now,
-			receiptEmailStatus: "sent",
-			stripeSessionId: "cs-1"
-		})
+		ctx.db.insert(
+			"packages",
+			packageDocument({
+				name: "Test customer",
+				phone: "0400000000",
+				accountName: "Test account",
+				email: "customer@example.com",
+				duration: "1h",
+				addons: [],
+				packageSize: 4,
+				singleSessionAmount: 100,
+				packageSubtotalAmount: 400,
+				discountPercent: 0,
+				discountAmount: 0,
+				totalDueAmount: 400,
+				status: "pending_payment",
+				archived: false,
+				createdAt: now,
+				receiptEmailStatus: "sent",
+				stripeSessionId: "cs-1"
+			})
+		)
 	);
 }
 

@@ -157,6 +157,7 @@ import type * as sessions from "../sessions.js";
 import type * as stripe from "../stripe.js";
 import type * as stripeInvoices from "../stripeInvoices.js";
 import type * as stripeInvoicing from "../stripeInvoicing.js";
+import type * as tests_insertDocumentDefaults from "../tests/insertDocumentDefaults.js";
 
 import type {
   ApiFromModules,
@@ -314,6 +315,7 @@ declare const fullApi: ApiFromModules<{
   stripe: typeof stripe;
   stripeInvoices: typeof stripeInvoices;
   stripeInvoicing: typeof stripeInvoicing;
+  "tests/insertDocumentDefaults": typeof tests_insertDocumentDefaults;
 }>;
 
 /**

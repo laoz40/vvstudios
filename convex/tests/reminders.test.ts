@@ -13,6 +13,7 @@
  *    reminder fields when cancelled.
  */
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
+import { bookingDocument, packageDocument } from "#convex/tests/insertDocumentDefaults";
 import { internal } from "#convex/_generated/api";
 import type { Id } from "#convex/_generated/dataModel";
 import { hashRescheduleToken } from "#convex/lib/sessionRescheduleLinks";
@@ -240,27 +241,30 @@ async function seedSchedulablePackage(t: TestClient) {
 	const scheduleTokenHash = await hashRescheduleToken(packageScheduleToken);
 
 	return await t.run((ctx) =>
-		ctx.db.insert("packages", {
-			name: "Package customer",
-			phone: "0400000000",
-			accountName: "Package account",
-			email: "package@example.com",
-			duration: "1h",
-			addons: [],
-			packageSize: 4,
-			singleSessionAmount: 100,
-			packageSubtotalAmount: 400,
-			discountPercent: 0,
-			discountAmount: 0,
-			totalDueAmount: 400,
-			status: "paid",
-			archived: false,
-			createdAt: now - 1,
-			paidAt: now - 1,
-			expiresAt: expiryAt,
-			scheduleTokenHash,
-			scheduleLinkStatus: "active"
-		})
+		ctx.db.insert(
+			"packages",
+			packageDocument({
+				name: "Package customer",
+				phone: "0400000000",
+				accountName: "Package account",
+				email: "package@example.com",
+				duration: "1h",
+				addons: [],
+				packageSize: 4,
+				singleSessionAmount: 100,
+				packageSubtotalAmount: 400,
+				discountPercent: 0,
+				discountAmount: 0,
+				totalDueAmount: 400,
+				status: "paid",
+				archived: false,
+				createdAt: now - 1,
+				paidAt: now - 1,
+				expiresAt: expiryAt,
+				scheduleTokenHash,
+				scheduleLinkStatus: "active"
+			})
+		)
 	);
 }
 
@@ -292,22 +296,25 @@ async function seedBooking(
 			});
 		}
 
-		return await ctx.db.insert("bookings", {
-			name: "Reminder customer",
-			phone: "0400000000",
-			accountName: "Reminder account",
-			email: "customer@example.com",
-			date: "2030-01-03",
-			time: "11:00",
-			sessionStartAt: tomorrowSessionStartAt,
-			duration: "1h",
-			service: "Remote Podcast",
-			addons: [],
-			status: "confirmed",
-			archived: false,
-			pendingPaymentCreatedAt: now - 1,
-			...overrides
-		});
+		return await ctx.db.insert(
+			"bookings",
+			bookingDocument({
+				name: "Reminder customer",
+				phone: "0400000000",
+				accountName: "Reminder account",
+				email: "customer@example.com",
+				date: "2030-01-03",
+				time: "11:00",
+				sessionStartAt: tomorrowSessionStartAt,
+				duration: "1h",
+				service: "Remote Podcast",
+				addons: [],
+				status: "confirmed",
+				archived: false,
+				pendingPaymentCreatedAt: now - 1,
+				...overrides
+			})
+		);
 	});
 }
 
@@ -320,25 +327,28 @@ async function seedPackage(
 	}
 ) {
 	return await t.run((ctx) =>
-		ctx.db.insert("packages", {
-			name: "Package customer",
-			phone: "0400000000",
-			accountName: "Package account",
-			email: "package@example.com",
-			duration: "1h",
-			addons: [],
-			packageSize: 4,
-			singleSessionAmount: 100,
-			packageSubtotalAmount: 400,
-			discountPercent: 0,
-			discountAmount: 0,
-			totalDueAmount: 400,
-			status: lifecycle.status,
-			archived: false,
-			createdAt: now - 1,
-			expiresAt: lifecycle.expiresAt,
-			packageReminderState: lifecycle.packageReminderState
-		})
+		ctx.db.insert(
+			"packages",
+			packageDocument({
+				name: "Package customer",
+				phone: "0400000000",
+				accountName: "Package account",
+				email: "package@example.com",
+				duration: "1h",
+				addons: [],
+				packageSize: 4,
+				singleSessionAmount: 100,
+				packageSubtotalAmount: 400,
+				discountPercent: 0,
+				discountAmount: 0,
+				totalDueAmount: 400,
+				status: lifecycle.status,
+				archived: false,
+				createdAt: now - 1,
+				expiresAt: lifecycle.expiresAt,
+				packageReminderState: lifecycle.packageReminderState
+			})
+		)
 	);
 }
 

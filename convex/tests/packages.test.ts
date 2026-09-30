@@ -11,6 +11,7 @@
  *    Payment claim creates one paid lifecycle, one expiry job, and slot accounting on the package row.
  */
 import { beforeEach, describe, expect, test, vi } from "vitest";
+import { bookingDocument, packageDocument } from "#convex/tests/insertDocumentDefaults";
 import { api, internal } from "#convex/_generated/api";
 import type { Id } from "#convex/_generated/dataModel";
 import type { BookingAddon } from "#studio/features/booking-form/lib/booking-form-model";
@@ -207,6 +208,7 @@ describe("admin package management", () => {
 		expect(calculatedResult).toEqual([null, null]);
 		expect(calculatedPackage).toMatchObject({
 			...editedPackage,
+			phone: "0411111111",
 			singleSessionAmount: 328,
 			packageSubtotalAmount: 2624,
 			discountPercent: 10,
@@ -246,30 +248,33 @@ describe("package receipt number", () => {
 
 async function seedPackage(t: TestClient) {
 	return await t.run((ctx) =>
-		ctx.db.insert("packages", {
-			name: "Test customer",
-			phone: "0400 000 000",
-			accountName: "Test account",
-			email: "customer@example.com",
-			duration: "1h",
-			addons: [],
-			packageSize: 8,
-			singleSessionAmount: 200,
-			packageSubtotalAmount: 1600,
-			discountPercent: 10,
-			discountAmount: 160,
-			totalDueAmount: 1440,
-			invoiceLineItems: [
-				{ amount: 1600, description: "Studio Hire (1h)", quantity: 8, rate: 200 },
-				{ amount: -160, description: "10% package discount", quantity: 1, rate: -160 }
-			],
-			status: "paid",
-			archived: false,
-			createdAt: now,
-			paidAt: now,
-			expiresAt: now + 100_000,
-			receiptEmailStatus: "sent"
-		})
+		ctx.db.insert(
+			"packages",
+			packageDocument({
+				name: "Test customer",
+				phone: "0400 000 000",
+				accountName: "Test account",
+				email: "customer@example.com",
+				duration: "1h",
+				addons: [],
+				packageSize: 8,
+				singleSessionAmount: 200,
+				packageSubtotalAmount: 1600,
+				discountPercent: 10,
+				discountAmount: 160,
+				totalDueAmount: 1440,
+				invoiceLineItems: [
+					{ amount: 1600, description: "Studio Hire (1h)", quantity: 8, rate: 200 },
+					{ amount: -160, description: "10% package discount", quantity: 1, rate: -160 }
+				],
+				status: "paid",
+				archived: false,
+				createdAt: now,
+				paidAt: now,
+				expiresAt: now + 100_000,
+				receiptEmailStatus: "sent"
+			})
+		)
 	);
 }
 
@@ -280,22 +285,25 @@ async function seedPackageSession(
 	status: "confirmed" | "email_failed"
 ) {
 	return await t.run((ctx) =>
-		ctx.db.insert("bookings", {
-			name: "Test customer",
-			phone: "0400 000 000",
-			accountName: "Test account",
-			email: "customer@example.com",
-			date: `2030-01-${String(index + 2).padStart(2, "0")}`,
-			time: "10:00",
-			sessionStartAt: now + (index + 1) * 86_400_000,
-			duration: "1h",
-			service: "Table Setup",
-			addons: [],
-			status,
-			archived: false,
-			pendingPaymentCreatedAt: now,
-			packageId: packageId
-		})
+		ctx.db.insert(
+			"bookings",
+			bookingDocument({
+				name: "Test customer",
+				phone: "0400 000 000",
+				accountName: "Test account",
+				email: "customer@example.com",
+				date: `2030-01-${String(index + 2).padStart(2, "0")}`,
+				time: "10:00",
+				sessionStartAt: now + (index + 1) * 86_400_000,
+				duration: "1h",
+				service: "Table Setup",
+				addons: [],
+				status,
+				archived: false,
+				pendingPaymentCreatedAt: now,
+				packageId: packageId
+			})
+		)
 	);
 }
 
@@ -305,24 +313,27 @@ async function readPackage(t: TestClient, packageId: Id<"packages">) {
 
 async function seedPendingPackage(t: TestClient) {
 	return await t.run((ctx) =>
-		ctx.db.insert("packages", {
-			name: "Test customer",
-			phone: "0400000000",
-			accountName: "Test account",
-			email: "customer@example.com",
-			duration: "1h",
-			addons: [],
-			packageSize: 4,
-			singleSessionAmount: 100,
-			packageSubtotalAmount: 400,
-			discountPercent: 0,
-			discountAmount: 0,
-			totalDueAmount: 400,
-			status: "pending_payment",
-			archived: false,
-			createdAt: now,
-			receiptEmailStatus: "sent"
-		})
+		ctx.db.insert(
+			"packages",
+			packageDocument({
+				name: "Test customer",
+				phone: "0400000000",
+				accountName: "Test account",
+				email: "customer@example.com",
+				duration: "1h",
+				addons: [],
+				packageSize: 4,
+				singleSessionAmount: 100,
+				packageSubtotalAmount: 400,
+				discountPercent: 0,
+				discountAmount: 0,
+				totalDueAmount: 400,
+				status: "pending_payment",
+				archived: false,
+				createdAt: now,
+				receiptEmailStatus: "sent"
+			})
+		)
 	);
 }
 
@@ -330,28 +341,31 @@ async function seedPaidPackageWithToken(t: TestClient) {
 	const scheduleTokenHash = await hashRescheduleToken(packageScheduleToken);
 
 	return await t.run((ctx) =>
-		ctx.db.insert("packages", {
-			name: "Test customer",
-			phone: "0400000000",
-			accountName: "Test account",
-			email: "customer@example.com",
-			duration: "1h",
-			addons: [],
-			packageSize: 4,
-			singleSessionAmount: 100,
-			packageSubtotalAmount: 400,
-			discountPercent: 0,
-			discountAmount: 0,
-			totalDueAmount: 400,
-			status: "paid",
-			archived: false,
-			createdAt: now,
-			paidAt: now,
-			expiresAt: getPackageExpiresAt(now, 4),
-			receiptEmailStatus: "sent",
-			scheduleTokenHash,
-			scheduleLinkStatus: "active"
-		})
+		ctx.db.insert(
+			"packages",
+			packageDocument({
+				name: "Test customer",
+				phone: "0400000000",
+				accountName: "Test account",
+				email: "customer@example.com",
+				duration: "1h",
+				addons: [],
+				packageSize: 4,
+				singleSessionAmount: 100,
+				packageSubtotalAmount: 400,
+				discountPercent: 0,
+				discountAmount: 0,
+				totalDueAmount: 400,
+				status: "paid",
+				archived: false,
+				createdAt: now,
+				paidAt: now,
+				expiresAt: getPackageExpiresAt(now, 4),
+				receiptEmailStatus: "sent",
+				scheduleTokenHash,
+				scheduleLinkStatus: "active"
+			})
+		)
 	);
 }
 

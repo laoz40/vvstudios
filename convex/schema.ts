@@ -237,7 +237,7 @@ export default defineSchema({
 		pendingPaymentCreatedAt: v.number(),
 		paymentCompletedAt: v.optional(v.number()),
 		receiptNumber: v.optional(v.string()),
-		searchBlob: v.optional(v.string()),
+		searchBlob: v.string(),
 		bookingConfirmedAt: v.optional(v.number()),
 		bookingFailureCode: v.optional(v.string()),
 
@@ -314,6 +314,7 @@ export default defineSchema({
 		.index("by_packageId", ["packageId"])
 		.index("by_packageId_and_status_and_sessionStartAt", ["packageId", "status", "sessionStartAt"])
 		.index("by_receiptNumber", ["receiptNumber"])
+		.index("by_phone", ["phone"])
 		.index("by_phoneNormalized", ["phoneNormalized"])
 		.index("by_abn", ["abn"])
 		.searchIndex("search_admin_blob", { searchField: "searchBlob", filterFields: ["archived"] })
@@ -369,7 +370,7 @@ export default defineSchema({
 
 		// Receipt metadata (receipt number + email delivery status)
 		receiptNumber: v.optional(v.string()),
-		searchBlob: v.optional(v.string()),
+		searchBlob: v.string(),
 		receiptEmailStatus: v.optional(
 			v.union(v.literal("pending"), v.literal("sent"), v.literal("failed"))
 		),
@@ -400,6 +401,7 @@ export default defineSchema({
 		.index("by_stripeSessionId", ["stripeSessionId"])
 		.index("by_receiptNumber", ["receiptNumber"])
 		.index("by_email", ["email"])
+		.index("by_phone", ["phone"])
 		.index("by_phoneNormalized", ["phoneNormalized"])
 		.index("by_abn", ["abn"])
 		.searchIndex("search_admin_blob", { searchField: "searchBlob", filterFields: ["archived"] })

@@ -103,9 +103,7 @@ async function paginateSessionsByPhone(
 		fetchPage: (cursor, numItems) =>
 			ctx.db
 				.query("bookings")
-				.withIndex("by_phoneNormalized", (indexQuery) =>
-					indexQuery.eq("phoneNormalized", phoneNormalized)
-				)
+				.withIndex("by_phone", (indexQuery) => indexQuery.eq("phone", phoneNormalized))
 				.paginate({ cursor, numItems }),
 		includeRow: includeSessionRow(args)
 	});

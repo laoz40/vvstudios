@@ -273,19 +273,19 @@ function SessionAmountCell({ rowId, session }: { rowId: string; session: Session
 }
 
 function PackageSessionProgress({
-	invoiceNumber,
 	label,
-	onReceiptSearch
+	onReceiptSearch,
+	receiptNumber
 }: {
-	invoiceNumber: string | undefined;
 	label: string | null;
 	onReceiptSearch: (searchQuery: string) => void;
+	receiptNumber: string | undefined;
 }) {
 	if (!label) {
 		return <p>-</p>;
 	}
 
-	if (!invoiceNumber) {
+	if (!receiptNumber) {
 		return <p className="text-sm font-medium">{label}</p>;
 	}
 
@@ -294,7 +294,7 @@ function PackageSessionProgress({
 			type="button"
 			variant="link"
 			className="h-auto p-0 text-sm font-medium text-foreground"
-			onClick={() => onReceiptSearch(formatAdminSearchNarrowQuery("receipt", invoiceNumber))}>
+			onClick={() => onReceiptSearch(formatAdminSearchNarrowQuery("receipt", receiptNumber))}>
 			{label}
 		</Button>
 	);
@@ -304,7 +304,7 @@ export function SessionTableRow({ onReceiptSearch, session }: SessionTableRowPro
 	const isPastSession = !isUpcomingBooking(session.date, session.time);
 	const relativeDateLabel = formatBookingRelativeDate(session.date);
 	const packageSessionProgressLabel = getPackageSessionProgressLabel(session);
-	const packageInvoiceNumber = session.packageInvoiceNumber;
+	const packageReceiptNumber = session.receiptNumber;
 	const assignedEditorDisplayName = session.assignedEditorDisplayName ?? null;
 	const deliverablesEmailAction = useDeliverablesEmailAction(session);
 	const deliverableStatus = isDeliverableSession(session) ? getDeliverableStatus(session) : null;
@@ -357,9 +357,9 @@ export function SessionTableRow({ onReceiptSearch, session }: SessionTableRowPro
 			</TableCell>
 			<TableCell className={cn("text-center", pastCellClassName)}>
 				<PackageSessionProgress
-					invoiceNumber={packageInvoiceNumber}
 					label={packageSessionProgressLabel}
 					onReceiptSearch={onReceiptSearch}
+					receiptNumber={packageReceiptNumber}
 				/>
 			</TableCell>
 			<TableCell className={pastCellClassName}>

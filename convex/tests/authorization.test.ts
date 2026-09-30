@@ -20,6 +20,7 @@
  *    and allows admins through the shared guard.
  */
 import type { UserIdentity } from "convex/server";
+import { bookingDocument } from "#convex/tests/insertDocumentDefaults";
 import { makeFunctionReference } from "convex/server";
 import { describe, expect, test } from "vitest";
 import { api } from "#convex/_generated/api";
@@ -141,23 +142,26 @@ describe("admin mutation authorization rejects active editors", () => {
 
 async function seedBooking(t: TestClient): Promise<Id<"bookings">> {
 	return await t.run(async (ctx) =>
-		ctx.db.insert("bookings", {
-			name: "Test customer",
-			phone: "0400000000",
-			accountName: "Test account",
-			email: "test@example.com",
-			date: "2099-01-01",
-			time: "10:00",
-			sessionStartAt: 4_071_268_800_000,
-			duration: "1 hour",
-			service: "Remote Podcast",
-			addons: [],
-			status: "confirmed",
-			archived: false,
-			pendingPaymentCreatedAt: 1,
-			googleEventId: "event-id",
-			googleCalendarId: "calendar-id"
-		})
+		ctx.db.insert(
+			"bookings",
+			bookingDocument({
+				name: "Test customer",
+				phone: "0400000000",
+				accountName: "Test account",
+				email: "test@example.com",
+				date: "2099-01-01",
+				time: "10:00",
+				sessionStartAt: 4_071_268_800_000,
+				duration: "1 hour",
+				service: "Remote Podcast",
+				addons: [],
+				status: "confirmed",
+				archived: false,
+				pendingPaymentCreatedAt: 1,
+				googleEventId: "event-id",
+				googleCalendarId: "calendar-id"
+			})
+		)
 	);
 }
 

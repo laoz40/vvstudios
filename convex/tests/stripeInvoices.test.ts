@@ -14,6 +14,7 @@
  *    Marking a package adjustment invoice sent also stores one stripeInvoices row.
  */
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
+import { bookingDocument, packageDocument } from "#convex/tests/insertDocumentDefaults";
 import { api, internal } from "#convex/_generated/api";
 import { createConvexTest } from "#convex/test.setup";
 
@@ -180,47 +181,53 @@ describe("stripe invoice persistence", () => {
 
 async function seedBooking(t: TestClient) {
 	return await t.run((ctx) =>
-		ctx.db.insert("bookings", {
-			name: "Test customer",
-			phone: "0400000000",
-			accountName: "Test account",
-			email: "customer@example.com",
-			date: "2030-01-09",
-			time: "10:00",
-			sessionStartAt: now,
-			duration: "1h",
-			service: "Table Setup",
-			addons: [],
-			status: "confirmed",
-			archived: false,
-			pendingPaymentCreatedAt: now,
-			stripeCustomerId: "cus_test_booking"
-		})
+		ctx.db.insert(
+			"bookings",
+			bookingDocument({
+				name: "Test customer",
+				phone: "0400000000",
+				accountName: "Test account",
+				email: "customer@example.com",
+				date: "2030-01-09",
+				time: "10:00",
+				sessionStartAt: now,
+				duration: "1h",
+				service: "Table Setup",
+				addons: [],
+				status: "confirmed",
+				archived: false,
+				pendingPaymentCreatedAt: now,
+				stripeCustomerId: "cus_test_booking"
+			})
+		)
 	);
 }
 
 async function seedPaidPackage(t: TestClient) {
 	return await t.run((ctx) =>
-		ctx.db.insert("packages", {
-			name: "Test customer",
-			phone: "0400000000",
-			accountName: "Test account",
-			email: "customer@example.com",
-			duration: "1h",
-			addons: [],
-			packageSize: 4,
-			singleSessionAmount: 100,
-			packageSubtotalAmount: 400,
-			discountPercent: 0,
-			discountAmount: 0,
-			totalDueAmount: 400,
-			status: "paid",
-			archived: false,
-			createdAt: now - 30 * 24 * 60 * 60 * 1000,
-			receiptEmailStatus: "sent",
-			paidAt: now - 20 * 24 * 60 * 60 * 1000,
-			expiresAt: now,
-			stripeCustomerId: "cus_test_package"
-		})
+		ctx.db.insert(
+			"packages",
+			packageDocument({
+				name: "Test customer",
+				phone: "0400000000",
+				accountName: "Test account",
+				email: "customer@example.com",
+				duration: "1h",
+				addons: [],
+				packageSize: 4,
+				singleSessionAmount: 100,
+				packageSubtotalAmount: 400,
+				discountPercent: 0,
+				discountAmount: 0,
+				totalDueAmount: 400,
+				status: "paid",
+				archived: false,
+				createdAt: now - 30 * 24 * 60 * 60 * 1000,
+				receiptEmailStatus: "sent",
+				paidAt: now - 20 * 24 * 60 * 60 * 1000,
+				expiresAt: now,
+				stripeCustomerId: "cus_test_package"
+			})
+		)
 	);
 }
