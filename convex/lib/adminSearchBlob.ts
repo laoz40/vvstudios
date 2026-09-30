@@ -1,9 +1,6 @@
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
-import {
-	normalizeAbn,
-	normalizePhone
-} from "#convex/lib/contactNormalization";
+import { normalizeAbn, normalizePhone } from "#convex/lib/contactNormalization";
 
 type BookingSearchBlobFields = Pick<
 	Doc<"bookings">,
