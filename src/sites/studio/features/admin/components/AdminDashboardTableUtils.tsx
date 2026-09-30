@@ -13,6 +13,16 @@ export function formatInstagramHandle(instagramHandle: string) {
 	return trimmedHandle.startsWith("@") ? trimmedHandle : `@${trimmedHandle}`;
 }
 
+export function AdminTableInlineFieldSeparator() {
+	return (
+		<span
+			className="shrink-0 px-1"
+			aria-hidden>
+			·
+		</span>
+	);
+}
+
 export async function copyText(value: string, label: string) {
 	try {
 		await navigator.clipboard.writeText(value);

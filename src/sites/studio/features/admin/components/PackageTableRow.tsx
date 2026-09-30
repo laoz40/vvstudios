@@ -4,7 +4,7 @@ import { Button } from "#/components/ui/button";
 import { TableCell, TableRow } from "#/components/ui/table";
 import { cn } from "#/lib/utils";
 import {
-	CopyableText,
+	AdminTableInlineFieldSeparator,
 	formatInstagramHandle
 } from "#studio/features/admin/components/AdminDashboardTableUtils";
 import { PrivacySensitiveText } from "#studio/features/admin/components/PrivacySensitiveText";
@@ -19,6 +19,7 @@ import {
 	isAdminPackageRowDimmed,
 	type AdminPackageRow
 } from "#studio/features/admin/lib/admin-packages";
+import { formatAdminDashboardDuration } from "#studio/features/admin/lib/admin-sessions";
 import {
 	formatAudAmount,
 	getAudAmountRowShowCents
@@ -197,6 +198,9 @@ export function PackageTableRow({
 
 	const packageStatusDisplay = getAdminPackageStatusDisplay(packageRow);
 
+	const accountDisplayValue =
+		packageRow.accountName.trim().length > 0 ? packageRow.accountName : packageRow.abn;
+
 	return (
 		<TableRow
 			key={packageRow.id}
@@ -207,35 +211,32 @@ export function PackageTableRow({
 				</div>
 			</TableCell>
 			<TableCell className={inactiveCellClassName}>
-				<div className="flex flex-col gap-1 whitespace-normal">
-					<p className="font-medium text-foreground">
+				<div className="flex min-w-0 flex-col gap-1 whitespace-normal">
+					<p className="min-w-0 font-medium text-foreground">
 						<PrivacySensitiveText
 							rowId={packageRow.id}
 							value={packageRow.customerName}
-							label="customer name">
+							label="customer name"
+							searchPrefix="name"
+							onSearch={onReceiptSearch}>
 							{packageRow.customerName}
 						</PrivacySensitiveText>
 					</p>
-					{packageRow.accountName || packageRow.abn ? (
-						<p className="text-sm">
-							{packageRow.accountName ? (
-								<PrivacySensitiveText
-									rowId={packageRow.id}
-									value={packageRow.accountName}
-									label="account name">
-									{packageRow.accountName}
-								</PrivacySensitiveText>
-							) : null}
-							{packageRow.abn ? (
-								<>
-									{packageRow.accountName ? " · " : ""}
-									<CopyableText
-										value={packageRow.abn}
-										label="ABN">
-										ABN
-									</CopyableText>
-								</>
-							) : null}
+					{accountDisplayValue ? (
+						<p className="min-w-0 truncate text-sm">
+							<PrivacySensitiveText
+								rowId={packageRow.id}
+								value={accountDisplayValue}
+								label={packageRow.accountName.trim().length > 0 ? "account name" : "ABN"}
+								searchPrefix={packageRow.accountName.trim().length > 0 ? "account" : "abn"}
+								additionalPopoverFields={
+									packageRow.accountName.trim().length > 0 && packageRow.abn
+										? [{ fieldLabel: "ABN", value: packageRow.abn, searchPrefix: "abn" }]
+										: undefined
+								}
+								onSearch={onReceiptSearch}>
+								{accountDisplayValue}
+							</PrivacySensitiveText>
 						</p>
 					) : null}
 				</div>
@@ -252,7 +253,7 @@ export function PackageTableRow({
 						}
 					}}>
 					<span className="font-medium text-foreground">
-						{packageRow.packageSize} sessions ({packageRow.duration})
+						{packageRow.packageSize} sessions ({formatAdminDashboardDuration(packageRow.duration)})
 					</span>
 					<span className="text-sm text-muted-foreground">
 						{packageRow.bookedSessions} / {packageRow.packageSize} booked
@@ -275,31 +276,41 @@ export function PackageTableRow({
 				)}
 			</TableCell>
 			<TableCell className={inactiveCellClassName}>
-				<div className="flex flex-col gap-1 whitespace-normal">
-					<p className="font-medium break-all">
+				<div className="flex min-w-0 flex-col gap-1 whitespace-normal">
+					<p className="min-w-0 font-medium">
 						<PrivacySensitiveText
 							rowId={packageRow.id}
 							value={packageRow.customerEmail}
-							label="email">
+							label="email"
+							searchPrefix="email"
+							onSearch={onReceiptSearch}>
 							{packageRow.customerEmail}
 						</PrivacySensitiveText>
 					</p>
-					<p className="text-sm">
-						<PrivacySensitiveText
-							rowId={packageRow.id}
-							value={packageRow.customerPhone}
-							label="phone number">
-							{packageRow.customerPhone}
-						</PrivacySensitiveText>
+					<p className="flex min-w-0 items-baseline text-sm">
+						<span className="shrink-0 whitespace-nowrap">
+							<PrivacySensitiveText
+								rowId={packageRow.id}
+								value={packageRow.customerPhone}
+								label="phone number"
+								searchPrefix="phone"
+								onSearch={onReceiptSearch}>
+								{packageRow.customerPhone}
+							</PrivacySensitiveText>
+						</span>
 						{packageRow.instagramHandle ? (
 							<>
-								{" · "}
-								<PrivacySensitiveText
-									rowId={packageRow.id}
-									value={formatInstagramHandle(packageRow.instagramHandle)}
-									label="Instagram handle">
-									{formatInstagramHandle(packageRow.instagramHandle)}
-								</PrivacySensitiveText>
+								<AdminTableInlineFieldSeparator />
+								<span className="min-w-0 flex-1 truncate">
+									<PrivacySensitiveText
+										rowId={packageRow.id}
+										value={formatInstagramHandle(packageRow.instagramHandle)}
+										label="Instagram handle"
+										searchPrefix="ig"
+										onSearch={onReceiptSearch}>
+										{formatInstagramHandle(packageRow.instagramHandle)}
+									</PrivacySensitiveText>
+								</span>
 							</>
 						) : null}
 					</p>

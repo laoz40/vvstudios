@@ -8,7 +8,7 @@ import { cn } from "#/lib/utils";
 import { SessionActions } from "#studio/features/admin/components/SessionActions";
 import { StatusIcon } from "#studio/features/admin/components/StatusIcon";
 import {
-	CopyableText,
+	AdminTableInlineFieldSeparator,
 	formatInstagramHandle
 } from "#studio/features/admin/components/AdminDashboardTableUtils";
 import { PrivacySensitiveText } from "#studio/features/admin/components/PrivacySensitiveText";
@@ -25,6 +25,7 @@ import {
 import { SessionServiceCell } from "#studio/features/sessions/components/SessionServiceCell";
 import { useDeliverablesEmailAction } from "#studio/features/admin/hooks/useDeliverablesEmailAction";
 import {
+	formatAdminDashboardDuration,
 	getPackageSessionProgressLabel,
 	type SessionRecord
 } from "#studio/features/admin/lib/admin-sessions";
@@ -49,74 +50,100 @@ type SessionTableRowProps = {
 	session: SessionRecord;
 };
 
-function SessionCustomerCell({ rowId, session }: { rowId: string; session: SessionRecord }) {
+function SessionCustomerCell({
+	onSearch,
+	rowId,
+	session
+}: {
+	onSearch: (searchQuery: string) => void;
+	rowId: string;
+	session: SessionRecord;
+}) {
+	const accountDisplayValue =
+		session.accountName.trim().length > 0 ? session.accountName : session.abn;
+
 	return (
-		<div className="flex flex-col gap-1 whitespace-normal">
-			<p className="font-medium">
+		<div className="flex min-w-0 flex-col gap-1 whitespace-normal">
+			<p className="min-w-0 truncate font-medium">
 				<PrivacySensitiveText
 					rowId={rowId}
 					value={session.name}
-					label="customer name">
+					label="customer name"
+					searchPrefix="name"
+					onSearch={onSearch}>
 					{session.name}
 				</PrivacySensitiveText>
 			</p>
-			{session.accountName || session.abn ? (
-				<p className="text-sm">
-					{session.accountName ? (
-						<PrivacySensitiveText
-							rowId={rowId}
-							value={session.accountName}
-							label="account name">
-							{session.accountName}
-						</PrivacySensitiveText>
-					) : null}
-					{session.abn ? (
-						<>
-							{session.accountName ? " · " : ""}
-							<CopyableText
-								value={session.abn}
-								label="ABN">
-								ABN
-							</CopyableText>
-						</>
-					) : null}
+			{accountDisplayValue ? (
+				<p className="min-w-0 truncate text-sm">
+					<PrivacySensitiveText
+						rowId={rowId}
+						value={accountDisplayValue}
+						label={session.accountName.trim().length > 0 ? "account name" : "ABN"}
+						searchPrefix={session.accountName.trim().length > 0 ? "account" : "abn"}
+						additionalPopoverFields={
+							session.accountName.trim().length > 0 && session.abn
+								? [{ fieldLabel: "ABN", value: session.abn, searchPrefix: "abn" }]
+								: undefined
+						}
+						onSearch={onSearch}>
+						{accountDisplayValue}
+					</PrivacySensitiveText>
 				</p>
 			) : null}
 		</div>
 	);
 }
 
-function SessionContactCell({ rowId, session }: { rowId: string; session: SessionRecord }) {
+function SessionContactCell({
+	onSearch,
+	rowId,
+	session
+}: {
+	onSearch: (searchQuery: string) => void;
+	rowId: string;
+	session: SessionRecord;
+}) {
 	return (
-		<div className="flex flex-col gap-1 whitespace-normal">
-			<p className="font-medium break-all">
+		<div className="flex min-w-0 flex-col gap-1 whitespace-normal">
+			<p className="min-w-0 truncate font-medium">
 				<PrivacySensitiveText
 					rowId={rowId}
 					value={session.email}
-					label="email">
+					label="email"
+					searchPrefix="email"
+					onSearch={onSearch}>
 					{session.email}
 				</PrivacySensitiveText>
 			</p>
-			<p className="text-sm">
+			<p className="flex min-w-0 items-baseline text-sm">
 				{session.phone ? (
-					<PrivacySensitiveText
-						rowId={rowId}
-						value={session.phone}
-						label="phone number">
-						{session.phone}
-					</PrivacySensitiveText>
+					<span className="shrink-0 whitespace-nowrap">
+						<PrivacySensitiveText
+							rowId={rowId}
+							value={session.phone}
+							label="phone number"
+							searchPrefix="phone"
+							onSearch={onSearch}>
+							{session.phone}
+						</PrivacySensitiveText>
+					</span>
 				) : (
 					<span>No phone provided</span>
 				)}
 				{session.instagramHandle ? (
 					<>
-						{" · "}
-						<PrivacySensitiveText
-							rowId={rowId}
-							value={formatInstagramHandle(session.instagramHandle)}
-							label="Instagram handle">
-							{formatInstagramHandle(session.instagramHandle)}
-						</PrivacySensitiveText>
+						<AdminTableInlineFieldSeparator />
+						<span className="min-w-0 flex-1 truncate">
+							<PrivacySensitiveText
+								rowId={rowId}
+								value={formatInstagramHandle(session.instagramHandle)}
+								label="Instagram handle"
+								searchPrefix="ig"
+								onSearch={onSearch}>
+								{formatInstagramHandle(session.instagramHandle)}
+							</PrivacySensitiveText>
+						</span>
 					</>
 				) : null}
 			</p>
@@ -267,9 +294,7 @@ function PackageSessionProgress({
 			type="button"
 			variant="link"
 			className="h-auto p-0 text-sm font-medium text-foreground"
-			onClick={() =>
-				onReceiptSearch(formatAdminSearchNarrowQuery("receipt", invoiceNumber))
-			}>
+			onClick={() => onReceiptSearch(formatAdminSearchNarrowQuery("receipt", invoiceNumber))}>
 			{label}
 		</Button>
 	);
@@ -300,6 +325,7 @@ export function SessionTableRow({ onReceiptSearch, session }: SessionTableRowPro
 			</TableCell>
 			<TableCell className={pastCellClassName}>
 				<SessionCustomerCell
+					onSearch={onReceiptSearch}
 					rowId={session._id}
 					session={session}
 				/>
@@ -311,7 +337,7 @@ export function SessionTableRow({ onReceiptSearch, session }: SessionTableRowPro
 					<p className="font-medium">{formatBookingDateMedium(session.date)}</p>
 					<p className="text-sm text-muted-foreground">
 						{session.duration
-							? `${formatBookingTimeLabel(session.time)} · ${session.duration}`
+							? `${formatBookingTimeLabel(session.time)} · ${formatAdminDashboardDuration(session.duration)}`
 							: formatBookingTimeLabel(session.time)}
 					</p>
 				</div>
@@ -324,6 +350,7 @@ export function SessionTableRow({ onReceiptSearch, session }: SessionTableRowPro
 			</TableCell>
 			<TableCell className={pastCellClassName}>
 				<SessionContactCell
+					onSearch={onReceiptSearch}
 					rowId={session._id}
 					session={session}
 				/>
