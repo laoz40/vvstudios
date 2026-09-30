@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { normalizePhone } from "#convex/lib/contactNormalization";
 
-export const bookingPhoneInputSchema = z
+const bookingPhoneInputSchema = z
 	.string()
 	.trim()
 	.min(1, "Phone number is required.")
