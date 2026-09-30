@@ -21,6 +21,26 @@ export function toAdminSessionDuration(
 	return DURATION_OPTIONS.find((option) => option === duration) ?? "";
 }
 
+export function formatAdminDashboardDuration(duration: string | undefined) {
+	if (!duration) {
+		return "";
+	}
+
+	const normalizedDuration = toAdminSessionDuration(duration);
+
+	if (normalizedDuration) {
+		return normalizedDuration;
+	}
+
+	const hourMatch = /^(\d+)\s+hours?$/i.exec(duration.trim());
+
+	if (hourMatch) {
+		return `${hourMatch[1]}h`;
+	}
+
+	return duration;
+}
+
 function isCapacityConsumingPackageSession(session: SessionRecord) {
 	return session.packageId !== undefined && sessionConsumesPackageCapacity(session);
 }
