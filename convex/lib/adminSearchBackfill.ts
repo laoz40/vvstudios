@@ -81,8 +81,7 @@ export async function adminSearchBackfillPatchForBooking(
 ): Promise<BookingAdminSearchBackfillPatch> {
 	const receiptNumber = await receiptNumberForPaidBooking(ctx, booking);
 
-	const searchBlobOverrides =
-		receiptNumber !== undefined ? { receiptNumber } : {};
+	const searchBlobOverrides = receiptNumber !== undefined ? { receiptNumber } : {};
 
 	const searchBlobPatch = await searchBlobPatchForBooking(ctx, booking, searchBlobOverrides);
 
@@ -107,8 +106,7 @@ export function adminSearchBackfillPatchForPackage(
 ): PackageAdminSearchBackfillPatch {
 	const receiptNumber = receiptNumberForPaidPackage(packageRecord);
 
-	const searchBlobOverrides =
-		receiptNumber !== undefined ? { receiptNumber } : {};
+	const searchBlobOverrides = receiptNumber !== undefined ? { receiptNumber } : {};
 
 	const searchBlobPatch = searchBlobPatchForPackage(packageRecord, searchBlobOverrides);
 

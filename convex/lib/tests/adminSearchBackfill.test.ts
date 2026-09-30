@@ -18,11 +18,7 @@ describe("receiptNumberForPaidPackage", () => {
 		const packageId = testPackageId("jd7abc123def456789012345");
 		const paidAt = 1_704_067_200_000;
 
-		const packageRecord = createPackageFixture({
-			_id: packageId,
-			paidAt,
-			status: "paid"
-		});
+		const packageRecord = createPackageFixture({ _id: packageId, paidAt, status: "paid" });
 
 		expect(receiptNumberForPaidPackage(packageRecord)).toBe(
 			formatBookingInvoiceNumber(packageId, paidAt)
