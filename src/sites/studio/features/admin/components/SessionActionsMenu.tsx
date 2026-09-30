@@ -5,7 +5,6 @@ import DownloadIcon from "#/components/ui/download-icon";
 import DotsHorizontalIcon from "#/components/ui/dots-horizontal-icon";
 import BrandGoogleIcon from "#/components/ui/brand-google-icon";
 import BrandStripeIcon from "#/components/ui/brand-stripe-icon";
-import HashtagIcon from "#/components/ui/hashtag-icon";
 import MailFilledIcon from "#/components/ui/mail-filled-icon";
 import PenIcon from "#/components/ui/pen-icon";
 import PhoneVolume from "#/components/ui/phone-volume";
@@ -26,7 +25,7 @@ import {
 	DropdownMenuTrigger
 } from "#/components/ui/dropdown-menu";
 import { AnimatedDropdownMenuItem } from "#studio/features/admin/components/AnimatedDropdownMenuItem";
-import { copyText } from "#studio/features/admin/components/AdminDashboardTableUtils";
+import { AdminDropdownReceiptRow } from "#studio/features/admin/components/AdminDropdownReceiptRow";
 import { LegacyInvoicesSubmenu } from "#studio/features/admin/components/LegacyInvoicesSubmenu";
 import { StripeIdCopyMenuItems } from "#studio/features/admin/components/StripeIdCopyMenuItems";
 import { SessionEditorAssignment } from "#studio/features/admin/components/SessionEditorAssignment";
@@ -62,6 +61,7 @@ type SessionActionsMenuProps = {
 	statusActions: ReturnType<typeof useStatusActions>;
 	onOpenDrive: () => void;
 	onEditAdminNotes: () => void;
+	onReceiptSearch: (searchQuery: string) => void;
 };
 
 function canSetDeliverablesStatusToSent(details: SessionActionDetails) {
@@ -213,7 +213,8 @@ export function SessionActionsMenu({
 	rescheduleAction,
 	statusActions,
 	onOpenDrive,
-	onEditAdminNotes
+	onEditAdminNotes,
+	onReceiptSearch
 }: SessionActionsMenuProps) {
 	const [isMenuOpen, setIsMenuOpen] = useState(false);
 	const showSessionBillingActions = session.packageId === undefined;
@@ -315,18 +316,11 @@ export function SessionActionsMenu({
 					<DropdownMenuSubContent className="w-80 touch-manipulation">
 						{details.canManageConfirmedSession ? (
 							<>
-								<AnimatedDropdownMenuItem
-									onSelect={() => void copyText(details.customerSessionId, "invoice number")}
-									renderIcon={(iconRef) => (
-										<HashtagIcon
-											ref={iconRef}
-											size={16}
-											aria-hidden
-											className="shrink-0 text-current"
-										/>
-									)}>
-									{details.customerSessionId}
-								</AnimatedDropdownMenuItem>
+								<AdminDropdownReceiptRow
+									copyLabel="invoice number"
+									onSearch={onReceiptSearch}
+									value={details.customerSessionId}
+								/>
 								<AnimatedDropdownMenuItem
 									onSelect={() => void navigator.clipboard.writeText(String(session._id))}
 									renderIcon={(iconRef) => (

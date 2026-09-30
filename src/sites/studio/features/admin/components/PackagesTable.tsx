@@ -130,6 +130,7 @@ export function PackagesTable({
 						visiblePackages.map((packageRow) => (
 							<PackageTableRow
 								key={packageRow.id}
+								onReceiptSearch={onSearchQueryChange}
 								onViewPackageSessions={onViewPackageSessions}
 								packageRow={packageRow}
 							/>

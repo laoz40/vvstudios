@@ -179,9 +179,11 @@ function getAdminPackageTableRowState(packageRow: AdminPackageRow) {
 }
 
 export function PackageTableRow({
+	onReceiptSearch,
 	onViewPackageSessions,
 	packageRow
 }: {
+	onReceiptSearch: (searchQuery: string) => void;
 	onViewPackageSessions: (receiptNumber: string) => void;
 	packageRow: AdminPackageRow;
 }) {
@@ -324,7 +326,10 @@ export function PackageTableRow({
 				</div>
 			</TableCell>
 			<TableCell>
-				<PackageActions packageRow={packageRow} />
+				<PackageActions
+					onReceiptSearch={onReceiptSearch}
+					packageRow={packageRow}
+				/>
 			</TableCell>
 		</TableRow>
 	);

@@ -145,8 +145,9 @@ export function SessionsTable({
 							sessions.map((session) => (
 								<SessionTableRow
 									key={session._id}
-									session={session}
 									onPackageFilterClick={onSearchQueryChange}
+									onReceiptSearch={onSearchQueryChange}
+									session={session}
 								/>
 							))
 						) : isLoadingSessions ? (

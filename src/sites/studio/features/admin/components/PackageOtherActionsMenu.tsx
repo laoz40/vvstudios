@@ -2,7 +2,6 @@ import { useRef } from "react";
 import DownloadIcon from "#/components/ui/download-icon";
 import DotsHorizontalIcon from "#/components/ui/dots-horizontal-icon";
 import BrandStripeIcon from "#/components/ui/brand-stripe-icon";
-import HashtagIcon from "#/components/ui/hashtag-icon";
 import MailFilledIcon from "#/components/ui/mail-filled-icon";
 import Stack3Icon from "#/components/ui/stack-3-icon";
 import {
@@ -13,17 +12,22 @@ import {
 } from "#/components/ui/dropdown-menu";
 import type { AnimatedIconHandle } from "#/components/ui/types";
 import { AnimatedDropdownMenuItem } from "#studio/features/admin/components/AnimatedDropdownMenuItem";
-import { copyText } from "#studio/features/admin/components/AdminDashboardTableUtils";
+import { AdminDropdownReceiptRow } from "#studio/features/admin/components/AdminDropdownReceiptRow";
 import { StripeIdCopyMenuItems } from "#studio/features/admin/components/StripeIdCopyMenuItems";
 import type { usePackageActions } from "#studio/features/admin/hooks/usePackageActions";
 import type { AdminPackageRow } from "#studio/features/admin/lib/admin-packages";
 
 type PackageOtherActionsMenuProps = {
 	actions: ReturnType<typeof usePackageActions>;
+	onReceiptSearch: (searchQuery: string) => void;
 	packageRow: AdminPackageRow;
 };
 
-type PackageInvoiceActionsProps = PackageOtherActionsMenuProps & { canResendPackageEmail: boolean };
+type PackageInvoiceActionsProps = {
+	actions: ReturnType<typeof usePackageActions>;
+	canResendPackageEmail: boolean;
+	packageRow: AdminPackageRow;
+};
 
 type PackageReceiptMenuItemsProps = {
 	actions: ReturnType<typeof usePackageActions>;
@@ -144,7 +148,11 @@ function PackageInvoiceActions({
 	);
 }
 
-export function PackageOtherActionsMenu({ actions, packageRow }: PackageOtherActionsMenuProps) {
+export function PackageOtherActionsMenu({
+	actions,
+	onReceiptSearch,
+	packageRow
+}: PackageOtherActionsMenuProps) {
 	const canResendPackageEmail = packageRow.isPaid;
 	const hasPackageInvoiceActions = canResendPackageEmail || packageRow.adjustment !== null;
 	const receiptNumber = packageRow.receiptNumber;
@@ -163,20 +171,13 @@ export function PackageOtherActionsMenu({ actions, packageRow }: PackageOtherAct
 				/>
 				Other
 			</DropdownMenuSubTrigger>
-			<DropdownMenuSubContent className="w-60 touch-manipulation">
+			<DropdownMenuSubContent className="w-72 touch-manipulation">
 				{receiptNumber ? (
-					<AnimatedDropdownMenuItem
-						onSelect={() => void copyText(receiptNumber, "receipt number")}
-						renderIcon={(iconRef) => (
-							<HashtagIcon
-								ref={iconRef}
-								size={16}
-								aria-hidden
-								className="shrink-0 text-current"
-							/>
-						)}>
-						{receiptNumber}
-					</AnimatedDropdownMenuItem>
+					<AdminDropdownReceiptRow
+						copyLabel="receipt number"
+						onSearch={onReceiptSearch}
+						value={receiptNumber}
+					/>
 				) : null}
 				<AnimatedDropdownMenuItem
 					onSelect={() => void navigator.clipboard.writeText(String(packageRow.id))}
