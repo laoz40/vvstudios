@@ -39,7 +39,7 @@ function AdminSearchFieldPopoverSection({
 	return (
 		<div>
 			<p className="text-xs text-muted-foreground capitalize">{fieldLabel}</p>
-			<p className="mt-1 break-all text-sm text-foreground">{value}</p>
+			<p className="mt-1 text-sm break-all text-foreground">{value}</p>
 			<div className="mt-2 flex gap-2">
 				<AnimatedIconButton
 					type="button"
