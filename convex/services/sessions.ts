@@ -6,7 +6,6 @@ import { setBookingArchived } from "#convex/lib/archiveState";
 import { requirePermission } from "#convex/lib/auth";
 import {
 	buildActiveEditorProjection,
-	getEditorDisplayNamesByToken,
 	listActiveEditorProfiles,
 	updateSessionEditorAssignment
 } from "#convex/lib/editorAssignments";
@@ -145,25 +144,8 @@ export function listEditorSessionsService(ctx: QueryCtx, args: ListEditorSession
 }
 
 async function loadAdminSessionListRows(ctx: QueryCtx, sessionsPage: Doc<"bookings">[]) {
-	const assignedEditorTokens = [
-		...new Set(
-			sessionsPage.flatMap((session) =>
-				session.assignedEditorTokenIdentifier ? [session.assignedEditorTokenIdentifier] : []
-			)
-		)
-	];
-
-	const assignedEditorDisplayNamesByToken = await getEditorDisplayNamesByToken(
-		ctx,
-		assignedEditorTokens
-	);
-
 	return Promise.all(
 		sessionsPage.map(async (session) => {
-			const assignedEditorDisplayName = session.assignedEditorTokenIdentifier
-				? assignedEditorDisplayNamesByToken.get(session.assignedEditorTokenIdentifier)
-				: undefined;
-
 			const [hasDriveWorkflowFailure, stripeInvoicesResult] = await Promise.all([
 				getDriveWorkflowFailureForBooking(ctx, session),
 				listStripeInvoicesForBooking(ctx, session._id)
@@ -172,23 +154,13 @@ async function loadAdminSessionListRows(ctx: QueryCtx, sessionsPage: Doc<"bookin
 			const stripeInvoicesSummary = summarizeStripeInvoices(stripeInvoicesResult.unwrapOr([]));
 
 			if (!session.packageId) {
-				return {
-					...session,
-					assignedEditorDisplayName,
-					hasDriveWorkflowFailure,
-					stripeInvoicesSummary
-				};
+				return { ...session, hasDriveWorkflowFailure, stripeInvoicesSummary };
 			}
 
 			const packageRecord = await ctx.db.get(session.packageId);
 
 			if (!packageRecord) {
-				return {
-					...session,
-					assignedEditorDisplayName,
-					hasDriveWorkflowFailure,
-					stripeInvoicesSummary
-				};
+				return { ...session, hasDriveWorkflowFailure, stripeInvoicesSummary };
 			}
 
 			const packageSessions = await getCapacityConsumingPackageSessions(
@@ -199,7 +171,6 @@ async function loadAdminSessionListRows(ctx: QueryCtx, sessionsPage: Doc<"bookin
 
 			return {
 				...session,
-				assignedEditorDisplayName,
 				hasDriveWorkflowFailure,
 				stripeInvoicesSummary,
 				linkedPackageSize: packageRecord.packageSize,
