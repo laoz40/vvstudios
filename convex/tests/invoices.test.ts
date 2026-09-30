@@ -416,6 +416,8 @@ async function seedBooking(
 		stripeSessionId?: string;
 	} = {}
 ) {
+	const status = overrides.status ?? "confirmed";
+
 	return await t.run((ctx) =>
 		ctx.db.insert("bookings", {
 			name: "Test customer",
@@ -428,11 +430,12 @@ async function seedBooking(
 			duration: "1h",
 			service: "Table Setup",
 			addons: [],
-			status: overrides.status ?? "confirmed",
+			status,
 			archived: false,
 			pendingPaymentCreatedAt: now,
 			paymentCompletedAt: overrides.paymentCompletedAt ?? now,
-			stripeSessionId: overrides.stripeSessionId
+			stripeSessionId: overrides.stripeSessionId,
+			receiptNumber: status === "pending_payment" ? undefined : "VV-TEST-BOOK-001"
 		})
 	);
 }

@@ -35,7 +35,7 @@ export function SessionActions({
 
 	const details: SessionActionDetails = {
 		canGenerateRescheduleLink: getCanGenerateRescheduleLink(session, isPastSession),
-		customerSessionId: session.receiptNumber ?? session.packageInvoiceNumber ?? session._id,
+		customerSessionId: session.receiptNumber ?? session._id,
 		canManageConfirmedSession,
 		isPastSession
 	};

@@ -8,7 +8,6 @@ import {
 export type SessionRecord = Doc<"bookings"> & {
 	assignedEditorDisplayName?: string;
 	hasDriveWorkflowFailure?: boolean;
-	packageInvoiceNumber?: string;
 	linkedPackageSize?: 4 | 8 | 12;
 	packageSessionPosition?: number;
 	packageStripeCustomerId?: string;

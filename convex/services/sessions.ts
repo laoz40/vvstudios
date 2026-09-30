@@ -202,7 +202,6 @@ async function loadAdminSessionListRows(ctx: QueryCtx, sessionsPage: Doc<"bookin
 				assignedEditorDisplayName,
 				hasDriveWorkflowFailure,
 				stripeInvoicesSummary,
-				packageInvoiceNumber: packageRecord.receiptNumber,
 				linkedPackageSize: packageRecord.packageSize,
 				packageStripeCustomerId: packageRecord.stripeCustomerId,
 				packageSessionPosition: sessionConsumesPackageCapacity(session)

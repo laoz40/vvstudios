@@ -51,7 +51,7 @@ export interface BookingInvoiceLineItem {
 export type BookingReceiptBuilderInput = Omit<
 	BookingInvoiceBuilderInput,
 	"customTotalDueAmount" | "dueDate" | "includeDepositLineItem" | "invoiceNumber"
-> & { receiptNumber?: string };
+> & { receiptNumber: string };
 
 export interface BookingReceiptMoneyAmounts {
 	addonsAmount: number;
@@ -78,7 +78,7 @@ export type PackageReceiptBuilderInput = {
 	totalDueAmount: number;
 	invoiceLineItems: BookingInvoiceLineItem[];
 	leadTimeMinutes: number;
-	receiptNumber?: string;
+	receiptNumber: string;
 	scheduleExpiresAtLabel?: string;
 	scheduleUrl?: string;
 } & BookingAddonQuantities;

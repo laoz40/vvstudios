@@ -2,7 +2,6 @@ import type { Doc } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
 import { searchBlobPatchForBooking, searchBlobPatchForPackage } from "#convex/lib/adminSearchBlob";
 import { contactNormalizedIndexFields } from "#convex/lib/contactNormalization";
-import { formatBookingInvoiceNumber } from "#studio/features/booking-invoice/lib/build-booking-invoice-data";
 
 export const ADMIN_SEARCH_BACKFILL_BATCH_SIZE = 25;
 
@@ -17,24 +16,16 @@ function isPaidBooking(booking: Doc<"bookings">) {
 	return booking.status === "confirmed" || booking.status === "email_failed";
 }
 
-function bookingReceiptTimestamp(booking: Doc<"bookings">) {
-	return (
-		booking.paymentCompletedAt ?? booking.bookingConfirmedAt ?? booking.pendingPaymentCreatedAt
-	);
-}
-
 export function receiptNumberForPaidPackage(packageRecord: Doc<"packages">): string | undefined {
 	if (packageRecord.status !== "paid") {
 		return undefined;
 	}
 
-	if (packageRecord.receiptNumber !== undefined && packageRecord.receiptNumber.length > 0) {
-		return packageRecord.receiptNumber;
+	if (packageRecord.receiptNumber === undefined || packageRecord.receiptNumber.length === 0) {
+		return undefined;
 	}
 
-	const paidAt = packageRecord.paidAt ?? packageRecord.createdAt;
-
-	return formatBookingInvoiceNumber(packageRecord._id, paidAt);
+	return packageRecord.receiptNumber;
 }
 
 export async function receiptNumberForPaidBooking(
@@ -59,7 +50,7 @@ export async function receiptNumberForPaidBooking(
 		return receiptNumberForPaidPackage(packageRecord);
 	}
 
-	return formatBookingInvoiceNumber(booking._id, bookingReceiptTimestamp(booking));
+	return undefined;
 }
 
 type BookingAdminSearchBackfillPatch = {

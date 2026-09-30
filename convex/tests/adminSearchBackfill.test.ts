@@ -12,7 +12,6 @@ import { internal } from "#convex/_generated/api";
 import type { Id } from "#convex/_generated/dataModel";
 import { receiptNumberForPaidBooking } from "#convex/lib/adminSearchBackfill";
 import { normalizePhone } from "#convex/lib/contactNormalization";
-import { formatBookingInvoiceNumber } from "#studio/features/booking-invoice/lib/build-booking-invoice-data";
 import { createConvexTest } from "#convex/test.setup";
 
 describe("admin search backfill", () => {
@@ -30,9 +29,7 @@ describe("admin search backfill", () => {
 
 		expect(booking?.phoneNormalized).toBe(normalizePhone("+61 400 111 222"));
 		expect(booking?.searchBlob).toContain("0400111222");
-		expect(booking?.receiptNumber).toBe(
-			formatBookingInvoiceNumber(bookingId, booking!.paymentCompletedAt!)
-		);
+		expect(booking?.receiptNumber).toBeUndefined();
 	});
 
 	test("receiptNumberForPaidBooking copies package receipt for paid package sessions", async () => {
