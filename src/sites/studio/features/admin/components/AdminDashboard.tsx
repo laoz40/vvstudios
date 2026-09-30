@@ -29,7 +29,7 @@ import {
 	readStoredPackagesTablePreferences,
 	readStoredSessionsTablePreferences
 } from "#studio/features/admin/lib/admin-dashboard-preferences";
-import { DASHBOARD_PAGE_SIZE } from "#studio/features/auth/lib/dashboard-loading-labels";
+import { adminTablePageSize } from "#studio/features/admin/lib/admin-list-pagination";
 import { useDebouncedValue } from "#/lib/use-debounced-value";
 
 const ADMIN_TABLE_SEARCH_DEBOUNCE_MS = 300;
@@ -126,15 +126,18 @@ function BookingsDashboardView({
 
 	const trimmedSessionSearchQuery = debouncedSessionSearchQuery.trim();
 
+	const hasActiveSessionSearch = trimmedSessionSearchQuery.length > 0;
+	const sessionPageSize = adminTablePageSize(hasActiveSessionSearch);
+
 	const sessionListQuery = {
 		...toSessionListQuerySort(sessionSorting),
 		view: sessionsView,
 		includeStale: showStaleSessions,
-		searchQuery: trimmedSessionSearchQuery.length > 0 ? trimmedSessionSearchQuery : undefined
+		searchQuery: hasActiveSessionSearch ? trimmedSessionSearchQuery : undefined
 	};
 
 	const sessions = usePaginatedQuery(api.sessions.listSessions, sessionListQuery, {
-		initialNumItems: DASHBOARD_PAGE_SIZE
+		initialNumItems: sessionPageSize
 	});
 
 	const isLoadingFirstPage = sessions.status === "LoadingFirstPage";
@@ -145,7 +148,7 @@ function BookingsDashboardView({
 			canLoadMoreSessions={sessions.status === "CanLoadMore"}
 			isLoadingMoreSessions={sessions.status === "LoadingMore"}
 			isLoadingSessions={sessions.status === "LoadingFirstPage"}
-			loadMoreSessions={() => sessions.loadMore(DASHBOARD_PAGE_SIZE)}
+			loadMoreSessions={() => sessions.loadMore(sessionPageSize)}
 			searchQuery={sessionSearchQuery}
 			sessionsView={sessionsView}
 			showStaleSessions={showStaleSessions}
@@ -186,15 +189,18 @@ function PackagesDashboardView({
 
 	const trimmedPackageSearchQuery = debouncedPackageSearchQuery.trim();
 
+	const hasActivePackageSearch = trimmedPackageSearchQuery.length > 0;
+	const packagePageSize = adminTablePageSize(hasActivePackageSearch);
+
 	const packageListQuery = {
 		...toPackageListQuerySort(packageSorting),
 		view: packagesView,
 		includeStale: showStalePackages,
-		searchQuery: trimmedPackageSearchQuery.length > 0 ? trimmedPackageSearchQuery : undefined
+		searchQuery: hasActivePackageSearch ? trimmedPackageSearchQuery : undefined
 	};
 
 	const packages = usePaginatedQuery(api.packages.listPackages, packageListQuery, {
-		initialNumItems: DASHBOARD_PAGE_SIZE
+		initialNumItems: packagePageSize
 	});
 
 	const packagesForTable = useDisplayedWhileRefetching(
@@ -208,7 +214,7 @@ function PackagesDashboardView({
 			canLoadMorePackages={packages.status === "CanLoadMore"}
 			isLoadingMorePackages={packages.status === "LoadingMore"}
 			isLoadingPackages={packages.status === "LoadingFirstPage"}
-			loadMorePackages={() => packages.loadMore(DASHBOARD_PAGE_SIZE)}
+			loadMorePackages={() => packages.loadMore(packagePageSize)}
 			packagesView={packagesView}
 			searchQuery={packageSearchQuery}
 			showStalePackages={showStalePackages}

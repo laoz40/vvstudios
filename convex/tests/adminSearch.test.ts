@@ -13,7 +13,8 @@ import type { Id } from "#convex/_generated/dataModel";
 import { buildBookingSearchBlob } from "#convex/lib/adminSearchBlob";
 import { createConvexTest } from "#convex/test.setup";
 
-const paginationOpts = { cursor: null, numItems: 20 };
+// Convex tests cannot import admin-list-pagination.ts; use the same numItems as ADMIN_SEARCH_PAGE_SIZE (40).
+const adminSearchPaginationOpts = { cursor: null, numItems: 40 };
 
 const adminIdentity = { publicMetadata: { role: "admin" } };
 
@@ -27,7 +28,7 @@ describe("admin list search", () => {
 		const result = await t
 			.withIdentity(adminIdentity)
 			.query(api.sessions.listSessions, {
-				paginationOpts,
+				paginationOpts: adminSearchPaginationOpts,
 				view: "inbox",
 				searchQuery: `email:${targetEmail}`
 			});
@@ -39,7 +40,7 @@ describe("admin list search", () => {
 		const t = createConvexTest();
 
 		await Promise.all(
-			Array.from({ length: 21 }, (_, index) =>
+			Array.from({ length: 41 }, (_, index) =>
 				seedBooking(t, {
 					name: `Shared token ${index}`,
 					email: `shared-${index}@example.com`,
@@ -51,13 +52,38 @@ describe("admin list search", () => {
 		const result = await t
 			.withIdentity(adminIdentity)
 			.query(api.sessions.listSessions, {
-				paginationOpts,
+				paginationOpts: adminSearchPaginationOpts,
 				view: "inbox",
 				searchQuery: "sharedtoken"
 			});
 
 		expect("refineSearch" in result && result.refineSearch).toBe(true);
 		expect(result.isDone).toBe(false);
+	});
+
+	test("unprefixed blob refineSearch false at search page size", async () => {
+		const t = createConvexTest();
+
+		await Promise.all(
+			Array.from({ length: 40 }, (_, index) =>
+				seedBooking(t, {
+					name: `Exact batch ${index}`,
+					email: `batch-${index}@example.com`,
+					searchToken: "exactbatch"
+				})
+			)
+		);
+
+		const result = await t
+			.withIdentity(adminIdentity)
+			.query(api.sessions.listSessions, {
+				paginationOpts: adminSearchPaginationOpts,
+				view: "inbox",
+				searchQuery: "exactbatch"
+			});
+
+		expect("refineSearch" in result && result.refineSearch).toBe(false);
+		expect(result.isDone).toBe(true);
 	});
 });
 

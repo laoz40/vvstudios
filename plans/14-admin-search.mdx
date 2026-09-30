@@ -33,7 +33,7 @@ PR 1 shell and PR 2 receipts are merged. PR 3 search backend is implemented on t
 ### Behavior today
 
 - Debounced `searchQuery` (~300ms) on sessions and packages; list handlers route unprefixed text to `searchBlob` and `field:` prefixes to indexes (see **Search semantics**).
-- **Inbox pagination:** `ADMIN_INBOX_PAGE_SIZE` (20) + `InfiniteScrollSentinel` when not searching.
+- **Inbox pagination:** `DASHBOARD_PAGE_SIZE` (20) + `InfiniteScrollSentinel` when not searching.
 - **Search pagination:** client sends `ADMIN_SEARCH_PAGE_SIZE` (40) in `paginationOpts` while a search is active; backend sets `refineSearch` on the first page when that route’s paginate returns `!isDone` (~41+ index matches).
 - No client-side table filtering or prefetch loops.
 
@@ -143,7 +143,7 @@ Two match tiers (same mental model for admins: **paste fields = whole value**, *
 
 **Type-to-find (partial):** `name:`, `account:`, `ig:`, `editor:` — Convex **search index on that column** (word tokens, same family as unprefixed search, but scoped to one field). `editor:` searches **`assignedEditorDisplayName`** on the booking (denormalized from the assigned editor’s display name at assign time; updated on reassign and when the editor profile display name changes). Not “email contains jo” and not paste-style full-string exact. Backend returns **paginated batches** (`ADMIN_SEARCH_PAGE_SIZE` while searching). PR 4 **auto-fetches** the next batch until `isDone` (no scroll required). When **`refineSearch` is true**, show a preview/first batch only until banner opt-in (see **Refine banner** and **Batched load-all**).
 
-**Heavy-query guard:** **`refineSearch` applies to unprefixed and prefix searches** on the **first** page only (`cursor === null`): `true` when that route’s paginated query returns **`isDone: false`** (more index pages exist). The client uses **`ADMIN_SEARCH_PAGE_SIZE` (40)** for active search requests, so the nudge typically means **~41+ index matches**, not “one page over inbox size.” Inbox browsing stays at **`ADMIN_INBOX_PAGE_SIZE` (20)**. The banner blocks batched load-all until the admin confirms. Stale/inbox rows are still **removed from the response** when Show unconfirmed is off; `isDone` is index-level, so the first visible page can be shorter than `numItems` while `refineSearch` is still `true`. Acceptable (low stale volume).
+**Heavy-query guard:** **`refineSearch` applies to unprefixed and prefix searches** on the **first** page only (`cursor === null`): `true` when that route’s paginated query returns **`isDone: false`** (more index pages exist). The client uses **`ADMIN_SEARCH_PAGE_SIZE` (40)** for active search requests, so the nudge typically means **~41+ index matches**, not “one page over inbox size.” Inbox browsing stays at **`DASHBOARD_PAGE_SIZE` (20)**. The banner blocks batched load-all until the admin confirms. Stale/inbox rows are still **removed from the response** when Show unconfirmed is off; `isDone` is index-level, so the first visible page can be shorter than `numItems` while `refineSearch` is still `true`. Acceptable (low stale volume).
 
 **Not the same as unprefixed search:** unprefixed text matches tokens in **`searchBlob`** (all contact fields). `name:acme` searches the **`name`** search index only.
 
@@ -220,7 +220,7 @@ On `bookings` and `packages` (same `filterFields: ["archived"]` pattern as `sear
 | Concern        | Behavior                                                                                   |
 | -------------- | ------------------------------------------------------------------------------------------ |
 | Min length     | Client only, unprefixed only, ≥ 3 chars before sending `searchQuery`                       |
-| Page sizes     | Inbox `ADMIN_INBOX_PAGE_SIZE` (20); active search `ADMIN_SEARCH_PAGE_SIZE` (40)            |
+| Page sizes     | Inbox `DASHBOARD_PAGE_SIZE` (20); active search `ADMIN_SEARCH_PAGE_SIZE` (40)              |
 | `refineSearch` | Any search; first page; `true` when index has another page (`!isDone`) at search page size |
 | Load more      | Batched auto `loadMore` until `isDone` or **stop**; paused at `refineSearch` until opt-in  |
 | Partial prefix | Same batched load-all; no scroll required                                                  |
