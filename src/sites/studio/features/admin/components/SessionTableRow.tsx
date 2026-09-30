@@ -34,6 +34,7 @@ import {
 } from "#studio/features/admin/lib/remaining-balance";
 import { getStripeInvoiceAmountClassName } from "#studio/features/admin/lib/stripe-invoice-billing";
 import { calculateBookingReceiptAmounts } from "#studio/features/booking-invoice/lib/calculate-booking-receipt-amounts";
+import { formatAdminSearchNarrowQuery } from "#studio/features/admin/lib/admin-search-narrow";
 import {
 	formatShortMonthFullDate,
 	formatBookingDateMedium,
@@ -44,7 +45,6 @@ import {
 } from "#studio/lib/bookingdatetime";
 
 type SessionTableRowProps = {
-	onPackageFilterClick: (invoiceNumber: string) => void;
 	onReceiptSearch: (searchQuery: string) => void;
 	session: SessionRecord;
 };
@@ -248,11 +248,11 @@ function SessionAmountCell({ rowId, session }: { rowId: string; session: Session
 function PackageSessionProgress({
 	invoiceNumber,
 	label,
-	onPackageFilterClick
+	onReceiptSearch
 }: {
 	invoiceNumber: string | undefined;
 	label: string | null;
-	onPackageFilterClick: (invoiceNumber: string) => void;
+	onReceiptSearch: (searchQuery: string) => void;
 }) {
 	if (!label) {
 		return <p>-</p>;
@@ -267,17 +267,15 @@ function PackageSessionProgress({
 			type="button"
 			variant="link"
 			className="h-auto p-0 text-sm font-medium text-foreground"
-			onClick={() => onPackageFilterClick(invoiceNumber)}>
+			onClick={() =>
+				onReceiptSearch(formatAdminSearchNarrowQuery("receipt", invoiceNumber))
+			}>
 			{label}
 		</Button>
 	);
 }
 
-export function SessionTableRow({
-	onPackageFilterClick,
-	onReceiptSearch,
-	session
-}: SessionTableRowProps) {
+export function SessionTableRow({ onReceiptSearch, session }: SessionTableRowProps) {
 	const isPastSession = !isUpcomingBooking(session.date, session.time);
 	const relativeDateLabel = formatBookingRelativeDate(session.date);
 	const packageSessionProgressLabel = getPackageSessionProgressLabel(session);
@@ -334,7 +332,7 @@ export function SessionTableRow({
 				<PackageSessionProgress
 					invoiceNumber={packageInvoiceNumber}
 					label={packageSessionProgressLabel}
-					onPackageFilterClick={onPackageFilterClick}
+					onReceiptSearch={onReceiptSearch}
 				/>
 			</TableCell>
 			<TableCell className={pastCellClassName}>
