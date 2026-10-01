@@ -29,12 +29,12 @@ export function requireClientDrivePermissionsAndSendAssetsEmail(
 		.andThen(() => sendClientAssetsFolderEmail(ctx, args.bookingId, args.attempt));
 }
 
-function backfillBookingDriveClientIdForRetry(
+function syncBookingDriveClientIdForRetry(
 	ctx: ActionCtx,
 	bookingId: Id<"bookings">
 ): ResultAsync<null, DriveClientPermissionsError> {
 	return fromConvexTuple(
-		ctx.runMutation(internal.sessions.backfillBookingDriveClientId, { bookingId })
+		ctx.runMutation(internal.sessions.syncBookingDriveClientIdFromSession, { bookingId })
 	);
 }
 
@@ -45,7 +45,7 @@ export function retryClientDrivePermissionsService(
 	return requirePermissionActions(ctx, "edit:sessions")
 		.andThen(() => loadReadyBookingDriveFolders(ctx, args.bookingId))
 		.andThen((setup) =>
-			backfillBookingDriveClientIdForRetry(ctx, args.bookingId).andThen(() =>
+			syncBookingDriveClientIdForRetry(ctx, args.bookingId).andThen(() =>
 				requireClientDrivePermissions(ctx, setup).orElse((error) =>
 					recordClientDrivePermissionsFailure(ctx, setup, error)
 				)

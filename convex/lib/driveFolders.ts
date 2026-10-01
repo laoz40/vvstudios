@@ -6,7 +6,7 @@ import { loadPackageBookings } from "#convex/lib/driveLookup";
 import type { DriveChildFolderName, SavedDriveFolder } from "#convex/lib/googleDrive";
 import { okOrThrow } from "#convex/lib/result";
 
-export type BackfillBookingDriveClientIdError = {
+export type SyncBookingDriveClientIdFromSessionError = {
 	reason: "BOOKING_NOT_FOUND" | "DRIVE_RECORD_NOT_FOUND";
 };
 
@@ -14,7 +14,7 @@ export function ensureBookingDriveClientId(
 	ctx: MutationCtx,
 	bookingId: Id<"bookings">,
 	driveClientId: Id<"driveClients">
-): ResultAsync<null, BackfillBookingDriveClientIdError> {
+): ResultAsync<null, SyncBookingDriveClientIdFromSessionError> {
 	return okOrThrow(ctx.db.get(bookingId)).andThen((booking) => {
 		if (booking === null) return err({ reason: "BOOKING_NOT_FOUND" as const });
 
@@ -24,10 +24,10 @@ export function ensureBookingDriveClientId(
 	});
 }
 
-export function backfillBookingDriveClientIdFromSession(
+export function syncBookingDriveClientIdFromSession(
 	ctx: MutationCtx,
 	bookingId: Id<"bookings">
-): ResultAsync<null, BackfillBookingDriveClientIdError> {
+): ResultAsync<null, SyncBookingDriveClientIdFromSessionError> {
 	return okOrThrow(ctx.db.get(bookingId)).andThen((booking) => {
 		if (booking === null) return err({ reason: "BOOKING_NOT_FOUND" as const });
 

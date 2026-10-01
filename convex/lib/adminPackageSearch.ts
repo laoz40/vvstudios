@@ -86,9 +86,9 @@ async function paginatePackagesByPhone(
 	args: AdminPackageSearchArgs,
 	phoneQuery: string
 ): Promise<AdminPackageSearchPage> {
-	const phoneNormalized = normalizePhone(phoneQuery);
+	const canonicalPhone = normalizePhone(phoneQuery);
 
-	if (phoneNormalized.length === 0) {
+	if (canonicalPhone.length === 0) {
 		return emptyAdminSearchListPage();
 	}
 
@@ -97,7 +97,7 @@ async function paginatePackagesByPhone(
 		fetchPage: (cursor, numItems) =>
 			ctx.db
 				.query("packages")
-				.withIndex("by_phone", (indexQuery) => indexQuery.eq("phone", phoneNormalized))
+				.withIndex("by_phone", (indexQuery) => indexQuery.eq("phone", canonicalPhone))
 				.paginate({ cursor, numItems }),
 		includeRow: includePackageRow(args)
 	});

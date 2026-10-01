@@ -102,32 +102,6 @@ jobs:
       - name: Install Playwright browsers
         run: bunx playwright install --with-deps chromium
 
-      - name: Backfill e2e Convex admin search fields
-        env:
-          CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_E2E_DEPLOY_KEY }}
-        run: |
-          backfill_until_done() {
-            local fn="$1"
-            local cursor=null
-            for _ in $(seq 1 200); do
-              result=$(bunx convex run "$fn" "{\"cursor\":$cursor,\"batchSize\":50}")
-              echo "$result"
-              is_done=$(echo "$result" | jq -r '.isDone')
-              if [ "$is_done" = "true" ]; then
-                return 0
-              fi
-              next=$(echo "$result" | jq -r '.continueCursor')
-              if [ "$next" = "null" ]; then
-                return 0
-              fi
-              cursor="\"$next\""
-            done
-            echo "Backfill $fn did not finish"
-            exit 1
-          }
-          backfill_until_done adminSearchBackfill:backfillPackageAdminSearch
-          backfill_until_done adminSearchBackfill:backfillBookingAdminSearch
-
       - name: Deploy Convex to e2e
         env:
           CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_E2E_DEPLOY_KEY }}
