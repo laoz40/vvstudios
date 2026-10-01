@@ -8,6 +8,7 @@ import { useAdminPrivacyMode } from "#studio/features/admin/components/AdminPriv
 type PrivacySensitiveTextProps = {
 	additionalPopoverFields?: AdminSearchFieldPopoverExtraField[];
 	children: ReactNode;
+	className?: string;
 	copyable?: boolean;
 	label: string;
 	onSearch?: (searchQuery: string) => void;
@@ -19,6 +20,7 @@ type PrivacySensitiveTextProps = {
 export function PrivacySensitiveText({
 	additionalPopoverFields,
 	children,
+	className,
 	copyable = true,
 	label,
 	onSearch,
@@ -40,6 +42,7 @@ export function PrivacySensitiveText({
 		return (
 			<AdminSearchFieldPopover
 				additionalFields={additionalPopoverFields}
+				className={className}
 				fieldLabel={label}
 				onSearch={onSearch}
 				searchPrefix={searchPrefix}
@@ -76,6 +79,7 @@ export function PrivacySensitiveText({
 	return (
 		<AdminSearchFieldPopover
 			additionalFields={additionalPopoverFields}
+			className={className}
 			fieldLabel={label}
 			onSearch={onSearch}
 			searchPrefix={searchPrefix}
