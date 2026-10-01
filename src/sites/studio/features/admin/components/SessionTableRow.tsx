@@ -6,6 +6,7 @@ import { TableCell, TableRow } from "#/components/ui/table";
 import { toast } from "sonner";
 import { exhaustiveCheck } from "#/lib/result";
 import { cn } from "#/lib/utils";
+import { AdminTableInfoPopover } from "#studio/features/admin/components/AdminTableInfoPopover";
 import { SessionActions } from "#studio/features/admin/components/SessionActions";
 import { StatusIcon } from "#studio/features/admin/components/StatusIcon";
 import {
@@ -45,6 +46,54 @@ import {
 	formatBookingTimeLabel,
 	isUpcomingBooking
 } from "#studio/lib/bookingdatetime";
+
+const driveWorkflowAttentionMessage = "Google Drive needs attention";
+
+function DriveWorkflowAttentionIcon() {
+	return (
+		<AdminTableInfoPopover
+			content={driveWorkflowAttentionMessage}
+			triggerClassName="inline-flex rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+			<CircleAlert
+				aria-hidden
+				className="size-3.5 text-destructive"
+			/>
+		</AdminTableInfoPopover>
+	);
+}
+
+function SessionEditorNameCell({
+	editorName,
+	onSearch,
+	rowId,
+	showDriveAlert
+}: {
+	editorName: string;
+	onSearch: (searchQuery: string) => void;
+	rowId: string;
+	showDriveAlert: boolean;
+}) {
+	return (
+		<p className="flex w-full min-w-0 items-center gap-1 text-xs">
+			{showDriveAlert ? (
+				<span className="shrink-0">
+					<DriveWorkflowAttentionIcon />
+				</span>
+			) : null}
+			<span className="min-w-0 flex-1 truncate">
+				<PrivacySensitiveText
+					rowId={rowId}
+					value={editorName}
+					label="editor name"
+					className="!text-xs !underline-offset-2"
+					searchPrefix="editor"
+					onSearch={onSearch}>
+					{editorName}
+				</PrivacySensitiveText>
+			</span>
+		</p>
+	);
+}
 
 type SessionTableRowProps = {
 	onReceiptSearch: (searchQuery: string) => void;
@@ -348,16 +397,16 @@ export function SessionTableRow({ onReceiptSearch, session }: SessionTableRowPro
 				/>
 			</TableCell>
 			<TableCell className={pastCellClassName}>
-				<div
-					className="flex cursor-help flex-col gap-1 whitespace-normal"
-					title={relativeDateLabel}>
+				<AdminTableInfoPopover
+					content={relativeDateLabel}
+					className="flex w-full flex-col gap-1 whitespace-normal">
 					<p className="font-medium">{formatBookingDateMedium(session.date)}</p>
 					<p className="text-sm text-muted-foreground">
 						{session.duration
 							? `${formatBookingTimeLabel(session.time)} · ${formatAdminDashboardDuration(session.duration)}`
 							: formatBookingTimeLabel(session.time)}
 					</p>
-				</div>
+				</AdminTableInfoPopover>
 			</TableCell>
 			<TableCell className={pastCellClassName}>
 				<SessionServiceCell
@@ -391,55 +440,37 @@ export function SessionTableRow({ onReceiptSearch, session }: SessionTableRowPro
 					session={session}
 				/>
 			</TableCell>
-			<TableCell className="text-center">
-				<div className="flex flex-col items-center gap-1">
-					{deliverableStatus === "review" ? (
-						<button
-							type="button"
-							onClick={() => deliverablesEmailAction.setIsDeliverablesEmailDialogOpen(true)}>
+			<TableCell>
+				<div className="flex flex-col gap-1">
+					<div className="flex justify-center">
+						{deliverableStatus === "review" ? (
+							<button
+								type="button"
+								onClick={() => deliverablesEmailAction.setIsDeliverablesEmailDialogOpen(true)}>
+								<Badge
+									variant={deliverableStatusBadgeVariantMap.review}
+									className={deliverableStatusBadgeClassNameMap.review}>
+									{deliverableStatusLabelMap.review}
+								</Badge>
+							</button>
+						) : deliverableStatus ? (
 							<Badge
-								variant={deliverableStatusBadgeVariantMap.review}
-								className={deliverableStatusBadgeClassNameMap.review}>
-								{deliverableStatusLabelMap.review}
+								variant={deliverableStatusBadgeVariantMap[deliverableStatus]}
+								className={deliverableStatusBadgeClassNameMap[deliverableStatus]}>
+								{deliverableStatusLabelMap[deliverableStatus]}
 							</Badge>
-						</button>
-					) : deliverableStatus ? (
-						<Badge
-							variant={deliverableStatusBadgeVariantMap[deliverableStatus]}
-							className={deliverableStatusBadgeClassNameMap[deliverableStatus]}>
-							{deliverableStatusLabelMap[deliverableStatus]}
-						</Badge>
-					) : null}
+						) : null}
+					</div>
 					{assignedEditorDisplayName ? (
-						<p className="flex items-center justify-center gap-1 text-xs text-muted-foreground">
-							{session.hasDriveWorkflowFailure ? (
-								<span
-									className="cursor-help"
-									title="Google Drive needs attention">
-									<CircleAlert
-										aria-label="Google Drive needs attention"
-										className="size-3.5 text-destructive"
-									/>
-								</span>
-							) : null}
-							<PrivacySensitiveText
-								rowId={session._id}
-								value={assignedEditorDisplayName}
-								label="editor name"
-								copyable={false}>
-								{assignedEditorDisplayName}
-							</PrivacySensitiveText>
-						</p>
+						<SessionEditorNameCell
+							editorName={assignedEditorDisplayName}
+							onSearch={onReceiptSearch}
+							rowId={session._id}
+							showDriveAlert={session.hasDriveWorkflowFailure === true}
+						/>
 					) : session.hasDriveWorkflowFailure ? (
 						<p className="flex items-center justify-center gap-1 text-xs text-muted-foreground">
-							<span
-								className="cursor-help"
-								title="Google Drive needs attention">
-								<CircleAlert
-									aria-label="Google Drive needs attention"
-									className="size-3.5 text-destructive"
-								/>
-							</span>
+							<DriveWorkflowAttentionIcon />
 							<span>Google Drive</span>
 						</p>
 					) : null}

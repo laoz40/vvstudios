@@ -9,6 +9,7 @@ import {
 } from "#studio/features/admin/components/AdminDashboardTableUtils";
 import { PrivacySensitiveText } from "#studio/features/admin/components/PrivacySensitiveText";
 import { formatDashboardAddonLabel } from "#studio/features/booking-form/lib/editing-addon-quantities";
+import { AdminTableInfoPopover } from "#studio/features/admin/components/AdminTableInfoPopover";
 import { PackageActions } from "#studio/features/admin/components/PackageActions";
 import { StatusIcon } from "#studio/features/admin/components/StatusIcon";
 import {
@@ -72,11 +73,11 @@ function PackageTableDateCell({
 
 	return (
 		<div className="flex flex-col gap-1">
-			<span
-				className={cn("cursor-help", isPastDue ? "text-destructive" : isDueClose && "text-primary")}
-				title={relativeDateLabel}>
+			<AdminTableInfoPopover
+				content={relativeDateLabel}
+				className={cn(isPastDue ? "text-destructive" : isDueClose && "text-primary")}>
 				{formatShortMonthFullDate(dashboardDate.timestamp)}
-			</span>
+			</AdminTableInfoPopover>
 			<span className="text-xs text-muted-foreground">{label}</span>
 		</div>
 	);
