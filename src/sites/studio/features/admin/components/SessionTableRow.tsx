@@ -85,7 +85,7 @@ function SessionEditorNameCell({
 					rowId={rowId}
 					value={editorName}
 					label="editor name"
-					className="!text-xs underline-offset-2"
+					className="admin-dashboard-editor-search-link !text-xs"
 					searchPrefix="editor"
 					onSearch={onSearch}>
 					{editorName}
