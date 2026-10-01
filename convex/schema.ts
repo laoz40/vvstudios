@@ -87,6 +87,7 @@ export default defineSchema({
 		bookingId: v.id("bookings"),
 		driveClientId: v.id("driveClients"),
 		packageSessionNumber: v.optional(v.number()),
+		clientSessionNumber: v.optional(v.number()),
 		packageFolder: v.optional(driveFolderValidator),
 		sessionFolder: v.optional(driveFolderValidator),
 		rawMediaFolder: v.optional(driveFolderValidator),
@@ -310,6 +311,7 @@ export default defineSchema({
 			"assignedEditorTokenIdentifier",
 			"driveClientId"
 		])
+		.index("by_driveClientId", ["driveClientId"])
 		.index("by_packageId", ["packageId"])
 		.index("by_packageId_and_status_and_sessionStartAt", ["packageId", "status", "sessionStartAt"])
 		.index("by_receiptNumber", ["receiptNumber"])

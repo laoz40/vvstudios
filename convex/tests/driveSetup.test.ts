@@ -12,6 +12,7 @@ import { bookingDocument } from "#convex/tests/insertDocumentDefaults";
 import { internal } from "#convex/_generated/api";
 import type { Id } from "#convex/_generated/dataModel";
 import { getOrCreateDriveClientId } from "#convex/lib/driveFolders";
+import { resolveSessionFolderDisplayName } from "#convex/lib/driveSessionFolderNumber";
 import { createConvexTest } from "#convex/test.setup";
 
 const now = Date.parse("2030-01-01T00:00:00.000Z");
@@ -84,6 +85,90 @@ describe("drive setup guards", () => {
 		).toEqual([{ reason: "DRIVE_RECORD_NOT_FOUND" }, null]);
 	});
 
+	test("allocates standalone client session numbers in date order", async () => {
+		const t = createConvexTest();
+
+		const driveClientId = await createDriveClient(t, {
+			email: "repeat@example.com",
+			displayName: "Repeat customer"
+		});
+
+		const earlierSessionStartAt = sessionStartAt;
+		const laterSessionStartAt = sessionStartAt + 7 * 24 * 60 * 60 * 1000;
+
+		const earlierBookingId = await seedStandaloneBooking(t, {
+			driveClientId,
+			sessionStartAt: earlierSessionStartAt,
+			email: "repeat@example.com"
+		});
+
+		const laterBookingId = await seedStandaloneBooking(t, {
+			driveClientId,
+			sessionStartAt: laterSessionStartAt,
+			email: "repeat@example.com"
+		});
+
+		expect(
+			await t.mutation(internal.sessions.allocateClientSessionNumber, { bookingId: laterBookingId })
+		).toEqual([null, 2]);
+		expect(
+			await t.mutation(internal.sessions.allocateClientSessionNumber, {
+				bookingId: earlierBookingId
+			})
+		).toEqual([null, 1]);
+		expect(
+			await t.mutation(internal.sessions.allocateClientSessionNumber, {
+				bookingId: earlierBookingId
+			})
+		).toEqual([null, 1]);
+	});
+
+	test("shows a numbered standalone session folder name before drive setup runs", async () => {
+		const t = createConvexTest();
+
+		const driveClientId = await createDriveClient(t, {
+			email: "preview@example.com",
+			displayName: "Preview customer"
+		});
+
+		const bookingId = await seedStandaloneBooking(t, {
+			driveClientId,
+			sessionStartAt,
+			email: "preview@example.com"
+		});
+
+		const sessionFolderName = await t.run(async (ctx) => {
+			const booking = await ctx.db.get(bookingId);
+
+			if (booking === null) throw new Error("Expected booking");
+
+			return resolveSessionFolderDisplayName(ctx, booking, null);
+		});
+
+		expect(sessionFolderName).toBe("1 - 10 Jan 2030 (10:00AM)");
+	});
+
+	test("indexes standalone sessions linked by email when driveClientId is missing on the booking", async () => {
+		const t = createConvexTest();
+
+		const driveClientId = await createDriveClient(t, {
+			email: "legacy@example.com",
+			displayName: "Legacy customer"
+		});
+
+		await seedStandaloneBooking(t, { driveClientId, sessionStartAt, email: "legacy@example.com" });
+
+		const laterBookingId = await seedStandaloneBooking(t, {
+			sessionStartAt: sessionStartAt + 24 * 60 * 60 * 1000,
+			email: "legacy@example.com",
+			time: "11:00"
+		});
+
+		expect(
+			await t.mutation(internal.sessions.allocateClientSessionNumber, { bookingId: laterBookingId })
+		).toEqual([null, 2]);
+	});
+
 	test("keeps the first saved session folder on repeated saves", async () => {
 		const t = createConvexTest();
 		const bookingId = await seedBooking(t);
@@ -140,6 +225,13 @@ async function createDriveClient(t: TestClient, client: { email: string; display
 }
 
 async function seedBooking(t: TestClient) {
+	return await seedStandaloneBooking(t, { email: "customer@example.com", sessionStartAt });
+}
+
+async function seedStandaloneBooking(
+	t: TestClient,
+	args: { driveClientId?: Id<"driveClients">; email: string; sessionStartAt: number; time?: string }
+) {
 	return await t.run((ctx) =>
 		ctx.db.insert(
 			"bookings",
@@ -147,16 +239,17 @@ async function seedBooking(t: TestClient) {
 				name: "Test customer",
 				phone: "0400000000",
 				accountName: "Test account",
-				email: "customer@example.com",
+				email: args.email,
 				date: "2030-01-10",
-				time: "10:00",
-				sessionStartAt,
+				time: args.time ?? "10:00",
+				sessionStartAt: args.sessionStartAt,
 				duration: "1h",
 				service: "Remote Podcast",
 				addons: [],
 				status: "confirmed",
 				archived: false,
-				pendingPaymentCreatedAt: now
+				pendingPaymentCreatedAt: now,
+				driveClientId: args.driveClientId
 			})
 		)
 	);

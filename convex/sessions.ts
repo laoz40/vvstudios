@@ -10,8 +10,11 @@ import {
 	saveClientDrivePermissionsStatus as saveClientDrivePermissionsStatusRecord
 } from "#convex/lib/driveClientAccess";
 import {
+	ensureBookingDriveClientId as ensureBookingDriveClientIdRecord,
+	syncBookingDriveClientIdFromSession as syncBookingDriveClientIdFromSessionRecord
+} from "#convex/lib/driveBookingDriveClient";
+import {
 	allocatePackageSessionNumber as allocatePackageSessionNumberRecord,
-	syncBookingDriveClientIdFromSession as syncBookingDriveClientIdFromSessionRecord,
 	clearSavedDriveFolder as clearSavedDriveFolderRecord,
 	saveDriveClientAssetsFolder as saveDriveClientAssetsFolderRecord,
 	saveDriveChildFolder as saveDriveChildFolderRecord,
@@ -20,6 +23,7 @@ import {
 	saveDriveSessionFolder as saveDriveSessionFolderRecord,
 	saveDriveSetupResult as saveDriveSetupResultRecord
 } from "#convex/lib/driveFolders";
+import { allocateClientSessionNumber as allocateClientSessionNumberRecord } from "#convex/lib/driveSessionFolderNumber";
 import { getDriveSetup as loadDriveSetup } from "#convex/lib/driveLookup";
 import {
 	claimEditorAssignmentEmail as claimEditorAssignmentEmailRecord,
@@ -95,6 +99,20 @@ export const saveDrivePackageFolder = internalMutation({
 export const allocatePackageSessionNumber = internalMutation({
 	args: { bookingId: v.id("bookings") },
 	handler: (ctx, args) => allocatePackageSessionNumberRecord(ctx, args).match(tupleOk, tupleErr)
+});
+
+export const allocateClientSessionNumber = internalMutation({
+	args: { bookingId: v.id("bookings") },
+	handler: (ctx, args) => allocateClientSessionNumberRecord(ctx, args).match(tupleOk, tupleErr)
+});
+
+export const linkBookingDriveClient = internalMutation({
+	args: { bookingId: v.id("bookings"), driveClientId: v.id("driveClients") },
+	handler: (ctx, args) =>
+		ensureBookingDriveClientIdRecord(ctx, args.bookingId, args.driveClientId).match(
+			tupleOk,
+			tupleErr
+		)
 });
 
 export const saveDriveClientAssetsFolder = internalMutation({

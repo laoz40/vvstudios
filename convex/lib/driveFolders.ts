@@ -2,47 +2,10 @@ import { err, errAsync, ok, okAsync, type ResultAsync } from "neverthrow";
 import { exhaustiveCheck } from "#/lib/result";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { MutationCtx } from "#convex/_generated/server";
-import { loadPackageBookings } from "#convex/lib/driveLookup";
+import { ensureBookingDriveClientId } from "#convex/lib/driveBookingDriveClient";
+import { computePackageSessionFolderNumber } from "#convex/lib/driveSessionFolderNumber";
 import type { DriveChildFolderName, SavedDriveFolder } from "#convex/lib/googleDrive";
 import { okOrThrow } from "#convex/lib/result";
-
-export type SyncBookingDriveClientIdFromSessionError = {
-	reason: "BOOKING_NOT_FOUND" | "DRIVE_RECORD_NOT_FOUND";
-};
-
-export function ensureBookingDriveClientId(
-	ctx: MutationCtx,
-	bookingId: Id<"bookings">,
-	driveClientId: Id<"driveClients">
-): ResultAsync<null, SyncBookingDriveClientIdFromSessionError> {
-	return okOrThrow(ctx.db.get(bookingId)).andThen((booking) => {
-		if (booking === null) return err({ reason: "BOOKING_NOT_FOUND" as const });
-
-		if (booking.driveClientId === driveClientId) return ok(null);
-
-		return okOrThrow(ctx.db.patch(booking._id, { driveClientId }).then(() => null));
-	});
-}
-
-export function syncBookingDriveClientIdFromSession(
-	ctx: MutationCtx,
-	bookingId: Id<"bookings">
-): ResultAsync<null, SyncBookingDriveClientIdFromSessionError> {
-	return okOrThrow(ctx.db.get(bookingId)).andThen((booking) => {
-		if (booking === null) return err({ reason: "BOOKING_NOT_FOUND" as const });
-
-		return okOrThrow(
-			ctx.db
-				.query("driveSessions")
-				.withIndex("by_bookingId", (query) => query.eq("bookingId", bookingId))
-				.unique()
-		).andThen((driveSession) => {
-			if (driveSession === null) return err({ reason: "DRIVE_RECORD_NOT_FOUND" as const });
-
-			return ensureBookingDriveClientId(ctx, bookingId, driveSession.driveClientId);
-		});
-	});
-}
 
 // The row starts without a folder; Drive setup creates and saves the client folder later.
 export function getOrCreateDriveClientId(
@@ -308,27 +271,10 @@ function loadNextPackageSessionNumber(
 	ctx: MutationCtx,
 	packageBooking: PackageBooking
 ): ResultAsync<number, PackageSessionNumberError> {
-	return okOrThrow(loadPackageSessionsSortedByDate(ctx, packageBooking.packageId)).andThen(
-		(scheduledSessions) => {
-			const sessionIndex = scheduledSessions.findIndex(
-				(item) => item._id === packageBooking.booking._id
-			);
-
-			if (sessionIndex === -1) {
-				return errAsync({ reason: "BOOKING_NOT_FOUND" as const });
-			}
-
-			return okOrThrow(loadSavedPackageSessionNumbers(ctx, packageBooking.packageId)).map(
-				(savedNumbers) => {
-					// Start at the session's date-order position and step past numbers already in use.
-					let number = sessionIndex + 1;
-
-					while (savedNumbers.has(number)) number += 1;
-
-					return number;
-				}
-			);
-		}
+	return okOrThrow(
+		computePackageSessionFolderNumber(ctx, packageBooking.booking, packageBooking.packageId)
+	).andThen((number) =>
+		number === undefined ? errAsync({ reason: "BOOKING_NOT_FOUND" as const }) : okAsync(number)
 	);
 }
 
@@ -362,33 +308,6 @@ function savePackageSessionNumber(
 			})
 			.then(() => allocation.number)
 	);
-}
-
-// Numbers of sessions with a saved number stay reserved even when cancelled, because their
-// folders already exist in Drive.
-async function loadSavedPackageSessionNumbers(ctx: MutationCtx, packageId: Id<"packages">) {
-	const savedNumbers = new Set<number>();
-	const packageBookings = await loadPackageBookings(ctx, packageId);
-	await Promise.all(
-		packageBookings.map(async (packageBooking) => {
-			const driveSession = await ctx.db
-				.query("driveSessions")
-				.withIndex("by_bookingId", (query) => query.eq("bookingId", packageBooking._id))
-				.unique();
-
-			if (driveSession?.packageSessionNumber !== undefined) {
-				savedNumbers.add(driveSession.packageSessionNumber);
-			}
-		})
-	);
-
-	return savedNumbers;
-}
-
-async function loadPackageSessionsSortedByDate(ctx: MutationCtx, packageId: Id<"packages">) {
-	return (await loadPackageBookings(ctx, packageId))
-		.filter((packageBooking) => packageBooking.status !== "cancelled")
-		.toSorted((a, b) => a.sessionStartAt - b.sessionStartAt);
 }
 
 export type ClearSavedDriveFolderArgs =
