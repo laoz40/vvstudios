@@ -4,6 +4,7 @@ import { Badge } from "#/components/ui/badge";
 import { Button } from "#/components/ui/button";
 import { TableCell, TableRow } from "#/components/ui/table";
 import { toast } from "sonner";
+import { exhaustiveCheck } from "#/lib/result";
 import { cn } from "#/lib/utils";
 import { SessionActions } from "#studio/features/admin/components/SessionActions";
 import { StatusIcon } from "#studio/features/admin/components/StatusIcon";
@@ -151,17 +152,45 @@ function SessionContactCell({
 	);
 }
 
-type SessionNotesView = "client" | "editor";
+type SessionNotesView = "client" | "editor" | "admin";
 
-function getDefaultSessionNotesView(
-	isPastSession: boolean,
-	hasEditorNotes: boolean
-): SessionNotesView {
-	if (isPastSession && hasEditorNotes) {
+const sessionNotesViewLabelMap: Record<SessionNotesView, string> = {
+	client: "Client",
+	editor: "Editor",
+	admin: "Admin"
+};
+
+function getDefaultSessionNotesView(isPastSession: boolean): SessionNotesView {
+	if (isPastSession) {
 		return "editor";
 	}
 
 	return "client";
+}
+
+function getSessionNotesForView(session: SessionRecord, notesView: SessionNotesView) {
+	if (notesView === "client") {
+		return session.notes?.trim();
+	}
+
+	if (notesView === "editor") {
+		return session.editorNotes?.trim();
+	}
+
+	return session.adminNotes?.trim();
+}
+
+function getNextSessionNotesView(notesView: SessionNotesView): SessionNotesView {
+	switch (notesView) {
+		case "client":
+			return "editor";
+		case "editor":
+			return "admin";
+		case "admin":
+			return "client";
+		default:
+			return exhaustiveCheck(notesView);
+	}
 }
 
 function SessionNotesCell({
@@ -171,35 +200,23 @@ function SessionNotesCell({
 	session: SessionRecord;
 	isPastSession: boolean;
 }) {
-	const hasEditorNotes = Boolean(session.editorNotes?.trim());
-	const canToggleNotes = isPastSession && hasEditorNotes;
-
 	const [notesView, setNotesView] = useState<SessionNotesView>(() =>
-		getDefaultSessionNotesView(isPastSession, hasEditorNotes)
+		getDefaultSessionNotesView(isPastSession)
 	);
 
-	// Past sessions with editor notes default to editor; otherwise keep client notes visible.
+	// Upcoming sessions default to client notes; past sessions default to editor notes.
 	useEffect(() => {
-		setNotesView(getDefaultSessionNotesView(isPastSession, hasEditorNotes));
-	}, [isPastSession, hasEditorNotes]);
+		setNotesView(getDefaultSessionNotesView(isPastSession));
+	}, [isPastSession]);
 
-	const visibleNotes = notesView === "client" ? session.notes?.trim() : session.editorNotes?.trim();
-	const notesLabel = notesView === "client" ? "Client" : "Editor";
+	const notesLabel = sessionNotesViewLabelMap[notesView];
+	const visibleNotes = getSessionNotesForView(session, notesView);
 	const notesText = visibleNotes || "-";
 
-	if (!canToggleNotes) {
-		return (
-			<p className="text-sm whitespace-normal text-muted-foreground">
-				{visibleNotes ? <span className="font-medium text-foreground">{notesLabel}: </span> : null}
-				{notesText}
-			</p>
-		);
-	}
-
 	function toggleNotesView() {
-		const nextNotesView = notesView === "client" ? "editor" : "client";
+		const nextNotesView = getNextSessionNotesView(notesView);
 		setNotesView(nextNotesView);
-		toast.info(`${nextNotesView === "client" ? "Client" : "Editor"} notes displayed.`);
+		toast.info(`${sessionNotesViewLabelMap[nextNotesView]} notes displayed.`);
 	}
 
 	return (
@@ -207,7 +224,7 @@ function SessionNotesCell({
 			type="button"
 			className="w-full text-left text-sm whitespace-normal text-muted-foreground"
 			onClick={toggleNotesView}>
-			{visibleNotes ? <span className="font-medium text-foreground">{notesLabel}: </span> : null}
+			<span className="font-medium text-foreground">{notesLabel}: </span>
 			{notesText}
 		</button>
 	);
