@@ -35,6 +35,10 @@ import {
 	formatAdminSearchNarrowQuery
 } from "#studio/features/admin/lib/admin-search-narrow";
 import { adminTablePageSize } from "#studio/features/admin/lib/admin-list-pagination";
+import {
+	sortAdminSearchPackages,
+	sortAdminSearchSessions
+} from "#studio/features/admin/lib/admin-search-client-sort";
 import { useAdminTableSearchPagination } from "#studio/features/admin/lib/use-admin-table-search-pagination";
 import { AdminSearchRefineBanner } from "#studio/features/admin/components/AdminSearchRefineBanner";
 import { useDebouncedValue } from "#/lib/use-debounced-value";
@@ -150,13 +154,17 @@ function BookingsDashboardView({
 	const isLoadingFirstPage = sessions.status === "LoadingFirstPage";
 	const sessionResults = isLoadingFirstPage ? [] : sessions.results;
 
+	const displayedSessionResults = hasActiveSessionSearch
+		? sortAdminSearchSessions(sessionResults, sessionSorting)
+		: sessionResults;
+
 	const sessionSearchPagination = useAdminTableSearchPagination({
 		hasActiveSearch: hasActiveSessionSearch,
 		isLoadingFirstPage,
 		isLoadingMore: sessions.status === "LoadingMore",
 		loadMore: (pageSize) => sessions.loadMore(pageSize),
 		pageSize: sessionPageSize,
-		resultCount: sessionResults.length,
+		resultCount: displayedSessionResults.length,
 		searchKey: trimmedSessionSearchQuery,
 		status: sessions.status
 	});
@@ -164,7 +172,7 @@ function BookingsDashboardView({
 	return (
 		<>
 			<SessionsTable
-				sessions={sessionResults}
+				sessions={displayedSessionResults}
 				canLoadMoreSessions={
 					sessionSearchPagination.useScrollSentinelPagination && sessions.status === "CanLoadMore"
 				}
@@ -244,13 +252,17 @@ function PackagesDashboardView({
 
 	const packagesForTable = useDisplayedWhileRefetching(packages.results, isLoadingFirstPackagePage);
 
+	const displayedPackagesForTable = hasActivePackageSearch
+		? sortAdminSearchPackages(packagesForTable, packageSorting)
+		: packagesForTable;
+
 	const packageSearchPagination = useAdminTableSearchPagination({
 		hasActiveSearch: hasActivePackageSearch,
 		isLoadingFirstPage: isLoadingFirstPackagePage,
 		isLoadingMore: packages.status === "LoadingMore",
 		loadMore: (pageSize) => packages.loadMore(pageSize),
 		pageSize: packagePageSize,
-		resultCount: packagesForTable.length,
+		resultCount: displayedPackagesForTable.length,
 		searchKey: trimmedPackageSearchQuery,
 		status: packages.status
 	});
@@ -258,7 +270,7 @@ function PackagesDashboardView({
 	return (
 		<>
 			<PackagesTable
-				packages={packagesForTable}
+				packages={displayedPackagesForTable}
 				canLoadMorePackages={
 					packageSearchPagination.useScrollSentinelPagination && packages.status === "CanLoadMore"
 				}

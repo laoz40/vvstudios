@@ -19,8 +19,7 @@ import {
 	type AdminSearchListPage
 } from "#convex/lib/adminSearchPagination";
 import { normalizeAbn, normalizePhone } from "#convex/lib/contactNormalization";
-import { getTimeZoneDayRange } from "#convex/lib/reminderScheduleTime";
-import { parseCalendarDate } from "#studio/lib/calendarDate";
+import { parseAdminSearchDateValue } from "#convex/lib/adminSearchDateParse";
 
 type AdminSessionPaginationOpts = { numItems: number; cursor: string | null };
 
@@ -131,26 +130,17 @@ async function paginateSessionsByAbn(
 	});
 }
 
-function getSessionDayRange(dateValue: string) {
-	const parsedDate = parseCalendarDate(dateValue);
-
-	if (parsedDate === null) {
-		return null;
-	}
-
-	const anchorDate = new Date(Date.UTC(parsedDate.year, parsedDate.month - 1, parsedDate.day));
-
-	return getTimeZoneDayRange(anchorDate, env.GOOGLE_CALENDAR_TIMEZONE, 0);
-}
-
 async function paginateSessionsByDate(
 	ctx: QueryCtx,
 	args: AdminSessionSearchArgs,
 	dateValue: string
 ): Promise<AdminSessionSearchPage> {
-	const dayRange = getSessionDayRange(dateValue);
+	const sessionStartRange = parseAdminSearchDateValue(dateValue, {
+		now: new Date(),
+		timeZone: env.GOOGLE_CALENDAR_TIMEZONE
+	});
 
-	if (dayRange === null) {
+	if (sessionStartRange === null) {
 		return emptyAdminSearchListPage();
 	}
 
@@ -163,8 +153,8 @@ async function paginateSessionsByDate(
 					.withIndex("by_archived_and_sessionStartAt", (indexQuery) =>
 						indexQuery
 							.eq("archived", false)
-							.gte("sessionStartAt", dayRange.dayStart)
-							.lt("sessionStartAt", dayRange.dayEnd)
+							.gte("sessionStartAt", sessionStartRange.rangeStart)
+							.lt("sessionStartAt", sessionStartRange.rangeEnd)
 					)
 					.order(args.sortDirection)
 					.paginate({ cursor, numItems }),
@@ -178,7 +168,9 @@ async function paginateSessionsByDate(
 			ctx.db
 				.query("bookings")
 				.withIndex("by_sessionStartAt", (indexQuery) =>
-					indexQuery.gte("sessionStartAt", dayRange.dayStart).lt("sessionStartAt", dayRange.dayEnd)
+					indexQuery
+						.gte("sessionStartAt", sessionStartRange.rangeStart)
+						.lt("sessionStartAt", sessionStartRange.rangeEnd)
 				)
 				.order(args.sortDirection)
 				.paginate({ cursor, numItems }),

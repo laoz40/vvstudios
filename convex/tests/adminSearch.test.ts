@@ -6,6 +6,9 @@
  *
  * 2. unprefixed blob refineSearch
  *    Sets refineSearch when the search index has another page after the first batch.
+ *
+ * 3. date prefix on sessions
+ *    Finds bookings by session day using AU day/month syntax.
  */
 import { describe, expect, test } from "vitest";
 import { api } from "#convex/_generated/api";
@@ -37,6 +40,29 @@ describe("admin list search", () => {
 				paginationOpts: adminSearchPaginationOpts,
 				view: "inbox",
 				searchQuery: "phone:+61 412 345 678"
+			});
+
+		expect(result.page.map((session) => session._id)).toEqual([targetId]);
+	});
+
+	test("date prefix on sessions", async () => {
+		const t = createConvexTest();
+
+		const targetId = await seedBooking(t, {
+			name: "Date target",
+			email: "date-target@example.com",
+			date: "2099-06-15",
+			sessionStartAt: 4_085_132_400_000
+		});
+
+		await seedBooking(t, { name: "Other day", email: "other-date@example.com" });
+
+		const result = await t
+			.withIdentity(adminIdentity)
+			.query(api.sessions.listSessions, {
+				paginationOpts: adminSearchPaginationOpts,
+				view: "inbox",
+				searchQuery: "date:15/6/2099"
 			});
 
 		expect(result.page.map((session) => session._id)).toEqual([targetId]);
@@ -112,7 +138,14 @@ describe("admin list search", () => {
 
 async function seedBooking(
 	t: ReturnType<typeof createConvexTest>,
-	args: { name: string; email: string; phone?: string; searchToken?: string }
+	args: {
+		name: string;
+		email: string;
+		date?: string;
+		phone?: string;
+		searchToken?: string;
+		sessionStartAt?: number;
+	}
 ): Promise<Id<"bookings">> {
 	return await t.run(async (ctx) => {
 		const bookingFields = {
@@ -120,9 +153,9 @@ async function seedBooking(
 			phone: normalizePhone(args.phone ?? "0400000000"),
 			accountName: "Test account",
 			email: args.email,
-			date: "2099-01-01",
+			date: args.date ?? "2099-01-01",
 			time: "10:00",
-			sessionStartAt: 4_071_268_800_000,
+			sessionStartAt: args.sessionStartAt ?? 4_071_268_800_000,
 			duration: "1 hour",
 			service: "Remote Podcast",
 			addons: [],
