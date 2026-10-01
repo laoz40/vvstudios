@@ -10,6 +10,7 @@ import {
 } from "#convex/lib/googleCalendarErrors";
 import { fromConvexTuple, okOrThrow, tryPromise } from "#convex/lib/result";
 import type { SaveAdminSessionUpdateArgs } from "#convex/services/sessionScheduling";
+import { pickBookingAddonQuantities } from "#studio/features/booking-form/lib/booking-form-model";
 import {
 	buildSessionCalendarEventPayload,
 	removeOrphanedSessionCalendarEvent,
@@ -45,7 +46,8 @@ function getAdminSessionEventDetails(args: AdminSessionUpdateArgs) {
 		duration: args.duration,
 		email: args.email,
 		name: args.name,
-		service: args.service
+		service: args.service,
+		...pickBookingAddonQuantities(args)
 	};
 }
 

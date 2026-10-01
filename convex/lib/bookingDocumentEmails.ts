@@ -9,6 +9,7 @@ import { renderBookingReceiptPdfInNode } from "#convex/lib/bookingInvoicePdfRend
 import { formatTimestampDateShort, sendEmail } from "#convex/lib/emailSend";
 import { sendPackageHostDetailsEmail, sendSessionHostDetailsEmail } from "#convex/lib/email";
 import { formatSessionDateShort } from "#convex/lib/sessionCalendarTime";
+import { pickBookingAddonQuantities } from "#studio/features/booking-form/lib/booking-form-model";
 
 interface SessionHostRescheduleDetails {
 	originalDate: string;
@@ -87,7 +88,8 @@ export function sendBookingReceiptEmailsForBooking(
 				duration: parsedBooking.duration,
 				addons: parsedBooking.addons,
 				notes: parsedBooking.notes,
-				reschedule: options.reschedule
+				reschedule: options.reschedule,
+				...pickBookingAddonQuantities(parsedBooking)
 			})
 				.orElse((error) => {
 					console.error("Booking receipt host email send failed", {

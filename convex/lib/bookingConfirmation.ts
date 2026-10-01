@@ -7,6 +7,7 @@ import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { ActionCtx } from "#convex/_generated/server";
 import { sendBookingReceiptEmailsForBooking } from "#convex/lib/bookingDocumentEmails";
 import { sendSessionReminderEmail } from "#convex/lib/email";
+import { pickBookingAddonQuantities } from "#studio/features/booking-form/lib/booking-form-model";
 import { getGoogleCalendarClient } from "#convex/lib/googleCalendarClient";
 import { removeOrphanedSessionCalendarEvent } from "#convex/lib/sessionCalendarEvents";
 import {
@@ -44,7 +45,8 @@ export function sendBookingReminderEmailForSession(ctx: ActionCtx, session: Doc<
 					duration: session.duration,
 					addons: session.addons,
 					rescheduleUrl,
-					isPackageSession: session.packageId !== undefined
+					isPackageSession: session.packageId !== undefined,
+					...pickBookingAddonQuantities(session)
 				})
 			)
 	);
