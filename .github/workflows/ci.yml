@@ -107,32 +107,6 @@ jobs:
           CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_E2E_DEPLOY_KEY }}
         run: bunx convex dev --once
 
-      - name: Strip deprecated phoneNormalized on e2e
-        env:
-          CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_E2E_DEPLOY_KEY }}
-        run: |
-          strip_until_done() {
-            local fn="$1"
-            local cursor=null
-            for _ in $(seq 1 200); do
-              result=$(bunx convex run "$fn" "{\"cursor\":$cursor,\"batchSize\":50}")
-              echo "$result"
-              is_done=$(echo "$result" | jq -r '.isDone')
-              if [ "$is_done" = "true" ]; then
-                return 0
-              fi
-              next=$(echo "$result" | jq -r '.continueCursor')
-              if [ "$next" = "null" ]; then
-                return 0
-              fi
-              cursor="\"$next\""
-            done
-            echo "Strip $fn did not finish"
-            exit 1
-          }
-          strip_until_done stripPhoneNormalized:stripPackagePhoneNormalized
-          strip_until_done stripPhoneNormalized:stripBookingPhoneNormalized
-
       - name: Run E2E
         env:
           VITE_CONVEX_URL: ${{ vars.E2E_CONVEX_URL }}

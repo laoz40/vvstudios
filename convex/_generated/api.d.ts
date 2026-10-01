@@ -93,7 +93,6 @@ import type * as lib_sessionRescheduleLinks from "../lib/sessionRescheduleLinks.
 import type * as lib_sessionRescheduleWorkflow from "../lib/sessionRescheduleWorkflow.js";
 import type * as lib_sessionReservations from "../lib/sessionReservations.js";
 import type * as lib_sessionSavePatch from "../lib/sessionSavePatch.js";
-import type * as lib_stripPhoneNormalized from "../lib/stripPhoneNormalized.js";
 import type * as lib_stripeAdjustmentInvoice from "../lib/stripeAdjustmentInvoice.js";
 import type * as lib_stripeCheckoutLineItems from "../lib/stripeCheckoutLineItems.js";
 import type * as lib_stripeCheckoutSession from "../lib/stripeCheckoutSession.js";
@@ -153,7 +152,6 @@ import type * as sessionReminders from "../sessionReminders.js";
 import type * as sessionReschedule from "../sessionReschedule.js";
 import type * as sessionScheduling from "../sessionScheduling.js";
 import type * as sessions from "../sessions.js";
-import type * as stripPhoneNormalized from "../stripPhoneNormalized.js";
 import type * as stripe from "../stripe.js";
 import type * as stripeInvoices from "../stripeInvoices.js";
 import type * as stripeInvoicing from "../stripeInvoicing.js";
@@ -251,7 +249,6 @@ declare const fullApi: ApiFromModules<{
   "lib/sessionRescheduleWorkflow": typeof lib_sessionRescheduleWorkflow;
   "lib/sessionReservations": typeof lib_sessionReservations;
   "lib/sessionSavePatch": typeof lib_sessionSavePatch;
-  "lib/stripPhoneNormalized": typeof lib_stripPhoneNormalized;
   "lib/stripeAdjustmentInvoice": typeof lib_stripeAdjustmentInvoice;
   "lib/stripeCheckoutLineItems": typeof lib_stripeCheckoutLineItems;
   "lib/stripeCheckoutSession": typeof lib_stripeCheckoutSession;
@@ -311,7 +308,6 @@ declare const fullApi: ApiFromModules<{
   sessionReschedule: typeof sessionReschedule;
   sessionScheduling: typeof sessionScheduling;
   sessions: typeof sessions;
-  stripPhoneNormalized: typeof stripPhoneNormalized;
   stripe: typeof stripe;
   stripeInvoices: typeof stripeInvoices;
   stripeInvoicing: typeof stripeInvoicing;
