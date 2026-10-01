@@ -2,7 +2,7 @@
  * Drive setup DB guards before Google Drive is called.
  *
  * 1. Client lookup
- *    Reuses clients by normalized email and rejects backfill without a drive session row.
+ *    Reuses clients by normalized email and rejects sync without a drive session row.
  *
  * 2. Session folder idempotency
  *    Repeated session folder saves keep the first folder id on the driveSessions row.
@@ -45,7 +45,7 @@ describe("drive setup guards", () => {
 		});
 	});
 
-	test("rejects backfill when the booking or drive session is missing", async () => {
+	test("rejects sync when the booking or drive session is missing", async () => {
 		const t = createConvexTest();
 		const bookingId = await seedBooking(t);
 
@@ -75,13 +75,13 @@ describe("drive setup guards", () => {
 		});
 
 		expect(
-			await t.mutation(internal.sessions.backfillBookingDriveClientId, {
+			await t.mutation(internal.sessions.syncBookingDriveClientIdFromSession, {
 				bookingId: deletedBookingId
 			})
 		).toEqual([{ reason: "BOOKING_NOT_FOUND" }, null]);
-		expect(await t.mutation(internal.sessions.backfillBookingDriveClientId, { bookingId })).toEqual(
-			[{ reason: "DRIVE_RECORD_NOT_FOUND" }, null]
-		);
+		expect(
+			await t.mutation(internal.sessions.syncBookingDriveClientIdFromSession, { bookingId })
+		).toEqual([{ reason: "DRIVE_RECORD_NOT_FOUND" }, null]);
 	});
 
 	test("keeps the first saved session folder on repeated saves", async () => {
