@@ -1,11 +1,13 @@
 import { ConvexError } from "convex/values";
-import { err, errAsync, ok } from "neverthrow";
-import { internal } from "#convex/_generated/api";
+import { err, errAsync, ok, type ResultAsync } from "neverthrow";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
 import { setBookingArchived } from "#convex/lib/archiveState";
 import { getEditorByToken, requirePermission } from "#convex/lib/auth";
-import { shouldNotifyHostOfDeliverablesReview } from "#convex/lib/deliverablesReviewNotification";
+import {
+	scheduleDeliverablesReviewHostEmail,
+	shouldNotifyHostOfDeliverablesReview
+} from "#convex/lib/deliverablesReviewNotification";
 import {
 	buildActiveEditorProjection,
 	listActiveEditorProfiles,
@@ -77,6 +79,14 @@ type UpdateSessionEditStatusArgs = {
 	bookingId: Id<"bookings">;
 	editStatus: "to_edit" | "editing" | "review" | "completed";
 };
+
+type UpdateSessionEditStatusError =
+	| { reason: "NOT_AUTHENTICATED" }
+	| { reason: "NOT_AUTHORIZED" }
+	| { reason: "BOOKING_NOT_FOUND" }
+	| { reason: "SESSION_NOT_ASSIGNED_TO_EDITOR" }
+	| { reason: "SESSION_NOT_CONFIRMED" }
+	| { reason: "SESSION_NOT_IN_PAST" };
 
 type UpdateSessionNotesArgs = { bookingId: Id<"bookings">; editorNotes: string };
 
@@ -336,7 +346,7 @@ export function updateSessionNotesService(ctx: MutationCtx, args: UpdateSessionN
 export function updateSessionEditStatusService(
 	ctx: MutationCtx,
 	args: UpdateSessionEditStatusArgs
-) {
+): ResultAsync<null, UpdateSessionEditStatusError> {
 	return requirePermission(ctx, "update:deliverables")
 		.andThen((identity) =>
 			getSessionFromDb(ctx, args.bookingId).map((session) => ({ identity, session }))
@@ -358,24 +368,14 @@ export function updateSessionEditStatusService(
 				return getEditorByToken(ctx, identity.tokenIdentifier)
 					.andThen((editor) => {
 						const editorName = editor?.displayName ?? identity.name ?? "An editor";
-						const emailArgs = {
+
+						return scheduleDeliverablesReviewHostEmail(ctx, {
 							bookingId: args.bookingId,
 							clientName: session.name,
 							editorName,
 							sessionDate: session.date,
 							idempotencyKey: `deliverables-review:${args.bookingId}:${Date.now()}`
-						};
-
-						// Resend runs in an action; enqueue after the status patch commits.
-						return okOrThrow(
-							ctx.scheduler
-								.runAfter(
-									0,
-									internal.deliverablesReviewEmail.sendDeliverablesReviewReadyEmail,
-									emailArgs
-								)
-								.then(() => null)
-						);
+						});
 					})
 					.andThen(() => archiveSessionWhenFullyDone(ctx, args.bookingId));
 			});

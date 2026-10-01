@@ -27,6 +27,7 @@ const updateSessionEditStatus = makeFunctionReference<
 >("sessions:updateSessionEditStatus");
 
 const now = Date.parse("2030-01-10T00:00:00.000Z");
+
 const pastSessionStartAt = Date.parse("2029-12-01T10:00:00.000Z");
 
 beforeEach(() => {
