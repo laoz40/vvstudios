@@ -74,22 +74,24 @@ function SessionEditorNameCell({
 	showDriveAlert: boolean;
 }) {
 	return (
-		<p className="flex w-full min-w-0 items-center gap-1 text-xs">
-			{showDriveAlert ? (
-				<span className="shrink-0">
-					<DriveWorkflowAttentionIcon />
+		<p className="flex w-full min-w-0 justify-center text-xs">
+			<span className="flex max-w-full min-w-0 items-center gap-1">
+				{showDriveAlert ? (
+					<span className="shrink-0">
+						<DriveWorkflowAttentionIcon />
+					</span>
+				) : null}
+				<span className="min-w-0 truncate">
+					<PrivacySensitiveText
+						rowId={rowId}
+						value={editorName}
+						label="editor name"
+						className="!text-xs !underline-offset-2"
+						searchPrefix="editor"
+						onSearch={onSearch}>
+						{editorName}
+					</PrivacySensitiveText>
 				</span>
-			) : null}
-			<span className="min-w-0 flex-1 truncate">
-				<PrivacySensitiveText
-					rowId={rowId}
-					value={editorName}
-					label="editor name"
-					className="!text-xs !underline-offset-2"
-					searchPrefix="editor"
-					onSearch={onSearch}>
-					{editorName}
-				</PrivacySensitiveText>
 			</span>
 		</p>
 	);
