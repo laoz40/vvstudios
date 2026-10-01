@@ -92,9 +92,9 @@ async function paginateSessionsByPhone(
 	args: AdminSessionSearchArgs,
 	phoneQuery: string
 ): Promise<AdminSessionSearchPage> {
-	const phoneNormalized = normalizePhone(phoneQuery);
+	const canonicalPhone = normalizePhone(phoneQuery);
 
-	if (phoneNormalized.length === 0) {
+	if (canonicalPhone.length === 0) {
 		return emptyAdminSearchListPage();
 	}
 
@@ -103,7 +103,7 @@ async function paginateSessionsByPhone(
 		fetchPage: (cursor, numItems) =>
 			ctx.db
 				.query("bookings")
-				.withIndex("by_phone", (indexQuery) => indexQuery.eq("phone", phoneNormalized))
+				.withIndex("by_phone", (indexQuery) => indexQuery.eq("phone", canonicalPhone))
 				.paginate({ cursor, numItems }),
 		includeRow: includeSessionRow(args)
 	});
