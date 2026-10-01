@@ -11,6 +11,7 @@ import {
 	sendBookingRescheduledEmailsForBooking
 } from "#convex/lib/sessionHostEmails";
 import { getBusyWindows, getBusyWindowsInRange } from "#convex/lib/googleCalendarAvailability";
+import { cleanupCancelledSessionDriveService } from "#convex/services/driveSessionCancelCleanup";
 import {
 	getGoogleCalendarClient,
 	loadGoogleCalendarClient
@@ -422,7 +423,10 @@ export function cancelBookingFromAdminService(
 			.andThen(() =>
 				fromConvexTuple(
 					ctx.runMutation(internal.sessions.markSessionCalendarEventDeleted, { bookingId })
-				).map(() => ({ cancelled: true }))
+				)
+			)
+			.andThen(() =>
+				cleanupCancelledSessionDriveService(ctx, { bookingId }).map(() => ({ cancelled: true }))
 			)
 	);
 }

@@ -134,6 +134,7 @@ export function buildEditorSessionProjection(
 		deliverables: { id: string; url: string };
 		rawMedia: { id: string; url: string };
 		session: { id: string; url: string };
+		sessionFolderName: string;
 	} | null
 ) {
 	return {

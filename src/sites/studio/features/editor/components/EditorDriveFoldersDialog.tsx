@@ -10,7 +10,6 @@ import {
 } from "#/components/ui/dialog";
 import type { EditorSession } from "#studio/features/editor/lib/editor-sessions";
 import {
-	formatDriveSessionFolderName,
 	formatDriveSessionMediaFolderName,
 	getBookingStartTimestamp
 } from "#studio/lib/bookingdatetime";
@@ -85,7 +84,7 @@ export function EditorDriveFoldersDialog({
 							url={folders.assets.url}
 						/>
 						<DriveFolderLink
-							label={formatDriveSessionFolderName(sessionStartAt)}
+							label={folders.sessionFolderName}
 							description={null}
 							url={folders.session.url}
 						/>

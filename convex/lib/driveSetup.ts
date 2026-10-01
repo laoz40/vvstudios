@@ -14,7 +14,6 @@ import {
 	getClientFolderName,
 	getPackageFolderName,
 	getPackageSessionFolderName,
-	getSessionFolderName,
 	getSessionMediaFolderName,
 	loadDriveClient,
 	normalizeDriveEmail,
@@ -61,6 +60,7 @@ export type DriveSetupInfo = {
 	driveSession: {
 		_id: Id<"driveSessions">;
 		packageSessionNumber?: number;
+		clientSessionNumber?: number;
 		packageFolder?: SavedFolder;
 		sessionFolder?: SavedFolder;
 		rawMediaFolder?: SavedFolder;
@@ -78,6 +78,7 @@ export type SetupError =
 				| "DRIVE_RECORD_NOT_FOUND"
 				| "BOOKING_NOT_FOUND"
 				| "BOOKING_NOT_PACKAGE"
+				| "BOOKING_IS_PACKAGE"
 				| "BOOKING_NOT_ELIGIBLE"
 				| "BOOKING_TIMING_CHANGED"
 				| "DRIVE_FOLDERS_ALREADY_CREATED"
@@ -114,6 +115,7 @@ const recordDriveSetupFailureByReason = {
 	GOOGLE_DRIVE_FOLDER_RESPONSE_INVALID: true,
 	GOOGLE_DRIVE_FOLDER_LOOKUP_FAILED: true,
 	GOOGLE_DRIVE_FOLDER_MISSING: true,
+	GOOGLE_DRIVE_FOLDER_DELETE_FAILED: false,
 	GOOGLE_DRIVE_FOLDER_RENAME_FAILED: true,
 	GOOGLE_DRIVE_PERMISSION_CREATE_FAILED: false,
 	GOOGLE_DRIVE_PERMISSION_DELETE_FAILED: false,
@@ -126,6 +128,7 @@ const recordDriveSetupFailureByReason = {
 	NOT_AUTHORIZED: false,
 	BOOKING_NOT_FOUND: false,
 	BOOKING_NOT_PACKAGE: true,
+	BOOKING_IS_PACKAGE: true,
 	BOOKING_NOT_ELIGIBLE: false,
 	BOOKING_TIMING_CHANGED: false,
 	DRIVE_FOLDERS_ALREADY_CREATED: false,
@@ -340,7 +343,7 @@ function getOrCreateSessionFolder(
 		drive: DriveClient;
 		driveClientId: Id<"driveClients">;
 		sessionParentId: string;
-		packageSessionNumber: number | null;
+		sessionFolderNumber: number;
 		replaceMissingFolders: boolean;
 	}
 ): ResultAsync<SessionFolderSetup, SetupError> {
@@ -350,7 +353,7 @@ function getOrCreateSessionFolder(
 		return verifyAndRenameDriveFolder(
 			input.drive,
 			savedFolder.id,
-			getSessionFolderDisplayName(setupInfo.booking.sessionStartAt, input.packageSessionNumber)
+			getSessionFolderDisplayName(setupInfo.booking.sessionStartAt, input.sessionFolderNumber)
 		)
 			.map((folder) => ({ drive: input.drive, sessionFolderId: folder.id }))
 			.orElse((error) => {
@@ -369,7 +372,7 @@ function getOrCreateSessionFolder(
 	}
 
 	return createFolderOrFindCreatedFolder(input.drive, {
-		name: getSessionFolderDisplayName(setupInfo.booking.sessionStartAt, input.packageSessionNumber),
+		name: getSessionFolderDisplayName(setupInfo.booking.sessionStartAt, input.sessionFolderNumber),
 		parentId: input.sessionParentId,
 		marker: buildFolderMarker(setupInfo.booking._id, "session")
 	}).andThen((folder) =>
@@ -383,10 +386,8 @@ function getOrCreateSessionFolder(
 	);
 }
 
-function getSessionFolderDisplayName(sessionStartAt: number, packageSessionNumber: number | null) {
-	return packageSessionNumber === null
-		? getSessionFolderName(sessionStartAt)
-		: getPackageSessionFolderName(packageSessionNumber, sessionStartAt);
+function getSessionFolderDisplayName(sessionStartAt: number, sessionFolderNumber: number) {
+	return getPackageSessionFolderName(sessionFolderNumber, sessionStartAt);
 }
 
 function savedChildFolder(setupInfo: DriveSetupInfo, name: DriveChildFolderName) {
@@ -475,14 +476,20 @@ function getOrCreateChildFolders(
 
 // Package sessions must have their permanent number saved before any Drive call so retries
 // keep it stable and concurrent setups of one package cannot allocate the same number.
-function allocatePackageSessionNumberIfNeeded(
+function allocateSessionFolderNumberIfNeeded(
 	ctx: ActionCtx,
 	setupInfo: DriveSetupInfo
-): ResultAsync<number | null, SetupError> {
-	if (setupInfo.packageRecord === null) return okAsync(null);
+): ResultAsync<number, SetupError> {
+	if (setupInfo.packageRecord !== null) {
+		return fromConvexTuple(
+			ctx.runMutation(internal.sessions.allocatePackageSessionNumber, {
+				bookingId: setupInfo.booking._id
+			})
+		);
+	}
 
 	return fromConvexTuple(
-		ctx.runMutation(internal.sessions.allocatePackageSessionNumber, {
+		ctx.runMutation(internal.sessions.allocateClientSessionNumber, {
 			bookingId: setupInfo.booking._id
 		})
 	);
@@ -569,28 +576,43 @@ export function createDriveFolders(
 	setupInfo: DriveSetupInfo,
 	replaceMissingFolders = false
 ): ResultAsync<null, SetupError> {
-	return allocatePackageSessionNumberIfNeeded(ctx, setupInfo)
-		.andThen((packageSessionNumber) =>
-			loadDriveClient()
-				.andThen((drive) => getOrCreateClientFolder(ctx, setupInfo, drive, replaceMissingFolders))
-				.andThen((client) =>
-					getOrCreateClientAssetsFolder(ctx, setupInfo, client, replaceMissingFolders)
-				)
-				.andThen((client) =>
-					getOrCreateSessionParentFolder(ctx, setupInfo, client, replaceMissingFolders)
-				)
-				.andThen((parent) =>
-					getOrCreateSessionFolder(ctx, setupInfo, {
-						drive: parent.drive,
-						driveClientId: parent.driveClientId,
-						sessionParentId: parent.sessionParentId,
-						packageSessionNumber,
-						replaceMissingFolders
-					})
-				)
-				.andThen(({ drive, sessionFolderId }) =>
-					getOrCreateChildFolders(ctx, drive, setupInfo, sessionFolderId, replaceMissingFolders)
-				)
+	return loadDriveClient()
+		.andThen((drive) => getOrCreateClientFolder(ctx, setupInfo, drive, replaceMissingFolders))
+		.andThen((client) =>
+			fromConvexTuple(
+				ctx.runMutation(internal.sessions.linkBookingDriveClient, {
+					bookingId: setupInfo.booking._id,
+					driveClientId: client.driveClientId
+				})
+			).map(() => client)
+		)
+		.andThen((client) =>
+			allocateSessionFolderNumberIfNeeded(ctx, setupInfo).map((sessionFolderNumber) => ({
+				client,
+				sessionFolderNumber
+			}))
+		)
+		.andThen(({ client, sessionFolderNumber }) =>
+			getOrCreateClientAssetsFolder(ctx, setupInfo, client, replaceMissingFolders).map(
+				(clientWithAssets) => ({ client: clientWithAssets, sessionFolderNumber })
+			)
+		)
+		.andThen(({ client, sessionFolderNumber }) =>
+			getOrCreateSessionParentFolder(ctx, setupInfo, client, replaceMissingFolders).map(
+				(parent) => ({ parent, sessionFolderNumber })
+			)
+		)
+		.andThen(({ parent, sessionFolderNumber }) =>
+			getOrCreateSessionFolder(ctx, setupInfo, {
+				drive: parent.drive,
+				driveClientId: parent.driveClientId,
+				sessionParentId: parent.sessionParentId,
+				sessionFolderNumber,
+				replaceMissingFolders
+			})
+		)
+		.andThen(({ drive, sessionFolderId }) =>
+			getOrCreateChildFolders(ctx, drive, setupInfo, sessionFolderId, replaceMissingFolders)
 		)
 		.map(() => null);
 }

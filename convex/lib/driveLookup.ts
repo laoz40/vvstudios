@@ -19,7 +19,7 @@ export async function resolveDriveClientForBooking(
 	return driveClientFromBooking;
 }
 
-export async function loadPackageBookings(ctx: QueryCtx, packageId: Id<"packages">) {
+export async function loadPackageBookings(ctx: Pick<QueryCtx, "db">, packageId: Id<"packages">) {
 	return await ctx.db
 		.query("bookings")
 		.withIndex("by_packageId", (query) => query.eq("packageId", packageId))

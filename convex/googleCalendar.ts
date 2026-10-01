@@ -33,6 +33,7 @@ import {
 	completeClaimedSessionService,
 	sendSessionReminderEmailService
 } from "#convex/services/bookingConfirmationActions";
+import { cleanupCancelledSessionDriveService } from "#convex/services/driveSessionCancelCleanup";
 
 export const setupDrive = action({
 	args: { bookingId: v.id("bookings") },
@@ -139,4 +140,10 @@ export const completeClaimedSession = internalAction({
 	args: { bookingId: v.id("bookings") },
 	handler: async (ctx, args) =>
 		(await completeClaimedSessionService(ctx, args)).match(tupleOk, tupleErr)
+});
+
+export const cleanupCancelledSessionDrive = internalAction({
+	args: { bookingId: v.id("bookings") },
+	handler: async (ctx, args) =>
+		cleanupCancelledSessionDriveService(ctx, args).match(tupleOk, tupleErr)
 });

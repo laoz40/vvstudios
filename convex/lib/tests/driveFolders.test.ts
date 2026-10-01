@@ -107,9 +107,7 @@ describe("drive folder names", () => {
 		expect(getPackageFolderName({ packageSize: 4, purchasedAt: sessionStartAt })).toBe(
 			"4-Session Package - Ordered on 10 Jan 2030"
 		);
-		expect(getPackageSessionFolderName(2, sessionStartAt)).toBe(
-			"Session 02 - 10 Jan 2030 - 10:00 AM"
-		);
+		expect(getPackageSessionFolderName(2, sessionStartAt)).toBe("2 - 10 Jan 2030 (10:00AM)");
 	});
 });
 

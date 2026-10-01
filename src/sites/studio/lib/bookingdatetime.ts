@@ -446,7 +446,7 @@ export function getBookingStartTimestamp(dateValue: string, timeValue: string) {
 	return utcDate.getTime();
 }
 
-export function formatDriveSessionFolderName(sessionStartAt: number) {
+function formatDriveSessionFolderDateLabel(sessionStartAt: number) {
 	const dateParts = new Intl.DateTimeFormat("en-AU", {
 		timeZone: BOOKING_TIME_ZONE,
 		day: "2-digit",
@@ -456,6 +456,10 @@ export function formatDriveSessionFolderName(sessionStartAt: number) {
 
 	const valueByType = Object.fromEntries(dateParts.map((part) => [part.type, part.value]));
 
+	return `${valueByType.day} ${valueByType.month} ${valueByType.year}`;
+}
+
+function formatDriveSessionFolderTimeLabel(sessionStartAt: number, compactMeridiem: boolean) {
 	const time = new Intl.DateTimeFormat("en-AU", {
 		timeZone: BOOKING_TIME_ZONE,
 		hour: "numeric",
@@ -465,7 +469,11 @@ export function formatDriveSessionFolderName(sessionStartAt: number) {
 		.format(sessionStartAt)
 		.toUpperCase();
 
-	return `${valueByType.day} ${valueByType.month} ${valueByType.year} - ${time}`;
+	return compactMeridiem ? time.replace(" ", "") : time;
+}
+
+export function formatDriveSessionFolderName(sessionStartAt: number) {
+	return `${formatDriveSessionFolderDateLabel(sessionStartAt)} - ${formatDriveSessionFolderTimeLabel(sessionStartAt, false)}`;
 }
 
 export function formatDrivePackageFolderName({
@@ -487,8 +495,18 @@ export function formatDrivePackageFolderName({
 	return `${packageSize}-Session Package - Ordered on ${valueByType.day} ${valueByType.month} ${valueByType.year}`;
 }
 
+export function formatDriveNumberedSessionFolderName(
+	sessionNumber: number,
+	sessionStartAt: number
+) {
+	const dateLabel = formatDriveSessionFolderDateLabel(sessionStartAt);
+	const timeLabel = formatDriveSessionFolderTimeLabel(sessionStartAt, true);
+
+	return `${sessionNumber} - ${dateLabel} (${timeLabel})`;
+}
+
 export function formatDrivePackageSessionFolderName(sessionNumber: number, sessionStartAt: number) {
-	return `Session ${String(sessionNumber).padStart(2, "0")} - ${formatDriveSessionFolderName(sessionStartAt)}`;
+	return formatDriveNumberedSessionFolderName(sessionNumber, sessionStartAt);
 }
 
 export function formatDriveClientFolderName(input: { accountName: string; contactName: string }) {

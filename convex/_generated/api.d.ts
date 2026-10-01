@@ -47,6 +47,7 @@ import type * as lib_clerkInvitations from "../lib/clerkInvitations.js";
 import type * as lib_contactNormalization from "../lib/contactNormalization.js";
 import type * as lib_customInvoices from "../lib/customInvoices.js";
 import type * as lib_deliverablesReviewNotification from "../lib/deliverablesReviewNotification.js";
+import type * as lib_driveBookingDriveClient from "../lib/driveBookingDriveClient.js";
 import type * as lib_driveClientAccess from "../lib/driveClientAccess.js";
 import type * as lib_driveClientPermissions from "../lib/driveClientPermissions.js";
 import type * as lib_driveEditor from "../lib/driveEditor.js";
@@ -54,6 +55,8 @@ import type * as lib_driveEditorPermissions from "../lib/driveEditorPermissions.
 import type * as lib_driveFolders from "../lib/driveFolders.js";
 import type * as lib_driveLookup from "../lib/driveLookup.js";
 import type * as lib_driveScheduling from "../lib/driveScheduling.js";
+import type * as lib_driveSessionCancelCleanup from "../lib/driveSessionCancelCleanup.js";
+import type * as lib_driveSessionFolderNumber from "../lib/driveSessionFolderNumber.js";
 import type * as lib_driveSetup from "../lib/driveSetup.js";
 import type * as lib_driveStatus from "../lib/driveStatus.js";
 import type * as lib_editorAccess from "../lib/editorAccess.js";
@@ -124,6 +127,7 @@ import type * as services_deliverablesReviewEmail from "../services/deliverables
 import type * as services_drive from "../services/drive.js";
 import type * as services_driveClientPermissions from "../services/driveClientPermissions.js";
 import type * as services_driveEditorPermissions from "../services/driveEditorPermissions.js";
+import type * as services_driveSessionCancelCleanup from "../services/driveSessionCancelCleanup.js";
 import type * as services_employeeInvitations from "../services/employeeInvitations.js";
 import type * as services_employees from "../services/employees.js";
 import type * as services_invoices from "../services/invoices.js";
@@ -207,6 +211,7 @@ declare const fullApi: ApiFromModules<{
   "lib/contactNormalization": typeof lib_contactNormalization;
   "lib/customInvoices": typeof lib_customInvoices;
   "lib/deliverablesReviewNotification": typeof lib_deliverablesReviewNotification;
+  "lib/driveBookingDriveClient": typeof lib_driveBookingDriveClient;
   "lib/driveClientAccess": typeof lib_driveClientAccess;
   "lib/driveClientPermissions": typeof lib_driveClientPermissions;
   "lib/driveEditor": typeof lib_driveEditor;
@@ -214,6 +219,8 @@ declare const fullApi: ApiFromModules<{
   "lib/driveFolders": typeof lib_driveFolders;
   "lib/driveLookup": typeof lib_driveLookup;
   "lib/driveScheduling": typeof lib_driveScheduling;
+  "lib/driveSessionCancelCleanup": typeof lib_driveSessionCancelCleanup;
+  "lib/driveSessionFolderNumber": typeof lib_driveSessionFolderNumber;
   "lib/driveSetup": typeof lib_driveSetup;
   "lib/driveStatus": typeof lib_driveStatus;
   "lib/editorAccess": typeof lib_editorAccess;
@@ -284,6 +291,7 @@ declare const fullApi: ApiFromModules<{
   "services/drive": typeof services_drive;
   "services/driveClientPermissions": typeof services_driveClientPermissions;
   "services/driveEditorPermissions": typeof services_driveEditorPermissions;
+  "services/driveSessionCancelCleanup": typeof services_driveSessionCancelCleanup;
   "services/employeeInvitations": typeof services_employeeInvitations;
   "services/employees": typeof services_employees;
   "services/invoices": typeof services_invoices;

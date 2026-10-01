@@ -3,17 +3,18 @@ import { exhaustiveCheck } from "#/lib/result";
 import type { QueryCtx } from "#convex/_generated/server";
 import { bookingRequiresClientAssetsEmail } from "#convex/lib/bookingAddonQuantities";
 import { isClientFolderSharingDismissed } from "#convex/lib/driveClientAccess";
+import { resolveSessionFolderDisplayName } from "#convex/lib/driveSessionFolderNumber";
 import {
 	getDriveSetup,
 	loadSharedPackageFolder,
 	resolveDriveClientForBooking
 } from "#convex/lib/driveLookup";
+import { okOrThrow } from "#convex/lib/result";
 import type { DriveChildFolderName } from "#convex/lib/googleDrive";
 import {
 	formatDriveClientFolderName,
 	formatDrivePackageFolderName,
-	formatDrivePackageSessionFolderName,
-	formatDriveSessionFolderName
+	formatDrivePackageSessionFolderName
 } from "#studio/lib/bookingdatetime";
 
 type ClientDrivePermissionsDisplayStatus =
@@ -44,14 +45,12 @@ function getSavedSessionFolderName(
 ) {
 	if (booking === null) return undefined;
 
-	if (driveSession?.packageSessionNumber === undefined) {
-		return formatDriveSessionFolderName(booking.sessionStartAt);
-	}
+	const sessionFolderNumber =
+		driveSession?.packageSessionNumber ?? driveSession?.clientSessionNumber;
 
-	return formatDrivePackageSessionFolderName(
-		driveSession.packageSessionNumber,
-		booking.sessionStartAt
-	);
+	if (sessionFolderNumber === undefined) return undefined;
+
+	return formatDrivePackageSessionFolderName(sessionFolderNumber, booking.sessionStartAt);
 }
 
 type DriveStatusFolder = { name: DriveStatusFolderName; url: string | undefined };
@@ -122,9 +121,12 @@ export function buildDriveStatus(args: {
 	packageRecord: Doc<"packages"> | null;
 	driveSetupFailed: boolean;
 	sharedPackageFolder: SavedPackageFolder | undefined;
+	sessionFolderName?: string;
 }): DriveDisplayStatus {
 	const packageFolderName = getSavedPackageFolderName(args.packageRecord);
-	const sessionFolderName = getSavedSessionFolderName(args.booking, args.driveSession);
+
+	const sessionFolderName =
+		args.sessionFolderName ?? getSavedSessionFolderName(args.booking, args.driveSession);
 
 	if (args.driveSession === null) {
 		return getNoSessionDriveStatus(args, packageFolderName, sessionFolderName);
@@ -377,7 +379,8 @@ function buildDriveStatusFromSetup(
 		driveSession: Doc<"driveSessions"> | null;
 		packageRecord: Doc<"packages"> | null;
 		sharedPackageFolder?: { id: string; url: string };
-	} | null
+	} | null,
+	sessionFolderName?: string
 ) {
 	const { booking, driveClient, driveSession, packageRecord, sharedPackageFolder } =
 		getDriveSetupEntities(setupInfo);
@@ -388,7 +391,8 @@ function buildDriveStatusFromSetup(
 		driveSession,
 		packageRecord,
 		driveSetupFailed: booking?.driveSetupFailureCode !== undefined,
-		sharedPackageFolder
+		sharedPackageFolder,
+		sessionFolderName
 	});
 
 	const clientDrivePermissions = buildClientDrivePermissionsStatus(
@@ -419,7 +423,20 @@ function buildDriveStatusFromSetup(
 }
 
 export function getDriveStatus(ctx: QueryCtx, bookingId: Id<"bookings">) {
-	return getDriveSetup(ctx, bookingId).map((setupInfo) => buildDriveStatusFromSetup(setupInfo));
+	return getDriveSetup(ctx, bookingId).andThen((setupInfo) =>
+		okOrThrow(
+			(async () => {
+				const { booking, driveSession } = getDriveSetupEntities(setupInfo);
+
+				const sessionFolderName =
+					booking === null
+						? undefined
+						: await resolveSessionFolderDisplayName(ctx, booking, driveSession);
+
+				return buildDriveStatusFromSetup(setupInfo, sessionFolderName);
+			})()
+		)
+	);
 }
 
 // Admin session lists only need the failure flag, not the full Drive status payload.
@@ -478,11 +495,14 @@ export async function getEditorSessionDriveFolders(ctx: QueryCtx, booking: Doc<"
 		return null;
 	}
 
+	const sessionFolderName = await resolveSessionFolderDisplayName(ctx, booking, driveSession);
+
 	return {
 		assets: driveClient.assetsFolder,
 		deliverables: driveSession.deliverablesFolder,
 		rawMedia: driveSession.rawMediaFolder,
-		session: driveSession.sessionFolder
+		session: driveSession.sessionFolder,
+		sessionFolderName
 	};
 }
 
