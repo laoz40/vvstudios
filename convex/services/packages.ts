@@ -25,6 +25,7 @@ import {
 	type AdminPackageSearchArgs
 } from "#convex/lib/adminPackageSearch";
 import { parseTrimmedAdminSearchQuery } from "#convex/lib/adminSearchQuery";
+import { resolvePackageReceiptNumber } from "#convex/lib/receiptNumber";
 import {
 	searchBlobPatchForBooking,
 	searchBlobPatchForPackage,
@@ -283,16 +284,36 @@ export function markPackagePaidAndCreateScheduleTokenService(
 			// Persist the package's paid scheduling lifecycle.
 			.andThen((packageSchedulingDetails) =>
 				okOrThrow(
-					ctx.db
-						.patch(args.packageId, {
+					(async () => {
+						const packageFromDb = packageSchedulingDetails.packageFromDb;
+
+						const paidLifecyclePatch = {
 							expiresAt: packageSchedulingDetails.expiresAt,
 							paidAt: args.paidAt,
 							packageReminderState: undefined,
-							scheduleLinkStatus: "active",
+							scheduleLinkStatus: "active" as const,
 							scheduleTokenHash: packageSchedulingDetails.scheduleTokenHash,
-							status: "schedule_email_failed"
-						})
-						.then(() => packageSchedulingDetails)
+							status: "schedule_email_failed" as const
+						};
+
+						if (packageFromDb.receiptNumber) {
+							await ctx.db.patch(args.packageId, paidLifecyclePatch);
+
+							return packageSchedulingDetails;
+						}
+
+						const receiptNumber = resolvePackageReceiptNumber(packageFromDb, args.paidAt);
+
+						const searchBlobPatch = searchBlobPatchForPackage(packageFromDb, { receiptNumber });
+
+						await ctx.db.patch(args.packageId, {
+							...paidLifecyclePatch,
+							receiptNumber,
+							...searchBlobPatch
+						});
+
+						return packageSchedulingDetails;
+					})()
 				)
 			)
 			// Schedule the package-expiry adjustment check.
@@ -301,19 +322,25 @@ export function markPackagePaidAndCreateScheduleTokenService(
 					scheduleExpiry(packageSchedulingDetails.expiresAt).then(() => packageSchedulingDetails)
 				)
 			)
-			.map((packageSchedulingDetails) => ({
-				expiresAt: packageSchedulingDetails.expiresAt,
-				paidAt: args.paidAt,
-				packageRecord: {
-					...packageSchedulingDetails.packageFromDb,
+			.map((packageSchedulingDetails) => {
+				const packageFromDb = packageSchedulingDetails.packageFromDb;
+				const receiptNumber = resolvePackageReceiptNumber(packageFromDb, args.paidAt);
+
+				return {
 					expiresAt: packageSchedulingDetails.expiresAt,
 					paidAt: args.paidAt,
-					scheduleLinkStatus: "active" as const,
-					scheduleTokenHash: packageSchedulingDetails.scheduleTokenHash,
-					status: "schedule_email_failed" as const
-				},
-				token: packageSchedulingDetails.token
-			}))
+					packageRecord: {
+						...packageFromDb,
+						expiresAt: packageSchedulingDetails.expiresAt,
+						paidAt: args.paidAt,
+						receiptNumber,
+						scheduleLinkStatus: "active" as const,
+						scheduleTokenHash: packageSchedulingDetails.scheduleTokenHash,
+						status: "schedule_email_failed" as const
+					},
+					token: packageSchedulingDetails.token
+				};
+			})
 	);
 }
 

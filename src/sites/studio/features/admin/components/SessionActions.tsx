@@ -15,6 +15,7 @@ import {
 	type SessionRecord,
 	isManageableConfirmedSession
 } from "#studio/features/admin/lib/admin-sessions";
+import { resolveBookingReceiptNumberForDisplay } from "#studio/features/booking-invoice/lib/receipt-number";
 import { isUpcomingBooking } from "#studio/lib/bookingdatetime";
 
 export type SessionActionsProps = {
@@ -35,7 +36,7 @@ export function SessionActions({
 
 	const details: SessionActionDetails = {
 		canGenerateRescheduleLink: getCanGenerateRescheduleLink(session, isPastSession),
-		customerSessionId: session.receiptNumber ?? session._id,
+		customerSessionId: resolveBookingReceiptNumberForDisplay(session) ?? session._id,
 		canManageConfirmedSession,
 		isPastSession
 	};
