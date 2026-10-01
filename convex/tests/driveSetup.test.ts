@@ -169,6 +169,46 @@ describe("drive setup guards", () => {
 		).toEqual([null, 2]);
 	});
 
+	test("clears session folder fields and numbers after cancellation cleanup", async () => {
+		const t = createConvexTest();
+
+		const driveClientId = await createDriveClient(t, {
+			email: "release@example.com",
+			displayName: "Release customer"
+		});
+
+		const bookingId = await seedStandaloneBooking(t, {
+			driveClientId,
+			sessionStartAt,
+			email: "release@example.com"
+		});
+
+		expect(await t.mutation(internal.sessions.allocateClientSessionNumber, { bookingId })).toEqual([
+			null,
+			1
+		]);
+
+		await t.mutation(internal.sessions.saveDriveSessionFolder, {
+			bookingId,
+			driveClientId,
+			folder: {
+				id: "session-folder-release",
+				name: "1 - 10 Jan 2030 (10:00AM)",
+				webViewLink: "https://drive.example/session-release"
+			}
+		});
+
+		expect(await t.mutation(internal.sessions.clearSessionDriveDb, { bookingId })).toEqual([
+			null,
+			null
+		]);
+
+		const driveSession = await readDriveSession(t, bookingId);
+
+		expect(driveSession?.clientSessionNumber).toBeUndefined();
+		expect(driveSession?.sessionFolder).toBeUndefined();
+	});
+
 	test("keeps the first saved session folder on repeated saves", async () => {
 		const t = createConvexTest();
 		const bookingId = await seedBooking(t);

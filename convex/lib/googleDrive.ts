@@ -1,7 +1,7 @@
 "use node";
 
 import { google, type drive_v3 } from "googleapis";
-import { err, ok } from "neverthrow";
+import { err, ok, okAsync, type ResultAsync } from "neverthrow";
 import { z } from "zod";
 import { getGoogleOAuthClient } from "#convex/lib/googleAuth";
 import { tryPromise } from "#convex/lib/result";
@@ -82,6 +82,7 @@ export type DriveError = {
 		| "GOOGLE_DRIVE_FOLDER_LOOKUP_FAILED"
 		| "GOOGLE_DRIVE_FOLDER_MISSING"
 		| "GOOGLE_DRIVE_FOLDER_RENAME_FAILED"
+		| "GOOGLE_DRIVE_FOLDER_DELETE_FAILED"
 		| "GOOGLE_DRIVE_PERMISSION_CREATE_FAILED"
 		| "GOOGLE_DRIVE_PERMISSION_DELETE_FAILED"
 		| "GOOGLE_DRIVE_PERMISSION_LOOKUP_FAILED"
@@ -266,15 +267,19 @@ export function findDriveFolderByMarker(
 	});
 }
 
-const listedDriveChildSchema = z.object({ id: z.string().min(1) });
+export const GOOGLE_DRIVE_FOLDER_MIME_TYPE = "application/vnd.google-apps.folder";
+
+const listedDriveChildSchema = z.object({ id: z.string().min(1), mimeType: z.string().min(1) });
+
+export type ListedDriveChild = z.infer<typeof listedDriveChildSchema>;
 
 export function listDriveFolderChildren(drive: DriveClient, folderId: string) {
 	const escapedFolderId = folderId.replaceAll("'", "\\'");
 
 	return driveFolderLookupAsync(
 		drive.files.list({
-			fields: "files(id)",
-			pageSize: 1,
+			fields: "files(id,mimeType)",
+			pageSize: 100,
 			q: `'${escapedFolderId}' in parents and trashed = false`,
 			supportsAllDrives: false
 		}),
@@ -285,6 +290,58 @@ export function listDriveFolderChildren(drive: DriveClient, folderId: string) {
 		if (!children.success) return err({ reason: "GOOGLE_DRIVE_FOLDER_RESPONSE_INVALID" as const });
 
 		return ok(children.data);
+	});
+}
+
+function deleteDriveItem(drive: DriveClient, fileId: string) {
+	return driveFolderLookupAsync(
+		drive.files.delete({ fileId, supportsAllDrives: false }).then(() => null),
+		"GOOGLE_DRIVE_FOLDER_DELETE_FAILED"
+	).orElse((error) => {
+		if (error.reason === "GOOGLE_DRIVE_FOLDER_MISSING") return ok(null);
+
+		return err(error);
+	});
+}
+
+function areListedDriveChildrenEmpty(
+	drive: DriveClient,
+	children: ListedDriveChild[]
+): ResultAsync<boolean, DriveError> {
+	if (children.length === 0) return okAsync(true);
+
+	const child = children[0];
+
+	if (child === undefined) return okAsync(true);
+
+	const remainingChildren = children.slice(1);
+
+	if (child.mimeType !== GOOGLE_DRIVE_FOLDER_MIME_TYPE) return okAsync(false);
+
+	return isDriveFolderTreeEmpty(drive, child.id).andThen((childIsEmpty) =>
+		childIsEmpty ? areListedDriveChildrenEmpty(drive, remainingChildren) : okAsync(false)
+	);
+}
+
+export function isDriveFolderTreeEmpty(drive: DriveClient, folderId: string) {
+	return listDriveFolderChildren(drive, folderId).andThen((children) =>
+		children.length === 0 ? okAsync(true) : areListedDriveChildrenEmpty(drive, children)
+	);
+}
+
+export function deleteDriveFolderTree(drive: DriveClient, folderId: string) {
+	return listDriveFolderChildren(drive, folderId).andThen((children) => {
+		let chain: ResultAsync<null, DriveError> = okAsync(null);
+
+		for (const child of children) {
+			chain = chain.andThen(() =>
+				child.mimeType === GOOGLE_DRIVE_FOLDER_MIME_TYPE
+					? deleteDriveFolderTree(drive, child.id)
+					: deleteDriveItem(drive, child.id)
+			);
+		}
+
+		return chain.andThen(() => deleteDriveItem(drive, folderId));
 	});
 }
 

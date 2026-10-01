@@ -23,6 +23,7 @@ import {
 	saveDriveSessionFolder as saveDriveSessionFolderRecord,
 	saveDriveSetupResult as saveDriveSetupResultRecord
 } from "#convex/lib/driveFolders";
+import { clearSessionDriveDb as clearSessionDriveDbRecord } from "#convex/lib/driveSessionCancelCleanup";
 import { allocateClientSessionNumber as allocateClientSessionNumberRecord } from "#convex/lib/driveSessionFolderNumber";
 import { getDriveSetup as loadDriveSetup } from "#convex/lib/driveLookup";
 import {
@@ -404,4 +405,9 @@ export const updateSessionEditStatus = mutation({
 export const markSessionCalendarEventDeleted = internalMutation({
 	args: { bookingId: v.id("bookings") },
 	handler: (ctx, args) => markSessionCalendarEventDeletedService(ctx, args).match(tupleOk, tupleErr)
+});
+
+export const clearSessionDriveDb = internalMutation({
+	args: { bookingId: v.id("bookings") },
+	handler: (ctx, args) => clearSessionDriveDbRecord(ctx, args).match(tupleOk, tupleErr)
 });

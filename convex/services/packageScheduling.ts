@@ -324,6 +324,13 @@ export function unschedulePackageSessionService(
 					})
 				)
 			)
+			.andThen((cancelled) =>
+				fromConvexTuple(
+					ctx.runAction(internal.googleCalendar.cleanupCancelledSessionDrive, {
+						bookingId: args.bookingId
+					})
+				).map(() => cancelled)
+			)
 	);
 }
 
