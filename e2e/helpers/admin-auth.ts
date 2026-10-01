@@ -30,6 +30,14 @@ export async function prepareClerkTesting() {
 	}
 }
 
+export async function signInWithEmail(page: Page, email: string) {
+	await page.goto("/login");
+	await page.locator(".cl-rootBox").first().waitFor({ timeout: 20_000 });
+	await setupClerkTestingToken({ page });
+	await clerk.signIn({ page, emailAddress: email });
+	await expect(page).toHaveURL(/\/dashboard/, { timeout: 15_000 });
+}
+
 export async function signInAsAdmin(page: Page) {
 	const email = getE2eAdminEmail();
 
@@ -37,8 +45,5 @@ export async function signInAsAdmin(page: Page) {
 		throw new Error("E2E_ADMIN_EMAIL is required for admin sign-in.");
 	}
 
-	await setupClerkTestingToken({ page });
-	await page.goto("/login");
-	await clerk.signIn({ page, emailAddress: email });
-	await expect(page).toHaveURL(/\/dashboard/, { timeout: 15_000 });
+	await signInWithEmail(page, email);
 }
