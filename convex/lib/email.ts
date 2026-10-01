@@ -4,6 +4,7 @@ import { okAsync, type ResultAsync } from "neverthrow";
 import { tryPromise } from "#convex/lib/result";
 import { CONTACT_EMAIL } from "#/config/contact";
 import { BOOKING_INVOICE_BUSINESS } from "#studio/features/booking-invoice/lib/constants";
+import { DeliverablesReviewReadyEmail } from "#studio/features/deliverables-review-ready-email/DeliverablesReviewReadyEmail";
 import { HostBookingDetailsEmail } from "#studio/features/host-booking-details-email/HostBookingDetailsEmail";
 import { PackageExpiryReminderEmail } from "#studio/features/package-reminder-email/PackageExpiryReminderEmail";
 import { ReminderEmail } from "#studio/features/reminder-email/ReminderEmail";
@@ -95,6 +96,13 @@ interface SendPackageExpiryReminderEmailArgs {
 	expiresAt: number;
 	name: string;
 	remainingSessions: number;
+}
+
+interface SendDeliverablesReviewReadyHostEmailArgs {
+	clientName: string;
+	editorName: string;
+	sessionDate: string;
+	idempotencyKey: string;
 }
 
 export function sendSessionHostDetailsEmail(args: SendSessionHostDetailsEmailArgs) {
@@ -192,6 +200,44 @@ export function sendPackageHostDetailsEmail(args: SendPackageHostDetailsEmailArg
 			to: hostEmails,
 			subject: `New Package Booking Request - ${args.name} - ${args.packageSize} Pack`,
 			html
+		}).map(() => null)
+	);
+}
+
+export function sendDeliverablesReviewReadyHostEmail(
+	args: SendDeliverablesReviewReadyHostEmailArgs
+) {
+	const hostEmails = getHostEmails();
+
+	if (hostEmails.length === 0) {
+		return okAsync(null);
+	}
+
+	const sessionDateLabel = formatSessionDateLong(args.sessionDate);
+
+	return tryPromise({
+		try: () =>
+			render(
+				createElement(DeliverablesReviewReadyEmail, {
+					clientName: args.clientName,
+					editorName: args.editorName,
+					sessionDateLabel
+				})
+			),
+		catch: (cause) => {
+			console.error("Deliverables review ready host email render failed", {
+				clientName: args.clientName,
+				cause
+			});
+
+			return { reason: "EMAIL_RENDER_FAILED" as const };
+		}
+	}).andThen((html) =>
+		sendEmail({
+			to: hostEmails,
+			subject: `Deliverables ready for review - ${args.clientName} - ${formatSessionDateShort(args.sessionDate)}`,
+			html,
+			idempotencyKey: args.idempotencyKey
 		}).map(() => null)
 	);
 }

@@ -12,7 +12,7 @@ import {
 import { BOOKING_INVOICE_BUSINESS } from "#studio/features/booking-invoice/lib/constants";
 import { EmailFooter } from "#studio/components/email/EmailFooter";
 
-const bookingQuotes = [
+export const hostBookingQuotes = [
 	{
 		text: "If you think you are too small to make a difference, try sleeping with a mosquito.",
 		attribution: "Dalai Lama"
@@ -141,8 +141,8 @@ export function HostBookingDetailsEmail({
 	notes,
 	...bookingDetails
 }: HostBookingDetailsEmailProps) {
-	const quoteIndex = Math.floor(Math.random() * bookingQuotes.length);
-	const selectedQuote = bookingQuotes[quoteIndex];
+	const quoteIndex = Math.floor(Math.random() * hostBookingQuotes.length);
+	const selectedQuote = hostBookingQuotes[quoteIndex];
 
 	if (selectedQuote === undefined) {
 		throw new Error("Expected booking quote");

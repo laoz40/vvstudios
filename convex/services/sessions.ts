@@ -1,9 +1,11 @@
 import { ConvexError } from "convex/values";
 import { err, errAsync, ok } from "neverthrow";
+import { internal } from "#convex/_generated/api";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
 import { setBookingArchived } from "#convex/lib/archiveState";
-import { requirePermission } from "#convex/lib/auth";
+import { getEditorByToken, requirePermission } from "#convex/lib/auth";
+import { shouldNotifyHostOfDeliverablesReview } from "#convex/lib/deliverablesReviewNotification";
 import {
 	buildActiveEditorProjection,
 	listActiveEditorProfiles,
@@ -340,9 +342,44 @@ export function updateSessionEditStatusService(
 			getSessionFromDb(ctx, args.bookingId).map((session) => ({ identity, session }))
 		)
 		.andThen(requireDeliverablesOwnership)
-		.andThen(requireDeliverablesEligibility)
-		.andThen((session) => saveSessionEditStatus(ctx, session, args.editStatus))
-		.andThen(() => archiveSessionWhenFullyDone(ctx, args.bookingId));
+		.andThen((access) => requireDeliverablesEligibility(access).map(() => access))
+		.andThen(({ identity, session }) => {
+			const shouldNotifyHost = shouldNotifyHostOfDeliverablesReview({
+				identity,
+				previousEditStatus: session.editStatus,
+				nextEditStatus: args.editStatus
+			});
+
+			return saveSessionEditStatus(ctx, session, args.editStatus).andThen(() => {
+				if (!shouldNotifyHost) {
+					return archiveSessionWhenFullyDone(ctx, args.bookingId);
+				}
+
+				return getEditorByToken(ctx, identity.tokenIdentifier)
+					.andThen((editor) => {
+						const editorName = editor?.displayName ?? identity.name ?? "An editor";
+						const emailArgs = {
+							bookingId: args.bookingId,
+							clientName: session.name,
+							editorName,
+							sessionDate: session.date,
+							idempotencyKey: `deliverables-review:${args.bookingId}:${Date.now()}`
+						};
+
+						// Resend runs in an action; enqueue after the status patch commits.
+						return okOrThrow(
+							ctx.scheduler
+								.runAfter(
+									0,
+									internal.deliverablesReviewEmail.sendDeliverablesReviewReadyEmail,
+									emailArgs
+								)
+								.then(() => null)
+						);
+					})
+					.andThen(() => archiveSessionWhenFullyDone(ctx, args.bookingId));
+			});
+		});
 }
 
 export function markSessionCalendarEventDeletedService(
