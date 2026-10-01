@@ -33,6 +33,7 @@ if (process.argv.includes("--help") || process.argv.includes("-h")) {
 }
 
 const missing = missingEnvKeys();
+
 if (missing.length > 0) {
 	fail(`Missing required env: ${missing.join(", ")} (set in .env.local)`);
 }
@@ -44,17 +45,20 @@ if (listenerPid === null) {
 }
 
 const title = await fetchHomeTitle();
+
 if (!titleMatches(title)) {
-	fail(
-		`Port 3000 is listening but home title is wrong (got ${title ? JSON.stringify(title) : "no response"})`
-	);
+	const got = title ? JSON.stringify(title) : "no response";
+
+	fail("Port 3000 is listening but home title is wrong (got " + got + ")");
 }
 
 const recordedPid = readRecordedPid();
 
 if (recordedPid === null) {
 	fail(
-		`Refuse: port 3000 is in use by pid ${listenerPid} with no matching ${".agents/skills/verify-vvstudios/state/dev.pid"}`
+		"Refuse: port 3000 is in use by pid " +
+			String(listenerPid) +
+			" with no matching .agents/skills/verify-vvstudios/state/dev.pid"
 	);
 }
 

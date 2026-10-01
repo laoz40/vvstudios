@@ -35,9 +35,11 @@ async function signOutToLogin(page: Page) {
 
 async function openEditorAssignSelect(page: Page) {
 	const trigger = page.getByLabel(/Editor assigned to /).or(page.getByText("No editor assigned"));
+
 	await expect(trigger.first()).toBeVisible({ timeout: 10_000 });
 	await trigger.first().focus();
 	await page.keyboard.press("Enter");
+
 	return trigger.first();
 }
 
@@ -47,6 +49,7 @@ if (process.argv.includes("--help") || process.argv.includes("-h")) {
 }
 
 const bootMissing = missingEnvKeys();
+
 if (bootMissing.length > 0) {
 	fail(`Missing required env: ${bootMissing.join(", ")} (set in .env.local)`);
 }
@@ -60,13 +63,17 @@ if (!process.env.E2E_CLERK_SECRET_KEY && !process.env.CLERK_SECRET_KEY) {
 }
 
 const runId = process.env.RUN_ID ?? String(Date.now());
+
 const outDir = path.join(REPO_ROOT, "tmp/verify-vvstudios", runId);
+
 fs.mkdirSync(outDir, { recursive: true });
 
 await prepareClerkTesting();
 
 const tempEditor = await createTempClerkEditor();
+
 const browser = await chromium.launch();
+
 const page = await browser.newPage({
 	baseURL: BASE_URL,
 	viewport: { width: 1280, height: 800 },
@@ -91,12 +98,14 @@ try {
 	const assignTrigger = await openEditorAssignSelect(page);
 	const assignLabel = await assignTrigger.getAttribute("aria-label");
 	const customerFromLabel = assignLabel?.replace(/^Editor assigned to /u, "").trim();
+
 	const customerFromRow = await page
 		.locator("tbody tr")
 		.first()
 		.locator("p.font-medium")
 		.first()
 		.textContent();
+
 	const customerName = customerFromLabel || customerFromRow?.trim();
 
 	if (!customerName) {
@@ -110,7 +119,9 @@ try {
 	}
 
 	await editorOption.click();
-	await expect(page.getByRole("heading", { name: /Assign editor\?|Reassign editor\?/ })).toBeVisible();
+	await expect(
+		page.getByRole("heading", { name: /Assign editor\?|Reassign editor\?/ })
+	).toBeVisible();
 	await page.getByRole("button", { name: "Confirm assignment" }).click();
 	await expect(page.getByText("Editor assigned.")).toBeVisible({ timeout: 15_000 });
 	await page.screenshot({ path: path.join(outDir, "admin-assign.png") });
@@ -123,9 +134,7 @@ try {
 		await page.getByRole("tab", { name: "History" }).click();
 	}
 
-	await expect(page.getByText(customerName, { exact: true })).toBeVisible({
-		timeout: 15_000
-	});
+	await expect(page.getByText(customerName, { exact: true })).toBeVisible({ timeout: 15_000 });
 	await expect(page.getByRole("columnheader", { name: "Deliverables" })).toBeVisible();
 	await page.screenshot({ path: path.join(outDir, "editor-assigned.png") });
 

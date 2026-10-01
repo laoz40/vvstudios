@@ -1,12 +1,16 @@
+import { z } from "zod";
 import { ensureClerkTestingEnv, getE2eClerkSecretKey } from "../../../e2e/helpers/admin-auth.ts";
 
 const CLERK_USERS_URL = "https://api.clerk.com/v1/users";
 
-export type TempClerkEditor = {
-	userId: string;
-	email: string;
-	displayName: string;
-};
+const clerkUserResponseSchema = z.object({
+	id: z.string().optional(),
+	errors: z
+		.array(z.object({ code: z.string().optional(), message: z.string().optional() }))
+		.optional()
+});
+
+export type TempClerkEditor = { userId: string; email: string; displayName: string };
 
 function clerkSecret() {
 	const secret = getE2eClerkSecretKey();
@@ -19,10 +23,7 @@ function clerkSecret() {
 }
 
 async function clerkJson(response: Response) {
-	return (await response.json()) as {
-		id?: string;
-		errors?: Array<{ code?: string; message?: string }>;
-	};
+	return clerkUserResponseSchema.parse(await response.json());
 }
 
 export async function createTempClerkEditor(): Promise<TempClerkEditor> {
@@ -33,10 +34,7 @@ export async function createTempClerkEditor(): Promise<TempClerkEditor> {
 
 	const response = await fetch(CLERK_USERS_URL, {
 		method: "POST",
-		headers: {
-			Authorization: `Bearer ${clerkSecret()}`,
-			"Content-Type": "application/json"
-		},
+		headers: { Authorization: `Bearer ${clerkSecret()}`, "Content-Type": "application/json" },
 		body: JSON.stringify({
 			email_address: [email],
 			first_name: "VVVerify",
@@ -47,8 +45,9 @@ export async function createTempClerkEditor(): Promise<TempClerkEditor> {
 
 	const body = await clerkJson(response);
 
-	if (!response.ok || !body.id) {
+	if (!response.ok || body.id === undefined) {
 		const code = body.errors?.[0]?.code ?? `http_${response.status}`;
+
 		throw new Error(`Clerk create user failed (${code})`);
 	}
 
@@ -57,6 +56,7 @@ export async function createTempClerkEditor(): Promise<TempClerkEditor> {
 
 export async function deleteTempClerkEditor(userId: string) {
 	ensureClerkTestingEnv();
+
 	const response = await fetch(`${CLERK_USERS_URL}/${userId}`, {
 		method: "DELETE",
 		headers: { Authorization: `Bearer ${clerkSecret()}` }

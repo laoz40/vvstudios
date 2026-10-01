@@ -1,5 +1,6 @@
 #!/usr/bin/env bun
 import fs from "node:fs";
+import { setTimeout as delay } from "node:timers/promises";
 import {
 	isProcessAlive,
 	LOG_FILE,
@@ -27,6 +28,7 @@ if (process.argv.includes("--help") || process.argv.includes("-h")) {
 function stopPid(pid: number, label: string) {
 	if (!isProcessAlive(pid)) {
 		console.log(`${label} pid ${pid} was not running`);
+
 		return;
 	}
 
@@ -39,6 +41,7 @@ function stopPid(pid: number, label: string) {
 }
 
 const spawnPid = readSpawnPid();
+
 const recordedPid = readRecordedPid();
 
 if (spawnPid !== null) {
@@ -49,7 +52,7 @@ if (recordedPid !== null && recordedPid !== spawnPid) {
 	stopPid(recordedPid, "listener");
 }
 
-await Bun.sleep(500);
+await delay(500);
 
 for (const pid of [spawnPid, recordedPid]) {
 	if (pid !== null && isProcessAlive(pid)) {

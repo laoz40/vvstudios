@@ -25,6 +25,7 @@ if (process.argv.includes("--help") || process.argv.includes("-h")) {
 }
 
 const bootMissing = missingEnvKeys();
+
 if (bootMissing.length > 0) {
 	fail(`Missing required env: ${bootMissing.join(", ")} (set in .env.local)`);
 }
@@ -38,12 +39,15 @@ if (!process.env.E2E_CLERK_SECRET_KEY && !process.env.CLERK_SECRET_KEY) {
 }
 
 const runId = process.env.RUN_ID ?? String(Date.now());
+
 const outDir = path.join(REPO_ROOT, "tmp/verify-vvstudios", runId);
+
 fs.mkdirSync(outDir, { recursive: true });
 
 await prepareClerkTesting();
 
 const browser = await chromium.launch();
+
 const page = await browser.newPage({
 	baseURL: BASE_URL,
 	viewport: { width: 1280, height: 800 },
