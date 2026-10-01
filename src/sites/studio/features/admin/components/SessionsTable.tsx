@@ -115,14 +115,14 @@ export function SessionsTable({
 					<colgroup>
 						<col className="w-12 md:w-8" />
 						<col className="w-56 md:w-36" />
-						<col className="w-24 md:w-16" />
+						<col className="w-24 md:w-28 lg:w-16" />
 						<col className="w-56 md:w-32" />
 						<col className="w-56 md:w-40" />
 						<col className="w-16" />
 						<col className="w-86 md:w-56" />
 						<col className="w-16 md:w-8" />
 						<col className="w-24 md:w-16" />
-						<col className="w-24 md:w-16" />
+						<col className="w-24 md:w-28 lg:w-16" />
 						<col className="w-6" />
 					</colgroup>
 					<TableHeader>

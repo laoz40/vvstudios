@@ -400,7 +400,7 @@ export function SessionTableRow({ onReceiptSearch, session }: SessionTableRowPro
 				<AdminTableInfoPopover
 					content={relativeDateLabel}
 					className="flex w-full flex-col gap-1 whitespace-normal">
-					<p className="font-medium">{formatBookingDateMedium(session.date)}</p>
+					<p className="font-medium whitespace-nowrap">{formatBookingDateMedium(session.date)}</p>
 					<p className="text-sm text-muted-foreground">
 						{session.duration
 							? `${formatBookingTimeLabel(session.time)} · ${formatAdminDashboardDuration(session.duration)}`
@@ -478,7 +478,9 @@ export function SessionTableRow({ onReceiptSearch, session }: SessionTableRowPro
 			</TableCell>
 			<TableCell className={pastCellClassName}>
 				<div className="flex flex-col gap-1 whitespace-normal">
-					<p className="font-medium">{formatShortMonthFullDate(session.pendingPaymentCreatedAt)}</p>
+					<p className="font-medium whitespace-nowrap">
+						{formatShortMonthFullDate(session.pendingPaymentCreatedAt)}
+					</p>
 					<p className="text-sm text-muted-foreground">
 						{formatBookingTimestampTime(session.pendingPaymentCreatedAt)}
 					</p>
