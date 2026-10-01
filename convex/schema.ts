@@ -207,6 +207,7 @@ export default defineSchema({
 		abn: v.optional(v.string()),
 		email: v.string(),
 		instagramHandle: v.optional(v.string()),
+		phoneNormalized: v.optional(v.string()),
 
 		// Scheduled session
 		date: v.string(),
@@ -314,6 +315,7 @@ export default defineSchema({
 		.index("by_packageId_and_status_and_sessionStartAt", ["packageId", "status", "sessionStartAt"])
 		.index("by_receiptNumber", ["receiptNumber"])
 		.index("by_phone", ["phone"])
+		.index("by_phoneNormalized", ["phoneNormalized"])
 		.index("by_abn", ["abn"])
 		.searchIndex("search_admin_blob", { searchField: "searchBlob", filterFields: ["archived"] })
 		.searchIndex("search_admin_name", { searchField: "name", filterFields: ["archived"] })
@@ -332,6 +334,7 @@ export default defineSchema({
 		abn: v.optional(v.string()),
 		email: v.string(),
 		instagramHandle: v.optional(v.string()),
+		phoneNormalized: v.optional(v.string()),
 
 		// Package booking details
 		duration: v.string(),
@@ -399,6 +402,7 @@ export default defineSchema({
 		.index("by_receiptNumber", ["receiptNumber"])
 		.index("by_email", ["email"])
 		.index("by_phone", ["phone"])
+		.index("by_phoneNormalized", ["phoneNormalized"])
 		.index("by_abn", ["abn"])
 		.searchIndex("search_admin_blob", { searchField: "searchBlob", filterFields: ["archived"] })
 		.searchIndex("search_admin_name", { searchField: "name", filterFields: ["archived"] })
