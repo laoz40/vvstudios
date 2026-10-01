@@ -10,6 +10,7 @@ import { validateSessionTimingEdit } from "#convex/lib/sessionAdminEdit";
 import type { SessionAvailabilitySettings } from "#convex/lib/sessionCalendarTime";
 import { fromConvexTuple } from "#convex/lib/result";
 import type { SaveClientSessionRescheduleArgs } from "#convex/services/sessionScheduling";
+import { pickBookingAddonQuantities } from "#studio/features/booking-form/lib/booking-form-model";
 
 export type RescheduleSessionArgs = { date: string; time: string; token: string };
 
@@ -141,7 +142,8 @@ export function updateRescheduleCalendar(
 			duration: state.session.duration,
 			email: state.session.email,
 			name: state.session.name,
-			service: state.session.service
+			service: state.session.service,
+			...pickBookingAddonQuantities(state.session)
 		},
 		duration: state.session.duration,
 		createMissingEvent: state.session.status === "failed",

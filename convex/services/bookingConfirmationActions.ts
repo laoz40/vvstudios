@@ -11,6 +11,7 @@ import {
 } from "#convex/lib/bookingConfirmation";
 import { getGoogleCalendarClient } from "#convex/lib/googleCalendarClient";
 import { buildSessionCalendarEventPayload } from "#convex/lib/sessionCalendarEvents";
+import { pickBookingAddonQuantities } from "#studio/features/booking-form/lib/booking-form-model";
 import type { SessionAvailabilitySettings } from "#convex/lib/sessionCalendarTime";
 import { failBookingConfirmation, verifySessionCanBeScheduled } from "#convex/lib/sessionAdminEdit";
 import { getSessionFromQuery } from "#convex/lib/sessionLookup";
@@ -144,7 +145,8 @@ async function completeClaimedSession(
 			name: session.name,
 			duration: session.duration,
 			email: session.email,
-			service: session.service
+			service: session.service,
+			...pickBookingAddonQuantities(session)
 		}
 	});
 

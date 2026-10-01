@@ -11,6 +11,7 @@ import type { SessionCalendarEventRecord } from "#convex/lib/sessionCalendarEven
 import {
 	getPackageSessionAddons,
 	isDurationOption,
+	pickBookingAddonQuantities,
 	type BookingFormValues
 } from "#studio/features/booking-form/lib/booking-form-model";
 import {
@@ -210,7 +211,8 @@ export function toPackageCalendarDetails(
 		eventBufferMinutes,
 		name: packageRecord.name,
 		service: args.service,
-		time: args.time
+		time: args.time,
+		...pickBookingAddonQuantities(packageRecord)
 	};
 }
 

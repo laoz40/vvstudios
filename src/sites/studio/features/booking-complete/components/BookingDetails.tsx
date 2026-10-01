@@ -1,10 +1,21 @@
 import { type ReactNode } from "react";
 import type { BookingStatus } from "#studio/components/booking/BookingCompleteDevScenarioPanel";
+import { pickBookingAddonQuantities } from "#studio/features/booking-form/lib/booking-form-model";
+import { formatEditingAddonList } from "#studio/features/booking-form/lib/editing-addon-quantities";
 import { formatBookingDate, formatBookingTimeRange } from "#studio/lib/bookingdatetime";
 
 export type BookingDetailsData = Pick<
 	BookingStatus,
-	"status" | "date" | "time" | "duration" | "service" | "addons"
+	| "status"
+	| "date"
+	| "time"
+	| "duration"
+	| "service"
+	| "addons"
+	| "essentialEditQuantity"
+	| "completeEditQuantity"
+	| "clipsPackageQuantity"
+	| "handcraftedClipsQuantity"
 >;
 
 export interface BookingDetailsProps {
@@ -19,6 +30,11 @@ export function BookingDetails({ booking }: BookingDetailsProps): ReactNode {
 	const timeValue = isUnconfirmedBooking
 		? "Unconfirmed"
 		: formatBookingTimeRange(booking.time, booking.duration);
+
+	const addonsValue =
+		booking.addons.length > 0
+			? formatEditingAddonList(booking.addons, pickBookingAddonQuantities(booking))
+			: "None";
 
 	return (
 		<section className="border-t pt-5 sm:pt-6">
@@ -40,7 +56,7 @@ export function BookingDetails({ booking }: BookingDetailsProps): ReactNode {
 				/>
 				<BookingDetail
 					label="Add-ons"
-					value={booking.addons.length > 0 ? booking.addons.join(", ") : "None"}
+					value={addonsValue}
 				/>
 			</dl>
 		</section>

@@ -9,6 +9,7 @@ import {
 import type { AdminSessionUpdateResult } from "#convex/lib/sessionAdminEdit";
 import { okOrThrow } from "#convex/lib/result";
 import { getSessionFromQuery } from "#convex/lib/sessionLookup";
+import { pickBookingAddonQuantities } from "#studio/features/booking-form/lib/booking-form-model";
 
 export async function sendBookingRescheduledEmailsForBooking(
 	booking: Doc<"bookings">,
@@ -37,7 +38,8 @@ export async function sendBookingRescheduledEmailsForBooking(
 		originalTime: options.originalTime,
 		rescheduleUrl: options.rescheduleUrl,
 		service: booking.service,
-		time: booking.time
+		time: booking.time,
+		...pickBookingAddonQuantities(booking)
 	});
 
 	if (customerEmailResult.isErr()) {
@@ -89,7 +91,8 @@ export async function sendSessionHostRescheduleEmailForBooking(
 		duration: parsedBooking.duration,
 		addons: parsedBooking.addons,
 		notes: parsedBooking.notes,
-		reschedule: { originalDate: options.originalDate, originalTime: options.originalTime }
+		reschedule: { originalDate: options.originalDate, originalTime: options.originalTime },
+		...pickBookingAddonQuantities(parsedBooking)
 	});
 
 	if (hostEmailResult.isErr()) {

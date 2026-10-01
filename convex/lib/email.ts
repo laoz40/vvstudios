@@ -15,7 +15,10 @@ import {
 	formatCalendarEventDate
 } from "#convex/lib/sessionCalendarTime";
 import type { BookingAddonQuantitiesArgs } from "#convex/lib/bookingAddonQuantities";
-import type { BookingAddon } from "#studio/features/booking-form/lib/booking-form-model";
+import {
+	pickBookingAddonQuantities,
+	type BookingAddon
+} from "#studio/features/booking-form/lib/booking-form-model";
 import {
 	escapeHtml,
 	formatAddonsLine,
@@ -25,7 +28,7 @@ import {
 	sendEmail
 } from "#convex/lib/emailSend";
 
-interface SendBookingReminderEmailForBookingArgs {
+type SendBookingReminderEmailForBookingArgs = {
 	name: string;
 	email: string;
 	date: string;
@@ -37,14 +40,14 @@ interface SendBookingReminderEmailForBookingArgs {
 	service: string;
 	duration: string;
 	addons: BookingAddon[];
-}
+} & BookingAddonQuantitiesArgs;
 
 interface SessionHostRescheduleDetails {
 	originalDate: string;
 	originalTime: string;
 }
 
-interface SendBookingRescheduledCustomerEmailArgs {
+type SendBookingRescheduledCustomerEmailArgs = {
 	addons: BookingAddon[];
 	date: string;
 	duration: string;
@@ -55,9 +58,9 @@ interface SendBookingRescheduledCustomerEmailArgs {
 	rescheduleUrl?: string;
 	service: string;
 	time: string;
-}
+} & BookingAddonQuantitiesArgs;
 
-interface SendSessionHostDetailsEmailArgs {
+type SendSessionHostDetailsEmailArgs = {
 	invoiceNumber: string;
 	name: string;
 	email: string;
@@ -71,7 +74,7 @@ interface SendSessionHostDetailsEmailArgs {
 	addons: BookingAddon[];
 	notes?: string;
 	reschedule?: SessionHostRescheduleDetails;
-}
+} & BookingAddonQuantitiesArgs;
 
 type SendPackageHostDetailsEmailArgs = {
 	invoiceNumber: string;
@@ -101,7 +104,7 @@ export function sendSessionHostDetailsEmail(args: SendSessionHostDetailsEmailArg
 		return okAsync(null);
 	}
 
-	const addonsLine = args.addons.length > 0 ? args.addons.join(", ") : "None";
+	const addonsLine = formatAddonsLine({ addons: args.addons, ...pickBookingAddonQuantities(args) });
 
 	const bookingDetails = {
 		invoiceNumber: args.invoiceNumber,
@@ -169,8 +172,7 @@ export function sendPackageHostDetailsEmail(args: SendPackageHostDetailsEmailArg
 					duration: args.duration,
 					addonsLine: formatAddonsLine({
 						addons: args.addons,
-						clipsPackageQuantity: args.clipsPackageQuantity,
-						essentialEditQuantity: args.essentialEditQuantity
+						...pickBookingAddonQuantities(args)
 					}),
 					notes: args.notes,
 					packageSize: args.packageSize,
@@ -194,24 +196,15 @@ export function sendPackageHostDetailsEmail(args: SendPackageHostDetailsEmailArg
 	);
 }
 
-export function sendBookingRescheduledCustomerEmail({
-	addons,
-	date,
-	duration,
-	email,
-	name,
-	originalDate,
-	originalTime,
-	rescheduleUrl,
-	service,
-	time
-}: SendBookingRescheduledCustomerEmailArgs): ResultAsync<
+export function sendBookingRescheduledCustomerEmail(
+	args: SendBookingRescheduledCustomerEmailArgs
+): ResultAsync<
 	null,
 	| { reason: "EMAIL_RENDER_FAILED" }
 	| { reason: "EMAIL_REQUEST_FAILED" }
 	| { reason: "EMAIL_RESPONSE_FAILED" }
 > {
-	const addonsLine = addons.length > 0 ? addons.join(", ") : "None";
+	const addonsLine = formatAddonsLine({ addons: args.addons, ...pickBookingAddonQuantities(args) });
 
 	const signoffName =
 		BOOKING_INVOICE_BUSINESS.ownerName.split(" ")[0] ?? BOOKING_INVOICE_BUSINESS.ownerName;
@@ -221,20 +214,20 @@ export function sendBookingRescheduledCustomerEmail({
 			render(
 				createElement(RescheduledBookingEmail, {
 					addonsLine,
-					bookingDate: formatSessionDateLong(date),
-					bookingTime: formatBookingTimeRange(time, duration),
-					duration,
-					name,
-					originalBookingDate: formatSessionDateLong(originalDate),
-					originalBookingTime: formatBookingTimeRange(originalTime, duration),
-					rescheduleUrl,
-					service,
+					bookingDate: formatSessionDateLong(args.date),
+					bookingTime: formatBookingTimeRange(args.time, args.duration),
+					duration: args.duration,
+					name: args.name,
+					originalBookingDate: formatSessionDateLong(args.originalDate),
+					originalBookingTime: formatBookingTimeRange(args.originalTime, args.duration),
+					rescheduleUrl: args.rescheduleUrl,
+					service: args.service,
 					signoffName
 				})
 			),
 		catch: (cause) => {
 			console.error("Booking reschedule customer email render failed", {
-				bookingEmail: email,
+				bookingEmail: args.email,
 				cause
 			});
 
@@ -242,8 +235,8 @@ export function sendBookingRescheduledCustomerEmail({
 		}
 	}).andThen((html) =>
 		sendEmail({
-			to: [email],
-			subject: `Your Studio Booking Has Been Rescheduled - ${formatSessionDateShort(date)}`,
+			to: [args.email],
+			subject: `Your Studio Booking Has Been Rescheduled - ${formatSessionDateShort(args.date)}`,
 			html
 		}).map(() => null)
 	);
@@ -305,9 +298,10 @@ export function sendSessionReminderEmail({
 	duration,
 	addons,
 	isPackageSession,
-	rescheduleUrl
+	rescheduleUrl,
+	...addonQuantities
 }: SendBookingReminderEmailForBookingArgs) {
-	const addonsLine = addons.length > 0 ? addons.join(", ") : "None";
+	const addonsLine = formatAddonsLine({ addons, ...pickBookingAddonQuantities(addonQuantities) });
 	const bookingDate = formatCalendarEventDate(startDateTime, timeZone);
 	const bookingTime = formatBookingTimeRange(time, duration);
 

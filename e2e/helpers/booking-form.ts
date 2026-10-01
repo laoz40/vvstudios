@@ -319,8 +319,27 @@ export async function expectTermsDialog(page: Page) {
 
 export async function agreeToTerms(page: Page) {
 	const dialog = page.getByRole("dialog");
+	const confirmButton = dialog.getByRole("button", { name: "Agree & Book" });
 
-	await dialog.getByRole("button", { name: "Agree & Book" }).click();
+	await confirmButton.click();
+
+	// Checkout calls Convex + Stripe; wait until the terms step finishes (payment opens or errors).
+	await expect
+		.poll(
+			async () => {
+				if (await page.getByRole("button", { name: "Close payment modal" }).isVisible()) {
+					return "payment";
+				}
+
+				if (await confirmButton.isVisible()) {
+					return (await confirmButton.textContent())?.includes("Booking...") ? "loading" : "terms";
+				}
+
+				return "payment";
+			},
+			{ timeout: 45_000 }
+		)
+		.not.toBe("loading");
 }
 
 export async function expectPaymentModal(page: Page) {

@@ -1,6 +1,11 @@
 import type { calendar_v3 } from "googleapis/build/src/apis/calendar/v3";
 import { BOOKING_INVOICE_BUSINESS } from "#studio/features/booking-invoice/lib/constants";
-import type { BookingAddon } from "#studio/features/booking-form/lib/booking-form-model";
+import type { BookingAddonQuantitiesArgs } from "#convex/lib/bookingAddonQuantities";
+import {
+	pickBookingAddonQuantities,
+	type BookingAddon
+} from "#studio/features/booking-form/lib/booking-form-model";
+import { formatEditingAddonList } from "#studio/features/booking-form/lib/editing-addon-quantities";
 import { err, ok, type Result } from "neverthrow";
 import type { Id } from "#convex/_generated/dataModel";
 
@@ -15,13 +20,13 @@ import {
 	mapCalendarErrorCode
 } from "#convex/lib/googleCalendarErrors";
 
-export interface SessionCalendarEventDetails {
+export type SessionCalendarEventDetails = {
 	addons: BookingAddon[];
 	duration: string;
 	email: string;
 	name: string;
 	service: string;
-}
+} & BookingAddonQuantitiesArgs;
 
 export type SessionCalendarEventRecord = {
 	date: string;
@@ -50,7 +55,11 @@ export function buildSessionCalendarEventPayload({
 		({ startDateTime, endDateTime }) => {
 			const bookingDate = formatCalendarEventDate(startDateTime, timeZone);
 			const bookingTime = formatCalendarEventTime(startDateTime, timeZone);
-			const addonsLine = details.addons.length > 0 ? details.addons.join(", ") : "None";
+
+			const addonsLine =
+				details.addons.length > 0
+					? formatEditingAddonList(details.addons, pickBookingAddonQuantities(details))
+					: "None";
 
 			const signoffName =
 				BOOKING_INVOICE_BUSINESS.ownerName.split(" ")[0] ?? BOOKING_INVOICE_BUSINESS.ownerName;

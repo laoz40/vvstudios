@@ -1,3 +1,4 @@
+import { getCustomerAddonDisplayLabel } from "#studio/features/booking-form/lib/booking-form-model";
 import { sectionHeadingClassName } from "#studio/features/booking-form/lib/booking-form-styles";
 import { formatBookingDate, formatBookingTimeRange } from "#studio/lib/bookingdatetime";
 
@@ -16,7 +17,11 @@ export function RescheduleBookingSummary({
 	service,
 	time
 }: RescheduleBookingSummaryProps) {
-	const addonsLabel = addons.length > 0 ? addons.join(", ") : "None";
+	const addonsLabel =
+		addons.length > 0
+			? addons.map((addon) => getCustomerAddonDisplayLabel(addon)).join(", ")
+			: "None";
+
 	const formattedDate = formatBookingDate(date);
 	const formattedTime = formatBookingTimeRange(time, duration);
 

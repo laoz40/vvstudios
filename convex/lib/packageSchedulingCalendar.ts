@@ -8,6 +8,7 @@ import {
 	type SessionCalendarEventDetails,
 	type SessionCalendarEventRecord
 } from "#convex/lib/sessionCalendarEvents";
+import { pickBookingAddonQuantities } from "#studio/features/booking-form/lib/booking-form-model";
 
 export type PackageCalendarDetails = SessionCalendarEventDetails & {
 	date: string;
@@ -50,7 +51,8 @@ export function updatePackageCalendarEvent(
 				duration: details.duration,
 				email: details.email,
 				name: details.name,
-				service: details.service
+				service: details.service,
+				...pickBookingAddonQuantities(details)
 			},
 			time: details.time
 		})
@@ -91,7 +93,8 @@ export function createPackageCalendarEvent(
 				duration: details.duration,
 				email: details.email,
 				name: details.name,
-				service: details.service
+				service: details.service,
+				...pickBookingAddonQuantities(details)
 			},
 			time: details.time
 		})
