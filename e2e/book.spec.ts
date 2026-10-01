@@ -26,6 +26,7 @@ import {
 	expectTermsDialog,
 	fillPackageBookingForm,
 	fillSingleSessionBookingForm,
+	getE2eBookingSlotOffset,
 	submitBookingForm
 } from "./helpers/booking-form";
 
@@ -46,7 +47,7 @@ test.describe("book page", () => {
 
 		await page.goto("/book");
 
-		await fillSingleSessionBookingForm(page);
+		await fillSingleSessionBookingForm(page, getE2eBookingSlotOffset(test.info().parallelIndex));
 		await submitBookingForm(page);
 		await expectTermsDialog(page);
 	});
@@ -57,7 +58,7 @@ test.describe("book page", () => {
 		await page.goto("/book");
 
 		try {
-			await fillSingleSessionBookingForm(page);
+			await fillSingleSessionBookingForm(page, getE2eBookingSlotOffset(test.info().parallelIndex));
 			await submitBookingForm(page);
 			await expectTermsDialog(page);
 			await agreeToTerms(page);
