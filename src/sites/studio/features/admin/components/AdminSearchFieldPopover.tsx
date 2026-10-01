@@ -109,12 +109,10 @@ export function AdminSearchFieldPopover({
 					type="button"
 					title={value}
 					className={cn(
-						"font-inherit inline-block max-w-full min-w-0 cursor-pointer text-left align-baseline text-foreground underline-offset-4 hover:underline hover:decoration-primary",
+						"font-inherit inline-block max-w-full min-w-0 cursor-pointer truncate text-left align-baseline text-foreground underline-offset-4 hover:underline hover:decoration-primary",
 						className
 					)}>
-					<span className="inline-block max-w-full min-w-0 truncate align-baseline">
-						{children}
-					</span>
+					{children}
 				</button>
 			</PopoverTrigger>
 			<PopoverContent
