@@ -85,6 +85,7 @@ import type * as lib_packageSchedulingCalendar from "../lib/packageSchedulingCal
 import type * as lib_packageSessionCapacity from "../lib/packageSessionCapacity.js";
 import type * as lib_packageUpdates from "../lib/packageUpdates.js";
 import type * as lib_rateLimits from "../lib/rateLimits.js";
+import type * as lib_receiptNumber from "../lib/receiptNumber.js";
 import type * as lib_reminderScheduleTime from "../lib/reminderScheduleTime.js";
 import type * as lib_result from "../lib/result.js";
 import type * as lib_sessionAdminEdit from "../lib/sessionAdminEdit.js";
@@ -249,6 +250,7 @@ declare const fullApi: ApiFromModules<{
   "lib/packageSessionCapacity": typeof lib_packageSessionCapacity;
   "lib/packageUpdates": typeof lib_packageUpdates;
   "lib/rateLimits": typeof lib_rateLimits;
+  "lib/receiptNumber": typeof lib_receiptNumber;
   "lib/reminderScheduleTime": typeof lib_reminderScheduleTime;
   "lib/result": typeof lib_result;
   "lib/sessionAdminEdit": typeof lib_sessionAdminEdit;

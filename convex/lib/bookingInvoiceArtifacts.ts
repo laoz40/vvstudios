@@ -21,6 +21,11 @@ import type {
 	BookingReceiptData
 } from "#studio/features/booking-invoice/lib/types";
 import { formatTimestampDateLong } from "#convex/lib/emailSend";
+import {
+	bookingReceiptPaidAt,
+	resolveBookingReceiptNumber,
+	resolvePackageReceiptNumber
+} from "#convex/lib/receiptNumber";
 
 type PackageReceiptArtifactOptions = {
 	expiresAt?: number;
@@ -262,9 +267,10 @@ export function createBookingReceiptArtifactsForBooking(
 		return err({ reason: "INVALID_BOOKING_DATA" as const });
 	}
 
-	if (booking.receiptNumber === undefined || booking.receiptNumber.length === 0) {
-		return err({ reason: "INVALID_BOOKING_DATA" as const });
-	}
+	const receiptNumber = resolveBookingReceiptNumber(
+		booking,
+		bookingReceiptPaidAt(booking, createdAt)
+	);
 
 	const data = buildBookingReceiptData({
 		bookingId: booking._id,
@@ -285,7 +291,7 @@ export function createBookingReceiptArtifactsForBooking(
 		createdAt,
 		leadTimeMinutes: options.leadTimeMinutes,
 		rescheduleUrl: options.rescheduleUrl,
-		receiptNumber: booking.receiptNumber
+		receiptNumber
 	});
 
 	return ok({
@@ -371,9 +377,7 @@ export function createPackageReceiptArtifacts(
 		return err({ reason: "INVALID_BOOKING_DATA" as const });
 	}
 
-	if (packageRecord.receiptNumber === undefined || packageRecord.receiptNumber.length === 0) {
-		return err({ reason: "INVALID_BOOKING_DATA" as const });
-	}
+	const receiptNumber = resolvePackageReceiptNumber(packageRecord, paidAt);
 
 	const packageFormData = parsedPackage.data;
 
@@ -412,7 +416,7 @@ export function createPackageReceiptArtifacts(
 		totalDueAmount: packageRecord.totalDueAmount,
 		invoiceLineItems,
 		leadTimeMinutes: options.leadTimeMinutes,
-		receiptNumber: packageRecord.receiptNumber,
+		receiptNumber,
 		scheduleExpiresAtLabel,
 		scheduleUrl: options.scheduleUrl
 	});

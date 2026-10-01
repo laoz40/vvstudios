@@ -38,6 +38,7 @@ import {
 } from "#studio/features/admin/lib/session-edit-status";
 import { isBookingArchived } from "#convex/lib/archiveState";
 import type { SessionActionDetails } from "#studio/features/admin/lib/admin-sessions";
+import { resolveBookingReceiptNumberForDisplay } from "#studio/features/booking-invoice/lib/receipt-number";
 import type { SessionRecord } from "#studio/features/admin/lib/admin-sessions";
 import type { useSessionArchiveAndCancelActions } from "#studio/features/admin/hooks/useSessionArchiveAndCancelActions";
 import type { useDeliverablesEmailAction } from "#studio/features/admin/hooks/useDeliverablesEmailAction";
@@ -201,6 +202,28 @@ function DeliverablesControls({
 	);
 }
 
+function SessionOtherMenuReceiptRow({
+	onReceiptSearch,
+	session
+}: {
+	onReceiptSearch: (searchQuery: string) => void;
+	session: SessionActionsMenuProps["session"];
+}) {
+	const receiptNumber = resolveBookingReceiptNumberForDisplay(session);
+
+	if (!receiptNumber) {
+		return null;
+	}
+
+	return (
+		<AdminDropdownReceiptRow
+			copyLabel="receipt number"
+			onSearch={onReceiptSearch}
+			value={receiptNumber}
+		/>
+	);
+}
+
 export function SessionActionsMenu({
 	session,
 	details,
@@ -316,10 +339,9 @@ export function SessionActionsMenu({
 					<DropdownMenuSubContent className="w-80 touch-manipulation">
 						{details.canManageConfirmedSession ? (
 							<>
-								<AdminDropdownReceiptRow
-									copyLabel="invoice number"
-									onSearch={onReceiptSearch}
-									value={details.customerSessionId}
+								<SessionOtherMenuReceiptRow
+									onReceiptSearch={onReceiptSearch}
+									session={session}
 								/>
 								<AnimatedDropdownMenuItem
 									onSelect={() => void navigator.clipboard.writeText(String(session._id))}

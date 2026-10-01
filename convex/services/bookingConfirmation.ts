@@ -6,6 +6,7 @@ import type { ActionCtx, MutationCtx } from "#convex/_generated/server";
 import { scheduleDriveSetup } from "#convex/lib/driveScheduling";
 import { fromConvexTuple, okOrThrow } from "#convex/lib/result";
 import { searchBlobPatchForBooking } from "#convex/lib/adminSearchBlob";
+import { bookingReceiptPaidAt, resolveBookingReceiptNumber } from "#convex/lib/receiptNumber";
 import { getSessionFromDb } from "#convex/lib/sessionLookup";
 import {
 	getBookingClaimStatus,
@@ -149,16 +150,41 @@ export function markBookingConfirmedService(ctx: MutationCtx, args: MarkBookingC
 				return ok(session);
 			})
 			// Save the confirmed status and Calendar IDs while clearing the temporary time-slot reservation.
-			.andThen((session) =>
-				okOrThrow(
-					ctx.db.patch(args.bookingId, {
-						status: "confirmed",
-						googleEventId: args.googleEventId,
-						googleCalendarId: args.googleCalendarId,
-						bookingConfirmedAt: Date.now(),
-						bookingFailureCode: undefined,
-						...clearedSessionReservationPatch
-					})
+			.andThen((session) => {
+				const confirmedAt = Date.now();
+
+				return okOrThrow(
+					(async () => {
+						const confirmedPatch = {
+							status: "confirmed" as const,
+							googleEventId: args.googleEventId,
+							googleCalendarId: args.googleCalendarId,
+							bookingConfirmedAt: confirmedAt,
+							bookingFailureCode: undefined,
+							...clearedSessionReservationPatch
+						};
+
+						if (session.packageId !== undefined || session.receiptNumber) {
+							await ctx.db.patch(args.bookingId, confirmedPatch);
+
+							return;
+						}
+
+						const receiptNumber = resolveBookingReceiptNumber(
+							session,
+							bookingReceiptPaidAt(session, confirmedAt)
+						);
+
+						const searchBlobPatch = await searchBlobPatchForBooking(ctx, session, {
+							receiptNumber
+						});
+
+						await ctx.db.patch(args.bookingId, {
+							...confirmedPatch,
+							receiptNumber,
+							...searchBlobPatch
+						});
+					})()
 				).andThen(() =>
 					okOrThrow(
 						scheduleDriveSetup(ctx, {
@@ -168,9 +194,31 @@ export function markBookingConfirmedService(ctx: MutationCtx, args: MarkBookingC
 							packageId: session.packageId
 						})
 					).andThen((scheduled) => scheduled)
-				)
-			)
+				);
+			})
 	);
+}
+
+export function ensureStandaloneBookingReceiptNumberService(
+	ctx: MutationCtx,
+	args: { bookingId: Id<"bookings"> }
+) {
+	return getSessionFromDb(ctx, args.bookingId).andThen((session) => {
+		if (session.packageId !== undefined || session.receiptNumber) {
+			return ok(null);
+		}
+
+		if (session.status !== "confirmed" && session.status !== "email_failed") {
+			return ok(null);
+		}
+
+		const receiptNumber = resolveBookingReceiptNumber(
+			session,
+			bookingReceiptPaidAt(session, session.bookingConfirmedAt ?? Date.now())
+		);
+
+		return recordBookingReceiptNumberService(ctx, { bookingId: args.bookingId, receiptNumber });
+	});
 }
 
 export function markSessionInvoiceEmailFailedService(
@@ -182,13 +230,16 @@ export function markSessionInvoiceEmailFailedService(
 			return ok(null);
 		}
 
-		return okOrThrow(
-			ctx.db
-				.patch(args.bookingId, {
-					status: "email_failed",
-					bookingFailureCode: "BOOKING_INVOICE_EMAIL_FAILED"
-				})
-				.then(() => null)
+		return ensureStandaloneBookingReceiptNumberService(ctx, { bookingId: session._id }).andThen(
+			() =>
+				okOrThrow(
+					ctx.db
+						.patch(args.bookingId, {
+							status: "email_failed",
+							bookingFailureCode: "BOOKING_INVOICE_EMAIL_FAILED"
+						})
+						.then(() => null)
+				)
 		);
 	});
 }

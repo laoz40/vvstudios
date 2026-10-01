@@ -28,18 +28,27 @@ export function resendBookingReceiptService(
 			return ok(session);
 		})
 		.andThen((session) =>
+			fromConvexTuple(
+				ctx.runMutation(internal.bookingConfirmation.ensureStandaloneBookingReceiptNumber, {
+					bookingId: session._id
+				})
+			).map(() => session)
+		)
+		.andThen((session) =>
 			okOrThrow(ctx.runQuery(api.bookingSettings.get, {})).map((settings) => ({
 				session,
 				settings
 			}))
 		)
 		.andThen(({ session, settings }) =>
-			createRescheduleUrlForSession(ctx, session).andThen((rescheduleUrl) =>
-				sendBookingReceiptEmailsForBooking(session, {
-					leadTimeMinutes: settings.leadTimeMinutes,
-					rescheduleUrl,
-					skipHostEmail: true
-				}).map(({ receiptNumber }) => ({ session, receiptNumber }))
+			getSessionFromQuery(ctx, session._id).andThen((sessionFromDb) =>
+				createRescheduleUrlForSession(ctx, sessionFromDb).andThen((rescheduleUrl) =>
+					sendBookingReceiptEmailsForBooking(sessionFromDb, {
+						leadTimeMinutes: settings.leadTimeMinutes,
+						rescheduleUrl,
+						skipHostEmail: true
+					}).map(({ receiptNumber }) => ({ session: sessionFromDb, receiptNumber }))
+				)
 			)
 		)
 		.andThen(({ session, receiptNumber }) =>
