@@ -80,17 +80,17 @@ function SessionEditorNameCell({
 					<DriveWorkflowAttentionIcon />
 				</span>
 			) : null}
-			<p className="min-w-0 flex-1 truncate">
+			<span className="min-w-0 flex-1 truncate">
 				<PrivacySensitiveText
 					rowId={rowId}
 					value={editorName}
 					label="editor name"
-					className="!text-xs underline-offset-2"
+					className="!text-xs !underline-offset-2 hover:!decoration-primary"
 					searchPrefix="editor"
 					onSearch={onSearch}>
 					{editorName}
 				</PrivacySensitiveText>
-			</p>
+			</span>
 		</div>
 	);
 }
