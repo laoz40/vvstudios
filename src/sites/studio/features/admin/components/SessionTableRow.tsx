@@ -80,7 +80,7 @@ function SessionEditorNameCell({
 					<DriveWorkflowAttentionIcon />
 				</span>
 			) : null}
-			<span className="min-w-0 flex-1 truncate">
+			<span className="min-w-0 flex-1">
 				<PrivacySensitiveText
 					rowId={rowId}
 					value={editorName}
