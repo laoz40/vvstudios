@@ -74,24 +74,23 @@ function SessionEditorNameCell({
 	showDriveAlert: boolean;
 }) {
 	return (
-		<div className="flex w-full min-w-0 items-center gap-1">
+		<p className="flex w-full min-w-0 items-center gap-1 text-xs">
 			{showDriveAlert ? (
 				<span className="shrink-0">
 					<DriveWorkflowAttentionIcon />
 				</span>
 			) : null}
-			<p className="min-w-0 flex-1 truncate">
+			<span className="min-w-0 flex-1 truncate">
 				<PrivacySensitiveText
 					rowId={rowId}
 					value={editorName}
 					label="editor name"
-					className="!text-xs underline-offset-2"
 					searchPrefix="editor"
 					onSearch={onSearch}>
 					{editorName}
 				</PrivacySensitiveText>
-			</p>
-		</div>
+			</span>
+		</p>
 	);
 }
 
