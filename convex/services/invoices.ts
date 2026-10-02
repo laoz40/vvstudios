@@ -9,7 +9,7 @@ import {
 	createBookingInvoiceArtifactsForBooking,
 	createBookingReceiptArtifactsForBooking,
 	createPackageReceiptArtifacts
-} from "#convex/lib/bookingInvoiceArtifacts";
+} from "#studio/features/booking-invoice/lib/booking-artifacts";
 import {
 	renderBookingInvoicePdfInNode,
 	renderBookingReceiptPdfInNode

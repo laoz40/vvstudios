@@ -1,7 +1,7 @@
 import { err, ok, okAsync, ResultAsync, type Result } from "neverthrow";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { ActionCtx } from "#convex/_generated/server";
-import { createBookingInvoiceArtifactsForBooking } from "#convex/lib/bookingInvoiceArtifacts";
+import { createBookingInvoiceArtifactsForBooking } from "#studio/features/booking-invoice/lib/booking-artifacts";
 import {
 	sendBookingRescheduledCustomerEmail,
 	sendSessionHostDetailsEmail

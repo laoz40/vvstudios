@@ -25,7 +25,7 @@ import {
 	type AdminPackageSearchArgs
 } from "#convex/lib/adminPackageSearch";
 import { parseTrimmedAdminSearchQuery } from "#convex/lib/adminSearchQuery";
-import { resolvePackageReceiptNumber } from "#convex/lib/receiptNumber";
+import { resolvePackageReceiptNumber } from "#studio/features/booking-invoice/lib/receipt-number";
 import {
 	searchBlobPatchForBooking,
 	searchBlobPatchForPackage,

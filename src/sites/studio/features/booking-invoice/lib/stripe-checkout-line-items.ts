@@ -1,5 +1,4 @@
 import { err, ok, type Result } from "neverthrow";
-import type { Doc } from "#convex/_generated/dataModel";
 import {
 	getCustomerAddonDisplayLabel,
 	pickBookingAddonQuantities,
@@ -11,7 +10,8 @@ import {
 	BOOKING_INVOICE_CURRENCY,
 	calculatePackageAmounts,
 	DURATION_PRICES,
-	getBookingAddonQuantity
+	getBookingAddonQuantity,
+	type PackageSize
 } from "#studio/features/booking-form/lib/booking-pricing";
 
 type BookingDuration = keyof typeof DURATION_PRICES;
@@ -83,16 +83,15 @@ export type PackageCheckoutLineItems = {
 	lineItems: SessionCheckoutLineItem[];
 };
 
-export type PackageCheckoutPricing = Pick<
-	Doc<"packages">,
-	| "duration"
-	| "addons"
-	| "packageSize"
-	| "essentialEditQuantity"
-	| "completeEditQuantity"
-	| "clipsPackageQuantity"
-	| "handcraftedClipsQuantity"
->;
+export type PackageCheckoutPricing = {
+	duration: string;
+	addons: readonly BookingAddon[];
+	packageSize: PackageSize;
+	essentialEditQuantity?: string;
+	completeEditQuantity?: string;
+	clipsPackageQuantity?: string;
+	handcraftedClipsQuantity?: string;
+};
 
 export type BuildPackageCheckoutLineItemsError = { reason: "BOOKING_INVALID_DURATION" };
 

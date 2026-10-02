@@ -4,9 +4,13 @@ import {
 	createBookingReceiptEmailArtifactsForBooking,
 	createPackageReceiptEmailArtifacts,
 	type PackageInvoiceInput
-} from "#convex/lib/bookingInvoiceArtifacts";
+} from "#studio/features/booking-invoice/lib/booking-artifacts";
 import { renderBookingReceiptPdfInNode } from "#convex/lib/bookingInvoicePdfRender";
-import { formatTimestampDateShort, sendEmail } from "#convex/lib/emailSend";
+import {
+	formatTimestampDateLong,
+	formatTimestampDateShort,
+	sendEmail
+} from "#convex/lib/emailSend";
 import { sendPackageHostDetailsEmail, sendSessionHostDetailsEmail } from "#convex/lib/email";
 import { formatSessionDateShort } from "#convex/lib/sessionCalendarTime";
 import { pickBookingAddonQuantities } from "#studio/features/booking-form/lib/booking-form-model";
@@ -113,7 +117,12 @@ export function sendPackageReceiptEmailsForPackage(
 		skipHostEmail?: boolean;
 	}
 ): ResultAsync<{ receiptNumber: string }, PackageReceiptEmailError> {
-	return createPackageReceiptEmailArtifacts(packageRecord, paidAt, options)
+	const { expiresAt, ...artifactOptions } = options;
+
+	return createPackageReceiptEmailArtifacts(packageRecord, paidAt, {
+		...artifactOptions,
+		scheduleExpiresAtLabel: expiresAt === undefined ? undefined : formatTimestampDateLong(expiresAt)
+	})
 		.andThen(({ artifacts }) =>
 			renderBookingReceiptPdfInNode(artifacts.data).map((pdfContent) => ({ artifacts, pdfContent }))
 		)

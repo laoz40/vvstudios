@@ -9,7 +9,7 @@ import { createPendingPackage } from "#convex/lib/packagePayment";
 import { parsePackageRequest, type CreatePackageRequestArgs } from "#convex/lib/packageUpdates";
 import { fromConvexTuple } from "#convex/lib/result";
 import { getStripeClient, type StripeClient } from "#convex/lib/stripeClient";
-import { buildPackageCheckoutLineItems } from "#convex/lib/stripeCheckoutLineItems";
+import { buildPackageCheckoutLineItems } from "#studio/features/booking-invoice/lib/stripe-checkout-line-items";
 import {
 	closeOpenStripeCheckoutSession,
 	createEmbeddedStripePackageCheckoutSession,

@@ -39,7 +39,6 @@ import type * as lib_bookingAddonQuantities from "../lib/bookingAddonQuantities.
 import type * as lib_bookingConfirmation from "../lib/bookingConfirmation.js";
 import type * as lib_bookingConfirmationClaim from "../lib/bookingConfirmationClaim.js";
 import type * as lib_bookingDocumentEmails from "../lib/bookingDocumentEmails.js";
-import type * as lib_bookingInvoiceArtifacts from "../lib/bookingInvoiceArtifacts.js";
 import type * as lib_bookingInvoicePdfRender from "../lib/bookingInvoicePdfRender.js";
 import type * as lib_bookingSettings from "../lib/bookingSettings.js";
 import type * as lib_bookingSubmission from "../lib/bookingSubmission.js";
@@ -85,7 +84,6 @@ import type * as lib_packageSchedulingCalendar from "../lib/packageSchedulingCal
 import type * as lib_packageSessionCapacity from "../lib/packageSessionCapacity.js";
 import type * as lib_packageUpdates from "../lib/packageUpdates.js";
 import type * as lib_rateLimits from "../lib/rateLimits.js";
-import type * as lib_receiptNumber from "../lib/receiptNumber.js";
 import type * as lib_reminderScheduleTime from "../lib/reminderScheduleTime.js";
 import type * as lib_result from "../lib/result.js";
 import type * as lib_sessionAdminEdit from "../lib/sessionAdminEdit.js";
@@ -101,7 +99,6 @@ import type * as lib_sessionRescheduleWorkflow from "../lib/sessionRescheduleWor
 import type * as lib_sessionReservations from "../lib/sessionReservations.js";
 import type * as lib_sessionSavePatch from "../lib/sessionSavePatch.js";
 import type * as lib_stripeAdjustmentInvoice from "../lib/stripeAdjustmentInvoice.js";
-import type * as lib_stripeCheckoutLineItems from "../lib/stripeCheckoutLineItems.js";
 import type * as lib_stripeCheckoutSession from "../lib/stripeCheckoutSession.js";
 import type * as lib_stripeClient from "../lib/stripeClient.js";
 import type * as lib_stripeInvoice from "../lib/stripeInvoice.js";
@@ -204,7 +201,6 @@ declare const fullApi: ApiFromModules<{
   "lib/bookingConfirmation": typeof lib_bookingConfirmation;
   "lib/bookingConfirmationClaim": typeof lib_bookingConfirmationClaim;
   "lib/bookingDocumentEmails": typeof lib_bookingDocumentEmails;
-  "lib/bookingInvoiceArtifacts": typeof lib_bookingInvoiceArtifacts;
   "lib/bookingInvoicePdfRender": typeof lib_bookingInvoicePdfRender;
   "lib/bookingSettings": typeof lib_bookingSettings;
   "lib/bookingSubmission": typeof lib_bookingSubmission;
@@ -250,7 +246,6 @@ declare const fullApi: ApiFromModules<{
   "lib/packageSessionCapacity": typeof lib_packageSessionCapacity;
   "lib/packageUpdates": typeof lib_packageUpdates;
   "lib/rateLimits": typeof lib_rateLimits;
-  "lib/receiptNumber": typeof lib_receiptNumber;
   "lib/reminderScheduleTime": typeof lib_reminderScheduleTime;
   "lib/result": typeof lib_result;
   "lib/sessionAdminEdit": typeof lib_sessionAdminEdit;
@@ -266,7 +261,6 @@ declare const fullApi: ApiFromModules<{
   "lib/sessionReservations": typeof lib_sessionReservations;
   "lib/sessionSavePatch": typeof lib_sessionSavePatch;
   "lib/stripeAdjustmentInvoice": typeof lib_stripeAdjustmentInvoice;
-  "lib/stripeCheckoutLineItems": typeof lib_stripeCheckoutLineItems;
   "lib/stripeCheckoutSession": typeof lib_stripeCheckoutSession;
   "lib/stripeClient": typeof lib_stripeClient;
   "lib/stripeInvoice": typeof lib_stripeInvoice;

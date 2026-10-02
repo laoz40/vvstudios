@@ -13,7 +13,7 @@ import type {
 	BuildSessionCheckoutLineItemsInput,
 	PackageCheckoutDiscount,
 	SessionCheckoutLineItem
-} from "#convex/lib/stripeCheckoutLineItems";
+} from "#studio/features/booking-invoice/lib/stripe-checkout-line-items";
 
 export type StripeCheckoutCreateFailed = { reason: "STRIPE_CHECKOUT_CREATE_FAILED" };
 

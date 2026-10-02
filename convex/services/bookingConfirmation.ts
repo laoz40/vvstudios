@@ -6,7 +6,10 @@ import type { ActionCtx, MutationCtx } from "#convex/_generated/server";
 import { scheduleDriveSetup } from "#convex/lib/driveScheduling";
 import { fromConvexTuple, okOrThrow } from "#convex/lib/result";
 import { searchBlobPatchForBooking } from "#convex/lib/adminSearchBlob";
-import { bookingReceiptPaidAt, resolveBookingReceiptNumber } from "#convex/lib/receiptNumber";
+import {
+	bookingReceiptPaidAt,
+	resolveBookingReceiptNumber
+} from "#studio/features/booking-invoice/lib/receipt-number";
 import { getSessionFromDb } from "#convex/lib/sessionLookup";
 import {
 	getBookingClaimStatus,

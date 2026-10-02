@@ -16,7 +16,7 @@ import {
 	buildSessionCheckoutLineItems,
 	type PackageCheckoutLineItems,
 	type SessionCheckoutLineItem
-} from "#convex/lib/stripeCheckoutLineItems";
+} from "#studio/features/booking-invoice/lib/stripe-checkout-line-items";
 import { calculatePackageAmounts } from "#studio/features/booking-form/lib/booking-pricing";
 import type { BookingAddon } from "#studio/features/booking-form/lib/booking-form-model";
 import { calculateBookingReceiptAmounts } from "#studio/features/booking-invoice/lib/calculate-booking-receipt-amounts";

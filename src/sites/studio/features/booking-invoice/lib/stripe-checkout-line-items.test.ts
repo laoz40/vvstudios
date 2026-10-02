@@ -14,11 +14,11 @@
  *    An 8-session package with add-ons applies the 10% discount to known subtotals.
  */
 import { describe, expect, test } from "vitest";
+import type { BookingAddon } from "#studio/features/booking-form/lib/booking-form-model";
 import {
 	buildPackageCheckoutLineItems,
 	buildSessionCheckoutLineItems
-} from "#convex/lib/stripeCheckoutLineItems";
-import type { BookingAddon } from "#studio/features/booking-form/lib/booking-form-model";
+} from "#studio/features/booking-invoice/lib/stripe-checkout-line-items";
 
 describe("buildSessionCheckoutLineItems", () => {
 	test("converts AUD prices to Stripe cents", () => {

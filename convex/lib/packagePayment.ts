@@ -5,7 +5,7 @@ import type { ActionCtx } from "#convex/_generated/server";
 import type { PackageLookupError, PaidPackageResult } from "#convex/services/packages";
 import { calculatePackageAmounts } from "#studio/features/booking-form/lib/booking-pricing";
 import { createPackageInvoiceLineItemSnapshot } from "#studio/features/booking-invoice/lib/build-booking-invoice-data";
-import type { PackageInvoiceInput } from "#convex/lib/bookingInvoiceArtifacts";
+import type { PackageInvoiceInput } from "#studio/features/booking-invoice/lib/booking-artifacts";
 import { sendPackageReceiptEmailsForPackage } from "#convex/lib/bookingDocumentEmails";
 import type { ParsedPackageRequest } from "#convex/lib/packageUpdates";
 import { fromConvexTuple, okOrThrow } from "#convex/lib/result";

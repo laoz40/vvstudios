@@ -14,34 +14,21 @@ import {
 	buildPackageReceiptData
 } from "#studio/features/booking-invoice/lib/build-booking-receipt-data";
 import { renderBookingReceiptEmail } from "#studio/features/booking-invoice/email/render-booking-receipt-email";
-import type {
-	BookingInvoiceLineItem,
-	BookingReceiptData
-} from "#studio/features/booking-invoice/lib/types";
-import { formatTimestampDateLong } from "#convex/lib/emailSend";
 import {
 	bookingReceiptPaidAt,
 	resolveBookingReceiptNumber,
 	resolvePackageReceiptNumber
-} from "#convex/lib/receiptNumber";
+} from "#studio/features/booking-invoice/lib/receipt-number";
+import type {
+	BookingInvoiceLineItem,
+	BookingReceiptData
+} from "#studio/features/booking-invoice/lib/types";
 
-type PackageReceiptArtifactOptions = {
-	expiresAt?: number;
+export type PackageReceiptArtifactOptions = {
 	leadTimeMinutes: number;
+	scheduleExpiresAtLabel?: string;
 	scheduleUrl?: string;
 };
-
-function createPdfFilename(invoiceNumber: string) {
-	return `booking-invoice-${invoiceNumber.toLowerCase()}.pdf`;
-}
-
-function createReceiptPdfFilename(receiptNumber: string) {
-	return `booking-receipt-${receiptNumber.toLowerCase()}.pdf`;
-}
-
-function createPackageReceiptPdfFilename(receiptNumber: string) {
-	return `package-receipt-${receiptNumber.toLowerCase()}.pdf`;
-}
 
 export type PackageAdjustmentInvoiceInput = {
 	adjustment: Extract<Doc<"packageAdjustments">, { outcome: "invoice_required" }>;
@@ -215,7 +202,10 @@ export function createBookingInvoiceArtifactsForBooking(
 	return ok({
 		artifacts: {
 			data,
-			pdf: { contentType: "application/pdf", filename: createPdfFilename(data.invoice.number) }
+			pdf: {
+				contentType: "application/pdf",
+				filename: `booking-invoice-${data.invoice.number.toLowerCase()}.pdf`
+			}
 		},
 		booking: parsedBooking.data
 	});
@@ -264,7 +254,7 @@ export function createBookingReceiptArtifactsForBooking(
 			data,
 			pdf: {
 				contentType: "application/pdf",
-				filename: createReceiptPdfFilename(data.receipt.number)
+				filename: `booking-receipt-${data.receipt.number.toLowerCase()}.pdf`
 			}
 		},
 		booking: parsedBooking.data
@@ -357,9 +347,6 @@ export function createPackageReceiptArtifacts(
 			singleSessionAmount: packageRecord.singleSessionAmount
 		});
 
-	const scheduleExpiresAtLabel =
-		options.expiresAt === undefined ? undefined : formatTimestampDateLong(options.expiresAt);
-
 	const data = buildPackageReceiptData({
 		packageId: packageRecord._id,
 		name: packageFormData.name,
@@ -382,7 +369,7 @@ export function createPackageReceiptArtifacts(
 		invoiceLineItems,
 		leadTimeMinutes: options.leadTimeMinutes,
 		receiptNumber,
-		scheduleExpiresAtLabel,
+		scheduleExpiresAtLabel: options.scheduleExpiresAtLabel,
 		scheduleUrl: options.scheduleUrl
 	});
 
@@ -391,7 +378,7 @@ export function createPackageReceiptArtifacts(
 			data,
 			pdf: {
 				contentType: "application/pdf",
-				filename: createPackageReceiptPdfFilename(data.receipt.number)
+				filename: `package-receipt-${data.receipt.number.toLowerCase()}.pdf`
 			}
 		}
 	});

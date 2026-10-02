@@ -9,7 +9,7 @@ import type { BookingAddon } from "#studio/features/booking-form/lib/booking-for
 import { getBookingSubmitRateLimitKey } from "#convex/lib/bookingSubmission";
 import { fromConvexTuple } from "#convex/lib/result";
 import { getStripeClient, type StripeClient } from "#convex/lib/stripeClient";
-import { buildSessionCheckoutLineItems } from "#convex/lib/stripeCheckoutLineItems";
+import { buildSessionCheckoutLineItems } from "#studio/features/booking-invoice/lib/stripe-checkout-line-items";
 import {
 	closeOpenStripeCheckoutSession,
 	createEmbeddedStripeCheckoutSession,
