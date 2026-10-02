@@ -13,10 +13,8 @@ import {
 	buildBookingReceiptData,
 	buildPackageReceiptData
 } from "#studio/features/booking-invoice/lib/build-booking-receipt-data";
-import { renderBookingInvoiceEmail } from "#studio/features/booking-invoice/email/render-booking-invoice-email";
 import { renderBookingReceiptEmail } from "#studio/features/booking-invoice/email/render-booking-receipt-email";
 import type {
-	BookingInvoiceData,
 	BookingInvoiceLineItem,
 	BookingReceiptData
 } from "#studio/features/booking-invoice/lib/types";
@@ -221,39 +219,6 @@ export function createBookingInvoiceArtifactsForBooking(
 		},
 		booking: parsedBooking.data
 	});
-}
-
-export function createBookingInvoiceEmailArtifactsForBooking(
-	booking: Doc<"bookings">,
-	createdAt: number,
-	options: {
-		customInvoice?: Doc<"customInvoices">;
-		leadTimeMinutes: number;
-		rescheduleUrl?: string;
-	}
-): ResultAsync<
-	{
-		artifacts: {
-			data: BookingInvoiceData;
-			emailHtml: string;
-			pdf: { contentType: string; filename: string };
-		};
-		booking: BookingFormValues;
-	},
-	{ reason: "INVALID_BOOKING_DATA" | "INVOICE_EMAIL_RENDER_FAILED" }
-> {
-	const artifactsResult = createBookingInvoiceArtifactsForBooking(booking, createdAt, options);
-
-	if (artifactsResult.isErr()) {
-		return errAsync(artifactsResult.error);
-	}
-
-	return artifactsResult.asyncAndThen((value) =>
-		renderBookingInvoiceEmail(value.artifacts.data).map((emailHtml) => ({
-			...value,
-			artifacts: { ...value.artifacts, emailHtml }
-		}))
-	);
 }
 
 export function createBookingReceiptArtifactsForBooking(
