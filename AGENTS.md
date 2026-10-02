@@ -31,13 +31,13 @@ After code changes run:
 - `lint`
 - `test`
 - `typecheck`
-- `dead-code`
-- `dupes`
 
 Before opening PR:
 
-- run the above commands
-- run `test:e2e` (and related `test:e2e:*` scripts) when the change touches those flows.
+- run the above commands, plus:
+  - `dead-code`
+  - `dupes`
+  - `test:e2e` and related `test:e2e:*` scripts when the change touches those flows.
 - Use `code-review` skill within a subagent.
 
 - Do not run `build` unless asked.
