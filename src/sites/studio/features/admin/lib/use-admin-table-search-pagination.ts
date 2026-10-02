@@ -152,7 +152,7 @@ export function useAdminTableSearchPagination(
 		setFirstSearchPageReady(false);
 	}, [searchKey]);
 
-	// Remember when the first search page has more index results than one batch.
+	// First search page with more list pages than one batch → show refine banner until opt-in.
 	useEffect(() => {
 		if (!hasActiveSearch || isLoadingFirstPage || firstSearchPageReady) {
 			return;

@@ -23,26 +23,11 @@ import {
 	saveSessionEditorNotes,
 	saveSessionEditStatus
 } from "#convex/lib/editorSessions";
-import {
-	getCapacityConsumingPackageSessions,
-	sessionConsumesPackageCapacity
-} from "#convex/lib/packageScheduling";
-import {
-	getDriveStatus,
-	getDriveWorkflowFailureForBooking,
-	getEditorSessionDriveFolders
-} from "#convex/lib/driveStatus";
+import { getDriveStatus, getEditorSessionDriveFolders } from "#convex/lib/driveStatus";
 import { okOrThrow } from "#convex/lib/result";
 import { searchBlobPatchForBooking } from "#convex/lib/adminSearchBlob";
 import { getSessionByStripeSessionId, getSessionFromDb } from "#convex/lib/sessionLookup";
-import { listStripeInvoicesForBooking, summarizeStripeInvoices } from "#convex/lib/stripeInvoices";
-import {
-	paginateAdminSessionsWithoutSearch,
-	paginateAdminSessionsWithSearch,
-	type AdminSessionSearchArgs
-} from "#convex/lib/adminBookingSearch";
-import { parseTrimmedAdminSearchQuery } from "#convex/lib/adminSearchQuery";
-import { passesAdminInboxStaleFilter, type AdminSessionsView } from "#convex/lib/adminSessionList";
+import { listAdminSessions, type AdminSessionsView } from "#convex/lib/listAdminSessions";
 import {
 	archiveDeadCheckoutBooking,
 	archivePastDeadCheckoutSessionsBatch,
@@ -155,46 +140,6 @@ export function listEditorSessionsService(ctx: QueryCtx, args: ListEditorSession
 		});
 }
 
-async function loadAdminSessionListRows(ctx: QueryCtx, sessionsPage: Doc<"bookings">[]) {
-	return Promise.all(
-		sessionsPage.map(async (session) => {
-			const [hasDriveWorkflowFailure, stripeInvoicesResult] = await Promise.all([
-				getDriveWorkflowFailureForBooking(ctx, session),
-				listStripeInvoicesForBooking(ctx, session._id)
-			]);
-
-			const stripeInvoicesSummary = summarizeStripeInvoices(stripeInvoicesResult.unwrapOr([]));
-
-			if (!session.packageId) {
-				return { ...session, hasDriveWorkflowFailure, stripeInvoicesSummary };
-			}
-
-			const packageRecord = await ctx.db.get(session.packageId);
-
-			if (!packageRecord) {
-				return { ...session, hasDriveWorkflowFailure, stripeInvoicesSummary };
-			}
-
-			const packageSessions = await getCapacityConsumingPackageSessions(
-				ctx,
-				packageRecord._id,
-				packageRecord.packageSize
-			);
-
-			return {
-				...session,
-				hasDriveWorkflowFailure,
-				stripeInvoicesSummary,
-				linkedPackageSize: packageRecord.packageSize,
-				packageStripeCustomerId: packageRecord.stripeCustomerId,
-				packageSessionPosition: sessionConsumesPackageCapacity(session)
-					? packageSessions.findIndex(({ _id }) => _id === session._id) + 1
-					: undefined
-			};
-		})
-	);
-}
-
 export async function listSessionsService(ctx: QueryCtx, args: ListSessionsArgs) {
 	await requirePermission(ctx, "view:sensitive-booking-data").match(
 		() => null,
@@ -205,34 +150,7 @@ export async function listSessionsService(ctx: QueryCtx, args: ListSessionsArgs)
 
 	// usePaginatedQuery requires the raw Convex PaginationResult, not our Result tuple.
 	// Auth failures throw above so the hook can keep native cursor/page handling.
-	const sortBy = args.sortBy ?? "session";
-	const sortDirection = args.sortDirection ?? "asc";
-	const view = args.view ?? "inbox";
-	const includeStale = args.includeStale ?? true;
-	const parsedSearchQuery = parseTrimmedAdminSearchQuery(args.searchQuery);
-
-	const searchContext: Omit<AdminSessionSearchArgs, "parsedQuery"> = {
-		sortBy,
-		sortDirection,
-		view,
-		includeStale,
-		paginationOpts: args.paginationOpts
-	};
-
-	const bookingsPage = parsedSearchQuery
-		? await paginateAdminSessionsWithSearch(ctx, {
-				...searchContext,
-				parsedQuery: parsedSearchQuery
-			})
-		: await paginateAdminSessionsWithoutSearch(ctx, searchContext);
-
-	const sessionsPage = !includeStale
-		? bookingsPage.page.filter((session) => passesAdminInboxStaleFilter(session, includeStale))
-		: bookingsPage.page;
-
-	const page = await loadAdminSessionListRows(ctx, sessionsPage);
-
-	return { ...bookingsPage, page };
+	return listAdminSessions(ctx, args);
 }
 
 export function buildPublicSessionStatusResponse(session: Doc<"bookings">) {

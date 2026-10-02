@@ -19,12 +19,7 @@ import {
 	type UpdatePackageArgs,
 	validatePackageUpdate
 } from "#convex/lib/packageUpdates";
-import {
-	paginateAdminPackagesWithoutSearch,
-	paginateAdminPackagesWithSearch,
-	type AdminPackageSearchArgs
-} from "#convex/lib/adminPackageSearch";
-import { parseTrimmedAdminSearchQuery } from "#convex/lib/adminSearchQuery";
+import { listAdminPackages, type AdminPackagesView } from "#convex/lib/listAdminPackages";
 import { resolvePackageReceiptNumber } from "#studio/features/booking-invoice/lib/receipt-number";
 import {
 	searchBlobPatchForBooking,
@@ -32,15 +27,7 @@ import {
 	patchPackageSessionBookingsContactSearch,
 	type PackageContactSearchFields
 } from "#convex/lib/adminSearchBlob";
-import {
-	passesAdminPackageStaleFilter,
-	type AdminPackagesView
-} from "#convex/lib/adminPackageList";
 import { okOrThrow } from "#convex/lib/result";
-import {
-	listStripeInvoicesForPackage,
-	summarizeCustomPackageStripeInvoices
-} from "#convex/lib/stripeInvoices";
 
 type SavePackageInstagramHandleArgs = { packageId: Id<"packages">; instagramHandle: string };
 
@@ -90,77 +77,9 @@ type ListPackagesArgs = {
 	searchQuery?: string;
 };
 
-async function loadAdminPackageListRows(ctx: QueryCtx, packagesOnPage: Doc<"packages">[]) {
-	return Promise.all(
-		packagesOnPage.map(async (packageFromDb) => {
-			const [packageSessions, packageAdjustment, stripeInvoicesResult] = await Promise.all([
-				getCapacityConsumingPackageSessions(ctx, packageFromDb._id, packageFromDb.packageSize),
-				ctx.db
-					.query("packageAdjustments")
-					.withIndex("by_packageId", (indexQuery) => indexQuery.eq("packageId", packageFromDb._id))
-					.unique(),
-				listStripeInvoicesForPackage(ctx, packageFromDb._id)
-			]);
-
-			const customStripeInvoicesSummary = summarizeCustomPackageStripeInvoices(
-				stripeInvoicesResult.unwrapOr([])
-			);
-
-			return {
-				...packageFromDb,
-				bookedSessions: packageSessions.length,
-				// An adjustment record (including no-charge) is created only after all sessions end.
-				areSessionsComplete: packageAdjustment !== null,
-				adjustment:
-					packageAdjustment?.outcome === "invoice_required"
-						? {
-								_id: packageAdjustment._id,
-								totalAmount: packageAdjustment.totalAmount,
-								invoiceDueAt: packageAdjustment.invoiceDueAt,
-								invoiceEmailStatus: packageAdjustment.invoiceEmailStatus,
-								paymentStatus: packageAdjustment.paymentStatus
-							}
-						: null,
-				customStripeInvoicesSummary
-			};
-		})
-	);
-}
-
-async function buildAdminPackagesListPage(ctx: QueryCtx, args: ListPackagesArgs) {
-	const sortDirection = args.sortDirection ?? "desc";
-	const view = args.view ?? "inbox";
-	const includeStale = args.includeStale ?? false;
-	const parsedSearchQuery = parseTrimmedAdminSearchQuery(args.searchQuery);
-
-	const searchContext: Omit<AdminPackageSearchArgs, "parsedQuery"> = {
-		sortDirection,
-		view,
-		includeStale,
-		paginationOpts: args.paginationOpts
-	};
-
-	const packagesPage = parsedSearchQuery
-		? await paginateAdminPackagesWithSearch(ctx, {
-				...searchContext,
-				parsedQuery: parsedSearchQuery
-			})
-		: await paginateAdminPackagesWithoutSearch(ctx, searchContext);
-
-	const packagesOnPage = !includeStale
-		? packagesPage.page.filter((packageFromDb) =>
-				passesAdminPackageStaleFilter(packageFromDb, includeStale)
-			)
-		: packagesPage.page;
-
-	const page = await loadAdminPackageListRows(ctx, packagesOnPage);
-
-	return { ...packagesPage, page };
-}
-
 export function listPackagesService(ctx: QueryCtx, args: ListPackagesArgs) {
 	return requirePermission(ctx, "view:packages").andThen(() =>
-		okOrThrow(buildAdminPackagesListPage(ctx, args))
+		okOrThrow(listAdminPackages(ctx, args))
 	);
 }
 
