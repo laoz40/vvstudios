@@ -27,36 +27,40 @@ export function BookingSavedInfoBanner({ onRemove, onReuse }: BookingSavedInfoBa
 					key="saved-booking-info-banner"
 					{...revealMotionProps}
 					transition={{ ...revealMotionProps.transition, duration: 0.3, ease: "easeOut" }}
-					className="overflow-hidden">
-					<div className="relative pt-3 pr-3">
-						<section className="flex flex-col gap-4 rounded-lg bg-card px-4 py-4 shadow-lg shadow-background/25 sm:flex-row sm:items-center sm:justify-between sm:px-6">
-							<p className="text-sm text-foreground">
-								{sectionCopy.description}{" "}
+					className="-mx-4 overflow-hidden px-4">
+					<div className="pt-4 pb-4">
+						<section className="relative w-full">
+							<div className="relative rounded-lg bg-card shadow-lg shadow-background/25">
 								<Button
 									type="button"
-									variant="link"
-									className="accent-link inline h-auto p-0 align-baseline text-sm text-muted-foreground underline-offset-4"
-									onClick={onRemove}>
-									{sectionCopy.removeAction}
+									variant="ghost"
+									size="icon-sm"
+									className="absolute -top-3 -right-3 z-10 rounded-full bg-background/80 shadow-sm ring-1 ring-border backdrop-blur"
+									aria-label="Hide saved booking info"
+									onClick={() => setIsDismissed(true)}>
+									<X className="size-4" />
 								</Button>
-							</p>
-							<Button
-								type="button"
-								size="default"
-								className="w-full px-6 text-sm! font-semibold shadow-lg shadow-primary/45 sm:w-auto"
-								onClick={onReuse}>
-								{sectionCopy.reuseAction}
-							</Button>
+								<div className="flex flex-col gap-4 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+									<p className="text-sm text-foreground">
+										{sectionCopy.description}{" "}
+										<Button
+											type="button"
+											variant="link"
+											className="accent-link inline h-auto p-0 align-baseline text-sm text-muted-foreground underline-offset-4"
+											onClick={onRemove}>
+											{sectionCopy.removeAction}
+										</Button>
+									</p>
+									<Button
+										type="button"
+										size="default"
+										className="w-full px-6 text-sm! font-semibold shadow-lg shadow-primary/45 sm:w-auto"
+										onClick={onReuse}>
+										{sectionCopy.reuseAction}
+									</Button>
+								</div>
+							</div>
 						</section>
-						<Button
-							type="button"
-							variant="ghost"
-							size="icon-sm"
-							className="absolute top-0 right-0 z-10 rounded-full bg-background/80 shadow-sm ring-1 ring-border backdrop-blur"
-							aria-label="Hide saved booking info"
-							onClick={() => setIsDismissed(true)}>
-							<X className="size-4" />
-						</Button>
 					</div>
 				</motion.div>
 			) : null}
