@@ -5,7 +5,7 @@ import {
 	listEmployeesService,
 	updateEmployeeAccessService,
 	updateEmployeeNotesService
-} from "#convex/services/employees";
+} from "#convex/services/employees/employees";
 
 export const listEmployees = query({
 	args: {},
