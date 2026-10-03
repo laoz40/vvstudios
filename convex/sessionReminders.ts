@@ -12,7 +12,7 @@ import {
 	claimReminderService,
 	markReminderFailedService,
 	markReminderSentService
-} from "#convex/services/sessionReminders";
+} from "#convex/services/sessions/sessionReminders";
 
 export const listSessionsDueForReminderEmail = internalQuery({
 	args: { dayStart: v.number(), dayEnd: v.number(), limit: v.optional(v.number()) },

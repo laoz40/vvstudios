@@ -10,9 +10,9 @@ import {
 	lockRescheduleLinkService,
 	markActiveRescheduleLinksUsedForSessionService,
 	unlockRescheduleLinkService
-} from "#convex/services/sessionReschedule";
+} from "#convex/services/sessions/sessionReschedule";
 
-export type { RescheduleLinkLookupError } from "#convex/services/sessionReschedule";
+export type { RescheduleLinkLookupError } from "#convex/services/sessions/sessionReschedule";
 
 export const createPublicFailedSessionRescheduleLink = mutation({
 	args: { stripeSessionId: v.string() },

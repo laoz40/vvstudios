@@ -55,7 +55,7 @@ import {
 	updateSessionAdminNotesService,
 	updateSessionNotesService,
 	updateSessionEditStatusService
-} from "#convex/services/sessions";
+} from "#convex/services/sessions/sessions";
 
 const savedDriveFolderValidator = v.object({
 	id: v.string(),
