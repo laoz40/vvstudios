@@ -24,7 +24,10 @@ import type {
 } from "#convex/lib/sessions/sessionSchedulingArgs";
 import { searchBlobPatchForBooking } from "#convex/lib/adminSearch/adminSearchBlob";
 
-export type { SaveAdminSessionUpdateArgs, SaveClientSessionRescheduleArgs } from "#convex/lib/sessions/sessionSchedulingArgs";
+export type {
+	SaveAdminSessionUpdateArgs,
+	SaveClientSessionRescheduleArgs
+} from "#convex/lib/sessions/sessionSchedulingArgs";
 
 type AdminSessionDatabasePatch = AdminSessionTimingPatch & {
 	googleCalendarId?: string;
