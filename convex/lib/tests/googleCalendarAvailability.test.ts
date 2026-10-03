@@ -6,7 +6,7 @@
  */
 import type { calendar_v3 } from "googleapis/build/src/apis/calendar/v3";
 import { describe, expect, test } from "vitest";
-import { getBusyWindowsInRange } from "#convex/lib/googleCalendarAvailability";
+import { getBusyWindowsInRange } from "#convex/lib/googleCalendar/googleCalendarAvailability";
 
 const timeZone = "Australia/Sydney";
 

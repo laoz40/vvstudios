@@ -5,7 +5,7 @@ import type {
 	SessionAvailabilityValidationError
 } from "#convex/lib/sessionCalendarTime";
 import { checkSessionMeetsAvailabilitySettings } from "#convex/lib/sessionCalendarTime";
-import type { GoogleCalendarWriteError } from "#convex/lib/googleCalendarErrors";
+import type { GoogleCalendarWriteError } from "#convex/lib/googleCalendar/googleCalendarErrors";
 import type { BookingSubmitRateLimitError } from "#convex/lib/rateLimits";
 import type { SessionCalendarEventRecord } from "#convex/lib/sessionCalendarEvents";
 import {

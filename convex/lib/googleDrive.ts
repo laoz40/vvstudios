@@ -3,7 +3,7 @@
 import { google, type drive_v3 } from "googleapis";
 import { err, ok, okAsync, type ResultAsync } from "neverthrow";
 import { z } from "zod";
-import { getGoogleOAuthClient } from "#convex/lib/googleAuth";
+import { getGoogleOAuthClient } from "#convex/lib/googleCalendar/googleAuth";
 import { tryPromise } from "#convex/lib/result";
 
 export {

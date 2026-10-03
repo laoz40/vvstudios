@@ -7,7 +7,7 @@ import {
 	calendarErrorSchema,
 	calendarResultAsync,
 	mapCalendarErrorCode
-} from "#convex/lib/googleCalendarErrors";
+} from "#convex/lib/googleCalendar/googleCalendarErrors";
 import { fromConvexTuple, okOrThrow, tryPromise } from "#convex/lib/result";
 import type { SaveAdminSessionUpdateArgs } from "#convex/services/sessionScheduling";
 import { pickBookingAddonQuantities } from "#studio/features/booking-form/lib/booking-form-model";

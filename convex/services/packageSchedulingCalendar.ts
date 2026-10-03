@@ -3,9 +3,9 @@
 import { err, ok, ResultAsync } from "neverthrow";
 import { internal } from "#convex/_generated/api";
 import type { ActionCtx } from "#convex/_generated/server";
-import { getBusyWindows, getBusyWindowsInRange } from "#convex/lib/googleCalendarAvailability";
-import { loadGoogleCalendarClient } from "#convex/lib/googleCalendarClient";
-import { calendarResultAsync } from "#convex/lib/googleCalendarErrors";
+import { getBusyWindows, getBusyWindowsInRange } from "#convex/lib/googleCalendar/googleCalendarAvailability";
+import { loadGoogleCalendarClient } from "#convex/lib/googleCalendar/googleCalendarClient";
+import { calendarResultAsync } from "#convex/lib/googleCalendar/googleCalendarErrors";
 import type { ValidPackageByTokenError } from "#convex/lib/packageScheduling";
 import { fromConvexTuple, okOrThrow } from "#convex/lib/result";
 import { checkGoogleCalendarAvailabilityRateLimit } from "#convex/lib/rateLimits";

@@ -15,8 +15,8 @@ import {
 	type SessionTimeParseError
 } from "#convex/lib/sessionCalendarTime";
 import { normalizePhone } from "#convex/lib/contactNormalization";
-import { getBusyWindows } from "#convex/lib/googleCalendarAvailability";
-import { calendarResultAsync } from "#convex/lib/googleCalendarErrors";
+import { getBusyWindows } from "#convex/lib/googleCalendar/googleCalendarAvailability";
+import { calendarResultAsync } from "#convex/lib/googleCalendar/googleCalendarErrors";
 
 type SessionEditValues = {
 	name: string;

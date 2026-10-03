@@ -9,7 +9,7 @@ import {
 	sendBookingReminderEmailForSession,
 	sendConfirmedBookingInvoice
 } from "#convex/lib/bookingConfirmation";
-import { getGoogleCalendarClient } from "#convex/lib/googleCalendarClient";
+import { getGoogleCalendarClient } from "#convex/lib/googleCalendar/googleCalendarClient";
 import { buildSessionCalendarEventPayload } from "#convex/lib/sessionCalendarEvents";
 import { pickBookingAddonQuantities } from "#studio/features/booking-form/lib/booking-form-model";
 import type { SessionAvailabilitySettings } from "#convex/lib/sessionCalendarTime";

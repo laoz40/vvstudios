@@ -1,6 +1,6 @@
 "use node";
 
-import { getGoogleCalendarClient } from "#convex/lib/googleCalendarClient";
+import { getGoogleCalendarClient } from "#convex/lib/googleCalendar/googleCalendarClient";
 import { okOrThrow } from "#convex/lib/result";
 import {
 	createSessionCalendarEvent,

@@ -4,7 +4,7 @@ import { err, ok, okAsync } from "neverthrow";
 import { internal } from "#convex/_generated/api";
 import type { Doc } from "#convex/_generated/dataModel";
 import type { ActionCtx } from "#convex/_generated/server";
-import type { getGoogleCalendarClient } from "#convex/lib/googleCalendarClient";
+import type { getGoogleCalendarClient } from "#convex/lib/googleCalendar/googleCalendarClient";
 import { updateSessionTimingWithGoogleCalendar } from "#convex/lib/sessionAdminGoogleCalendarUpdate";
 import { validateSessionTimingEdit } from "#convex/lib/sessionAdminEdit";
 import type { SessionAvailabilitySettings } from "#convex/lib/sessionCalendarTime";

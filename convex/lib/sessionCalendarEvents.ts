@@ -18,7 +18,7 @@ import {
 	calendarErrorSchema,
 	isCalendarEventNotFound,
 	mapCalendarErrorCode
-} from "#convex/lib/googleCalendarErrors";
+} from "#convex/lib/googleCalendar/googleCalendarErrors";
 
 export type SessionCalendarEventDetails = {
 	addons: BookingAddon[];

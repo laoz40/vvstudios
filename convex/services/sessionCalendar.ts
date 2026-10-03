@@ -10,13 +10,13 @@ import {
 	notifyHostOfAdminSessionReschedule,
 	sendBookingRescheduledEmailsForBooking
 } from "#convex/lib/sessionHostEmails";
-import { getBusyWindows, getBusyWindowsInRange } from "#convex/lib/googleCalendarAvailability";
+import { getBusyWindows, getBusyWindowsInRange } from "#convex/lib/googleCalendar/googleCalendarAvailability";
 import { cleanupCancelledSessionDriveService } from "#convex/lib/driveSessionFolders/cancelCleanup";
 import {
 	getGoogleCalendarClient,
 	loadGoogleCalendarClient
-} from "#convex/lib/googleCalendarClient";
-import { calendarResultAsync } from "#convex/lib/googleCalendarErrors";
+} from "#convex/lib/googleCalendar/googleCalendarClient";
+import { calendarResultAsync } from "#convex/lib/googleCalendar/googleCalendarErrors";
 import {
 	didSessionTimingChange,
 	getSessionStartAt,
