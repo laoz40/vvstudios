@@ -4,7 +4,7 @@ import type { Doc } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
 import { getEditorWorkStatus } from "#convex/lib/editorAccess";
 import { okOrThrow } from "#convex/lib/result";
-import { searchBlobPatchForBooking } from "#convex/lib/adminSearchBlob";
+import { searchBlobPatchForBooking } from "#convex/lib/adminSearch/adminSearchBlob";
 
 const ACTIVE_EDITOR_LIMIT = 200;
 

@@ -21,7 +21,7 @@ import {
 import { sessionConsumesPackageCapacity } from "#convex/lib/packageScheduling";
 import type { BookingAddon } from "#studio/features/booking-form/lib/booking-form-model";
 import { okOrThrow } from "#convex/lib/result";
-import { searchBlobPatchForBooking } from "#convex/lib/adminSearchBlob";
+import { searchBlobPatchForBooking } from "#convex/lib/adminSearch/adminSearchBlob";
 
 type AdminSessionDatabasePatch = AdminSessionTimingPatch & {
 	googleCalendarId?: string;

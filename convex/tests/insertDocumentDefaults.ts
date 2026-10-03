@@ -1,5 +1,5 @@
 import type { Doc } from "#convex/_generated/dataModel";
-import { buildBookingSearchBlob, buildPackageSearchBlob } from "#convex/lib/adminSearchBlob";
+import { buildBookingSearchBlob, buildPackageSearchBlob } from "#convex/lib/adminSearch/adminSearchBlob";
 import { normalizePhone } from "#convex/lib/contactNormalization";
 
 type BookingInsert = Omit<Doc<"bookings">, "_id" | "_creationTime">;

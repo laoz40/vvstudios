@@ -7,7 +7,7 @@ import { env } from "#convex/env";
 import type { BookingAddonQuantitiesArgs } from "#convex/lib/bookingAddonQuantities";
 import type { BookingAddon } from "#studio/features/booking-form/lib/booking-form-model";
 import { getOrCreateDriveClientId } from "#convex/lib/driveFolders";
-import { buildBookingSearchBlob } from "#convex/lib/adminSearchBlob";
+import { buildBookingSearchBlob } from "#convex/lib/adminSearch/adminSearchBlob";
 import { normalizePhone } from "#convex/lib/contactNormalization";
 import { okOrThrow } from "#convex/lib/result";
 import { getSessionStartAt } from "#convex/lib/sessionAdminEdit";

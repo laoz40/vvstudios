@@ -10,17 +10,17 @@ import { normalizeAbn, normalizePhone } from "#convex/lib/contactNormalization";
 import {
 	adminPartialFieldSearchArgs,
 	type AdminPackagePartialFieldSearchArgs
-} from "#convex/lib/adminSearchPrefixFilters";
+} from "#convex/lib/adminSearch/adminSearchPrefixFilters";
 import {
 	parseTrimmedAdminSearchQuery,
 	type ParsedAdminSearchQuery
-} from "#convex/lib/adminSearchQuery";
+} from "#convex/lib/adminSearch/adminSearchQuery";
 import {
 	emptyAdminSearchListPage,
 	paginateAdminSearchList,
 	type AdminArchivedListView,
 	type AdminSearchListPage
-} from "#convex/lib/adminListSearchPage";
+} from "#convex/lib/adminSearch/adminListSearchPage";
 
 export type AdminPackagesView = AdminArchivedListView;
 

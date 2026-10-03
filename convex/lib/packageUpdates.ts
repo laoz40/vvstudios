@@ -9,7 +9,7 @@ import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { BookingAddonQuantitiesArgs } from "#convex/lib/bookingAddonQuantities";
 import type { BookingAddon } from "#studio/features/booking-form/lib/booking-form-model";
 import { getPackageUpdateValidationError } from "#convex/lib/packageScheduling";
-import { buildPackageSearchBlob } from "#convex/lib/adminSearchBlob";
+import { buildPackageSearchBlob } from "#convex/lib/adminSearch/adminSearchBlob";
 import { normalizePhone } from "#convex/lib/contactNormalization";
 
 export type CreatePendingPackageArgs = {

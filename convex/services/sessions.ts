@@ -25,7 +25,7 @@ import {
 } from "#convex/lib/editorSessions";
 import { getDriveStatus, getEditorSessionDriveFolders } from "#convex/lib/driveStatus";
 import { okOrThrow } from "#convex/lib/result";
-import { searchBlobPatchForBooking } from "#convex/lib/adminSearchBlob";
+import { searchBlobPatchForBooking } from "#convex/lib/adminSearch/adminSearchBlob";
 import { getSessionByStripeSessionId, getSessionFromDb } from "#convex/lib/sessionLookup";
 import { listAdminSessions, type AdminSessionsView } from "#convex/lib/listAdminSessions";
 import {

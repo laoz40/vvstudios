@@ -1,4 +1,4 @@
-import { parseAdminSearchQuery } from "#convex/lib/adminSearchQuery";
+import { parseAdminSearchQuery } from "#convex/lib/adminSearch/adminSearchQuery";
 
 export type AdminSearchNarrowField = { label: string; prefix: string };
 

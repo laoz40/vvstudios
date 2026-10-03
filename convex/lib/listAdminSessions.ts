@@ -9,21 +9,21 @@ import {
 import { getDriveWorkflowFailureForBooking } from "#convex/lib/driveStatus";
 import { listStripeInvoicesForBooking, summarizeStripeInvoices } from "#convex/lib/stripeInvoices";
 import { normalizeAbn, normalizePhone } from "#convex/lib/contactNormalization";
-import { parseAdminSearchDateValue } from "#convex/lib/adminSearchDateParse";
+import { parseAdminSearchDateValue } from "#convex/lib/adminSearch/adminSearchDateParse";
 import {
 	adminPartialFieldSearchArgs,
 	type AdminBookingPartialFieldSearchArgs
-} from "#convex/lib/adminSearchPrefixFilters";
+} from "#convex/lib/adminSearch/adminSearchPrefixFilters";
 import {
 	parseTrimmedAdminSearchQuery,
 	type ParsedAdminSearchQuery
-} from "#convex/lib/adminSearchQuery";
+} from "#convex/lib/adminSearch/adminSearchQuery";
 import {
 	emptyAdminSearchListPage,
 	paginateAdminSearchList,
 	type AdminArchivedListView,
 	type AdminSearchListPage
-} from "#convex/lib/adminListSearchPage";
+} from "#convex/lib/adminSearch/adminListSearchPage";
 
 export type AdminSessionsView = AdminArchivedListView;
 

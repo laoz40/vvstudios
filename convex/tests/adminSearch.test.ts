@@ -13,7 +13,7 @@
 import { describe, expect, test } from "vitest";
 import { api } from "#convex/_generated/api";
 import type { Id } from "#convex/_generated/dataModel";
-import { buildBookingSearchBlob } from "#convex/lib/adminSearchBlob";
+import { buildBookingSearchBlob } from "#convex/lib/adminSearch/adminSearchBlob";
 import { normalizePhone } from "#convex/lib/contactNormalization";
 import { createConvexTest } from "#convex/test.setup";
 

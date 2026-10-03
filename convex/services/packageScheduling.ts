@@ -3,7 +3,7 @@ import { api, internal } from "#convex/_generated/api";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { ActionCtx, MutationCtx, QueryCtx } from "#convex/_generated/server";
 import { getOrCreateDriveClientId } from "#convex/lib/driveFolders";
-import { buildBookingSearchBlob } from "#convex/lib/adminSearchBlob";
+import { buildBookingSearchBlob } from "#convex/lib/adminSearch/adminSearchBlob";
 import { scheduleDriveSetup } from "#convex/lib/driveScheduling";
 import { formatDriveClientFolderName } from "#studio/lib/bookingdatetime";
 import { processPackageAdjustment } from "#convex/lib/packageAdjustments";

@@ -26,7 +26,7 @@ import {
 	searchBlobPatchForPackage,
 	patchPackageSessionBookingsContactSearch,
 	type PackageContactSearchFields
-} from "#convex/lib/adminSearchBlob";
+} from "#convex/lib/adminSearch/adminSearchBlob";
 import { okOrThrow } from "#convex/lib/result";
 
 type SavePackageInstagramHandleArgs = { packageId: Id<"packages">; instagramHandle: string };

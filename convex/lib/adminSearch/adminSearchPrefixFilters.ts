@@ -1,5 +1,5 @@
 import { exhaustiveCheck } from "#/lib/result";
-import type { ParsedAdminSearchQuery } from "#convex/lib/adminSearchQuery";
+import type { ParsedAdminSearchQuery } from "#convex/lib/adminSearch/adminSearchQuery";
 
 export type AdminPackagePartialFieldSearchArgs = {
 	indexName: "search_admin_name" | "search_admin_account" | "search_admin_ig";
