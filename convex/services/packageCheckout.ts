@@ -5,13 +5,13 @@ import {
 	validatePackageExpiry,
 	validatePendingPackageAbandonment,
 	type AbandonPendingPackageSuccess
-} from "#convex/lib/packageCheckout";
+} from "#convex/lib/packages/packageCheckout";
 import {
 	getPackageCheckoutClaimStatus,
 	validatePackageClaimStripeSession
-} from "#convex/lib/packageCheckoutClaim";
-import { archiveDeadPackage } from "#convex/lib/packageArchive";
-import { getPackageFromDb } from "#convex/lib/packageLookup";
+} from "#convex/lib/packages/packageCheckoutClaim";
+import { archiveDeadPackage } from "#convex/lib/packages/packageArchive";
+import { getPackageFromDb } from "#convex/lib/packages/packageLookup";
 import { okOrThrow } from "#convex/lib/result";
 
 export function markPackageExpiredByStripeSessionIdService(

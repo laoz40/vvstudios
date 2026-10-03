@@ -27,16 +27,16 @@ import {
 	getValidPackageByToken as getValidPackageByTokenResult,
 	type ValidPackage,
 	type ValidPackageByTokenError
-} from "#convex/lib/packageLookup";
+} from "#convex/lib/packages/packageLookup";
 import {
 	capacityConsumingSessionStatuses,
 	sessionConsumesPackageCapacity
-} from "#convex/lib/packageSessionCapacity";
+} from "#convex/lib/packages/packageSessionCapacity";
 import { generateRescheduleToken, hashRescheduleToken } from "#convex/lib/sessionRescheduleLinks";
 
-export { sessionConsumesPackageCapacity } from "#convex/lib/packageSessionCapacity";
+export { sessionConsumesPackageCapacity } from "#convex/lib/packages/packageSessionCapacity";
 
-export type { ValidPackage, ValidPackageByTokenError } from "#convex/lib/packageLookup";
+export type { ValidPackage, ValidPackageByTokenError } from "#convex/lib/packages/packageLookup";
 
 type PackageAdminUpdateValues = { expiresAt?: number };
 

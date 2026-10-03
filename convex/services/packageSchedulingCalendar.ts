@@ -6,7 +6,7 @@ import type { ActionCtx } from "#convex/_generated/server";
 import { getBusyWindows, getBusyWindowsInRange } from "#convex/lib/googleCalendar/googleCalendarAvailability";
 import { loadGoogleCalendarClient } from "#convex/lib/googleCalendar/googleCalendarClient";
 import { calendarResultAsync } from "#convex/lib/googleCalendar/googleCalendarErrors";
-import type { ValidPackageByTokenError } from "#convex/lib/packageScheduling";
+import type { ValidPackageByTokenError } from "#convex/lib/packages/packageScheduling";
 import { fromConvexTuple, okOrThrow } from "#convex/lib/result";
 import { checkGoogleCalendarAvailabilityRateLimit } from "#convex/lib/rateLimits";
 import {
@@ -23,7 +23,7 @@ import {
 	type PackageCalendarDetails,
 	type PackageCalendarSyncError,
 	type PackageCalendarWriteError
-} from "#convex/lib/packageSchedulingCalendar";
+} from "#convex/lib/packages/packageSchedulingCalendar";
 import {
 	deleteSessionCalendarEvent,
 	type SessionCalendarEventRecord
@@ -33,7 +33,7 @@ import { formatDateValue, startOfToday } from "#studio/lib/bookingdatetime";
 export type {
 	PackageCalendarDetails,
 	PackageCalendarWriteError
-} from "#convex/lib/packageSchedulingCalendar";
+} from "#convex/lib/packages/packageSchedulingCalendar";
 
 type PackageAvailabilityError =
 	| ValidPackageByTokenError

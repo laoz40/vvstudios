@@ -7,10 +7,10 @@ import {
 	requirePackageAdjustmentPaymentEligibility,
 	validatePackageAdjustmentEmailClaim,
 	type PackageAdjustmentEmailClaim
-} from "#convex/lib/packageAdjustments";
-import { claimPackageAdjustmentInvoicePayment } from "#convex/lib/packageAdjustmentInvoicePayment";
-import { archivePackageWhenFullyDone } from "#convex/lib/packageArchive";
-import { getPackageFromDb } from "#convex/lib/packageLookup";
+} from "#convex/lib/packages/packageAdjustments";
+import { claimPackageAdjustmentInvoicePayment } from "#convex/lib/packages/packageAdjustmentInvoicePayment";
+import { archivePackageWhenFullyDone } from "#convex/lib/packages/packageArchive";
+import { getPackageFromDb } from "#convex/lib/packages/packageLookup";
 import { okOrThrow } from "#convex/lib/result";
 import { recordPackageAdjustmentStripeInvoice } from "#convex/lib/stripe/stripeInvoices";
 import { getCustomerAddonDisplayLabel } from "#studio/features/booking-form/lib/booking-form-model";

@@ -6,7 +6,7 @@ import { okOrThrow } from "#convex/lib/result";
 import {
 	archivePackageWhenFullyDone,
 	unarchivePackageForNewUnpaidInvoice
-} from "#convex/lib/packageArchive";
+} from "#convex/lib/packages/packageArchive";
 import {
 	archiveSessionWhenFullyDone,
 	unarchiveSessionForNewUnpaidInvoice

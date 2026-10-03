@@ -10,12 +10,12 @@ import {
 	buildPackagePaidEmailContext,
 	refreshPackageScheduleToken,
 	sendAndRecordPackagePaidEmail
-} from "#convex/lib/packagePayment";
-import { getPackageForAction } from "#convex/lib/packageLookup";
+} from "#convex/lib/packages/packagePayment";
+import { getPackageForAction } from "#convex/lib/packages/packageLookup";
 import { okOrThrow } from "#convex/lib/result";
 import type { BookingAvailabilitySettings } from "#studio/lib/bookingAvailabilitySettings";
 
-export type { CreatePackageRequestArgs } from "#convex/lib/packageUpdates";
+export type { CreatePackageRequestArgs } from "#convex/lib/packages/packageUpdates";
 
 type PackageIdArgs = { packageId: Id<"packages"> };
 

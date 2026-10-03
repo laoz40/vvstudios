@@ -8,7 +8,7 @@ import { createPackageInvoiceLineItemSnapshot } from "#studio/features/booking-i
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { BookingAddonQuantitiesArgs } from "#convex/lib/booking/bookingAddonQuantities";
 import type { BookingAddon } from "#studio/features/booking-form/lib/booking-form-model";
-import { getPackageUpdateValidationError } from "#convex/lib/packageScheduling";
+import { getPackageUpdateValidationError } from "#convex/lib/packages/packageScheduling";
 import { buildPackageSearchBlob } from "#convex/lib/adminSearch/adminSearchBlob";
 import { normalizePhone } from "#convex/lib/contactNormalization";
 

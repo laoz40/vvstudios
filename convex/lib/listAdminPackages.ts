@@ -1,7 +1,7 @@
 import type { Doc } from "#convex/_generated/dataModel";
 import type { QueryCtx } from "#convex/_generated/server";
 import { exhaustiveCheck } from "#/lib/result";
-import { getCapacityConsumingPackageSessions } from "#convex/lib/packageScheduling";
+import { getCapacityConsumingPackageSessions } from "#convex/lib/packages/packageScheduling";
 import {
 	listStripeInvoicesForPackage,
 	summarizeCustomPackageStripeInvoices

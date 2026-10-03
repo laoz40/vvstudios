@@ -1,7 +1,7 @@
 import { err, ok, type ResultAsync } from "neverthrow";
 import { internal } from "#convex/_generated/api";
 import type { ActionCtx } from "#convex/_generated/server";
-import type { PackageAdjustmentInvoicePaymentClaimError } from "#convex/lib/packageAdjustmentInvoicePayment";
+import type { PackageAdjustmentInvoicePaymentClaimError } from "#convex/lib/packages/packageAdjustmentInvoicePayment";
 import { fromConvexTuple } from "#convex/lib/result";
 
 type CompleteStripeInvoicePaymentSuccess = { outcome: "already_completed" | "completed" };

@@ -8,11 +8,11 @@
  *    Maps idempotent replays and invalid package states to claim outcomes.
  */
 import { describe, expect, test } from "vitest";
-import type { PackageCheckoutClaimPackage } from "#convex/lib/packageCheckoutClaim";
+import type { PackageCheckoutClaimPackage } from "#convex/lib/packages/packageCheckoutClaim";
 import {
 	getPackageCheckoutClaimStatus,
 	validatePackageClaimStripeSession
-} from "#convex/lib/packageCheckoutClaim";
+} from "#convex/lib/packages/packageCheckoutClaim";
 
 const now = Date.parse("2030-01-01T00:00:00.000Z");
 

@@ -6,7 +6,7 @@ import Stripe from "stripe";
 import { z } from "zod";
 import { env } from "#convex/env";
 import { completeSessionCheckoutService } from "#convex/services/bookingConfirmation";
-import type { PackageAdjustmentInvoicePaymentClaimError } from "#convex/lib/packageAdjustmentInvoicePayment";
+import type { PackageAdjustmentInvoicePaymentClaimError } from "#convex/lib/packages/packageAdjustmentInvoicePayment";
 import { completeStripeInvoicePaymentService } from "#convex/services/stripeInvoicePayment";
 import { completePackageCheckoutService } from "#convex/services/packageCheckoutCompletion";
 

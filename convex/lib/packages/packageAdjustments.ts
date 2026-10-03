@@ -6,7 +6,7 @@ import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
 import { ADDON_PRICES } from "#studio/features/booking-form/lib/booking-pricing";
 import { formatBookingInvoiceNumber } from "#studio/features/booking-invoice/lib/build-booking-invoice-data";
-import { getCapacityConsumingPackageSessions } from "#convex/lib/packageScheduling";
+import { getCapacityConsumingPackageSessions } from "#convex/lib/packages/packageScheduling";
 
 const MILLISECONDS_PER_HOUR = 60 * 60 * 1000;
 

@@ -7,7 +7,7 @@ import { calculatePackageAmounts } from "#studio/features/booking-form/lib/booki
 import { createPackageInvoiceLineItemSnapshot } from "#studio/features/booking-invoice/lib/build-booking-invoice-data";
 import type { PackageInvoiceInput } from "#studio/features/booking-invoice/lib/booking-artifacts";
 import { sendPackageReceiptEmailsForPackage } from "#convex/lib/booking/bookingDocumentEmails";
-import type { ParsedPackageRequest } from "#convex/lib/packageUpdates";
+import type { ParsedPackageRequest } from "#convex/lib/packages/packageUpdates";
 import { fromConvexTuple, okOrThrow } from "#convex/lib/result";
 
 type PackageScheduleEmailResult = ResultAsync<

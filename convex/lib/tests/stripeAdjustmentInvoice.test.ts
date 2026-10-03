@@ -5,7 +5,7 @@
  *    Stripe invoice due days must match the package adjustment payment window.
  */
 import { describe, expect, test } from "vitest";
-import { PACKAGE_ADJUSTMENT_PAYMENT_DUE_MS } from "#convex/lib/packageAdjustments";
+import { PACKAGE_ADJUSTMENT_PAYMENT_DUE_MS } from "#convex/lib/packages/packageAdjustments";
 import { PACKAGE_ADJUSTMENT_STRIPE_INVOICE_DAYS_UNTIL_DUE } from "#convex/lib/stripe/stripeAdjustmentInvoice";
 
 describe("stripe adjustment invoice settings", () => {

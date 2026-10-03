@@ -18,7 +18,7 @@ import {
 	sessionHasReservation,
 	type SessionReservation
 } from "#convex/lib/sessionReservations";
-import { sessionConsumesPackageCapacity } from "#convex/lib/packageScheduling";
+import { sessionConsumesPackageCapacity } from "#convex/lib/packages/packageScheduling";
 import type { BookingAddon } from "#studio/features/booking-form/lib/booking-form-model";
 import { okOrThrow } from "#convex/lib/result";
 import { searchBlobPatchForBooking } from "#convex/lib/adminSearch/adminSearchBlob";

@@ -6,7 +6,7 @@ import { getOrCreateDriveClientId } from "#convex/lib/driveFolders";
 import { buildBookingSearchBlob } from "#convex/lib/adminSearch/adminSearchBlob";
 import { scheduleDriveSetup } from "#convex/lib/driveScheduling";
 import { formatDriveClientFolderName } from "#studio/lib/bookingdatetime";
-import { processPackageAdjustment } from "#convex/lib/packageAdjustments";
+import { processPackageAdjustment } from "#convex/lib/packages/packageAdjustments";
 import {
 	checkPackageSessionAvailability,
 	getCapacityConsumingPackageSessions,
@@ -18,14 +18,14 @@ import {
 	type CreatePackageSessionError,
 	type ReschedulePackageSessionError,
 	type UnschedulePackageSessionError
-} from "#convex/lib/packageScheduling";
+} from "#convex/lib/packages/packageScheduling";
 import {
 	getValidPackageByToken,
 	type ValidPackage,
 	type ValidPackageByTokenError
-} from "#convex/lib/packageLookup";
+} from "#convex/lib/packages/packageLookup";
 import { fromConvexTuple, okOrThrow } from "#convex/lib/result";
-import { archivePackageWhenFullyDone } from "#convex/lib/packageArchive";
+import { archivePackageWhenFullyDone } from "#convex/lib/packages/packageArchive";
 import { archiveDeadCheckoutBooking } from "#convex/lib/sessionArchive";
 import { getSessionStartAt } from "#convex/lib/sessionAdminEdit";
 import type { SessionAvailabilitySettings } from "#convex/lib/sessionCalendarTime";

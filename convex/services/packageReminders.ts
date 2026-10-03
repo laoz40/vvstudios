@@ -2,13 +2,13 @@ import { internal } from "#convex/_generated/api";
 import type { Doc } from "#convex/_generated/dataModel";
 import type { ActionCtx, MutationCtx, QueryCtx } from "#convex/_generated/server";
 import { sendPackageExpiryReminderEmail } from "#convex/lib/email/email";
-import { getPackageFromDb } from "#convex/lib/packageLookup";
-import { getCapacityConsumingPackageSessions } from "#convex/lib/packageScheduling";
+import { getPackageFromDb } from "#convex/lib/packages/packageLookup";
+import { getCapacityConsumingPackageSessions } from "#convex/lib/packages/packageScheduling";
 import {
 	hasSentPackageReminder,
 	validatePackageReminderClaim,
 	type PackageReminderType
-} from "#convex/lib/packageReminders";
+} from "#convex/lib/packages/packageReminders";
 import {
 	getTimeZoneDate,
 	getTimeZoneDayRange,

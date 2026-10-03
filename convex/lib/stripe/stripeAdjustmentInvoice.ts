@@ -5,7 +5,7 @@ import type { Id } from "#convex/_generated/dataModel";
 import {
 	PACKAGE_ADJUSTMENT_PAYMENT_DUE_MS,
 	REMOTE_PODCAST_ADJUSTMENT_RATE
-} from "#convex/lib/packageAdjustments";
+} from "#convex/lib/packages/packageAdjustments";
 import { tryPromise } from "#convex/lib/result";
 import type { StripeClient } from "#convex/lib/stripe/stripeClient";
 import { getCustomerAddonDisplayLabel } from "#studio/features/booking-form/lib/booking-form-model";

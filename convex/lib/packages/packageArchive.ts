@@ -4,8 +4,8 @@ import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
 import {
 	evaluatePackageAdjustment,
 	type PackageAdjustmentSession
-} from "#convex/lib/packageAdjustments";
-import { getCapacityConsumingPackageSessions } from "#convex/lib/packageScheduling";
+} from "#convex/lib/packages/packageAdjustments";
+import { getCapacityConsumingPackageSessions } from "#convex/lib/packages/packageScheduling";
 import {
 	isPackageArchived,
 	packageArchivedPatch,

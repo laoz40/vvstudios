@@ -4,13 +4,13 @@ import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
 import { setPackageArchived } from "#convex/lib/archiveState";
 import { requirePermission } from "#convex/lib/auth";
-import { getPackageFromDb } from "#convex/lib/packageLookup";
+import { getPackageFromDb } from "#convex/lib/packages/packageLookup";
 import {
 	createPackageScheduleToken,
 	createPackageSchedulingDetails,
 	getCapacityConsumingPackageSessions,
 	validatePackageScheduleTokenRefresh
-} from "#convex/lib/packageScheduling";
+} from "#convex/lib/packages/packageScheduling";
 import {
 	buildPendingPackageRecord,
 	buildPackageUpdatePatch,
@@ -18,7 +18,7 @@ import {
 	type CreatePendingPackageArgs,
 	type UpdatePackageArgs,
 	validatePackageUpdate
-} from "#convex/lib/packageUpdates";
+} from "#convex/lib/packages/packageUpdates";
 import { listAdminPackages, type AdminPackagesView } from "#convex/lib/listAdminPackages";
 import { resolvePackageReceiptNumber } from "#studio/features/booking-invoice/lib/receipt-number";
 import {

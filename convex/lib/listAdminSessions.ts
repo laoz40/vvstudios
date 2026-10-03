@@ -5,7 +5,7 @@ import { env } from "#convex/env";
 import {
 	getCapacityConsumingPackageSessions,
 	sessionConsumesPackageCapacity
-} from "#convex/lib/packageScheduling";
+} from "#convex/lib/packages/packageScheduling";
 import { getDriveWorkflowFailureForBooking } from "#convex/lib/driveStatus";
 import { listStripeInvoicesForBooking, summarizeStripeInvoices } from "#convex/lib/stripe/stripeInvoices";
 import { normalizeAbn, normalizePhone } from "#convex/lib/contactNormalization";

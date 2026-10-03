@@ -1,7 +1,7 @@
 import { err, errAsync, ok, okAsync, type Result, type ResultAsync } from "neverthrow";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
-import { getPackageAdjustmentInvoice } from "#convex/lib/packageAdjustments";
+import { getPackageAdjustmentInvoice } from "#convex/lib/packages/packageAdjustments";
 import { okOrThrow } from "#convex/lib/result";
 
 type InvoiceRequiredAdjustment = Extract<

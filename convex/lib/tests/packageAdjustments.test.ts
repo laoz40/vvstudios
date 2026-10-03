@@ -20,7 +20,7 @@ import {
 	requirePackageAdjustmentPaymentEligibility,
 	validatePackageAdjustmentEmailClaim,
 	type PackageAdjustmentSession
-} from "#convex/lib/packageAdjustments";
+} from "#convex/lib/packages/packageAdjustments";
 import { testBookingId, testPackageAdjustmentId, testPackageId } from "#convex/lib/tests/testIds";
 import type { BookingAddon } from "#studio/features/booking-form/lib/booking-form-model";
 
