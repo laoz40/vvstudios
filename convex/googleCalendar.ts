@@ -13,7 +13,7 @@ import {
 	rescheduleSessionService,
 	type GetAvailableRescheduleTimesError,
 	updateSessionFromAdminService
-} from "#convex/services/sessionCalendar";
+} from "#convex/services/googleCalendar/sessionCalendar";
 import {
 	bookingAddonQuantitiesValidator,
 	bookingAddonsValidator

@@ -10,7 +10,7 @@ import {
 	getPackageBusyWindowsService,
 	savePackageSessionCalendarEventService,
 	type PackageCalendarWriteError
-} from "#convex/services/packageSchedulingCalendar";
+} from "#convex/services/googleCalendar/packageSchedulingCalendar";
 import { bookingAddonsValidator } from "#convex/lib/booking/bookingAddonQuantities";
 
 const packageCalendarBookingValidator = v.object({
