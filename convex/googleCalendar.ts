@@ -32,7 +32,7 @@ import {
 import {
 	completeClaimedSessionService,
 	sendSessionReminderEmailService
-} from "#convex/services/bookingConfirmationActions";
+} from "#convex/services/booking/bookingConfirmationActions";
 import { cleanupCancelledSessionDriveService } from "#convex/lib/drive/sessionFolders/cancelCleanup";
 
 export const setupDrive = action({

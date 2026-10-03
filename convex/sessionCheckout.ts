@@ -10,7 +10,7 @@ import {
 	createPendingSessionService,
 	deletePendingSessionService,
 	markSessionExpiredByStripeSessionIdService
-} from "#convex/services/sessionCheckout";
+} from "#convex/services/booking/sessionCheckout";
 
 export const checkSessionSubmitRateLimit = internalMutation({
 	args: { submitRateLimitKey: v.string() },

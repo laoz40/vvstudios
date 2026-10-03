@@ -10,7 +10,7 @@ import {
 	markSessionInvoiceEmailFailedService,
 	markSessionInvoiceEmailRetrySentService,
 	recordBookingReceiptNumberService
-} from "#convex/services/bookingConfirmation";
+} from "#convex/services/booking/bookingConfirmation";
 
 export const claimBookingConfirmation = internalMutation({
 	args: {

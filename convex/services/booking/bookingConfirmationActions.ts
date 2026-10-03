@@ -19,7 +19,7 @@ import {
 } from "#convex/lib/sessions/sessionAdminEdit";
 import { getSessionFromQuery } from "#convex/lib/sessions/sessionLookup";
 import { fromConvexTuple, okOrThrow } from "#convex/lib/result";
-import type { CompleteClaimedSessionSuccess } from "#convex/services/bookingConfirmation";
+import type { CompleteClaimedSessionSuccess } from "#convex/services/booking/bookingConfirmation";
 
 type CompleteClaimedSessionError =
 	| { reason: "BOOKING_NOT_FOUND" }

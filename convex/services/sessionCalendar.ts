@@ -54,7 +54,7 @@ import {
 	type BusyDayWindow,
 	type SessionAvailabilitySettings
 } from "#convex/lib/sessions/sessionCalendarTime";
-import { getBookingSettingsService } from "#convex/services/bookingSettings";
+import { getBookingSettingsService } from "#convex/services/booking/bookingSettings";
 import type { RescheduleLinkLookupError } from "#convex/services/sessionReschedule";
 
 export type { RescheduleSessionArgs } from "#convex/lib/sessions/sessionRescheduleWorkflow";
