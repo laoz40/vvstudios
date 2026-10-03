@@ -115,7 +115,9 @@ export async function patchPackageSessionBookingsContactSearch(
 ) {
 	const bookings = await ctx.db
 		.query("bookings")
-		.withIndex("by_packageId", (indexQuery) => indexQuery.eq("packageId", packageId))
+		.withIndex("by_packageId_and_status_and_sessionStartAt", (indexQuery) =>
+			indexQuery.eq("packageId", packageId)
+		)
 		.collect();
 
 	await Promise.all(
@@ -127,7 +129,7 @@ export async function patchPackageSessionBookingsContactSearch(
 				phone
 			});
 
-			return ctx.db.patch(booking._id, { ...contactFields, phone, ...searchBlobPatch });
+			return ctx.db.patch("bookings", booking._id, { ...contactFields, phone, ...searchBlobPatch });
 		})
 	);
 }

@@ -120,7 +120,7 @@ export function listEditorSessionsService(ctx: QueryCtx, args: ListEditorSession
 			okOrThrow(
 				ctx.db
 					.query("bookings")
-					.withIndex("by_assignedEditorTokenIdentifier", (query) =>
+					.withIndex("by_assignedEditorTokenIdentifier_and_driveClientId", (query) =>
 						query.eq("assignedEditorTokenIdentifier", identity.tokenIdentifier)
 					)
 					.order("desc")
@@ -183,7 +183,7 @@ export function getPublicRescheduleCompleteSessionService(
 		return errAsync({ reason: "BOOKING_NOT_FOUND" as const });
 	}
 
-	return okOrThrow(ctx.db.get(bookingId)).andThen((session) => {
+	return okOrThrow(ctx.db.get("bookings", bookingId)).andThen((session) => {
 		if (!session) {
 			return err({ reason: "BOOKING_NOT_FOUND" as const });
 		}
@@ -209,7 +209,10 @@ export function saveSessionInstagramHandleService(
 				searchBlobPatchForBooking(ctx, session, { instagramHandle: args.instagramHandle }).then(
 					(searchBlobPatch) =>
 						ctx.db
-							.patch(session._id, { instagramHandle: args.instagramHandle, ...searchBlobPatch })
+							.patch("bookings", session._id, {
+								instagramHandle: args.instagramHandle,
+								...searchBlobPatch
+							})
 							.then(() => null)
 				)
 			)

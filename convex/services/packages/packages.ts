@@ -107,7 +107,7 @@ export function updatePackageService(ctx: MutationCtx, args: UpdatePackageArgs) 
 
 			return okOrThrow(
 				ctx.db
-					.patch(args.packageId, {
+					.patch("packages", args.packageId, {
 						...buildPackageUpdatePatch(args, updatedPackage),
 						...searchBlobPatchForPackage(existingPackage, {
 							...contactFields,
@@ -148,7 +148,7 @@ export function savePackageInstagramHandleService(
 		.andThen((packageFromDb) =>
 			okOrThrow(
 				ctx.db
-					.patch(packageFromDb._id, {
+					.patch("packages", packageFromDb._id, {
 						instagramHandle: args.instagramHandle,
 						...searchBlobPatchForPackage(packageFromDb, { instagramHandle: args.instagramHandle })
 					})
@@ -211,7 +211,7 @@ export function markPackagePaidAndCreateScheduleTokenService(
 						};
 
 						if (packageFromDb.receiptNumber) {
-							await ctx.db.patch(args.packageId, paidLifecyclePatch);
+							await ctx.db.patch("packages", args.packageId, paidLifecyclePatch);
 
 							return packageSchedulingDetails;
 						}
@@ -220,7 +220,7 @@ export function markPackagePaidAndCreateScheduleTokenService(
 
 						const searchBlobPatch = searchBlobPatchForPackage(packageFromDb, { receiptNumber });
 
-						await ctx.db.patch(args.packageId, {
+						await ctx.db.patch("packages", args.packageId, {
 							...paidLifecyclePatch,
 							receiptNumber,
 							...searchBlobPatch
@@ -270,7 +270,7 @@ export function refreshPackageScheduleTokenService(ctx: MutationCtx, args: Packa
 		.andThen(({ packageFromDb, scheduleTokenHash, token }) =>
 			okOrThrow(
 				ctx.db
-					.patch(args.packageId, { scheduleLinkStatus: "active", scheduleTokenHash })
+					.patch("packages", args.packageId, { scheduleLinkStatus: "active", scheduleTokenHash })
 					.then(() => ({
 						expiresAt: packageFromDb.expiresAt,
 						paidAt: packageFromDb.paidAt,
@@ -292,7 +292,7 @@ export function markPackageScheduleEmailAttemptService(
 	return getPackageFromDb(ctx, args.packageId).andThen(() =>
 		okOrThrow(
 			ctx.db
-				.patch(args.packageId, {
+				.patch("packages", args.packageId, {
 					status: args.status === "sent" ? "paid" : "schedule_email_failed"
 				})
 				.then(() => null)
@@ -324,16 +324,18 @@ export function markPackageReceiptEmailAttemptService(
 					};
 
 		return okOrThrow(
-			ctx.db.patch(args.packageId, sentPatch).then(async () => {
+			ctx.db.patch("packages", args.packageId, sentPatch).then(async () => {
 				if (args.status === "sent" && args.receiptNumber) {
 					const bookings = await ctx.db
 						.query("bookings")
-						.withIndex("by_packageId", (indexQuery) => indexQuery.eq("packageId", args.packageId))
+						.withIndex("by_packageId_and_status_and_sessionStartAt", (indexQuery) =>
+							indexQuery.eq("packageId", args.packageId)
+						)
 						.collect();
 
 					await Promise.all(
 						bookings.map(async (booking) =>
-							ctx.db.patch(booking._id, {
+							ctx.db.patch("bookings", booking._id, {
 								receiptNumber: args.receiptNumber,
 								...(await searchBlobPatchForBooking(ctx, booking, {
 									receiptNumber: args.receiptNumber

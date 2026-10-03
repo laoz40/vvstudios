@@ -21,7 +21,7 @@ export async function patchBookingsAssignedEditorDisplayName(
 ) {
 	const bookings = await ctx.db
 		.query("bookings")
-		.withIndex("by_assignedEditorTokenIdentifier", (query) =>
+		.withIndex("by_assignedEditorTokenIdentifier_and_driveClientId", (query) =>
 			query.eq("assignedEditorTokenIdentifier", editorTokenIdentifier)
 		)
 		.collect();
@@ -32,7 +32,7 @@ export async function patchBookingsAssignedEditorDisplayName(
 				assignedEditorDisplayName
 			});
 
-			return ctx.db.patch(booking._id, searchBlobPatch);
+			return ctx.db.patch("bookings", booking._id, searchBlobPatch);
 		})
 	);
 }
@@ -128,7 +128,7 @@ function saveSessionEditorAssignment(
 				assignedEditorDisplayName
 			});
 
-			await ctx.db.patch(session._id, {
+			await ctx.db.patch("bookings", session._id, {
 				adminNotes: adminNotes.trim() || undefined,
 				assignedEditorTokenIdentifier: editor?.tokenIdentifier,
 				...searchBlobPatch
@@ -136,7 +136,7 @@ function saveSessionEditorAssignment(
 
 			// Assignment and the editor's latest-assignment timestamp are saved in one transaction.
 			if (editor !== undefined) {
-				await ctx.db.patch(editor._id, { lastAssignedAt: Date.now() });
+				await ctx.db.patch("editorProfiles", editor._id, { lastAssignedAt: Date.now() });
 			}
 
 			const editorChanged = previousEditorTokenIdentifier !== editor?.tokenIdentifier;
