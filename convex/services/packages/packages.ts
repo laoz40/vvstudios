@@ -46,6 +46,7 @@ type MarkPackageReceiptEmailAttemptArgs = PackageIdArgs & {
 };
 
 export type { PackageLookupError } from "#convex/lib/packages/packageLookup";
+
 export type { PaidPackageResult } from "#convex/lib/packages/packagePayment";
 
 export function createPendingPackageService(ctx: MutationCtx, args: CreatePendingPackageArgs) {
