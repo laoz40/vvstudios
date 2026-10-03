@@ -5,9 +5,9 @@ import {
 	type BookingAddonQuantities
 } from "#studio/features/booking-form/lib/booking-form-model";
 import {
-	isBookingDuration,
-	buildCatalogAddonLine,
-	buildCatalogStudioHireLine
+	buildPackagePriceLines,
+	buildSessionPriceLines,
+	isBookingDuration
 } from "#studio/features/booking-form/lib/billable-line-items";
 import {
 	BOOKING_INVOICE_CURRENCY,
@@ -25,17 +25,17 @@ function audToStripeUnitAmount(amount: number) {
 	return Math.round(amount * 100);
 }
 
-function toSessionCheckoutLineItem(catalogLine: {
+function toSessionCheckoutLineItem(pricedLine: {
 	description: string;
 	quantity: number;
 	unitAmount: number;
 }): SessionCheckoutLineItem {
 	return {
-		quantity: catalogLine.quantity,
+		quantity: pricedLine.quantity,
 		price_data: {
 			currency: BOOKING_INVOICE_CURRENCY.toLowerCase(),
-			unit_amount: audToStripeUnitAmount(catalogLine.unitAmount),
-			product_data: { name: catalogLine.description }
+			unit_amount: audToStripeUnitAmount(pricedLine.unitAmount),
+			product_data: { name: pricedLine.description }
 		}
 	};
 }
@@ -56,25 +56,11 @@ export function buildSessionCheckoutLineItems(
 
 	const addonQuantities = pickBookingAddonQuantities(input);
 
-	const lineItems: SessionCheckoutLineItem[] = [
-		toSessionCheckoutLineItem(buildCatalogStudioHireLine(input.duration, 1))
-	];
-
-	for (const addon of input.addons) {
-		const quantity = getBookingAddonQuantity(addon, addonQuantities);
-
-		if (quantity <= 0) {
-			continue;
-		}
-
-		const catalogLine = buildCatalogAddonLine(addon, quantity);
-
-		if (catalogLine === null) {
-			continue;
-		}
-
-		lineItems.push(toSessionCheckoutLineItem(catalogLine));
-	}
+	const lineItems = buildSessionPriceLines({
+		duration: input.duration,
+		addons: input.addons,
+		addonQuantity: (addon) => getBookingAddonQuantity(addon, addonQuantities)
+	}).map((pricedLine) => toSessionCheckoutLineItem(pricedLine));
 
 	return ok(lineItems);
 }
@@ -114,30 +100,12 @@ export function buildPackageCheckoutLineItems(
 		...addonQuantities
 	});
 
-	const lineItems: SessionCheckoutLineItem[] = [
-		toSessionCheckoutLineItem(
-			buildCatalogStudioHireLine(packageFromDb.duration, packageFromDb.packageSize)
-		)
-	];
-
-	for (const addon of packageFromDb.addons) {
-		const quantityPerSession = getBookingAddonQuantity(addon, addonQuantities);
-
-		if (quantityPerSession <= 0) {
-			continue;
-		}
-
-		const catalogLine = buildCatalogAddonLine(
-			addon,
-			packageFromDb.packageSize * quantityPerSession
-		);
-
-		if (catalogLine === null) {
-			continue;
-		}
-
-		lineItems.push(toSessionCheckoutLineItem(catalogLine));
-	}
+	const lineItems = buildPackagePriceLines({
+		duration: packageFromDb.duration,
+		packageSize: packageFromDb.packageSize,
+		addons: packageFromDb.addons,
+		addonQuantityPerSession: (addon) => getBookingAddonQuantity(addon, addonQuantities)
+	}).map((pricedLine) => toSessionCheckoutLineItem(pricedLine));
 
 	return ok({
 		discount: {
