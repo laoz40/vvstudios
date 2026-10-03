@@ -11,13 +11,13 @@ import {
 	validateDriveSetup,
 	type DriveSetupInfo,
 	type SetupError
-} from "#convex/lib/driveSessionFolders/driveSetupInfo";
-import { ensureSessionDriveFolders } from "#convex/lib/driveSessionFolders/ensureFolders";
+} from "#convex/lib/drive/sessionFolders/driveSetupInfo";
+import { ensureSessionDriveFolders } from "#convex/lib/drive/sessionFolders/ensureFolders";
 import { fromConvexTuple } from "#convex/lib/result";
 import { requireClientDrivePermissionsAndSendAssetsEmail } from "#convex/services/driveClientPermissions";
-import { setupEditorAccess } from "#convex/lib/driveEditorPermissions";
+import { setupEditorAccess } from "#convex/lib/drive/driveEditorPermissions";
 
-export type { SetupError } from "#convex/lib/driveSessionFolders/driveSetupInfo";
+export type { SetupError } from "#convex/lib/drive/sessionFolders/driveSetupInfo";
 
 function loadValidatedSetup(
 	ctx: ActionCtx,

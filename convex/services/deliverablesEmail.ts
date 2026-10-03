@@ -15,7 +15,7 @@ import {
 	listDriveFolderChildren,
 	loadDriveClient,
 	type DriveError
-} from "#convex/lib/googleDrive";
+} from "#convex/lib/drive/googleDrive";
 import { fromConvexTuple } from "#convex/lib/result";
 import { getSessionFromQuery } from "#convex/lib/sessions/sessionLookup";
 

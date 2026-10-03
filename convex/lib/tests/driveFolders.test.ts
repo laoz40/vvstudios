@@ -20,13 +20,13 @@ import {
 	shouldRecordDriveSetupFailure,
 	validateDriveSetup,
 	type DriveSetupInfo
-} from "#convex/lib/driveSessionFolders/driveSetupInfo";
+} from "#convex/lib/drive/sessionFolders/driveSetupInfo";
 import {
 	getClientFolderName,
 	getPackageFolderName,
 	getPackageSessionFolderName,
 	getSessionFolderName
-} from "#convex/lib/googleDrive";
+} from "#convex/lib/drive/googleDrive";
 import { testBookingId, testPackageId } from "#convex/lib/tests/testIds";
 
 const sessionStartAt = Date.parse("2030-01-09T23:00:00.000Z");

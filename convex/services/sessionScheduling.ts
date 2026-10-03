@@ -2,7 +2,7 @@ import { err, ok } from "neverthrow";
 import type { Id } from "#convex/_generated/dataModel";
 import type { MutationCtx } from "#convex/_generated/server";
 import { env } from "#convex/env";
-import { scheduleDriveSetup } from "#convex/lib/driveScheduling";
+import { scheduleDriveSetup } from "#convex/lib/drive/driveScheduling";
 import {
 	buildAdminSessionUpdatePatch,
 	type AdminSessionTimingPatch,

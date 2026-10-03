@@ -7,7 +7,7 @@ import { internal } from "#convex/_generated/api";
 import type { Id } from "#convex/_generated/dataModel";
 import type { ActionCtx } from "#convex/_generated/server";
 import { env } from "#convex/env";
-import type { DriveSetupInfo, SetupError } from "#convex/lib/driveSessionFolders/driveSetupInfo";
+import type { DriveSetupInfo, SetupError } from "#convex/lib/drive/sessionFolders/driveSetupInfo";
 import { fromConvexTuple } from "#convex/lib/result";
 import {
 	createDriveFolder,
@@ -24,7 +24,7 @@ import {
 	type DriveChildFolderName,
 	type DriveClient,
 	type SavedDriveFolder
-} from "#convex/lib/googleDrive";
+} from "#convex/lib/drive/googleDrive";
 
 type SavedFolder = { id: string; url: string };
 

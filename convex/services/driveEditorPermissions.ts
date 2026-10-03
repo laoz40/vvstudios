@@ -13,9 +13,9 @@ import {
 	sendEditorAssignmentEmailForReadyAccess,
 	setupEditorAccess,
 	setupEditorAccessIfAssigned
-} from "#convex/lib/driveEditorPermissions";
+} from "#convex/lib/drive/driveEditorPermissions";
 
-export type { DriveEditorPermissionsError } from "#convex/lib/driveEditorPermissions";
+export type { DriveEditorPermissionsError } from "#convex/lib/drive/driveEditorPermissions";
 
 export function retryEditorAccessService(ctx: ActionCtx, args: { bookingId: Id<"bookings"> }) {
 	return requirePermissionActions(ctx, "edit:sessions").andThen(() => setupEditorAccess(ctx, args));

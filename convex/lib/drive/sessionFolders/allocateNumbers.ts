@@ -1,11 +1,11 @@
 import { err, errAsync, ok, okAsync, type ResultAsync } from "neverthrow";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { MutationCtx } from "#convex/_generated/server";
-import { ensureBookingDriveClientId } from "#convex/lib/driveBookingDriveClient";
+import { ensureBookingDriveClientId } from "#convex/lib/drive/driveBookingDriveClient";
 import {
 	computeClientSessionFolderNumber,
 	computePackageSessionFolderNumber
-} from "#convex/lib/driveSessionFolders/resolveFolderNames";
+} from "#convex/lib/drive/sessionFolders/resolveFolderNames";
 import { okOrThrow } from "#convex/lib/result";
 
 type ClientSessionNumberError = {

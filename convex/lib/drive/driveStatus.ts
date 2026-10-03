@@ -2,15 +2,15 @@ import type { Doc, Id } from "#convex/_generated/dataModel";
 import { exhaustiveCheck } from "#/lib/result";
 import type { QueryCtx } from "#convex/_generated/server";
 import { bookingRequiresClientAssetsEmail } from "#convex/lib/booking/bookingAddonQuantities";
-import { isClientFolderSharingDismissed } from "#convex/lib/driveClientAccess";
-import { resolveSessionFolderDisplayName } from "#convex/lib/driveSessionFolders/resolveFolderNames";
+import { isClientFolderSharingDismissed } from "#convex/lib/drive/driveClientAccess";
+import { resolveSessionFolderDisplayName } from "#convex/lib/drive/sessionFolders/resolveFolderNames";
 import {
 	getDriveSetup,
 	loadSharedPackageFolder,
 	resolveDriveClientForBooking
-} from "#convex/lib/driveLookup";
+} from "#convex/lib/drive/driveLookup";
 import { okOrThrow } from "#convex/lib/result";
-import type { DriveChildFolderName } from "#convex/lib/googleDrive";
+import type { DriveChildFolderName } from "#convex/lib/drive/googleDrive";
 import {
 	formatDriveClientFolderName,
 	formatDrivePackageFolderName,

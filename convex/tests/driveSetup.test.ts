@@ -11,8 +11,8 @@ import { describe, expect, test } from "vitest";
 import { bookingDocument } from "#convex/tests/insertDocumentDefaults";
 import { internal } from "#convex/_generated/api";
 import type { Id } from "#convex/_generated/dataModel";
-import { getOrCreateDriveClientId } from "#convex/lib/driveFolders";
-import { resolveSessionFolderDisplayName } from "#convex/lib/driveSessionFolders/resolveFolderNames";
+import { getOrCreateDriveClientId } from "#convex/lib/drive/driveFolders";
+import { resolveSessionFolderDisplayName } from "#convex/lib/drive/sessionFolders/resolveFolderNames";
 import { createConvexTest } from "#convex/test.setup";
 
 const now = Date.parse("2030-01-01T00:00:00.000Z");

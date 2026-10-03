@@ -9,7 +9,7 @@ import {
 	isDriveFolderTreeEmpty,
 	loadDriveClient,
 	type DriveClient
-} from "#convex/lib/googleDrive";
+} from "#convex/lib/drive/googleDrive";
 import { fromConvexTuple } from "#convex/lib/result";
 
 function clearSessionDriveDb(ctx: ActionCtx, bookingId: Id<"bookings">): ResultAsync<null, never> {

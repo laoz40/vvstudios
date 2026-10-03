@@ -23,7 +23,7 @@ import {
 	saveSessionEditorNotes,
 	saveSessionEditStatus
 } from "#convex/lib/editor/editorSessions";
-import { getDriveStatus, getEditorSessionDriveFolders } from "#convex/lib/driveStatus";
+import { getDriveStatus, getEditorSessionDriveFolders } from "#convex/lib/drive/driveStatus";
 import { okOrThrow } from "#convex/lib/result";
 import { searchBlobPatchForBooking } from "#convex/lib/adminSearch/adminSearchBlob";
 import { getSessionByStripeSessionId, getSessionFromDb } from "#convex/lib/sessions/sessionLookup";

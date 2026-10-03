@@ -3,7 +3,7 @@ import { exhaustiveCheck } from "#/lib/result";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import { internal } from "#convex/_generated/api";
 import type { ActionCtx, MutationCtx } from "#convex/_generated/server";
-import { scheduleDriveSetup } from "#convex/lib/driveScheduling";
+import { scheduleDriveSetup } from "#convex/lib/drive/driveScheduling";
 import { fromConvexTuple, okOrThrow } from "#convex/lib/result";
 import { searchBlobPatchForBooking } from "#convex/lib/adminSearch/adminSearchBlob";
 import {

@@ -3,9 +3,9 @@ import { exhaustiveCheck } from "#/lib/result";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { MutationCtx } from "#convex/_generated/server";
 import { bookingRequiresClientAssetsEmail } from "#convex/lib/booking/bookingAddonQuantities";
-import { DRIVE_EMAIL_CLAIM_TIMEOUT_MS } from "#convex/lib/driveLookup";
+import { DRIVE_EMAIL_CLAIM_TIMEOUT_MS } from "#convex/lib/drive/driveLookup";
 import { okOrThrow } from "#convex/lib/result";
-import type { SavedDrivePermission } from "#convex/lib/googleDrive";
+import type { SavedDrivePermission } from "#convex/lib/drive/googleDrive";
 
 type ClientDrivePermissionsStatus = "failed" | "ready" | "skipped";
 

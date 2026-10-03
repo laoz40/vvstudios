@@ -8,7 +8,7 @@ import type {
 	EditorDriveAccessToRemove,
 	EditorDriveSetupRecord,
 	FailedEditorRemoval
-} from "#convex/lib/driveEditor";
+} from "#convex/lib/drive/driveEditor";
 import { sendEditorAssignmentEmail } from "#convex/lib/email/emailTemplateSenders";
 import {
 	createDrivePermission,
@@ -19,7 +19,7 @@ import {
 	type DriveClient,
 	type DriveError,
 	type SavedDrivePermission
-} from "#convex/lib/googleDrive";
+} from "#convex/lib/drive/googleDrive";
 import { fromConvexTuple } from "#convex/lib/result";
 
 export type DriveEditorPermissionsError =

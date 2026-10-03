@@ -11,10 +11,10 @@ import {
 	requireClientDrivePermissions,
 	sendClientAssetsFolderEmail,
 	type DriveClientPermissionsError
-} from "#convex/lib/driveClientPermissions";
+} from "#convex/lib/drive/driveClientPermissions";
 import { fromConvexTuple } from "#convex/lib/result";
 
-export type { DriveClientPermissionsError } from "#convex/lib/driveClientPermissions";
+export type { DriveClientPermissionsError } from "#convex/lib/drive/driveClientPermissions";
 
 export function requireClientDrivePermissionsAndSendAssetsEmail(
 	ctx: ActionCtx,

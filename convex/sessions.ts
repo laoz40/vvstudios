@@ -8,11 +8,11 @@ import {
 	saveClientAssetsEmailResult as saveClientAssetsEmailResultRecord,
 	saveClientDrivePermission as saveClientDrivePermissionRecord,
 	saveClientDrivePermissionsStatus as saveClientDrivePermissionsStatusRecord
-} from "#convex/lib/driveClientAccess";
+} from "#convex/lib/drive/driveClientAccess";
 import {
 	ensureBookingDriveClientId as ensureBookingDriveClientIdRecord,
 	syncBookingDriveClientIdFromSession as syncBookingDriveClientIdFromSessionRecord
-} from "#convex/lib/driveBookingDriveClient";
+} from "#convex/lib/drive/driveBookingDriveClient";
 import {
 	clearSavedDriveFolder as clearSavedDriveFolderRecord,
 	saveDriveClientAssetsFolder as saveDriveClientAssetsFolderRecord,
@@ -21,13 +21,13 @@ import {
 	saveDrivePackageFolder as saveDrivePackageFolderRecord,
 	saveDriveSessionFolder as saveDriveSessionFolderRecord,
 	saveDriveSetupResult as saveDriveSetupResultRecord
-} from "#convex/lib/driveFolders";
+} from "#convex/lib/drive/driveFolders";
 import {
 	allocatePackageSessionNumber as allocatePackageSessionNumberRecord,
 	allocateClientSessionNumber as allocateClientSessionNumberRecord
-} from "#convex/lib/driveSessionFolders/allocateNumbers";
-import { clearSessionDriveDb as clearSessionDriveDbRecord } from "#convex/lib/driveSessionFolders/clearSessionRecords";
-import { getDriveSetup as loadDriveSetup } from "#convex/lib/driveLookup";
+} from "#convex/lib/drive/sessionFolders/allocateNumbers";
+import { clearSessionDriveDb as clearSessionDriveDbRecord } from "#convex/lib/drive/sessionFolders/clearSessionRecords";
+import { getDriveSetup as loadDriveSetup } from "#convex/lib/drive/driveLookup";
 import {
 	claimEditorAssignmentEmail as claimEditorAssignmentEmailRecord,
 	clearPreviousEditorDriveAccess as clearPreviousEditorDriveAccessRecord,
@@ -38,7 +38,7 @@ import {
 	saveEditorAssignmentEmailResult as saveEditorAssignmentEmailResultRecord,
 	saveEditorDrivePermission as saveEditorDrivePermissionRecord,
 	saveEditorDrivePermissionsStatus as saveEditorDrivePermissionsStatusRecord
-} from "#convex/lib/driveEditor";
+} from "#convex/lib/drive/driveEditor";
 import {
 	archivePastDeadCheckoutSessionsService,
 	archiveSessionService,

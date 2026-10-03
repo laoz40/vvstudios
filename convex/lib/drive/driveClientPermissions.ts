@@ -7,7 +7,7 @@ import type { ActionCtx } from "#convex/_generated/server";
 import {
 	type DriveSetupInfo,
 	validateDriveSetup
-} from "#convex/lib/driveSessionFolders/driveSetupInfo";
+} from "#convex/lib/drive/sessionFolders/driveSetupInfo";
 import {
 	createDrivePermission,
 	ensureAnyonePermission,
@@ -16,11 +16,11 @@ import {
 	type DriveClient,
 	type DriveError,
 	type SavedDrivePermission
-} from "#convex/lib/googleDrive";
+} from "#convex/lib/drive/googleDrive";
 import {
 	dismissedClientFolderPermission,
 	isClientFolderSharingDismissed
-} from "#convex/lib/driveClientAccess";
+} from "#convex/lib/drive/driveClientAccess";
 import { sendClientAssetsEmail } from "#convex/lib/email/emailTemplateSenders";
 import { fromConvexTuple } from "#convex/lib/result";
 

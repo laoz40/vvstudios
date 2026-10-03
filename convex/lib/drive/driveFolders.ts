@@ -2,8 +2,8 @@ import { err, ok, type ResultAsync } from "neverthrow";
 import { exhaustiveCheck } from "#/lib/result";
 import type { Id } from "#convex/_generated/dataModel";
 import type { MutationCtx } from "#convex/_generated/server";
-import { ensureBookingDriveClientId } from "#convex/lib/driveBookingDriveClient";
-import type { DriveChildFolderName, SavedDriveFolder } from "#convex/lib/googleDrive";
+import { ensureBookingDriveClientId } from "#convex/lib/drive/driveBookingDriveClient";
+import type { DriveChildFolderName, SavedDriveFolder } from "#convex/lib/drive/googleDrive";
 import { okOrThrow } from "#convex/lib/result";
 
 // The row starts without a folder; Drive setup creates and saves the client folder later.

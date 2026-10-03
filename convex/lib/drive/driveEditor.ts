@@ -2,8 +2,8 @@ import { err, errAsync, ok, type ResultAsync } from "neverthrow";
 import { exhaustiveCheck } from "#/lib/result";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
-import { DRIVE_EMAIL_CLAIM_TIMEOUT_MS, getDriveSetup } from "#convex/lib/driveLookup";
-import type { SavedDrivePermission } from "#convex/lib/googleDrive";
+import { DRIVE_EMAIL_CLAIM_TIMEOUT_MS, getDriveSetup } from "#convex/lib/drive/driveLookup";
+import type { SavedDrivePermission } from "#convex/lib/drive/googleDrive";
 import { okOrThrow } from "#convex/lib/result";
 
 export type EditorDriveSetupRecord = {

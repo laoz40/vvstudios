@@ -1,6 +1,6 @@
 import { err, ok } from "neverthrow";
 import type { Doc, Id } from "#convex/_generated/dataModel";
-import type { DriveError, SavedDrivePermission } from "#convex/lib/googleDrive";
+import type { DriveError, SavedDrivePermission } from "#convex/lib/drive/googleDrive";
 
 type SavedFolder = { id: string; url: string };
 
