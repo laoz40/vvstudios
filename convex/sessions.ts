@@ -14,7 +14,6 @@ import {
 	syncBookingDriveClientIdFromSession as syncBookingDriveClientIdFromSessionRecord
 } from "#convex/lib/driveBookingDriveClient";
 import {
-	allocatePackageSessionNumber as allocatePackageSessionNumberRecord,
 	clearSavedDriveFolder as clearSavedDriveFolderRecord,
 	saveDriveClientAssetsFolder as saveDriveClientAssetsFolderRecord,
 	saveDriveChildFolder as saveDriveChildFolderRecord,
@@ -23,8 +22,11 @@ import {
 	saveDriveSessionFolder as saveDriveSessionFolderRecord,
 	saveDriveSetupResult as saveDriveSetupResultRecord
 } from "#convex/lib/driveFolders";
-import { clearSessionDriveDb as clearSessionDriveDbRecord } from "#convex/lib/driveSessionCancelCleanup";
-import { allocateClientSessionNumber as allocateClientSessionNumberRecord } from "#convex/lib/driveSessionFolderNumber";
+import {
+	allocatePackageSessionNumber as allocatePackageSessionNumberRecord,
+	allocateClientSessionNumber as allocateClientSessionNumberRecord
+} from "#convex/lib/driveSessionFolders/allocateNumbers";
+import { clearSessionDriveDb as clearSessionDriveDbRecord } from "#convex/lib/driveSessionFolders/clearSessionRecords";
 import { getDriveSetup as loadDriveSetup } from "#convex/lib/driveLookup";
 import {
 	claimEditorAssignmentEmail as claimEditorAssignmentEmailRecord,

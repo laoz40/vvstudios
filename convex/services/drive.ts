@@ -7,17 +7,17 @@ import type { ActionCtx } from "#convex/_generated/server";
 import { requirePermissionActions } from "#convex/lib/auth";
 import {
 	areDriveSetupFoldersSaved,
-	createDriveFolders,
 	shouldRecordDriveSetupFailure,
 	validateDriveSetup,
 	type DriveSetupInfo,
 	type SetupError
-} from "#convex/lib/driveSetup";
+} from "#convex/lib/driveSessionFolders/driveSetupInfo";
+import { ensureSessionDriveFolders } from "#convex/lib/driveSessionFolders/ensureFolders";
 import { fromConvexTuple } from "#convex/lib/result";
 import { requireClientDrivePermissionsAndSendAssetsEmail } from "#convex/services/driveClientPermissions";
 import { setupEditorAccess } from "#convex/lib/driveEditorPermissions";
 
-export type { SetupError } from "#convex/lib/driveSetup";
+export type { SetupError } from "#convex/lib/driveSessionFolders/driveSetupInfo";
 
 function loadValidatedSetup(
 	ctx: ActionCtx,
@@ -53,7 +53,7 @@ function setupFoldersAndRecordResult(
 	return (
 		// Create or recover every folder, then mark the folder setup as complete.
 		loadValidatedSetup(ctx, args)
-			.andThen((setupInfo) => createDriveFolders(ctx, setupInfo, args.replaceMissingFolders))
+			.andThen((setupInfo) => ensureSessionDriveFolders(ctx, setupInfo, args.replaceMissingFolders))
 			.andThen(() => loadValidatedSetup(ctx, args))
 			.andThen((setupInfo) =>
 				areDriveSetupFoldersSaved(setupInfo)

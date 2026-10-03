@@ -50,9 +50,12 @@ import type * as lib_driveEditorPermissions from "../lib/driveEditorPermissions.
 import type * as lib_driveFolders from "../lib/driveFolders.js";
 import type * as lib_driveLookup from "../lib/driveLookup.js";
 import type * as lib_driveScheduling from "../lib/driveScheduling.js";
-import type * as lib_driveSessionCancelCleanup from "../lib/driveSessionCancelCleanup.js";
-import type * as lib_driveSessionFolderNumber from "../lib/driveSessionFolderNumber.js";
-import type * as lib_driveSetup from "../lib/driveSetup.js";
+import type * as lib_driveSessionFolders_allocateNumbers from "../lib/driveSessionFolders/allocateNumbers.js";
+import type * as lib_driveSessionFolders_cancelCleanup from "../lib/driveSessionFolders/cancelCleanup.js";
+import type * as lib_driveSessionFolders_clearSessionRecords from "../lib/driveSessionFolders/clearSessionRecords.js";
+import type * as lib_driveSessionFolders_driveSetupInfo from "../lib/driveSessionFolders/driveSetupInfo.js";
+import type * as lib_driveSessionFolders_ensureFolders from "../lib/driveSessionFolders/ensureFolders.js";
+import type * as lib_driveSessionFolders_resolveFolderNames from "../lib/driveSessionFolders/resolveFolderNames.js";
 import type * as lib_driveStatus from "../lib/driveStatus.js";
 import type * as lib_editorAccess from "../lib/editorAccess.js";
 import type * as lib_editorAssignments from "../lib/editorAssignments.js";
@@ -123,7 +126,6 @@ import type * as services_deliverablesReviewEmail from "../services/deliverables
 import type * as services_drive from "../services/drive.js";
 import type * as services_driveClientPermissions from "../services/driveClientPermissions.js";
 import type * as services_driveEditorPermissions from "../services/driveEditorPermissions.js";
-import type * as services_driveSessionCancelCleanup from "../services/driveSessionCancelCleanup.js";
 import type * as services_employeeInvitations from "../services/employeeInvitations.js";
 import type * as services_employees from "../services/employees.js";
 import type * as services_invoices from "../services/invoices.js";
@@ -210,9 +212,12 @@ declare const fullApi: ApiFromModules<{
   "lib/driveFolders": typeof lib_driveFolders;
   "lib/driveLookup": typeof lib_driveLookup;
   "lib/driveScheduling": typeof lib_driveScheduling;
-  "lib/driveSessionCancelCleanup": typeof lib_driveSessionCancelCleanup;
-  "lib/driveSessionFolderNumber": typeof lib_driveSessionFolderNumber;
-  "lib/driveSetup": typeof lib_driveSetup;
+  "lib/driveSessionFolders/allocateNumbers": typeof lib_driveSessionFolders_allocateNumbers;
+  "lib/driveSessionFolders/cancelCleanup": typeof lib_driveSessionFolders_cancelCleanup;
+  "lib/driveSessionFolders/clearSessionRecords": typeof lib_driveSessionFolders_clearSessionRecords;
+  "lib/driveSessionFolders/driveSetupInfo": typeof lib_driveSessionFolders_driveSetupInfo;
+  "lib/driveSessionFolders/ensureFolders": typeof lib_driveSessionFolders_ensureFolders;
+  "lib/driveSessionFolders/resolveFolderNames": typeof lib_driveSessionFolders_resolveFolderNames;
   "lib/driveStatus": typeof lib_driveStatus;
   "lib/editorAccess": typeof lib_editorAccess;
   "lib/editorAssignments": typeof lib_editorAssignments;
@@ -283,7 +288,6 @@ declare const fullApi: ApiFromModules<{
   "services/drive": typeof services_drive;
   "services/driveClientPermissions": typeof services_driveClientPermissions;
   "services/driveEditorPermissions": typeof services_driveEditorPermissions;
-  "services/driveSessionCancelCleanup": typeof services_driveSessionCancelCleanup;
   "services/employeeInvitations": typeof services_employeeInvitations;
   "services/employees": typeof services_employees;
   "services/invoices": typeof services_invoices;

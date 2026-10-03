@@ -12,14 +12,12 @@ import {
 } from "#convex/lib/googleDrive";
 import { fromConvexTuple } from "#convex/lib/result";
 
-// Convex: folder refs + session numbers on driveSessions.
 function clearSessionDriveDb(ctx: ActionCtx, bookingId: Id<"bookings">): ResultAsync<null, never> {
 	return fromConvexTuple(
 		ctx.runMutation(internal.sessions.clearSessionDriveDb, { bookingId })
 	).orElse(() => okAsync(null));
 }
 
-// Google Drive: delete session folder tree when empty, then clearSessionDriveDb.
 function deleteEmptyDriveFolder(
 	ctx: ActionCtx,
 	args: { bookingId: Id<"bookings">; drive: DriveClient; sessionFolderId: string }
@@ -35,7 +33,6 @@ function deleteEmptyDriveFolder(
 		.orElse(() => okAsync(null));
 }
 
-// Best-effort: cancellation already succeeded; Drive cleanup must not throw back to callers.
 export function cleanupCancelledSessionDriveService(
 	ctx: ActionCtx,
 	args: { bookingId: Id<"bookings"> }

@@ -20,7 +20,7 @@ import {
 	shouldRecordDriveSetupFailure,
 	validateDriveSetup,
 	type DriveSetupInfo
-} from "#convex/lib/driveSetup";
+} from "#convex/lib/driveSessionFolders/driveSetupInfo";
 import {
 	getClientFolderName,
 	getPackageFolderName,

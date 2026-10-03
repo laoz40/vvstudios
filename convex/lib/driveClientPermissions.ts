@@ -4,7 +4,10 @@ import { err, errAsync, ok, okAsync, type ResultAsync } from "neverthrow";
 import { internal } from "#convex/_generated/api";
 import type { Id } from "#convex/_generated/dataModel";
 import type { ActionCtx } from "#convex/_generated/server";
-import { type DriveSetupInfo, validateDriveSetup } from "#convex/lib/driveSetup";
+import {
+	type DriveSetupInfo,
+	validateDriveSetup
+} from "#convex/lib/driveSessionFolders/driveSetupInfo";
 import {
 	createDrivePermission,
 	ensureAnyonePermission,

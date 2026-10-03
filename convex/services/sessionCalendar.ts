@@ -11,7 +11,7 @@ import {
 	sendBookingRescheduledEmailsForBooking
 } from "#convex/lib/sessionHostEmails";
 import { getBusyWindows, getBusyWindowsInRange } from "#convex/lib/googleCalendarAvailability";
-import { cleanupCancelledSessionDriveService } from "#convex/services/driveSessionCancelCleanup";
+import { cleanupCancelledSessionDriveService } from "#convex/lib/driveSessionFolders/cancelCleanup";
 import {
 	getGoogleCalendarClient,
 	loadGoogleCalendarClient

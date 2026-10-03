@@ -3,7 +3,6 @@ import type { Id } from "#convex/_generated/dataModel";
 import type { MutationCtx } from "#convex/_generated/server";
 import { okOrThrow } from "#convex/lib/result";
 
-// Convex only: drops saved session-folder links and session numbers on driveSessions.
 export function clearSessionDriveDb(
 	ctx: MutationCtx,
 	args: { bookingId: Id<"bookings"> }

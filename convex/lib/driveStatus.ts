@@ -3,7 +3,7 @@ import { exhaustiveCheck } from "#/lib/result";
 import type { QueryCtx } from "#convex/_generated/server";
 import { bookingRequiresClientAssetsEmail } from "#convex/lib/bookingAddonQuantities";
 import { isClientFolderSharingDismissed } from "#convex/lib/driveClientAccess";
-import { resolveSessionFolderDisplayName } from "#convex/lib/driveSessionFolderNumber";
+import { resolveSessionFolderDisplayName } from "#convex/lib/driveSessionFolders/resolveFolderNames";
 import {
 	getDriveSetup,
 	loadSharedPackageFolder,
