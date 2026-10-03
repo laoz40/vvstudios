@@ -9,6 +9,9 @@
  *
  * 3. date prefix on sessions
  *    Finds bookings by session day using AU day/month syntax.
+ *
+ * 4. receipt prefix on sessions
+ *    Finds bookings by receipt number via the receipt index.
  */
 import { describe, expect, test } from "vitest";
 import { api } from "#convex/_generated/api";
@@ -85,6 +88,29 @@ describe("admin list search", () => {
 		expect(result.page.map((session) => session._id)).toEqual([targetId]);
 	});
 
+	test("receipt prefix on sessions", async () => {
+		const t = createConvexTest();
+		const receiptNumber = "VV-RECEIPT-SEARCH-001";
+
+		const targetId = await seedBooking(t, {
+			name: "Receipt target",
+			email: "receipt-target@example.com",
+			receiptNumber
+		});
+
+		await seedBooking(t, { name: "Other", email: "other-receipt@example.com" });
+
+		const result = await t
+			.withIdentity(adminIdentity)
+			.query(api.sessions.listSessions, {
+				paginationOpts: adminSearchPaginationOpts,
+				view: "inbox",
+				searchQuery: `receipt:${receiptNumber}`
+			});
+
+		expect(result.page.map((session) => session._id)).toEqual([targetId]);
+	});
+
 	test("unprefixed blob refineSearch", async () => {
 		const t = createConvexTest();
 
@@ -145,6 +171,7 @@ async function seedBooking(
 		phone?: string;
 		searchToken?: string;
 		sessionStartAt?: number;
+		receiptNumber?: string;
 	}
 ): Promise<Id<"bookings">> {
 	return await t.run(async (ctx) => {
@@ -164,7 +191,8 @@ async function seedBooking(
 			pendingPaymentCreatedAt: 1,
 			googleEventId: "event-id",
 			googleCalendarId: "calendar-id",
-			notes: args.searchToken
+			notes: args.searchToken,
+			receiptNumber: args.receiptNumber
 		};
 
 		return ctx.db.insert("bookings", {

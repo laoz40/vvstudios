@@ -21,7 +21,6 @@ import {
 	buildStripeInvoiceLineItemsFromDrafts,
 	calculateAddonLineItem,
 	calculateDurationUpgradeLineItem,
-	getAvailableDurationUpgradeOptions,
 	getApplyToAllSessionsLabel,
 	getStripeInvoiceLineItemOptions,
 	getStripeInvoiceLineItemSelectionValue,
@@ -49,14 +48,6 @@ function createDraft(
 		...overrides
 	};
 }
-
-describe("getAvailableDurationUpgradeOptions", () => {
-	test("returns only longer durations than the current booking", () => {
-		expect(getAvailableDurationUpgradeOptions("1h")).toEqual(["2h", "3h"]);
-		expect(getAvailableDurationUpgradeOptions("2h")).toEqual(["3h"]);
-		expect(getAvailableDurationUpgradeOptions("3h")).toEqual([]);
-	});
-});
 
 describe("calculateDurationUpgradeLineItem", () => {
 	test("charges the session price difference when upgrading duration", () => {

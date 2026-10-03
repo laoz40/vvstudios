@@ -11,14 +11,14 @@
  *    Package checkout totals must match stored package pricing for the same configuration.
  */
 import { describe, expect, test } from "vitest";
+import { calculatePackageAmounts } from "#studio/features/booking-form/lib/booking-pricing";
+import type { BookingAddon } from "#studio/features/booking-form/lib/booking-form-model";
 import {
 	buildPackageCheckoutLineItems,
 	buildSessionCheckoutLineItems,
 	type PackageCheckoutLineItems,
 	type SessionCheckoutLineItem
 } from "#studio/features/booking-invoice/lib/stripe-checkout-line-items";
-import { calculatePackageAmounts } from "#studio/features/booking-form/lib/booking-pricing";
-import type { BookingAddon } from "#studio/features/booking-form/lib/booking-form-model";
 import { calculateBookingReceiptAmounts } from "#studio/features/booking-invoice/lib/calculate-booking-receipt-amounts";
 
 const SESSION_1H_TOTAL_DOLLARS = 200;

@@ -60,8 +60,6 @@ export function createStripeInvoiceLineItemDraft(): StripeInvoiceLineItemDraft {
 	};
 }
 
-export { getAvailableDurationUpgradeOptions };
-
 export function calculateDurationUpgradeLineItem(
 	context: StripeInvoiceContext,
 	newDuration: BookingDuration,
