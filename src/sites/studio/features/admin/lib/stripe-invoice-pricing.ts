@@ -60,7 +60,7 @@ export function createStripeInvoiceLineItemDraft(): StripeInvoiceLineItemDraft {
 	};
 }
 
-export function calculateDurationUpgradeLineItem(
+function calculateDurationUpgradeLineItem(
 	context: StripeInvoiceContext,
 	newDuration: BookingDuration,
 	applyToEverySession: boolean
@@ -77,7 +77,7 @@ export function getApplyToAllSessionsLabel(sessionCount: number) {
 	return `Apply to all ${sessionCount} sessions`;
 }
 
-export function calculateAddonLineItem(
+function calculateAddonLineItem(
 	context: StripeInvoiceContext,
 	addon: BookingAddon,
 	quantity: number,

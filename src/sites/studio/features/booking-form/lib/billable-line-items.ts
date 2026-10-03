@@ -45,7 +45,7 @@ function billableSessionCount(scope: BillableSessionScope, applyToEverySession: 
 	return appliedToEverySession ? scope.sessionCount : 1;
 }
 
-export function formatDurationUpgradeDescription(
+function formatDurationUpgradeDescription(
 	currentDuration: BookingDuration,
 	newDuration: BookingDuration,
 	options: { appliedToEverySession: boolean; sessionCount: number }
@@ -57,7 +57,7 @@ export function formatDurationUpgradeDescription(
 	return `Studio hire upgrade: ${currentDuration} to ${newDuration}`;
 }
 
-export function formatAddonBillableDescription(
+function formatAddonBillableDescription(
 	addon: BookingAddon,
 	totalQuantity: number,
 	options: { appliedToEverySession: boolean; sessionCount: number }
