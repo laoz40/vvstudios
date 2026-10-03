@@ -8,7 +8,7 @@ import { requirePermissionActions } from "#convex/lib/auth";
 import {
 	requireDeliverablesEligibility,
 	requireDeliverablesOwnership
-} from "#convex/lib/editorSessions";
+} from "#convex/lib/editor/editorSessions";
 import { sendSessionDeliverablesEmail as sendDeliverablesEmail } from "#convex/lib/email/emailTemplateSenders";
 import {
 	ensureAnyoneReaderPermission,

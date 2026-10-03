@@ -5,8 +5,8 @@
  *    Rejects unconfirmed and future sessions before deliverables work starts.
  */
 import { describe, expect, test } from "vitest";
-import type { DeliverablesEligibilitySession } from "#convex/lib/editorSessions";
-import { requireDeliverablesEligibility } from "#convex/lib/editorSessions";
+import type { DeliverablesEligibilitySession } from "#convex/lib/editor/editorSessions";
+import { requireDeliverablesEligibility } from "#convex/lib/editor/editorSessions";
 import { testUserIdentity } from "#convex/lib/tests/testIds";
 
 const pastStartAt = Date.parse("2020-01-01T00:00:00.000Z");

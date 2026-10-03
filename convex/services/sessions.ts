@@ -7,12 +7,12 @@ import { getEditorByToken, requirePermission } from "#convex/lib/auth";
 import {
 	scheduleDeliverablesReviewHostEmail,
 	shouldNotifyHostOfDeliverablesReview
-} from "#convex/lib/deliverablesReviewNotification";
+} from "#convex/lib/editor/deliverablesReviewNotification";
 import {
 	buildActiveEditorProjection,
 	listActiveEditorProfiles,
 	updateSessionEditorAssignment
-} from "#convex/lib/editorAssignments";
+} from "#convex/lib/editor/editorAssignments";
 import {
 	buildEditorSessionProjection,
 	detectDeliverablesCustomerType,
@@ -22,7 +22,7 @@ import {
 	saveSessionAdminNotes,
 	saveSessionEditorNotes,
 	saveSessionEditStatus
-} from "#convex/lib/editorSessions";
+} from "#convex/lib/editor/editorSessions";
 import { getDriveStatus, getEditorSessionDriveFolders } from "#convex/lib/driveStatus";
 import { okOrThrow } from "#convex/lib/result";
 import { searchBlobPatchForBooking } from "#convex/lib/adminSearch/adminSearchBlob";

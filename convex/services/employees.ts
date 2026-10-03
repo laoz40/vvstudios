@@ -5,7 +5,7 @@ import {
 	listEditorProfiles,
 	updateEditorAccess,
 	updateEditorNotes
-} from "#convex/lib/editorAccess";
+} from "#convex/lib/editor/editorAccess";
 import { okOrThrow } from "#convex/lib/result";
 
 type UpdateEmployeeAccessArgs = { tokenIdentifier: string; isActive: boolean };

@@ -7,7 +7,7 @@ import type { ActionCtx, MutationCtx, QueryCtx } from "#convex/_generated/server
 import {
 	editorProfileDisplayName,
 	patchBookingsAssignedEditorDisplayName
-} from "#convex/lib/editorAssignments";
+} from "#convex/lib/editor/editorAssignments";
 import { fromConvexTuple, okOrThrow } from "#convex/lib/result";
 import { hasPermission, ROLE_PERMISSIONS, type Permission } from "#/lib/permissions";
 

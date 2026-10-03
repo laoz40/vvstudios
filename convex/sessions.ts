@@ -1,7 +1,7 @@
 import { paginationOptsValidator } from "convex/server";
 import { ConvexError, v } from "convex/values";
 import { tupleErr, tupleOk } from "#/lib/result";
-import { detectDeliverablesCustomerType as detectCustomerType } from "#convex/lib/editorSessions";
+import { detectDeliverablesCustomerType as detectCustomerType } from "#convex/lib/editor/editorSessions";
 import { internalMutation, internalQuery, mutation, query } from "#convex/_generated/server";
 import {
 	claimClientAssetsEmail as claimClientAssetsEmailRecord,

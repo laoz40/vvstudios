@@ -2,7 +2,7 @@ import { err, ok, type Result } from "neverthrow";
 import { internal } from "#convex/_generated/api";
 import type { Doc } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
-import { getEditorWorkStatus } from "#convex/lib/editorAccess";
+import { getEditorWorkStatus } from "#convex/lib/editor/editorAccess";
 import { okOrThrow } from "#convex/lib/result";
 import { searchBlobPatchForBooking } from "#convex/lib/adminSearch/adminSearchBlob";
 
