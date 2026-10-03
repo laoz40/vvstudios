@@ -76,7 +76,7 @@ async function loadEditorClientDriveData(
 	editorTokenIdentifier: string
 ) {
 	return await Promise.all([
-		ctx.db.get(driveSession.driveClientId),
+		ctx.db.get("driveClients", driveSession.driveClientId),
 		ctx.db
 			.query("driveClientEditorPermissions")
 			.withIndex("by_driveClientId_and_editorTokenIdentifier", (query) =>
@@ -138,7 +138,7 @@ export function markPreviousEditorRemovalFailed(
 				.unique();
 
 			if (driveSession === null) return null;
-			await ctx.db.patch(driveSession._id, {
+			await ctx.db.patch("driveSessions", driveSession._id, {
 				failedRemovalEditorTokenIdentifier: args.editorTokenIdentifier,
 				updatedAt: Date.now()
 			});
@@ -214,12 +214,12 @@ export function clearPreviousEditorDriveAccess(
 ) {
 	return okOrThrow(
 		(async () => {
-			const driveSession = await ctx.db.get(args.driveSessionId);
+			const driveSession = await ctx.db.get("driveSessions", args.driveSessionId);
 
 			if (driveSession === null) return null;
 
 			if (driveSession.editorDrivePermissionsTokenIdentifier === args.editorTokenIdentifier) {
-				await ctx.db.patch(args.driveSessionId, {
+				await ctx.db.patch("driveSessions", args.driveSessionId, {
 					assignmentEmailClaimedAt: undefined,
 					assignmentEmailStatus: undefined,
 					assignmentEmailTokenIdentifier: undefined,
@@ -232,11 +232,13 @@ export function clearPreviousEditorDriveAccess(
 				});
 			} else {
 				// A replacement editor's setup may already own the session fields; still clear the marker.
-				await ctx.db.patch(args.driveSessionId, { failedRemovalEditorTokenIdentifier: undefined });
+				await ctx.db.patch("driveSessions", args.driveSessionId, {
+					failedRemovalEditorTokenIdentifier: undefined
+				});
 			}
 
 			if (args.driveClientEditorPermissionId !== null) {
-				await ctx.db.delete(args.driveClientEditorPermissionId);
+				await ctx.db.delete("driveClientEditorPermissions", args.driveClientEditorPermissionId);
 			}
 
 			return null;
@@ -381,7 +383,7 @@ function saveEditorSessionPermission(
 ) {
 	return okOrThrow(
 		ctx.db
-			.patch(args.driveSessionId, {
+			.patch("driveSessions", args.driveSessionId, {
 				[args.field]: args.permission,
 				editorDrivePermissionsTokenIdentifier: args.editorTokenIdentifier,
 				updatedAt: Date.now()
@@ -405,7 +407,7 @@ export function saveEditorDrivePermissionsStatus(
 
 		return okOrThrow(
 			ctx.db
-				.patch(setup.driveSession._id, {
+				.patch("driveSessions", setup.driveSession._id, {
 					editorDrivePermissionsStatus: args.status,
 					editorDrivePermissionsTokenIdentifier: args.editorTokenIdentifier,
 					updatedAt: Date.now()
@@ -483,7 +485,7 @@ export function claimEditorAssignmentEmail(ctx: MutationCtx, args: ClaimEditorAs
 			// Save the claim before sending so another action cannot claim it concurrently.
 			return okOrThrow(
 				ctx.db
-					.patch(driveSession._id, {
+					.patch("driveSessions", driveSession._id, {
 						assignmentEmailClaimedAt: args.now,
 						assignmentEmailStatus: undefined,
 						assignmentEmailTokenIdentifier: args.editorTokenIdentifier,
@@ -528,7 +530,7 @@ export function saveEditorAssignmentEmailResult(
 
 		return okOrThrow(
 			ctx.db
-				.patch(driveSession._id, {
+				.patch("driveSessions", driveSession._id, {
 					assignmentEmailClaimedAt: undefined,
 					assignmentEmailStatus: args.status,
 					updatedAt: Date.now()

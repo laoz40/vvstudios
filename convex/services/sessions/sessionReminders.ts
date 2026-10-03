@@ -25,7 +25,7 @@ export function claimReminderService(
 		.andThen((session) =>
 			okOrThrow(
 				ctx.db
-					.patch(args.bookingId, {
+					.patch("bookings", args.bookingId, {
 						reminderEmailClaimedAt: args.now,
 						reminderEmailFailureCode: undefined
 					})
@@ -41,7 +41,7 @@ export function markReminderSentService(
 	return getSessionFromDb(ctx, args.bookingId).andThen(() =>
 		okOrThrow(
 			ctx.db
-				.patch(args.bookingId, {
+				.patch("bookings", args.bookingId, {
 					reminderEmailClaimedAt: undefined,
 					reminderEmailSentAt: args.now,
 					reminderEmailFailureCode: undefined
@@ -58,7 +58,7 @@ export function markReminderFailedService(
 	return getSessionFromDb(ctx, args.bookingId).andThen(() =>
 		okOrThrow(
 			ctx.db
-				.patch(args.bookingId, {
+				.patch("bookings", args.bookingId, {
 					reminderEmailClaimedAt: undefined,
 					reminderEmailFailureCode: args.failureCode
 				})

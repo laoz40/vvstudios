@@ -267,5 +267,5 @@ async function saveAdminUpdate(
 }
 
 async function readBooking(t: TestClient, bookingId: Id<"bookings">) {
-	return await t.run((ctx) => ctx.db.get(bookingId));
+	return await t.run((ctx) => ctx.db.get("bookings", bookingId));
 }

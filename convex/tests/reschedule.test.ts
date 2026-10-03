@@ -52,19 +52,22 @@ describe("customer booking rescheduling", () => {
 				} else {
 					await t.run(async (ctx) => {
 						if (testCase.kind === "used") {
-							await ctx.db.patch(seeded.linkId, { status: "used", usedAt: now });
+							await ctx.db.patch("bookingRescheduleLinks", seeded.linkId, {
+								status: "used",
+								usedAt: now
+							});
 						}
 
 						if (testCase.kind === "expired") {
-							await ctx.db.patch(seeded.linkId, { status: "expired" });
+							await ctx.db.patch("bookingRescheduleLinks", seeded.linkId, { status: "expired" });
 						}
 
 						if (testCase.kind === "past-session") {
-							await ctx.db.patch(seeded.bookingId, { sessionStartAt: now - 1 });
+							await ctx.db.patch("bookings", seeded.bookingId, { sessionStartAt: now - 1 });
 						}
 
 						if (testCase.kind === "unsupported-status") {
-							await ctx.db.patch(seeded.bookingId, { status: "cancelled" });
+							await ctx.db.patch("bookings", seeded.bookingId, { status: "cancelled" });
 						}
 					});
 				}
@@ -92,7 +95,7 @@ describe("customer booking rescheduling", () => {
 			supportedCases.map(async (bookingState) => {
 				const t = createConvexTest();
 				const seeded = await seedReschedulableSession(t);
-				await t.run((ctx) => ctx.db.patch(seeded.bookingId, bookingState));
+				await t.run((ctx) => ctx.db.patch("bookings", seeded.bookingId, bookingState));
 
 				const result = await t.query(internal.sessionReschedule.getValidRescheduleLinkAndSession, {
 					token: seeded.token,
@@ -110,7 +113,7 @@ describe("customer booking rescheduling", () => {
 		const t = createConvexTest();
 		const { linkId } = await seedReschedulableSession(t);
 
-		await t.run((ctx) => ctx.db.delete(linkId));
+		await t.run((ctx) => ctx.db.delete("bookingRescheduleLinks", linkId));
 
 		const result = await t.mutation(internal.sessionReschedule.unlockRescheduleLink, {
 			linkId,
@@ -222,7 +225,7 @@ describe("reschedule reservation and failure guards", () => {
 });
 
 async function readBooking(t: TestClient, bookingId: Id<"bookings">) {
-	return await t.run((ctx) => ctx.db.get(bookingId));
+	return await t.run((ctx) => ctx.db.get("bookings", bookingId));
 }
 
 async function seedReschedulableSession(t: TestClient) {

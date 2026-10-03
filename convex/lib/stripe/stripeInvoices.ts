@@ -192,7 +192,7 @@ export function markStripeInvoicePaid(
 
 		return okOrThrow(
 			ctx.db
-				.patch(stripeInvoice._id, { paymentStatus: "paid", paidAt: args.paidAt })
+				.patch("stripeInvoices", stripeInvoice._id, { paymentStatus: "paid", paidAt: args.paidAt })
 				.then(() => ({ outcome: "completed" as const }))
 		);
 	});

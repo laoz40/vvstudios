@@ -26,7 +26,7 @@ export async function setBookingArchived(
 	bookingId: Id<"bookings">,
 	archived: boolean
 ) {
-	await ctx.db.patch(bookingId, { archived });
+	await ctx.db.patch("bookings", bookingId, { archived });
 }
 
 export async function setPackageArchived(
@@ -34,5 +34,5 @@ export async function setPackageArchived(
 	packageId: Id<"packages">,
 	archived: boolean
 ) {
-	await ctx.db.patch(packageId, { archived });
+	await ctx.db.patch("packages", packageId, { archived });
 }

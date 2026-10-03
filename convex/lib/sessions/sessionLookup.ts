@@ -5,7 +5,7 @@ import type { ActionCtx, MutationCtx, QueryCtx } from "#convex/_generated/server
 import { okOrThrow } from "#convex/lib/result";
 
 export function getSessionFromDb(ctx: QueryCtx | MutationCtx, bookingId: Id<"bookings">) {
-	return okOrThrow(ctx.db.get(bookingId)).andThen((session) => {
+	return okOrThrow(ctx.db.get("bookings", bookingId)).andThen((session) => {
 		if (!session) {
 			return err({ reason: "BOOKING_NOT_FOUND" as const });
 		}

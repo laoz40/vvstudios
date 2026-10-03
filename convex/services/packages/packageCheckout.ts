@@ -110,7 +110,7 @@ export function claimPackageCheckoutPaymentService(
 
 			return okOrThrow(
 				ctx.db
-					.patch(packageFromDb._id, {
+					.patch("packages", packageFromDb._id, {
 						packageCheckoutClaimedAt: now,
 						stripePaymentIntentId: args.stripePaymentIntentId
 					})

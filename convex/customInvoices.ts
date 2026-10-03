@@ -34,7 +34,7 @@ export const listCustomInvoicesForBooking = query({
 export const getBookingCustomInvoiceInput = internalQuery({
 	args: { bookingId: v.id("bookings"), customInvoiceId: v.id("customInvoices") },
 	handler: async (ctx, args) => {
-		const customInvoice = await ctx.db.get(args.customInvoiceId);
+		const customInvoice = await ctx.db.get("customInvoices", args.customInvoiceId);
 
 		if (customInvoice?.bookingId !== args.bookingId) {
 			return null;

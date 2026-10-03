@@ -73,7 +73,7 @@ export async function reserveSessionTime(
 	>
 > {
 	// Load the session being moved.
-	const session = await ctx.db.get(args.bookingId);
+	const session = await ctx.db.get("bookings", args.bookingId);
 
 	if (session === null) {
 		return err({ reason: "BOOKING_NOT_FOUND" as const });
@@ -160,7 +160,7 @@ export async function reserveSessionTime(
 	// has the same id, so an older request cannot remove this new reservation by mistake.
 	const reservedAt = Math.max(args.now, (session.reservationCreatedAt ?? 0) + 1);
 	const reservation = { reservedAt, sessionStartAt: args.sessionStartAt, duration: args.duration };
-	await ctx.db.patch(session._id, {
+	await ctx.db.patch("bookings", session._id, {
 		reservationCreatedAt: reservation.reservedAt,
 		reservationSessionStartAt: reservation.sessionStartAt,
 		reservationDuration: reservation.duration
@@ -175,7 +175,7 @@ export async function unreserveSessionTime(
 	expected: SessionReservation
 ): Promise<Result<{ cleared: boolean }, never>> {
 	// Remove the reservation only if it still belongs to this request.
-	const session = await ctx.db.get(bookingId);
+	const session = await ctx.db.get("bookings", bookingId);
 
 	if (session === null) return ok({ cleared: false as const });
 
@@ -183,7 +183,7 @@ export async function unreserveSessionTime(
 		return ok({ cleared: false as const });
 	}
 
-	await ctx.db.patch(bookingId, clearedSessionReservationPatch);
+	await ctx.db.patch("bookings", bookingId, clearedSessionReservationPatch);
 
 	return ok({ cleared: true as const });
 }

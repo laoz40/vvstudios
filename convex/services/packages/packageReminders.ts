@@ -75,7 +75,7 @@ export function claimPackageReminderService(
 		.andThen(() =>
 			okOrThrow(
 				ctx.db
-					.patch(args.packageId, {
+					.patch("packages", args.packageId, {
 						packageReminderState: {
 							type: args.reminderType,
 							status: "claimed",
@@ -94,7 +94,7 @@ export function markPackageReminderSentService(
 	return getPackageFromDb(ctx, args.packageId).andThen(() =>
 		okOrThrow(
 			ctx.db
-				.patch(args.packageId, {
+				.patch("packages", args.packageId, {
 					packageReminderState: { type: args.reminderType, status: "sent", sentAt: args.now }
 				})
 				.then(() => null)
@@ -109,7 +109,7 @@ export function markPackageReminderFailedService(
 	return getPackageFromDb(ctx, args.packageId).andThen(() =>
 		okOrThrow(
 			ctx.db
-				.patch(args.packageId, {
+				.patch("packages", args.packageId, {
 					packageReminderState: {
 						type: args.reminderType,
 						status: "failed",

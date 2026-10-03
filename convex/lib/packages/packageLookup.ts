@@ -16,7 +16,7 @@ export type ValidPackageByTokenError =
 export type ValidPackage = Doc<"packages"> & { expiresAt: number };
 
 export function getPackageFromDb(ctx: QueryCtx | MutationCtx, packageId: Id<"packages">) {
-	return okOrThrow(ctx.db.get(packageId)).andThen((packageFromDb) => {
+	return okOrThrow(ctx.db.get("packages", packageId)).andThen((packageFromDb) => {
 		if (!packageFromDb) {
 			return err({ reason: "PACKAGE_NOT_FOUND" as const });
 		}

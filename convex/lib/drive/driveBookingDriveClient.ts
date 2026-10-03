@@ -12,12 +12,12 @@ export function ensureBookingDriveClientId(
 	bookingId: Id<"bookings">,
 	driveClientId: Id<"driveClients">
 ): ResultAsync<null, SyncBookingDriveClientIdFromSessionError> {
-	return okOrThrow(ctx.db.get(bookingId)).andThen((booking) => {
+	return okOrThrow(ctx.db.get("bookings", bookingId)).andThen((booking) => {
 		if (booking === null) return err({ reason: "BOOKING_NOT_FOUND" as const });
 
 		if (booking.driveClientId === driveClientId) return ok(null);
 
-		return okOrThrow(ctx.db.patch(booking._id, { driveClientId }).then(() => null));
+		return okOrThrow(ctx.db.patch("bookings", booking._id, { driveClientId }).then(() => null));
 	});
 }
 
@@ -25,7 +25,7 @@ export function syncBookingDriveClientIdFromSession(
 	ctx: MutationCtx,
 	bookingId: Id<"bookings">
 ): ResultAsync<null, SyncBookingDriveClientIdFromSessionError> {
-	return okOrThrow(ctx.db.get(bookingId)).andThen((booking) => {
+	return okOrThrow(ctx.db.get("bookings", bookingId)).andThen((booking) => {
 		if (booking === null) return err({ reason: "BOOKING_NOT_FOUND" as const });
 
 		return okOrThrow(

@@ -97,7 +97,10 @@ export function claimPackageAdjustmentInvoicePayment(
 
 		return okOrThrow(
 			ctx.db
-				.patch(payableAdjustment._id, { paymentStatus: "paid", paidAt: args.paidAt })
+				.patch("packageAdjustments", payableAdjustment._id, {
+					paymentStatus: "paid",
+					paidAt: args.paidAt
+				})
 				.then(() => ({
 					outcome: "completed" as const,
 					adjustmentId: payableAdjustment._id,

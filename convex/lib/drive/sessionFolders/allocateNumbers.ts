@@ -28,7 +28,7 @@ function getStandaloneBooking(
 	ctx: MutationCtx,
 	bookingId: Id<"bookings">
 ): ResultAsync<StandaloneBooking, ClientSessionNumberError> {
-	return okOrThrow(ctx.db.get(bookingId)).andThen((booking) => {
+	return okOrThrow(ctx.db.get("bookings", bookingId)).andThen((booking) => {
 		if (booking === null) return errAsync({ reason: "BOOKING_NOT_FOUND" as const });
 
 		if (booking.packageId !== undefined) {
@@ -114,7 +114,7 @@ function saveClientSessionNumber(
 		allocation.existingSession !== null
 			? okOrThrow(
 					ctx.db
-						.patch(allocation.existingSession._id, {
+						.patch("driveSessions", allocation.existingSession._id, {
 							clientSessionNumber: allocation.number,
 							updatedAt: Date.now()
 						})
@@ -162,7 +162,7 @@ function getPackageBooking(
 	ctx: MutationCtx,
 	bookingId: Id<"bookings">
 ): ResultAsync<PackageBooking, PackageSessionNumberError> {
-	return okOrThrow(ctx.db.get(bookingId)).andThen((booking) => {
+	return okOrThrow(ctx.db.get("bookings", bookingId)).andThen((booking) => {
 		if (booking === null) return err({ reason: "BOOKING_NOT_FOUND" as const });
 
 		if (booking.packageId === undefined) {
@@ -226,7 +226,7 @@ function savePackageSessionNumber(
 	if (allocation.existingSession !== null) {
 		return okOrThrow(
 			ctx.db
-				.patch(allocation.existingSession._id, {
+				.patch("driveSessions", allocation.existingSession._id, {
 					packageSessionNumber: allocation.number,
 					updatedAt: Date.now()
 				})

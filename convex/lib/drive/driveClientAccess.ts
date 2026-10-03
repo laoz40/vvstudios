@@ -52,26 +52,28 @@ export function saveClientDrivePermission(
 	).andThen((driveSession) => {
 		if (driveSession === null) return err({ reason: "DRIVE_RECORD_NOT_FOUND" as const });
 
-		return okOrThrow(ctx.db.get(driveSession.driveClientId)).andThen((driveClient) => {
-			if (driveClient === null) return err({ reason: "DRIVE_RECORD_NOT_FOUND" as const });
+		return okOrThrow(ctx.db.get("driveClients", driveSession.driveClientId)).andThen(
+			(driveClient) => {
+				if (driveClient === null) return err({ reason: "DRIVE_RECORD_NOT_FOUND" as const });
 
-			switch (args.name) {
-				case "Client folder":
-					return okOrThrow(
-						ctx.db
-							.patch(driveClient._id, { clientFolderPermission: args.permission })
-							.then(() => null)
-					);
-				case "Assets":
-					return okOrThrow(
-						ctx.db
-							.patch(driveClient._id, { assetsClientPermission: args.permission })
-							.then(() => null)
-					);
-				default:
-					return exhaustiveCheck(args.name);
+				switch (args.name) {
+					case "Client folder":
+						return okOrThrow(
+							ctx.db
+								.patch("driveClients", driveClient._id, { clientFolderPermission: args.permission })
+								.then(() => null)
+						);
+					case "Assets":
+						return okOrThrow(
+							ctx.db
+								.patch("driveClients", driveClient._id, { assetsClientPermission: args.permission })
+								.then(() => null)
+						);
+					default:
+						return exhaustiveCheck(args.name);
+				}
 			}
-		});
+		);
 	});
 }
 
@@ -89,7 +91,7 @@ export function saveClientDrivePermissionsStatus(
 
 		return okOrThrow(
 			ctx.db
-				.patch(driveSession._id, {
+				.patch("driveSessions", driveSession._id, {
 					clientDrivePermissionsStatus: args.status,
 					updatedAt: Date.now()
 				})
@@ -148,7 +150,7 @@ export function claimClientAssetsEmail(
 	ctx: MutationCtx,
 	args: { bookingId: Id<"bookings">; attempt: "automatic" | "retry"; now: number }
 ) {
-	return okOrThrow(ctx.db.get(args.bookingId)).andThen((booking) => {
+	return okOrThrow(ctx.db.get("bookings", args.bookingId)).andThen((booking) => {
 		if (
 			booking === null ||
 			booking.driveClientId === undefined ||
@@ -159,7 +161,7 @@ export function claimClientAssetsEmail(
 
 		return okOrThrow(
 			Promise.all([
-				ctx.db.get(booking.driveClientId),
+				ctx.db.get("driveClients", booking.driveClientId),
 				ctx.db
 					.query("driveSessions")
 					.withIndex("by_bookingId", (query) => query.eq("bookingId", args.bookingId))
@@ -192,7 +194,10 @@ export function claimClientAssetsEmail(
 
 			return okOrThrow(
 				ctx.db
-					.patch(claimedDriveSession._id, { assetsEmailClaimedAt: args.now, updatedAt: Date.now() })
+					.patch("driveSessions", claimedDriveSession._id, {
+						assetsEmailClaimedAt: args.now,
+						updatedAt: Date.now()
+					})
 					.then(() => ({
 						assetsUrl: claimedAssetsFolder.url,
 						assetsFolderId: claimedAssetsFolder.id,
@@ -227,7 +232,7 @@ export function saveClientAssetsEmailResult(
 
 		return okOrThrow(
 			ctx.db
-				.patch(driveSession._id, {
+				.patch("driveSessions", driveSession._id, {
 					assetsEmailClaimedAt: undefined,
 					assetsEmailFolderId:
 						args.status === "sent" ? args.assetsFolderId : driveSession.assetsEmailFolderId,

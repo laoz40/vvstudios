@@ -129,7 +129,7 @@ export function claimBookingConfirmationService(
 
 			return okOrThrow<BookingClaimOutcome>(
 				ctx.db
-					.patch(session._id, {
+					.patch("bookings", session._id, {
 						paymentCompletedAt: now,
 						bookingConfirmationClaimedAt: now,
 						bookingConfirmationEventId: args.stripeEventId,
@@ -168,7 +168,7 @@ export function markBookingConfirmedService(ctx: MutationCtx, args: MarkBookingC
 						};
 
 						if (session.packageId !== undefined || session.receiptNumber) {
-							await ctx.db.patch(args.bookingId, confirmedPatch);
+							await ctx.db.patch("bookings", args.bookingId, confirmedPatch);
 
 							return;
 						}
@@ -182,7 +182,7 @@ export function markBookingConfirmedService(ctx: MutationCtx, args: MarkBookingC
 							receiptNumber
 						});
 
-						await ctx.db.patch(args.bookingId, {
+						await ctx.db.patch("bookings", args.bookingId, {
 							...confirmedPatch,
 							receiptNumber,
 							...searchBlobPatch
@@ -237,7 +237,7 @@ export function markSessionInvoiceEmailFailedService(
 			() =>
 				okOrThrow(
 					ctx.db
-						.patch(args.bookingId, {
+						.patch("bookings", args.bookingId, {
 							status: "email_failed",
 							bookingFailureCode: "BOOKING_INVOICE_EMAIL_FAILED"
 						})
@@ -260,7 +260,10 @@ export function recordBookingReceiptNumberService(
 			searchBlobPatchForBooking(ctx, session, { receiptNumber: args.receiptNumber }).then(
 				(searchBlobPatch) =>
 					ctx.db
-						.patch(args.bookingId, { receiptNumber: args.receiptNumber, ...searchBlobPatch })
+						.patch("bookings", args.bookingId, {
+							receiptNumber: args.receiptNumber,
+							...searchBlobPatch
+						})
 						.then(() => null)
 			)
 		);
@@ -278,7 +281,7 @@ export function markSessionInvoiceEmailRetrySentService(
 
 		return okOrThrow(
 			ctx.db
-				.patch(args.bookingId, { status: "confirmed", bookingFailureCode: undefined })
+				.patch("bookings", args.bookingId, { status: "confirmed", bookingFailureCode: undefined })
 				.then(() => null)
 		);
 	});
@@ -300,6 +303,7 @@ export function markBookingConfirmationFailedService(
 		return okOrThrow(
 			ctx.db
 				.patch(
+					"bookings",
 					args.bookingId,
 					(() => {
 						const patch = { status: "failed" as const, bookingFailureCode: args.failureCode };

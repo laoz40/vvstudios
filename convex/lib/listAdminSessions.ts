@@ -463,7 +463,7 @@ async function loadAdminSessionListRows(ctx: QueryCtx, sessionsPage: Doc<"bookin
 				return { ...session, hasDriveWorkflowFailure, stripeInvoicesSummary };
 			}
 
-			const packageRecord = await ctx.db.get(session.packageId);
+			const packageRecord = await ctx.db.get("packages", session.packageId);
 
 			if (!packageRecord) {
 				return { ...session, hasDriveWorkflowFailure, stripeInvoicesSummary };

@@ -146,7 +146,7 @@ export async function getPackageSessionForToken(
 	packageId: Id<"packages">,
 	bookingId: Id<"bookings">
 ) {
-	const session = await ctx.db.get(bookingId);
+	const session = await ctx.db.get("bookings", bookingId);
 
 	if (!session || session.packageId !== packageId) {
 		return null;

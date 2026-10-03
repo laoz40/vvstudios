@@ -78,7 +78,9 @@ export function saveAdminSessionUpdateService(ctx: MutationCtx, args: SaveAdminS
 
 				return okOrThrow(
 					searchBlobPatchForBooking(ctx, session, updatePatch).then((searchBlobPatch) =>
-						ctx.db.patch(args.bookingId, { ...patch, ...searchBlobPatch }).then(() => null)
+						ctx.db
+							.patch("bookings", args.bookingId, { ...patch, ...searchBlobPatch })
+							.then(() => null)
 					)
 				).andThen(() => {
 					const nextStatus = args.confirmBooking ? "confirmed" : session.status;
@@ -144,7 +146,7 @@ export function saveClientSessionRescheduleService(
 						addons: args.addons ?? session.addons,
 						notes: args.notes ?? session.notes
 					}).then((searchBlobPatch) =>
-						ctx.db.patch(args.bookingId, {
+						ctx.db.patch("bookings", args.bookingId, {
 							date: args.date,
 							time: args.time,
 							sessionStartAt: args.sessionStartAt,

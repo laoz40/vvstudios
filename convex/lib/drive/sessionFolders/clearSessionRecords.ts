@@ -17,7 +17,7 @@ export function clearSessionDriveDb(
 
 		return okOrThrow(
 			ctx.db
-				.patch(driveSession._id, {
+				.patch("driveSessions", driveSession._id, {
 					sessionFolder: undefined,
 					rawMediaFolder: undefined,
 					deliverablesFolder: undefined,

@@ -70,7 +70,7 @@ describe("drive setup guards", () => {
 				})
 			);
 
-			await ctx.db.delete(id);
+			await ctx.db.delete("bookings", id);
 
 			return id;
 		});
@@ -138,7 +138,7 @@ describe("drive setup guards", () => {
 		});
 
 		const sessionFolderName = await t.run(async (ctx) => {
-			const booking = await ctx.db.get(bookingId);
+			const booking = await ctx.db.get("bookings", bookingId);
 
 			if (booking === null) throw new Error("Expected booking");
 
@@ -296,7 +296,7 @@ async function seedStandaloneBooking(
 }
 
 async function readBooking(t: TestClient, bookingId: Id<"bookings">) {
-	return await t.run((ctx) => ctx.db.get(bookingId));
+	return await t.run((ctx) => ctx.db.get("bookings", bookingId));
 }
 
 async function readDriveSession(t: TestClient, bookingId: Id<"bookings">) {

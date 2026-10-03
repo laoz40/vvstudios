@@ -124,7 +124,7 @@ export function setPackageDefaultSpaceService(
 	return getValidPackageByToken(ctx, args.token, Date.now()).andThen((packageRecord) =>
 		okOrThrow(
 			ctx.db
-				.patch(packageRecord._id, { defaultSpace: args.service })
+				.patch("packages", packageRecord._id, { defaultSpace: args.service })
 				.then(() => ({ defaultSpace: args.service }))
 		)
 	);
@@ -536,7 +536,7 @@ export function saveCreatedPackageSessionService(
 
 				return okOrThrow(
 					ctx.db
-						.patch(packageFromDb._id, { packageReminderState: undefined })
+						.patch("packages", packageFromDb._id, { packageReminderState: undefined })
 						.then(() => ({ bookingId, packageFromDb }))
 				);
 			})
