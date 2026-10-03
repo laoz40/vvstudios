@@ -9,7 +9,7 @@ import {
 	requireDeliverablesEligibility,
 	requireDeliverablesOwnership
 } from "#convex/lib/editorSessions";
-import { sendSessionDeliverablesEmail as sendDeliverablesEmail } from "#convex/lib/emailTemplateSenders";
+import { sendSessionDeliverablesEmail as sendDeliverablesEmail } from "#convex/lib/email/emailTemplateSenders";
 import {
 	ensureAnyoneReaderPermission,
 	listDriveFolderChildren,

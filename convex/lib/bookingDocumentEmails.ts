@@ -10,8 +10,8 @@ import {
 	formatTimestampDateLong,
 	formatTimestampDateShort,
 	sendEmail
-} from "#convex/lib/emailSend";
-import { sendPackageHostDetailsEmail, sendSessionHostDetailsEmail } from "#convex/lib/email";
+} from "#convex/lib/email/emailSend";
+import { sendPackageHostDetailsEmail, sendSessionHostDetailsEmail } from "#convex/lib/email/email";
 import { formatSessionDateShort } from "#convex/lib/sessionCalendarTime";
 import { pickBookingAddonQuantities } from "#studio/features/booking-form/lib/booking-form-model";
 

@@ -27,7 +27,7 @@ import {
 	formatTimestampDateShort,
 	getHostEmails,
 	sendEmail
-} from "#convex/lib/emailSend";
+} from "#convex/lib/email/emailSend";
 
 type SendBookingReminderEmailForBookingArgs = {
 	name: string;

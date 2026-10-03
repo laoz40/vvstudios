@@ -5,7 +5,7 @@ import { createBookingInvoiceArtifactsForBooking } from "#studio/features/bookin
 import {
 	sendBookingRescheduledCustomerEmail,
 	sendSessionHostDetailsEmail
-} from "#convex/lib/email";
+} from "#convex/lib/email/email";
 import type { AdminSessionUpdateResult } from "#convex/lib/sessionAdminEdit";
 import { okOrThrow } from "#convex/lib/result";
 import { getSessionFromQuery } from "#convex/lib/sessionLookup";

@@ -11,7 +11,7 @@ import {
 	formatSessionDateShort,
 	formatSessionDateWithoutYear
 } from "#convex/lib/sessionCalendarTime";
-import { formatTimestampDateLong, sendEmail } from "#convex/lib/emailSend";
+import { formatTimestampDateLong, sendEmail } from "#convex/lib/email/emailSend";
 import { tryPromise } from "#convex/lib/result";
 
 interface SendClientAssetsEmailArgs {

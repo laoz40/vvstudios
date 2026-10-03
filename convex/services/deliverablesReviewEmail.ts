@@ -3,7 +3,7 @@
 import type { ResultAsync } from "neverthrow";
 import type { Id } from "#convex/_generated/dataModel";
 import type { ActionCtx } from "#convex/_generated/server";
-import { sendDeliverablesReviewReadyHostEmail } from "#convex/lib/email";
+import { sendDeliverablesReviewReadyHostEmail } from "#convex/lib/email/email";
 
 export type SendDeliverablesReviewReadyEmailArgs = {
 	bookingId: Id<"bookings">;

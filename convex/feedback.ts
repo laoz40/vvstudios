@@ -4,7 +4,7 @@ import { err, errAsync, ok, type ResultAsync } from "neverthrow";
 import { v } from "convex/values";
 import { action, type ActionCtx } from "#convex/_generated/server";
 import { tupleErr, tupleOk } from "#/lib/result";
-import { sendFeedbackEmailForMessage } from "#convex/lib/email";
+import { sendFeedbackEmailForMessage } from "#convex/lib/email/email";
 import { rateLimiter } from "#convex/lib/rateLimits";
 import { okOrThrow } from "#convex/lib/result";
 
