@@ -175,13 +175,13 @@
 						]
 					}
 				],
-				"@convex-dev/import-wrong-runtime": "off",
+				"@convex-dev/import-wrong-runtime": "error",
 				"@convex-dev/no-old-registered-function-syntax": "error",
 				"@convex-dev/require-args-validator": "error",
 				"@convex-dev/require-access-control": "off",
 				"@convex-dev/explicit-table-ids": "error",
-				"@convex-dev/no-filter-in-query": "warn",
-				"@convex-dev/no-top-of-hour-crons": "warn",
+				"@convex-dev/no-filter-in-query": "error",
+				"@convex-dev/no-top-of-hour-crons": "error",
 				"@convex-dev/no-schema-import-cycle": "error",
 				"@convex-dev/no-duplicate-indexes": "error",
 				"@convex-dev/no-process-env": "error"
