@@ -26,7 +26,7 @@ import {
 } from "#convex/lib/sessionAdminEdit";
 import { updateSessionFromAdminWithGoogleCalendar } from "#convex/lib/sessionAdminGoogleCalendarUpdate";
 import { deleteSessionCalendarEvent } from "#convex/lib/sessionCalendarEvents";
-import { getBookingSubmitRateLimitKey } from "#convex/lib/bookingSubmission";
+import { getBookingSubmitRateLimitKey } from "#convex/lib/booking/bookingSubmission";
 import { getSessionFromQuery } from "#convex/lib/sessionLookup";
 import {
 	checkBookingSubmitRateLimit,

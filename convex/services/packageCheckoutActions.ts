@@ -4,7 +4,7 @@ import { okAsync, ResultAsync } from "neverthrow";
 import { internal } from "#convex/_generated/api";
 import type { Id } from "#convex/_generated/dataModel";
 import type { ActionCtx } from "#convex/_generated/server";
-import { checkPackageSubmitRateLimit } from "#convex/lib/bookingSubmission";
+import { checkPackageSubmitRateLimit } from "#convex/lib/booking/bookingSubmission";
 import { createPendingPackage } from "#convex/lib/packagePayment";
 import { parsePackageRequest, type CreatePackageRequestArgs } from "#convex/lib/packageUpdates";
 import { fromConvexTuple } from "#convex/lib/result";

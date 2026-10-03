@@ -4,7 +4,7 @@ import { internalQuery, mutation, query } from "#convex/_generated/server";
 import {
 	bookingAddonQuantitiesValidator,
 	bookingAddonsValidator
-} from "#convex/lib/bookingAddonQuantities";
+} from "#convex/lib/booking/bookingAddonQuantities";
 import {
 	createBookingCustomInvoiceService,
 	listCustomInvoicesForBookingService

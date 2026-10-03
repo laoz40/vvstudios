@@ -6,7 +6,7 @@ import {
 } from "#studio/features/booking-form/lib/booking-pricing";
 import { createPackageInvoiceLineItemSnapshot } from "#studio/features/booking-invoice/lib/build-booking-invoice-data";
 import type { Doc, Id } from "#convex/_generated/dataModel";
-import type { BookingAddonQuantitiesArgs } from "#convex/lib/bookingAddonQuantities";
+import type { BookingAddonQuantitiesArgs } from "#convex/lib/booking/bookingAddonQuantities";
 import type { BookingAddon } from "#studio/features/booking-form/lib/booking-form-model";
 import { getPackageUpdateValidationError } from "#convex/lib/packageScheduling";
 import { buildPackageSearchBlob } from "#convex/lib/adminSearch/adminSearchBlob";

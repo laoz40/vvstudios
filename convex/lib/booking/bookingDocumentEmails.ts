@@ -5,7 +5,7 @@ import {
 	createPackageReceiptEmailArtifacts,
 	type PackageInvoiceInput
 } from "#studio/features/booking-invoice/lib/booking-artifacts";
-import { renderBookingReceiptPdfInNode } from "#convex/lib/bookingInvoicePdfRender";
+import { renderBookingReceiptPdfInNode } from "#convex/lib/booking/bookingInvoicePdfRender";
 import {
 	formatTimestampDateLong,
 	formatTimestampDateShort,

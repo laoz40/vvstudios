@@ -2,7 +2,7 @@ import { err, ok } from "neverthrow";
 import { tryPromise } from "#convex/lib/result";
 import { formatEditingAddonLabel } from "#studio/features/booking-form/lib/editing-addon-quantities";
 import { pickBookingAddonQuantities } from "#studio/features/booking-form/lib/booking-form-model";
-import type { BookingAddonQuantitiesArgs } from "#convex/lib/bookingAddonQuantities";
+import type { BookingAddonQuantitiesArgs } from "#convex/lib/booking/bookingAddonQuantities";
 import { env } from "#convex/env";
 
 export interface EmailAttachment {

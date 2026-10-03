@@ -14,7 +14,7 @@ import { getSessionFromDb } from "#convex/lib/sessionLookup";
 import {
 	getBookingClaimStatus,
 	validateClaimStripeSession
-} from "#convex/lib/bookingConfirmationClaim";
+} from "#convex/lib/booking/bookingConfirmationClaim";
 import {
 	clearedSessionReservationPatch,
 	sessionHasReservation,

@@ -11,7 +11,7 @@ import {
 	savePackageSessionCalendarEventService,
 	type PackageCalendarWriteError
 } from "#convex/services/packageSchedulingCalendar";
-import { bookingAddonsValidator } from "#convex/lib/bookingAddonQuantities";
+import { bookingAddonsValidator } from "#convex/lib/booking/bookingAddonQuantities";
 
 const packageCalendarBookingValidator = v.object({
 	date: v.string(),

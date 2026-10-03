@@ -13,7 +13,7 @@ import {
 import {
 	renderBookingInvoicePdfInNode,
 	renderBookingReceiptPdfInNode
-} from "#convex/lib/bookingInvoicePdfRender";
+} from "#convex/lib/booking/bookingInvoicePdfRender";
 import {
 	toInvoicePdfPayload,
 	validateBookingInvoiceDownload,

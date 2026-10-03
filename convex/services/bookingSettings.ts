@@ -3,7 +3,7 @@ import type { ResultAsync as NeverthrowResultAsync } from "neverthrow";
 import { api } from "#convex/_generated/api";
 import type { ActionCtx, MutationCtx } from "#convex/_generated/server";
 import { requirePermission } from "#convex/lib/auth";
-import { validateBookingSettings } from "#convex/lib/bookingSettings";
+import { validateBookingSettings } from "#convex/lib/booking/bookingSettings";
 import { okOrThrow } from "#convex/lib/result";
 
 export function getBookingSettingsService(

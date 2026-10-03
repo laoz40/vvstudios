@@ -5,7 +5,7 @@ import { checkBookingSubmitRateLimit } from "#convex/lib/rateLimits";
 import {
 	bookingAddonQuantitiesValidator,
 	bookingAddonsValidator
-} from "#convex/lib/bookingAddonQuantities";
+} from "#convex/lib/booking/bookingAddonQuantities";
 import {
 	createPendingSessionService,
 	deletePendingSessionService,

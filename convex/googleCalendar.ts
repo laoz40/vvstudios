@@ -17,7 +17,7 @@ import {
 import {
 	bookingAddonQuantitiesValidator,
 	bookingAddonsValidator
-} from "#convex/lib/bookingAddonQuantities";
+} from "#convex/lib/booking/bookingAddonQuantities";
 import {
 	retryDriveSetupService,
 	runScheduledDriveSetupService,
