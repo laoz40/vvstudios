@@ -9,7 +9,7 @@ import { requirePermissionActions } from "#convex/lib/auth";
 import {
 	notifyHostOfAdminSessionReschedule,
 	sendBookingRescheduledEmailsForBooking
-} from "#convex/lib/sessionHostEmails";
+} from "#convex/lib/sessions/sessionHostEmails";
 import { getBusyWindows, getBusyWindowsInRange } from "#convex/lib/googleCalendar/googleCalendarAvailability";
 import { cleanupCancelledSessionDriveService } from "#convex/lib/driveSessionFolders/cancelCleanup";
 import {
@@ -23,17 +23,17 @@ import {
 	type AdminSessionUpdateArgs,
 	type AdminSessionUpdateError,
 	type AdminSessionUpdateResult
-} from "#convex/lib/sessionAdminEdit";
-import { updateSessionFromAdminWithGoogleCalendar } from "#convex/lib/sessionAdminGoogleCalendarUpdate";
-import { deleteSessionCalendarEvent } from "#convex/lib/sessionCalendarEvents";
+} from "#convex/lib/sessions/sessionAdminEdit";
+import { updateSessionFromAdminWithGoogleCalendar } from "#convex/lib/sessions/sessionAdminGoogleCalendarUpdate";
+import { deleteSessionCalendarEvent } from "#convex/lib/sessions/sessionCalendarEvents";
 import { getBookingSubmitRateLimitKey } from "#convex/lib/booking/bookingSubmission";
-import { getSessionFromQuery } from "#convex/lib/sessionLookup";
+import { getSessionFromQuery } from "#convex/lib/sessions/sessionLookup";
 import {
 	checkBookingSubmitRateLimit,
 	checkGoogleCalendarAvailabilityRateLimit
 } from "#convex/lib/rateLimits";
 import { fromConvexTuple, okOrThrow } from "#convex/lib/result";
-import { getRescheduleUrlForToken } from "#convex/lib/sessionRescheduleLinks";
+import { getRescheduleUrlForToken } from "#convex/lib/sessions/sessionRescheduleLinks";
 import {
 	lockAndReserveReschedule,
 	saveRescheduledSession,
@@ -41,7 +41,7 @@ import {
 	validateRescheduleTiming,
 	type RescheduleSessionArgs,
 	type ValidRescheduleDetails
-} from "#convex/lib/sessionRescheduleWorkflow";
+} from "#convex/lib/sessions/sessionRescheduleWorkflow";
 import {
 	checkSessionMeetsAvailabilitySettings,
 	getAvailableTimeOptions,
@@ -50,11 +50,11 @@ import {
 	groupBusyWindowsByDay,
 	type BusyDayWindow,
 	type SessionAvailabilitySettings
-} from "#convex/lib/sessionCalendarTime";
+} from "#convex/lib/sessions/sessionCalendarTime";
 import { getBookingSettingsService } from "#convex/services/bookingSettings";
 import type { RescheduleLinkLookupError } from "#convex/services/sessionReschedule";
 
-export type { RescheduleSessionArgs } from "#convex/lib/sessionRescheduleWorkflow";
+export type { RescheduleSessionArgs } from "#convex/lib/sessions/sessionRescheduleWorkflow";
 
 type IgnoredBusyEvent = { calendarId?: string; eventId?: string };
 

@@ -10,11 +10,11 @@ import {
 	sendConfirmedBookingInvoice
 } from "#convex/lib/booking/bookingConfirmation";
 import { getGoogleCalendarClient } from "#convex/lib/googleCalendar/googleCalendarClient";
-import { buildSessionCalendarEventPayload } from "#convex/lib/sessionCalendarEvents";
+import { buildSessionCalendarEventPayload } from "#convex/lib/sessions/sessionCalendarEvents";
 import { pickBookingAddonQuantities } from "#studio/features/booking-form/lib/booking-form-model";
-import type { SessionAvailabilitySettings } from "#convex/lib/sessionCalendarTime";
-import { failBookingConfirmation, verifySessionCanBeScheduled } from "#convex/lib/sessionAdminEdit";
-import { getSessionFromQuery } from "#convex/lib/sessionLookup";
+import type { SessionAvailabilitySettings } from "#convex/lib/sessions/sessionCalendarTime";
+import { failBookingConfirmation, verifySessionCanBeScheduled } from "#convex/lib/sessions/sessionAdminEdit";
+import { getSessionFromQuery } from "#convex/lib/sessions/sessionLookup";
 import { fromConvexTuple, okOrThrow } from "#convex/lib/result";
 import type { CompleteClaimedSessionSuccess } from "#convex/services/bookingConfirmation";
 

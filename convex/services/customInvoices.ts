@@ -8,7 +8,7 @@ import {
 	validateCustomTotalDueAmount
 } from "#convex/lib/stripe/customInvoices";
 import { okOrThrow } from "#convex/lib/result";
-import { getSessionFromDb } from "#convex/lib/sessionLookup";
+import { getSessionFromDb } from "#convex/lib/sessions/sessionLookup";
 
 type CustomInvoiceDetails = {
 	dueDate?: string;

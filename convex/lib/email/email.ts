@@ -14,7 +14,7 @@ import {
 	formatSessionDateLong,
 	formatSessionDateShort,
 	formatCalendarEventDate
-} from "#convex/lib/sessionCalendarTime";
+} from "#convex/lib/sessions/sessionCalendarTime";
 import type { BookingAddonQuantitiesArgs } from "#convex/lib/booking/bookingAddonQuantities";
 import {
 	pickBookingAddonQuantities,

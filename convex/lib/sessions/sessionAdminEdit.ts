@@ -6,14 +6,14 @@ import type { ActionCtx } from "#convex/_generated/server";
 import type { BookingAddonQuantitiesArgs } from "#convex/lib/booking/bookingAddonQuantities";
 import type { BookingAddon } from "#studio/features/booking-form/lib/booking-form-model";
 import { fromConvexTuple } from "#convex/lib/result";
-import type { SessionReservation } from "#convex/lib/sessionReservations";
+import type { SessionReservation } from "#convex/lib/sessions/sessionReservations";
 import {
 	checkSessionMeetsAvailabilitySettings,
 	getUtcDateForZonedDateTime,
 	isTimeSlotAvailable,
 	type SessionAvailabilitySettings,
 	type SessionTimeParseError
-} from "#convex/lib/sessionCalendarTime";
+} from "#convex/lib/sessions/sessionCalendarTime";
 import { normalizePhone } from "#convex/lib/contactNormalization";
 import { getBusyWindows } from "#convex/lib/googleCalendar/googleCalendarAvailability";
 import { calendarResultAsync } from "#convex/lib/googleCalendar/googleCalendarErrors";

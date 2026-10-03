@@ -3,11 +3,11 @@ import { okOrThrow } from "#convex/lib/result";
 import type {
 	SessionAvailabilitySettings,
 	SessionAvailabilityValidationError
-} from "#convex/lib/sessionCalendarTime";
-import { checkSessionMeetsAvailabilitySettings } from "#convex/lib/sessionCalendarTime";
+} from "#convex/lib/sessions/sessionCalendarTime";
+import { checkSessionMeetsAvailabilitySettings } from "#convex/lib/sessions/sessionCalendarTime";
 import type { GoogleCalendarWriteError } from "#convex/lib/googleCalendar/googleCalendarErrors";
 import type { BookingSubmitRateLimitError } from "#convex/lib/rateLimits";
-import type { SessionCalendarEventRecord } from "#convex/lib/sessionCalendarEvents";
+import type { SessionCalendarEventRecord } from "#convex/lib/sessions/sessionCalendarEvents";
 import {
 	getPackageSessionAddons,
 	isDurationOption,
@@ -32,7 +32,7 @@ import {
 	capacityConsumingSessionStatuses,
 	sessionConsumesPackageCapacity
 } from "#convex/lib/packages/packageSessionCapacity";
-import { generateRescheduleToken, hashRescheduleToken } from "#convex/lib/sessionRescheduleLinks";
+import { generateRescheduleToken, hashRescheduleToken } from "#convex/lib/sessions/sessionRescheduleLinks";
 
 export { sessionConsumesPackageCapacity } from "#convex/lib/packages/packageSessionCapacity";
 

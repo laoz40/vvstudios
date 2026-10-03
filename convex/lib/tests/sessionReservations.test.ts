@@ -8,13 +8,13 @@
  *    Detects direct overlaps and buffer gaps between session windows.
  */
 import { describe, expect, test } from "vitest";
-import { doSessionWindowsOverlap } from "#convex/lib/sessionCalendarTime";
+import { doSessionWindowsOverlap } from "#convex/lib/sessions/sessionCalendarTime";
 import {
 	sessionHasReservation,
 	SLOT_RESERVATION_TTL_MS,
 	type SessionReservation,
 	type SessionReservationBooking
-} from "#convex/lib/sessionReservations";
+} from "#convex/lib/sessions/sessionReservations";
 
 const now = Date.parse("2030-01-01T00:00:00.000Z");
 

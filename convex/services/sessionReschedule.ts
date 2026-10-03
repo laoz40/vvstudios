@@ -6,7 +6,7 @@ import { env } from "#convex/env";
 import type { BookingAddon } from "#studio/features/booking-form/lib/booking-form-model";
 import { requirePermission } from "#convex/lib/auth";
 import { fromConvexTuple, okOrThrow } from "#convex/lib/result";
-import { getSessionByStripeSessionId, getSessionFromDb } from "#convex/lib/sessionLookup";
+import { getSessionByStripeSessionId, getSessionFromDb } from "#convex/lib/sessions/sessionLookup";
 import {
 	buildRescheduleUrl,
 	createActiveRescheduleLinkForSession,
@@ -19,7 +19,7 @@ import {
 	validatePublicFailedSessionForReschedule,
 	type CreateAdminRescheduleLinkError,
 	type CreatePublicFailedSessionRescheduleLinkError
-} from "#convex/lib/sessionRescheduleLinks";
+} from "#convex/lib/sessions/sessionRescheduleLinks";
 
 export interface GetRescheduleSessionByTokenArgs {
 	token: string;

@@ -2,7 +2,7 @@ import { err, ok } from "neverthrow";
 import type { Id } from "#convex/_generated/dataModel";
 import type { MutationCtx } from "#convex/_generated/server";
 import { okOrThrow } from "#convex/lib/result";
-import { getSessionFromDb } from "#convex/lib/sessionLookup";
+import { getSessionFromDb } from "#convex/lib/sessions/sessionLookup";
 
 type ReminderBookingArgs = { bookingId: Id<"bookings"> };
 

@@ -7,7 +7,7 @@ import {
 	updateSessionCalendarEventTiming,
 	type SessionCalendarEventDetails,
 	type SessionCalendarEventRecord
-} from "#convex/lib/sessionCalendarEvents";
+} from "#convex/lib/sessions/sessionCalendarEvents";
 import { pickBookingAddonQuantities } from "#studio/features/booking-form/lib/booking-form-model";
 
 export type PackageCalendarDetails = SessionCalendarEventDetails & {

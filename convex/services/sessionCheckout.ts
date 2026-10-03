@@ -10,17 +10,17 @@ import { getOrCreateDriveClientId } from "#convex/lib/driveFolders";
 import { buildBookingSearchBlob } from "#convex/lib/adminSearch/adminSearchBlob";
 import { normalizePhone } from "#convex/lib/contactNormalization";
 import { okOrThrow } from "#convex/lib/result";
-import { getSessionStartAt } from "#convex/lib/sessionAdminEdit";
+import { getSessionStartAt } from "#convex/lib/sessions/sessionAdminEdit";
 import {
 	checkSessionMeetsAvailabilitySettings,
 	type SessionAvailabilityValidationError
-} from "#convex/lib/sessionCalendarTime";
-import { archiveDeadCheckoutBooking } from "#convex/lib/sessionArchive";
+} from "#convex/lib/sessions/sessionCalendarTime";
+import { archiveDeadCheckoutBooking } from "#convex/lib/sessions/sessionArchive";
 import {
 	validatePendingSessionDeletion,
 	validateSessionExpiry,
 	type DeletePendingSessionSuccess
-} from "#convex/lib/sessionCheckout";
+} from "#convex/lib/sessions/sessionCheckout";
 
 export type CreatePendingSessionArgs = {
 	name: string;

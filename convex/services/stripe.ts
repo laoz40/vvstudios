@@ -18,7 +18,7 @@ import {
 	linkStripeCheckoutToPendingBooking,
 	requireValidBookingEmailDomain
 } from "#convex/lib/stripe/stripeCheckoutSession";
-import type { SessionAvailabilityValidationError } from "#convex/lib/sessionCalendarTime";
+import type { SessionAvailabilityValidationError } from "#convex/lib/sessions/sessionCalendarTime";
 import { publicBookingSchema } from "#studio/features/booking-form/lib/booking-form-model";
 
 export type CreateEmbeddedCheckoutSessionArgs = {

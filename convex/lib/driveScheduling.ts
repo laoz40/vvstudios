@@ -3,7 +3,7 @@ import { internal } from "#convex/_generated/api";
 import type { Id } from "#convex/_generated/dataModel";
 import type { MutationCtx } from "#convex/_generated/server";
 import { okOrThrow } from "#convex/lib/result";
-import { parseDurationMinutes } from "#convex/lib/sessionCalendarTime";
+import { parseDurationMinutes } from "#convex/lib/sessions/sessionCalendarTime";
 
 type DriveSchedulingError = { reason: "BOOKING_INVALID_DURATION" };
 

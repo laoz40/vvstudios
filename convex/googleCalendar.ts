@@ -3,7 +3,7 @@
 import { v } from "convex/values";
 import { tupleErr, tupleOk, type Result } from "#/lib/result";
 import { action, internalAction } from "#convex/_generated/server";
-import { type BusyDayWindow } from "#convex/lib/sessionCalendarTime";
+import { type BusyDayWindow } from "#convex/lib/sessions/sessionCalendarTime";
 import {
 	cancelBookingFromAdminService,
 	getAvailableBookingTimesService,

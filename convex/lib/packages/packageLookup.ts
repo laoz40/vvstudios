@@ -3,7 +3,7 @@ import type { Doc, Id } from "#convex/_generated/dataModel";
 import { internal } from "#convex/_generated/api";
 import type { ActionCtx, MutationCtx, QueryCtx } from "#convex/_generated/server";
 import { okOrThrow } from "#convex/lib/result";
-import { hashRescheduleToken } from "#convex/lib/sessionRescheduleLinks";
+import { hashRescheduleToken } from "#convex/lib/sessions/sessionRescheduleLinks";
 
 export type ValidPackageByTokenError =
 	| { reason: "PACKAGE_LINK_INVALID" }

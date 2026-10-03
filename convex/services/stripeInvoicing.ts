@@ -7,7 +7,7 @@ import type { ActionCtx } from "#convex/_generated/server";
 import { requirePermissionActions } from "#convex/lib/auth";
 import { getPackageForAction } from "#convex/lib/packages/packageLookup";
 import { fromConvexTuple } from "#convex/lib/result";
-import { getSessionFromQuery } from "#convex/lib/sessionLookup";
+import { getSessionFromQuery } from "#convex/lib/sessions/sessionLookup";
 import {
 	createAndSendStripeInvoice,
 	type StripeInvoiceLineItem,

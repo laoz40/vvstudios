@@ -13,7 +13,7 @@ import {
 	buildEventWindow,
 	formatCalendarEventDate,
 	formatCalendarEventTime
-} from "#convex/lib/sessionCalendarTime";
+} from "#convex/lib/sessions/sessionCalendarTime";
 import {
 	calendarErrorSchema,
 	isCalendarEventNotFound,

@@ -7,7 +7,7 @@ import {
 	sessionReservationValidator,
 	reserveSessionTime,
 	unreserveSessionTime
-} from "#convex/lib/sessionReservations";
+} from "#convex/lib/sessions/sessionReservations";
 import {
 	bookingAddonQuantitiesValidator,
 	bookingAddonsValidator

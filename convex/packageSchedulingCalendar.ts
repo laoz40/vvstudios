@@ -4,7 +4,7 @@ import { v } from "convex/values";
 import { tupleErr, tupleOk, type Result } from "#/lib/result";
 import { DURATION_OPTIONS, SERVICES } from "#studio/features/booking-form/lib/booking-form-model";
 import { action, internalAction } from "#convex/_generated/server";
-import type { SessionCalendarEventRecord } from "#convex/lib/sessionCalendarEvents";
+import type { SessionCalendarEventRecord } from "#convex/lib/sessions/sessionCalendarEvents";
 import {
 	deletePackageSessionCalendarEventService,
 	getPackageBusyWindowsService,

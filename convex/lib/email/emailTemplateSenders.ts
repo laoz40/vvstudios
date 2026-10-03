@@ -10,7 +10,7 @@ import { formatDriveSessionMediaFolderName, getEditorEditDueAt } from "#studio/l
 import {
 	formatSessionDateShort,
 	formatSessionDateWithoutYear
-} from "#convex/lib/sessionCalendarTime";
+} from "#convex/lib/sessions/sessionCalendarTime";
 import { formatTimestampDateLong, sendEmail } from "#convex/lib/email/emailSend";
 import { tryPromise } from "#convex/lib/result";
 

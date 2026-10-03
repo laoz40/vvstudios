@@ -8,7 +8,7 @@ import type { ActionCtx } from "#convex/_generated/server";
 import { env } from "#convex/env";
 import { emailDomainCanReceiveMail } from "#convex/lib/email/emailDomain";
 import { fromConvexTuple, okOrThrow, tryPromise } from "#convex/lib/result";
-import type { SessionAvailabilityValidationError } from "#convex/lib/sessionCalendarTime";
+import type { SessionAvailabilityValidationError } from "#convex/lib/sessions/sessionCalendarTime";
 import type {
 	BuildSessionCheckoutLineItemsInput,
 	PackageCheckoutDiscount,

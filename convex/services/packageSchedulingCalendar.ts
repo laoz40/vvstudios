@@ -15,7 +15,7 @@ import {
 	groupBusyWindowsByDay,
 	isTimeSlotAvailable,
 	type BusyDayWindow
-} from "#convex/lib/sessionCalendarTime";
+} from "#convex/lib/sessions/sessionCalendarTime";
 import {
 	createPackageCalendarEvent,
 	getPackageCalendarSyncErrorReason,
@@ -27,7 +27,7 @@ import {
 import {
 	deleteSessionCalendarEvent,
 	type SessionCalendarEventRecord
-} from "#convex/lib/sessionCalendarEvents";
+} from "#convex/lib/sessions/sessionCalendarEvents";
 import { formatDateValue, startOfToday } from "#studio/lib/bookingdatetime";
 
 export type {

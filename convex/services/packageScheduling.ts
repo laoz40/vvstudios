@@ -26,9 +26,9 @@ import {
 } from "#convex/lib/packages/packageLookup";
 import { fromConvexTuple, okOrThrow } from "#convex/lib/result";
 import { archivePackageWhenFullyDone } from "#convex/lib/packages/packageArchive";
-import { archiveDeadCheckoutBooking } from "#convex/lib/sessionArchive";
-import { getSessionStartAt } from "#convex/lib/sessionAdminEdit";
-import type { SessionAvailabilitySettings } from "#convex/lib/sessionCalendarTime";
+import { archiveDeadCheckoutBooking } from "#convex/lib/sessions/sessionArchive";
+import { getSessionStartAt } from "#convex/lib/sessions/sessionAdminEdit";
+import type { SessionAvailabilitySettings } from "#convex/lib/sessions/sessionCalendarTime";
 import { env } from "#convex/env";
 import {
 	getPackageSessionAddons,

@@ -24,7 +24,7 @@ import { bookingDocument } from "#convex/tests/insertDocumentDefaults";
 import { internal } from "#convex/_generated/api";
 import type { Id } from "#convex/_generated/dataModel";
 import type { BookingAddon } from "#studio/features/booking-form/lib/booking-form-model";
-import { SLOT_RESERVATION_TTL_MS } from "#convex/lib/sessionReservations";
+import { SLOT_RESERVATION_TTL_MS } from "#convex/lib/sessions/sessionReservations";
 import { createConvexTest } from "#convex/test.setup";
 
 const now = Date.parse("2030-01-01T00:00:00.000Z");

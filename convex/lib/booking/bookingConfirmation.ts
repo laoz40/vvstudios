@@ -1,7 +1,7 @@
 "use node";
 
 import { okAsync } from "neverthrow";
-import { createRescheduleUrlForSession } from "#convex/lib/sessionRescheduleLinks";
+import { createRescheduleUrlForSession } from "#convex/lib/sessions/sessionRescheduleLinks";
 import { internal } from "#convex/_generated/api";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { ActionCtx } from "#convex/_generated/server";
@@ -9,12 +9,12 @@ import { sendBookingReceiptEmailsForBooking } from "#convex/lib/booking/bookingD
 import { sendSessionReminderEmail } from "#convex/lib/email/email";
 import { pickBookingAddonQuantities } from "#studio/features/booking-form/lib/booking-form-model";
 import { getGoogleCalendarClient } from "#convex/lib/googleCalendar/googleCalendarClient";
-import { removeOrphanedSessionCalendarEvent } from "#convex/lib/sessionCalendarEvents";
+import { removeOrphanedSessionCalendarEvent } from "#convex/lib/sessions/sessionCalendarEvents";
 import {
 	buildEventWindow,
 	type SessionAvailabilitySettings
-} from "#convex/lib/sessionCalendarTime";
-import type { SessionReservation } from "#convex/lib/sessionReservations";
+} from "#convex/lib/sessions/sessionCalendarTime";
+import type { SessionReservation } from "#convex/lib/sessions/sessionReservations";
 import { fromConvexTuple } from "#convex/lib/result";
 import { exhaustiveCheck } from "#/lib/result";
 

@@ -16,7 +16,7 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { bookingDocument, packageDocument } from "#convex/tests/insertDocumentDefaults";
 import { internal } from "#convex/_generated/api";
 import type { Id } from "#convex/_generated/dataModel";
-import { hashRescheduleToken } from "#convex/lib/sessionRescheduleLinks";
+import { hashRescheduleToken } from "#convex/lib/sessions/sessionRescheduleLinks";
 import { createConvexTest } from "#convex/test.setup";
 
 const now = Date.parse("2030-01-01T23:00:00.000Z");

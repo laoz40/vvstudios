@@ -8,7 +8,7 @@ import {
 	setBookingArchived
 } from "#convex/lib/archiveState";
 import { okOrThrow } from "#convex/lib/result";
-import { getSessionFromDb } from "#convex/lib/sessionLookup";
+import { getSessionFromDb } from "#convex/lib/sessions/sessionLookup";
 import {
 	listStripeInvoicesForBooking,
 	summarizeStripeInvoices,

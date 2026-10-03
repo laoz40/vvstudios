@@ -10,7 +10,7 @@ import {
 import {
 	archiveSessionWhenFullyDone,
 	unarchiveSessionForNewUnpaidInvoice
-} from "#convex/lib/sessionArchive";
+} from "#convex/lib/sessions/sessionArchive";
 import type { StripeInvoiceLineItem } from "#convex/lib/stripe/stripeInvoice";
 import {
 	listStripeInvoicesForBooking,

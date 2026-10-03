@@ -17,9 +17,9 @@ import {
 	updateSessionCalendarEventTiming,
 	type SessionCalendarEventDetails,
 	type SessionCalendarTimingUpdateResult
-} from "#convex/lib/sessionCalendarEvents";
-import type { SessionAvailabilitySettings } from "#convex/lib/sessionCalendarTime";
-import type { SessionReservation } from "#convex/lib/sessionReservations";
+} from "#convex/lib/sessions/sessionCalendarEvents";
+import type { SessionAvailabilitySettings } from "#convex/lib/sessions/sessionCalendarTime";
+import type { SessionReservation } from "#convex/lib/sessions/sessionReservations";
 import {
 	didSessionTimingChange,
 	getSessionEditFieldChanges,
@@ -29,7 +29,7 @@ import {
 	type AdminSessionUpdateResult,
 	validateSessionTimingEdit,
 	verifySessionCanBeScheduled
-} from "#convex/lib/sessionAdminEdit";
+} from "#convex/lib/sessions/sessionAdminEdit";
 
 type GoogleCalendarLike = Pick<calendar_v3.Calendar, "events">;
 

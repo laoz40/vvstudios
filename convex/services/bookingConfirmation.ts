@@ -10,7 +10,7 @@ import {
 	bookingReceiptPaidAt,
 	resolveBookingReceiptNumber
 } from "#studio/features/booking-invoice/lib/receipt-number";
-import { getSessionFromDb } from "#convex/lib/sessionLookup";
+import { getSessionFromDb } from "#convex/lib/sessions/sessionLookup";
 import {
 	getBookingClaimStatus,
 	validateClaimStripeSession
@@ -19,7 +19,7 @@ import {
 	clearedSessionReservationPatch,
 	sessionHasReservation,
 	type SessionReservation
-} from "#convex/lib/sessionReservations";
+} from "#convex/lib/sessions/sessionReservations";
 
 type ClaimBookingConfirmationArgs = {
 	bookingId: string;

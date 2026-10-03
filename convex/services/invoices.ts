@@ -22,7 +22,7 @@ import {
 } from "#convex/lib/stripe/invoiceDownloads";
 import { getPackageForAction } from "#convex/lib/packages/packageLookup";
 import { okOrThrow } from "#convex/lib/result";
-import { getSessionFromQuery } from "#convex/lib/sessionLookup";
+import { getSessionFromQuery } from "#convex/lib/sessions/sessionLookup";
 
 type BookingInvoicePdfError =
 	| { reason: "INVALID_BOOKING_DATA" }

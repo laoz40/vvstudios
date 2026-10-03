@@ -17,7 +17,7 @@ import {
 	type DriveError
 } from "#convex/lib/googleDrive";
 import { fromConvexTuple } from "#convex/lib/result";
-import { getSessionFromQuery } from "#convex/lib/sessionLookup";
+import { getSessionFromQuery } from "#convex/lib/sessions/sessionLookup";
 
 export type SendSessionDeliverablesEmailArgs = { bookingId: Id<"bookings">; editorNotes?: string };
 

@@ -6,9 +6,9 @@ import {
 	sendBookingRescheduledCustomerEmail,
 	sendSessionHostDetailsEmail
 } from "#convex/lib/email/email";
-import type { AdminSessionUpdateResult } from "#convex/lib/sessionAdminEdit";
+import type { AdminSessionUpdateResult } from "#convex/lib/sessions/sessionAdminEdit";
 import { okOrThrow } from "#convex/lib/result";
-import { getSessionFromQuery } from "#convex/lib/sessionLookup";
+import { getSessionFromQuery } from "#convex/lib/sessions/sessionLookup";
 import { pickBookingAddonQuantities } from "#studio/features/booking-form/lib/booking-form-model";
 
 export async function sendBookingRescheduledEmailsForBooking(

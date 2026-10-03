@@ -26,13 +26,13 @@ import {
 import { getDriveStatus, getEditorSessionDriveFolders } from "#convex/lib/driveStatus";
 import { okOrThrow } from "#convex/lib/result";
 import { searchBlobPatchForBooking } from "#convex/lib/adminSearch/adminSearchBlob";
-import { getSessionByStripeSessionId, getSessionFromDb } from "#convex/lib/sessionLookup";
+import { getSessionByStripeSessionId, getSessionFromDb } from "#convex/lib/sessions/sessionLookup";
 import { listAdminSessions, type AdminSessionsView } from "#convex/lib/listAdminSessions";
 import {
 	archiveDeadCheckoutBooking,
 	archivePastDeadCheckoutSessionsBatch,
 	archiveSessionWhenFullyDone
-} from "#convex/lib/sessionArchive";
+} from "#convex/lib/sessions/sessionArchive";
 
 type PaginationArgs = { paginationOpts: { numItems: number; cursor: string | null } };
 
