@@ -153,7 +153,7 @@ async function loadClientStandaloneBookings(
 	ctx: DriveFolderNumberCtx,
 	driveClientId: Id<"driveClients">
 ) {
-	const driveClient = await ctx.db.get(driveClientId);
+	const driveClient = await ctx.db.get("driveClients", driveClientId);
 
 	if (driveClient === null) return [];
 

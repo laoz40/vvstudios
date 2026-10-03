@@ -67,7 +67,7 @@ describe("package auto-archive", () => {
 			expectedExpiresAt: now
 		});
 
-		await t.run((ctx) => ctx.db.patch(packageId, { archived: false }));
+		await t.run((ctx) => ctx.db.patch("packages", packageId, { archived: false }));
 
 		await t.mutation(internal.stripeInvoices.recordPackageStripeInvoice, {
 			packageId,
@@ -169,5 +169,5 @@ async function seedPackageSession(
 }
 
 async function readPackage(t: TestClient, packageId: Id<"packages">) {
-	return await t.run((ctx) => ctx.db.get(packageId));
+	return await t.run((ctx) => ctx.db.get("packages", packageId));
 }

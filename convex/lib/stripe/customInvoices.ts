@@ -48,7 +48,7 @@ export function saveNumberedCustomInvoice(ctx: MutationCtx, invoice: CustomInvoi
 
 			const invoiceNumber = formatBookingInvoiceNumber(customInvoiceId, createdAt);
 
-			await ctx.db.patch(customInvoiceId, { invoiceNumber });
+			await ctx.db.patch("customInvoices", customInvoiceId, { invoiceNumber });
 
 			return { customInvoiceId, invoiceNumber, createdAt };
 		})()

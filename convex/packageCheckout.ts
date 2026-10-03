@@ -11,7 +11,7 @@ import {
 export const setPackageStripeSessionId = internalMutation({
 	args: { packageId: v.id("packages"), stripeSessionId: v.string(), stripeCustomerId: v.string() },
 	handler: async (ctx, args) => {
-		return await ctx.db.patch(args.packageId, {
+		return await ctx.db.patch("packages", args.packageId, {
 			stripeSessionId: args.stripeSessionId,
 			stripeCustomerId: args.stripeCustomerId
 		});

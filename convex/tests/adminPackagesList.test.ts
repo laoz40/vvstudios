@@ -27,7 +27,7 @@ describe("listPackages admin views", () => {
 		const t = createConvexTest();
 		const visibleId = await seedPackage(t, "inbox-visible@example.com");
 		const archivedId = await seedPackage(t, "inbox-hidden@example.com");
-		await t.run((ctx) => ctx.db.patch(archivedId, { archived: true }));
+		await t.run((ctx) => ctx.db.patch("packages", archivedId, { archived: true }));
 
 		const result = await t
 			.withIdentity(adminIdentity)
@@ -41,7 +41,7 @@ describe("listPackages admin views", () => {
 	test("all packages includes archived packages", async () => {
 		const t = createConvexTest();
 		const archivedId = await seedPackage(t, "all-tab-archived@example.com");
-		await t.run((ctx) => ctx.db.patch(archivedId, { archived: true }));
+		await t.run((ctx) => ctx.db.patch("packages", archivedId, { archived: true }));
 
 		const result = await t
 			.withIdentity(adminIdentity)

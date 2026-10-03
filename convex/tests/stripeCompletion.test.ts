@@ -59,7 +59,7 @@ describe("booking payment completion", () => {
 		const t = createConvexTest();
 		const bookingId = await seedBooking(t);
 		await t.run((ctx) =>
-			ctx.db.patch(bookingId, { status: "confirmed", bookingFailureCode: undefined })
+			ctx.db.patch("bookings", bookingId, { status: "confirmed", bookingFailureCode: undefined })
 		);
 
 		const result = await t.mutation(internal.bookingConfirmation.markBookingConfirmationFailed, {
@@ -76,8 +76,8 @@ describe("booking payment completion", () => {
 		const confirmedBookingId = await seedBooking(t, "confirmed@example.com");
 		const cancelledBookingId = await seedBooking(t, "cancelled@example.com");
 		await t.run(async (ctx) => {
-			await ctx.db.patch(confirmedBookingId, { status: "confirmed" });
-			await ctx.db.patch(cancelledBookingId, { status: "cancelled" });
+			await ctx.db.patch("bookings", confirmedBookingId, { status: "confirmed" });
+			await ctx.db.patch("bookings", cancelledBookingId, { status: "cancelled" });
 		});
 
 		const confirmedResult = await t.mutation(
@@ -155,7 +155,7 @@ async function claimBooking(t: TestClient, bookingId: Id<"bookings">, stripeEven
 }
 
 async function readBooking(t: TestClient, bookingId: Id<"bookings">) {
-	return await t.run((ctx) => ctx.db.get(bookingId));
+	return await t.run((ctx) => ctx.db.get("bookings", bookingId));
 }
 
 async function seedPendingPackage(t: TestClient) {
@@ -194,7 +194,7 @@ async function claimPackage(t: TestClient, packageId: Id<"packages">) {
 }
 
 async function readPackage(t: TestClient, packageId: Id<"packages">) {
-	return await t.run((ctx) => ctx.db.get(packageId));
+	return await t.run((ctx) => ctx.db.get("packages", packageId));
 }
 
 async function ensureBookingSettings(ctx: Parameters<Parameters<TestClient["run"]>[0]>[0]) {

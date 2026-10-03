@@ -54,7 +54,7 @@ export function recordBookingStripeInvoiceService(
 			return okAsync(insertResult);
 		}
 
-		return okOrThrow(ctx.db.get(args.bookingId)).andThen((booking) => {
+		return okOrThrow(ctx.db.get("bookings", args.bookingId)).andThen((booking) => {
 			if (booking === null) {
 				return okAsync(insertResult);
 			}
@@ -79,7 +79,7 @@ export function recordPackageStripeInvoiceService(
 			return okAsync(insertResult);
 		}
 
-		return okOrThrow(ctx.db.get(args.packageId)).andThen((packageRecord) => {
+		return okOrThrow(ctx.db.get("packages", args.packageId)).andThen((packageRecord) => {
 			if (packageRecord === null) {
 				return okAsync(insertResult);
 			}
@@ -104,7 +104,7 @@ export function recordPackageAdjustmentStripeInvoiceService(
 			return okAsync(insertResult);
 		}
 
-		return okOrThrow(ctx.db.get(args.packageId)).andThen((packageRecord) => {
+		return okOrThrow(ctx.db.get("packages", args.packageId)).andThen((packageRecord) => {
 			if (packageRecord === null) {
 				return okAsync(insertResult);
 			}

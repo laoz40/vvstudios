@@ -139,6 +139,6 @@ export const savePackageInstagramHandle = mutation({
 export const getPackageById = internalQuery({
 	args: { packageId: v.id("packages") },
 	handler: async (ctx, args) => {
-		return await ctx.db.get(args.packageId);
+		return await ctx.db.get("packages", args.packageId);
 	}
 });

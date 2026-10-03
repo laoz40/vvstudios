@@ -135,7 +135,7 @@ export function saveEditorDetails(
 				const nextAssignedEditorDisplayName = editorProfileDisplayName(details);
 				const previousAssignedEditorDisplayName = editorProfileDisplayName(editor);
 
-				await ctx.db.patch(editor._id, details);
+				await ctx.db.patch("editorProfiles", editor._id, details);
 
 				if (nextAssignedEditorDisplayName !== previousAssignedEditorDisplayName) {
 					await patchBookingsAssignedEditorDisplayName(

@@ -27,7 +27,7 @@ export async function getEditorWorkStatus(
 ): Promise<EditorWorkStatus> {
 	const assignedBookings = await ctx.db
 		.query("bookings")
-		.withIndex("by_assignedEditorTokenIdentifier", (query) =>
+		.withIndex("by_assignedEditorTokenIdentifier_and_driveClientId", (query) =>
 			query.eq("assignedEditorTokenIdentifier", tokenIdentifier)
 		)
 		.take(ASSIGNED_SESSION_LIMIT);
@@ -77,12 +77,16 @@ function getEditorProfile(ctx: MutationCtx, tokenIdentifier: string) {
 
 export function updateEditorAccess(ctx: MutationCtx, tokenIdentifier: string, isActive: boolean) {
 	return getEditorProfile(ctx, tokenIdentifier).andThen((editor) =>
-		okOrThrow(ctx.db.patch(editor._id, { isActive }).then(() => null))
+		okOrThrow(ctx.db.patch("editorProfiles", editor._id, { isActive }).then(() => null))
 	);
 }
 
 export function updateEditorNotes(ctx: MutationCtx, tokenIdentifier: string, notes: string) {
 	return getEditorProfile(ctx, tokenIdentifier).andThen((editor) =>
-		okOrThrow(ctx.db.patch(editor._id, { notes: notes.trim() || undefined }).then(() => null))
+		okOrThrow(
+			ctx.db
+				.patch("editorProfiles", editor._id, { notes: notes.trim() || undefined })
+				.then(() => null)
+		)
 	);
 }

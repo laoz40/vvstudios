@@ -79,7 +79,9 @@ export function saveSessionEditorNotes(
 	editorNotes: string
 ) {
 	return okOrThrow(
-		ctx.db.patch(session._id, { editorNotes: editorNotes.trim() || undefined }).then(() => null)
+		ctx.db
+			.patch("bookings", session._id, { editorNotes: editorNotes.trim() || undefined })
+			.then(() => null)
 	);
 }
 
@@ -89,7 +91,9 @@ export function saveSessionAdminNotes(
 	adminNotes: string
 ) {
 	return okOrThrow(
-		ctx.db.patch(session._id, { adminNotes: adminNotes.trim() || undefined }).then(() => null)
+		ctx.db
+			.patch("bookings", session._id, { adminNotes: adminNotes.trim() || undefined })
+			.then(() => null)
 	);
 }
 
@@ -110,16 +114,16 @@ export function saveSessionEditStatus(
 				editorTokenIdentifier !== undefined;
 
 			if (!shouldIncrementTotal) {
-				await ctx.db.patch(session._id, { editStatus });
+				await ctx.db.patch("bookings", session._id, { editStatus });
 
 				return null;
 			}
 
 			const editor = await getAssignedEditor(ctx, editorTokenIdentifier);
-			await ctx.db.patch(session._id, { editStatus });
+			await ctx.db.patch("bookings", session._id, { editStatus });
 
 			if (editor !== null) {
-				await ctx.db.patch(editor._id, { totalEdits: editor.totalEdits + 1 });
+				await ctx.db.patch("editorProfiles", editor._id, { totalEdits: editor.totalEdits + 1 });
 			}
 
 			return null;

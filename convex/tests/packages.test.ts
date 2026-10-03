@@ -241,7 +241,7 @@ describe("package receipt number", () => {
 		const packageRecord = await readPackage(t, packageId);
 		expect(packageRecord?.receiptNumber).toBe(receiptNumber);
 
-		const booking = await t.run((ctx) => ctx.db.get(bookingId));
+		const booking = await t.run((ctx) => ctx.db.get("bookings", bookingId));
 		expect(booking?.receiptNumber).toBe(receiptNumber);
 	});
 });
@@ -308,7 +308,7 @@ async function seedPackageSession(
 }
 
 async function readPackage(t: TestClient, packageId: Id<"packages">) {
-	return await t.run((ctx) => ctx.db.get(packageId));
+	return await t.run((ctx) => ctx.db.get("packages", packageId));
 }
 
 async function seedPendingPackage(t: TestClient) {

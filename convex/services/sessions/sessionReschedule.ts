@@ -142,7 +142,9 @@ export function getValidRescheduleLinkAndSessionService(
 
 			return ok(link);
 		})
-		.andThen((link) => okOrThrow(ctx.db.get(link.bookingId)).map((session) => ({ link, session })))
+		.andThen((link) =>
+			okOrThrow(ctx.db.get("bookings", link.bookingId)).map((session) => ({ link, session }))
+		)
 		.andThen(({ link, session }) => {
 			if (session === null) return err({ reason: "BOOKING_NOT_FOUND" as const });
 
@@ -199,7 +201,7 @@ export function unlockRescheduleLinkService(
 	ctx: MutationCtx,
 	args: { linkId: Doc<"bookingRescheduleLinks">["_id"]; lockedAt: number; expiresAt?: number }
 ) {
-	return okOrThrow(ctx.db.get(args.linkId)).andThen((link) => {
+	return okOrThrow(ctx.db.get("bookingRescheduleLinks", args.linkId)).andThen((link) => {
 		if (link === null) {
 			return err<never, UnlockRescheduleLinkError>({ reason: "RESCHEDULE_LINK_NOT_FOUND" });
 		}
@@ -216,7 +218,7 @@ export function unlockRescheduleLinkService(
 			patch.expiresAt = args.expiresAt;
 		}
 
-		return okOrThrow(ctx.db.patch(args.linkId, patch).then(() => null));
+		return okOrThrow(ctx.db.patch("bookingRescheduleLinks", args.linkId, patch).then(() => null));
 	});
 }
 
@@ -224,9 +226,13 @@ export function lockRescheduleLinkService(
 	ctx: MutationCtx,
 	args: { linkId: Doc<"bookingRescheduleLinks">["_id"]; now: number }
 ) {
-	return okOrThrow(ctx.db.get(args.linkId))
+	return okOrThrow(ctx.db.get("bookingRescheduleLinks", args.linkId))
 		.andThen(validateActiveRescheduleLink)
 		.andThen(() =>
-			okOrThrow(ctx.db.patch(args.linkId, { status: "used", usedAt: args.now }).then(() => null))
+			okOrThrow(
+				ctx.db
+					.patch("bookingRescheduleLinks", args.linkId, { status: "used", usedAt: args.now })
+					.then(() => null)
+			)
 		);
 }

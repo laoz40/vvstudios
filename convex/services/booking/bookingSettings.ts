@@ -34,7 +34,7 @@ export function updateBookingSettingsService(
 					};
 
 					if (existing) {
-						await ctx.db.patch(existing._id, value);
+						await ctx.db.patch("bookingSettings", existing._id, value);
 
 						return null;
 					}

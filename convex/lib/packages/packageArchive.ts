@@ -39,7 +39,7 @@ export function archiveDeadPackage(
 		Object.assign(merged, packageArchivedPatch());
 	}
 
-	return okOrThrow(ctx.db.patch(packageId, merged).then(() => null));
+	return okOrThrow(ctx.db.patch("packages", packageId, merged).then(() => null));
 }
 
 function isPackageWindowClosed(
@@ -128,7 +128,7 @@ async function loadPackageAutoArchiveContext(
 	ctx: QueryCtx | MutationCtx,
 	packageId: Id<"packages">
 ) {
-	const packageRecord = await ctx.db.get(packageId);
+	const packageRecord = await ctx.db.get("packages", packageId);
 
 	if (!packageRecord) {
 		return null;

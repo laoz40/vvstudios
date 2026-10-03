@@ -24,7 +24,7 @@ describe("listSessions admin views", () => {
 		const t = createConvexTest();
 		const visibleId = await seedBooking(t, "Inbox Visible");
 		const archivedId = await seedBooking(t, "Inbox Hidden");
-		await t.run((ctx) => ctx.db.patch(archivedId, { archived: true }));
+		await t.run((ctx) => ctx.db.patch("bookings", archivedId, { archived: true }));
 
 		const result = await t
 			.withIdentity(adminIdentity)
@@ -38,7 +38,7 @@ describe("listSessions admin views", () => {
 	test("all sessions includes archived bookings", async () => {
 		const t = createConvexTest();
 		const archivedId = await seedBooking(t, "All Tab Archived");
-		await t.run((ctx) => ctx.db.patch(archivedId, { archived: true }));
+		await t.run((ctx) => ctx.db.patch("bookings", archivedId, { archived: true }));
 
 		const result = await t
 			.withIdentity(adminIdentity)

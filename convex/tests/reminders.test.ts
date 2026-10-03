@@ -353,7 +353,7 @@ async function seedPackage(
 }
 
 const readBooking = (t: TestClient, bookingId: Id<"bookings">) =>
-	t.run((ctx) => ctx.db.get(bookingId));
+	t.run((ctx) => ctx.db.get("bookings", bookingId));
 
 const readPackage = (t: TestClient, packageId: Id<"packages">) =>
-	t.run((ctx) => ctx.db.get(packageId));
+	t.run((ctx) => ctx.db.get("packages", packageId));

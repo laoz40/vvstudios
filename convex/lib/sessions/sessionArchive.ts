@@ -99,7 +99,7 @@ export function archiveDeadCheckoutBooking(
 				}
 			}
 
-			return okOrThrow(ctx.db.patch(bookingId, merged).then(() => null));
+			return okOrThrow(ctx.db.patch("bookings", bookingId, merged).then(() => null));
 		})
 		.orElse(() => okAsync(null));
 }

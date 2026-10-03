@@ -148,8 +148,8 @@ describe("invoice financial integrity", () => {
 			});
 
 			return {
-				booking: await ctx.db.get(bookingId),
-				customInvoice: await ctx.db.get(customInvoiceId)
+				booking: await ctx.db.get("bookings", bookingId),
+				customInvoice: await ctx.db.get("customInvoices", customInvoiceId)
 			};
 		});
 
@@ -218,7 +218,7 @@ describe("custom invoice creation", () => {
 	test("rejects missing session source without creating an invoice", async () => {
 		const t = createConvexTest();
 		const bookingId = await seedBooking(t);
-		await t.run((ctx) => ctx.db.delete(bookingId));
+		await t.run((ctx) => ctx.db.delete("bookings", bookingId));
 		const admin = t.withIdentity(adminIdentity);
 
 		const bookingResult = await admin.mutation(api.customInvoices.createCustomInvoice, {

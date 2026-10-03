@@ -306,13 +306,11 @@ export default defineSchema({
 		])
 		.index("by_status_and_pendingPaymentCreatedAt", ["status", "pendingPaymentCreatedAt"])
 		.index("by_reservationCreatedAt", ["reservationCreatedAt"])
-		.index("by_assignedEditorTokenIdentifier", ["assignedEditorTokenIdentifier"])
 		.index("by_assignedEditorTokenIdentifier_and_driveClientId", [
 			"assignedEditorTokenIdentifier",
 			"driveClientId"
 		])
 		.index("by_driveClientId", ["driveClientId"])
-		.index("by_packageId", ["packageId"])
 		.index("by_packageId_and_status_and_sessionStartAt", ["packageId", "status", "sessionStartAt"])
 		.index("by_receiptNumber", ["receiptNumber"])
 		.index("by_phone", ["phone"])

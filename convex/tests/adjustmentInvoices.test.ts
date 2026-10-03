@@ -534,7 +534,7 @@ async function readAdjustments(t: TestClient, packageId: Id<"packages">) {
 }
 
 async function readAdjustment(t: TestClient, adjustmentId: Id<"packageAdjustments">) {
-	return await t.run((ctx) => ctx.db.get(adjustmentId));
+	return await t.run((ctx) => ctx.db.get("packageAdjustments", adjustmentId));
 }
 
 async function readScheduledJobs(t: TestClient) {

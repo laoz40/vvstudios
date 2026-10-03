@@ -197,7 +197,9 @@ export async function markExistingActiveSessionRescheduleLinksUsed(args: {
 		}
 
 		await Promise.all(
-			activeLinks.map((link) => args.ctx.db.patch(link._id, { status: "used", usedAt: args.now }))
+			activeLinks.map((link) =>
+				args.ctx.db.patch("bookingRescheduleLinks", link._id, { status: "used", usedAt: args.now })
+			)
 		);
 
 		if (activeLinks.length === rescheduleLinkInvalidationBatchSize) {

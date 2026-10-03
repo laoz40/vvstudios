@@ -152,7 +152,7 @@ describe("restricted editor session query", () => {
 		const bookingId = await seedBooking(t, "Safe Projection Customer");
 		await assignBooking(t, bookingId);
 		await t.run((ctx) =>
-			ctx.db.patch(bookingId, {
+			ctx.db.patch("bookings", bookingId, {
 				editorNotes: "Editor-only context",
 				deliverablesClientNotes: "Client delivery context",
 				deliverablesDriveLink: "https://drive.google.com/drive/folders/test"
@@ -246,7 +246,7 @@ describe("restricted editor session query", () => {
 		await seedEditorProfile(t, editorIdentity);
 		const bookingId = await seedBooking(t, "Archived Assignment Customer");
 		await assignBooking(t, bookingId);
-		await t.run((ctx) => ctx.db.patch(bookingId, { archived: true }));
+		await t.run((ctx) => ctx.db.patch("bookings", bookingId, { archived: true }));
 
 		const result = await t
 			.withIdentity(editorIdentity)
@@ -259,7 +259,7 @@ describe("restricted editor session query", () => {
 		const t = createConvexTest();
 		await seedEditorProfile(t, editorIdentity);
 		const bookingId = await seedBooking(t, "Archived Assign Target");
-		await t.run((ctx) => ctx.db.patch(bookingId, { archived: true }));
+		await t.run((ctx) => ctx.db.patch("bookings", bookingId, { archived: true }));
 
 		const [error] = await t
 			.withIdentity(adminIdentity)

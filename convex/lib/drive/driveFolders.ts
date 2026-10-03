@@ -48,7 +48,7 @@ export function saveDriveClientFolder(
 			if (existingClient.folderId === undefined) {
 				return okOrThrow(
 					ctx.db
-						.patch(existingClient._id, {
+						.patch("driveClients", existingClient._id, {
 							folderId: clientFolder.folder.id,
 							folderUrl: clientFolder.folder.webViewLink
 						})
@@ -89,7 +89,7 @@ export function saveDriveClientAssetsFolder(
 	ctx: MutationCtx,
 	args: { driveClientId: Id<"driveClients">; folder: SavedDriveFolder }
 ): ResultAsync<{ id: string; url: string }, { reason: "DRIVE_RECORD_NOT_FOUND" }> {
-	return okOrThrow(ctx.db.get(args.driveClientId)).andThen((driveClient) => {
+	return okOrThrow(ctx.db.get("driveClients", args.driveClientId)).andThen((driveClient) => {
 		if (driveClient === null) return err({ reason: "DRIVE_RECORD_NOT_FOUND" as const });
 		const assetsFolder = { id: args.folder.id, url: args.folder.webViewLink };
 
@@ -97,7 +97,9 @@ export function saveDriveClientAssetsFolder(
 			return ok(driveClient.assetsFolder);
 		}
 
-		return okOrThrow(ctx.db.patch(driveClient._id, { assetsFolder }).then(() => assetsFolder));
+		return okOrThrow(
+			ctx.db.patch("driveClients", driveClient._id, { assetsFolder }).then(() => assetsFolder)
+		);
 	});
 }
 
@@ -123,7 +125,7 @@ export function saveDriveSessionFolder(
 			if (existingSession !== null) {
 				return okOrThrow(
 					ctx.db
-						.patch(existingSession._id, {
+						.patch("driveSessions", existingSession._id, {
 							sessionFolder: { id: sessionFolder.folder.id, url: sessionFolder.folder.webViewLink },
 							updatedAt: Date.now()
 						})
@@ -166,7 +168,7 @@ export function saveDrivePackageFolder(
 		if (driveSession !== null) {
 			return okOrThrow(
 				ctx.db
-					.patch(driveSession._id, {
+					.patch("driveSessions", driveSession._id, {
 						packageFolder: { id: packageFolder.folder.id, url: packageFolder.folder.webViewLink },
 						updatedAt: Date.now()
 					})
@@ -174,7 +176,7 @@ export function saveDrivePackageFolder(
 			);
 		}
 
-		return okOrThrow(ctx.db.get(packageFolder.bookingId)).andThen((booking) => {
+		return okOrThrow(ctx.db.get("bookings", packageFolder.bookingId)).andThen((booking) => {
 			if (booking === null || booking.driveClientId === undefined) {
 				return err({ reason: "DRIVE_RECORD_NOT_FOUND" as const });
 			}
@@ -208,12 +210,14 @@ export function clearSavedDriveFolder(ctx: MutationCtx, args: ClearSavedDriveFol
 		case "client":
 			return okOrThrow(
 				ctx.db
-					.patch(args.driveClientId, { folderId: undefined, folderUrl: undefined })
+					.patch("driveClients", args.driveClientId, { folderId: undefined, folderUrl: undefined })
 					.then(() => null)
 			);
 		case "assets":
 			return okOrThrow(
-				ctx.db.patch(args.driveClientId, { assetsFolder: undefined }).then(() => null)
+				ctx.db
+					.patch("driveClients", args.driveClientId, { assetsFolder: undefined })
+					.then(() => null)
 			);
 		case "package":
 			return clearDriveSessionFields(ctx, args.bookingId, { packageFolder: undefined });
@@ -255,7 +259,9 @@ function clearDriveSessionFields(
 		if (driveSession === null) return err({ reason: "DRIVE_RECORD_NOT_FOUND" as const });
 
 		return okOrThrow(
-			ctx.db.patch(driveSession._id, { ...fields, updatedAt: Date.now() }).then(() => null)
+			ctx.db
+				.patch("driveSessions", driveSession._id, { ...fields, updatedAt: Date.now() })
+				.then(() => null)
 		);
 	});
 }
@@ -266,7 +272,7 @@ export function saveDriveSetupResult(
 ) {
 	return okOrThrow(
 		ctx.db
-			.patch(args.bookingId, {
+			.patch("bookings", args.bookingId, {
 				driveSetupFailedAt: args.failureCode === undefined ? undefined : Date.now(),
 				driveSetupFailureCode: args.failureCode
 			})
@@ -303,7 +309,7 @@ export function saveDriveChildFolder(
 
 		return okOrThrow(
 			ctx.db
-				.patch(driveSession._id, { ...folderFields, updatedAt: Date.now() })
+				.patch("driveSessions", driveSession._id, { ...folderFields, updatedAt: Date.now() })
 				.then(() => driveSession._id)
 		);
 	});

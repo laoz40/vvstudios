@@ -442,12 +442,12 @@ export function getDriveStatus(ctx: QueryCtx, bookingId: Id<"bookings">) {
 // Admin session lists only need the failure flag, not the full Drive status payload.
 export async function getDriveWorkflowFailureForBooking(ctx: QueryCtx, booking: Doc<"bookings">) {
 	const [driveClientFromBooking, driveSession, packageRecord] = await Promise.all([
-		booking.driveClientId !== undefined ? ctx.db.get(booking.driveClientId) : null,
+		booking.driveClientId !== undefined ? ctx.db.get("driveClients", booking.driveClientId) : null,
 		ctx.db
 			.query("driveSessions")
 			.withIndex("by_bookingId", (query) => query.eq("bookingId", booking._id))
 			.unique(),
-		booking.packageId !== undefined ? ctx.db.get(booking.packageId) : null
+		booking.packageId !== undefined ? ctx.db.get("packages", booking.packageId) : null
 	]);
 
 	const driveClient = await resolveDriveClientForBooking(ctx, driveSession, driveClientFromBooking);
@@ -484,7 +484,7 @@ export async function getEditorSessionDriveFolders(ctx: QueryCtx, booking: Doc<"
 		return null;
 	}
 
-	const driveClient = await ctx.db.get(driveSession.driveClientId);
+	const driveClient = await ctx.db.get("driveClients", driveSession.driveClientId);
 
 	if (
 		driveClient?.assetsFolder === undefined ||

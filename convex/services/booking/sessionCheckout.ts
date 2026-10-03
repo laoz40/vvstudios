@@ -141,7 +141,7 @@ export function deletePendingSessionService(
 	args: { bookingId: Doc<"bookings">["_id"]; stripeSessionId: string }
 ) {
 	return (
-		okOrThrow(ctx.db.get(args.bookingId))
+		okOrThrow(ctx.db.get("bookings", args.bookingId))
 			// Verify ownership and whether the pending booking still needs abandonment.
 			.andThen((booking) => validatePendingSessionDeletion(booking, args.stripeSessionId))
 			// Return idempotent outcomes unchanged or abandon the pending booking.

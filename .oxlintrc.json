@@ -2,7 +2,8 @@
 	"$schema": "./node_modules/oxlint/configuration_schema.json",
 	"jsPlugins": [
 		{ "name": "anti-slop", "specifier": "./tools/oxlint/anti-slop/index.ts" },
-		{ "name": "neverthrow", "specifier": "./tools/oxlint/neverthrow/index.ts" }
+		{ "name": "neverthrow", "specifier": "./tools/oxlint/neverthrow/index.ts" },
+		"@convex-dev/eslint-plugin"
 	],
 	"plugins": ["eslint", "oxc", "typescript", "unicorn", "react", "import", "jsx-a11y"],
 	"categories": { "correctness": "error", "suspicious": "error", "perf": "error" },
@@ -173,7 +174,17 @@
 							}
 						]
 					}
-				]
+				],
+				"@convex-dev/import-wrong-runtime": "error",
+				"@convex-dev/no-old-registered-function-syntax": "error",
+				"@convex-dev/require-args-validator": "error",
+				"@convex-dev/require-access-control": "off",
+				"@convex-dev/explicit-table-ids": "error",
+				"@convex-dev/no-filter-in-query": "error",
+				"@convex-dev/no-top-of-hour-crons": "error",
+				"@convex-dev/no-schema-import-cycle": "error",
+				"@convex-dev/no-duplicate-indexes": "error",
+				"@convex-dev/no-process-env": "error"
 			}
 		},
 		{

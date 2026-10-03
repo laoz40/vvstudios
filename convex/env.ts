@@ -19,6 +19,7 @@ export const env = createEnv({
 		STRIPE_WEBHOOK_SECRET: z.string().min(1),
 		STRIPE_CHECKOUT_RETURN_URL: z.string().min(1)
 	},
+	// oxlint-disable-next-line @convex-dev/no-process-env -- t3env bootstrap reads deployment env once at module load
 	runtimeEnv: process.env,
 	emptyStringAsUndefined: true
 });

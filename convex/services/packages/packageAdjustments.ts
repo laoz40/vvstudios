@@ -50,7 +50,7 @@ export function claimPackageAdjustmentInvoiceEmailService(
 			.andThen(({ adjustment, packageRecord }) =>
 				okOrThrow(
 					ctx.db
-						.patch(adjustment._id, { invoiceEmailClaimedAt: args.now })
+						.patch("packageAdjustments", adjustment._id, { invoiceEmailClaimedAt: args.now })
 						// If the sender never records sent or failed, this delayed job releases its claim.
 						.then(scheduleStalledEmailRecovery)
 						.then(() => ({ adjustment, packageRecord }))
@@ -82,7 +82,7 @@ export function markStalledPackageAdjustmentInvoiceEmailFailedService(
 
 				return okOrThrow(
 					ctx.db
-						.patch(adjustment._id, {
+						.patch("packageAdjustments", adjustment._id, {
 							invoiceEmailStatus: "failed",
 							invoiceEmailClaimedAt: undefined
 						})
@@ -112,28 +112,28 @@ export function completePackageAdjustmentInvoiceEmailService(
 					}
 				: { invoiceEmailStatus: status, invoiceEmailClaimedAt: undefined };
 
-		return okOrThrow(ctx.db.patch(adjustment._id, patch).then(() => ({ updated: true }))).andThen(
-			(result) => {
-				if (status !== "sent" || !args.stripeInvoiceId) {
-					return ok(result);
-				}
-
-				const remotePodcastLabel = getCustomerAddonDisplayLabel("Remote Podcast");
-
-				return recordPackageAdjustmentStripeInvoice(ctx, {
-					packageId: adjustment.packageId,
-					packageAdjustmentId: adjustment._id,
-					stripeInvoiceId: args.stripeInvoiceId,
-					lineItems: [
-						{
-							description: `${remotePodcastLabel} (package adjustment)`,
-							amount: adjustment.totalAmount
-						}
-					],
-					totalAmount: adjustment.totalAmount
-				}).map(() => result);
+		return okOrThrow(
+			ctx.db.patch("packageAdjustments", adjustment._id, patch).then(() => ({ updated: true }))
+		).andThen((result) => {
+			if (status !== "sent" || !args.stripeInvoiceId) {
+				return ok(result);
 			}
-		);
+
+			const remotePodcastLabel = getCustomerAddonDisplayLabel("Remote Podcast");
+
+			return recordPackageAdjustmentStripeInvoice(ctx, {
+				packageId: adjustment.packageId,
+				packageAdjustmentId: adjustment._id,
+				stripeInvoiceId: args.stripeInvoiceId,
+				lineItems: [
+					{
+						description: `${remotePodcastLabel} (package adjustment)`,
+						amount: adjustment.totalAmount
+					}
+				],
+				totalAmount: adjustment.totalAmount
+			}).map(() => result);
+		});
 	});
 }
 
@@ -160,7 +160,9 @@ export function markPackageAdjustmentPaymentStatusService(
 		.andThen((adjustment) =>
 			okOrThrow(
 				ctx.db
-					.patch(adjustment._id, { paymentStatus: args.paid ? "paid" : "unpaid" })
+					.patch("packageAdjustments", adjustment._id, {
+						paymentStatus: args.paid ? "paid" : "unpaid"
+					})
 					.then(() => adjustment)
 			).andThen((updatedAdjustment) => {
 				if (!args.paid) {

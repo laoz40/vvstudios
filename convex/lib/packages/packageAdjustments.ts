@@ -48,7 +48,7 @@ export function getPackageAdjustmentInvoice(
 	ctx: QueryCtx | MutationCtx,
 	adjustmentId: Id<"packageAdjustments">
 ) {
-	return okOrThrow(ctx.db.get(adjustmentId)).andThen((adjustment) => {
+	return okOrThrow(ctx.db.get("packageAdjustments", adjustmentId)).andThen((adjustment) => {
 		if (!adjustment || adjustment.outcome !== "invoice_required") {
 			return err({ reason: "PACKAGE_ADJUSTMENT_NOT_FOUND" as const });
 		}
@@ -182,7 +182,7 @@ async function getPackageEligibleForAdjustment(
 	ctx: MutationCtx,
 	args: ProcessPackageAdjustmentArgs
 ) {
-	const packageRecord = await ctx.db.get(args.packageId);
+	const packageRecord = await ctx.db.get("packages", args.packageId);
 
 	if (!packageRecord) return null;
 
@@ -286,7 +286,7 @@ async function savePackageAdjustment(
 		paymentStatus: "unpaid"
 	});
 
-	await ctx.db.patch(adjustmentId, {
+	await ctx.db.patch("packageAdjustments", adjustmentId, {
 		invoiceNumber: formatBookingInvoiceNumber(adjustmentId, createdAt)
 	});
 	await ctx.scheduler.runAfter(0, internal.packageAdjustmentInvoices.sendPackageAdjustmentInvoice, {

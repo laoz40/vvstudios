@@ -11,7 +11,7 @@ export async function resolveDriveClientForBooking(
 	driveClientFromBooking: Doc<"driveClients"> | null
 ): Promise<Doc<"driveClients"> | null> {
 	if (driveSession?.driveClientId !== undefined) {
-		const sessionClient = await ctx.db.get(driveSession.driveClientId);
+		const sessionClient = await ctx.db.get("driveClients", driveSession.driveClientId);
 
 		if (sessionClient !== null) return sessionClient;
 	}
@@ -22,7 +22,9 @@ export async function resolveDriveClientForBooking(
 export async function loadPackageBookings(ctx: Pick<QueryCtx, "db">, packageId: Id<"packages">) {
 	return await ctx.db
 		.query("bookings")
-		.withIndex("by_packageId", (query) => query.eq("packageId", packageId))
+		.withIndex("by_packageId_and_status_and_sessionStartAt", (query) =>
+			query.eq("packageId", packageId)
+		)
 		.collect();
 }
 
@@ -50,19 +52,21 @@ export async function loadSharedPackageFolder(
 }
 
 export function getDriveSetup(ctx: QueryCtx, bookingId: Id<"bookings">) {
-	return okOrThrow(ctx.db.get(bookingId)).andThen((booking) => {
+	return okOrThrow(ctx.db.get("bookings", bookingId)).andThen((booking) => {
 		if (booking === null) return ok(null);
 
 		return okOrThrow(
 			Promise.all([
 				booking.driveClientId !== undefined
-					? ctx.db.get(booking.driveClientId)
+					? ctx.db.get("driveClients", booking.driveClientId)
 					: Promise.resolve(null),
 				ctx.db
 					.query("driveSessions")
 					.withIndex("by_bookingId", (query) => query.eq("bookingId", bookingId))
 					.unique(),
-				booking.packageId !== undefined ? ctx.db.get(booking.packageId) : Promise.resolve(null)
+				booking.packageId !== undefined
+					? ctx.db.get("packages", booking.packageId)
+					: Promise.resolve(null)
 			])
 		).andThen(([driveClientFromBooking, driveSession, packageRecord]) =>
 			okOrThrow(resolveDriveClientForBooking(ctx, driveSession, driveClientFromBooking)).andThen(

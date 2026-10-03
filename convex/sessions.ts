@@ -273,7 +273,7 @@ export const saveEditorAssignmentEmailResult = internalMutation({
 export const detectDeliverablesCustomerType = internalQuery({
 	args: { bookingId: v.id("bookings") },
 	handler: async (ctx, args) => {
-		const session = await ctx.db.get(args.bookingId);
+		const session = await ctx.db.get("bookings", args.bookingId);
 
 		if (session === null) {
 			return tupleErr({ reason: "BOOKING_NOT_FOUND" as const });
@@ -286,7 +286,7 @@ export const detectDeliverablesCustomerType = internalQuery({
 export const getSessionById = internalQuery({
 	args: { bookingId: v.id("bookings") },
 	handler: async (ctx, args) => {
-		return await ctx.db.get(args.bookingId);
+		return await ctx.db.get("bookings", args.bookingId);
 	}
 });
 
