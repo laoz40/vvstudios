@@ -123,6 +123,7 @@ import type * as services_booking_bookingConfirmationActions from "../services/b
 import type * as services_booking_bookingSettings from "../services/booking/bookingSettings.js";
 import type * as services_booking_receiptEmails from "../services/booking/receiptEmails.js";
 import type * as services_booking_sessionCheckout from "../services/booking/sessionCheckout.js";
+import type * as services_drive_cleanupCancelledSessionDrive from "../services/drive/cleanupCancelledSessionDrive.js";
 import type * as services_drive_drive from "../services/drive/drive.js";
 import type * as services_drive_driveClientPermissions from "../services/drive/driveClientPermissions.js";
 import type * as services_drive_driveEditorPermissions from "../services/drive/driveEditorPermissions.js";
@@ -286,6 +287,7 @@ declare const fullApi: ApiFromModules<{
   "services/booking/bookingSettings": typeof services_booking_bookingSettings;
   "services/booking/receiptEmails": typeof services_booking_receiptEmails;
   "services/booking/sessionCheckout": typeof services_booking_sessionCheckout;
+  "services/drive/cleanupCancelledSessionDrive": typeof services_drive_cleanupCancelledSessionDrive;
   "services/drive/drive": typeof services_drive_drive;
   "services/drive/driveClientPermissions": typeof services_drive_driveClientPermissions;
   "services/drive/driveEditorPermissions": typeof services_drive_driveEditorPermissions;

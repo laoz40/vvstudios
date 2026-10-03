@@ -14,7 +14,7 @@ import {
 	getBusyWindows,
 	getBusyWindowsInRange
 } from "#convex/lib/googleCalendar/googleCalendarAvailability";
-import { cleanupCancelledSessionDriveService } from "#convex/lib/drive/sessionFolders/cancelCleanup";
+import { cleanupCancelledSessionDriveService } from "#convex/services/drive/cleanupCancelledSessionDrive";
 import {
 	getGoogleCalendarClient,
 	loadGoogleCalendarClient

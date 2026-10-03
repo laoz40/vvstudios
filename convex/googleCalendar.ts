@@ -33,7 +33,7 @@ import {
 	completeClaimedSessionService,
 	sendSessionReminderEmailService
 } from "#convex/services/booking/bookingConfirmationActions";
-import { cleanupCancelledSessionDriveService } from "#convex/lib/drive/sessionFolders/cancelCleanup";
+import { cleanupCancelledSessionDriveService } from "#convex/services/drive/cleanupCancelledSessionDrive";
 
 export const setupDrive = action({
 	args: { bookingId: v.id("bookings") },
