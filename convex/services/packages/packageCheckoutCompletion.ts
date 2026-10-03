@@ -3,7 +3,7 @@ import { exhaustiveCheck } from "#/lib/result";
 import { internal } from "#convex/_generated/api";
 import type { ActionCtx } from "#convex/_generated/server";
 import { fromConvexTuple } from "#convex/lib/result";
-import type { PackageCheckoutClaim } from "#convex/services/packageCheckout";
+import type { PackageCheckoutClaim } from "#convex/services/packages/packageCheckout";
 
 type CompletePackageCheckoutSuccess = { outcome: "already_completed" | "completed" };
 

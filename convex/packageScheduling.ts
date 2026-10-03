@@ -24,7 +24,7 @@ import {
 	validatePackageRescheduleRequestService,
 	validatePackageSessionRequestService,
 	validatePackageUnscheduleRequestService
-} from "#convex/services/packageScheduling";
+} from "#convex/services/packages/packageScheduling";
 
 export const getPackageByToken = query({
 	args: { token: v.string() },

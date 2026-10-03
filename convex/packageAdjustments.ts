@@ -10,7 +10,7 @@ import {
 	completePackageAdjustmentInvoiceEmailService,
 	markPackageAdjustmentPaymentStatusService,
 	markStalledPackageAdjustmentInvoiceEmailFailedService
-} from "#convex/services/packageAdjustments";
+} from "#convex/services/packages/packageAdjustments";
 
 const adjustmentEmailAttemptValidator = v.union(v.literal("automatic"), v.literal("retry"));
 

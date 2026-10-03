@@ -6,7 +6,7 @@ import {
 	claimPackageCheckoutPaymentService,
 	abandonPendingPackageService,
 	markPackageExpiredByStripeSessionIdService
-} from "#convex/services/packageCheckout";
+} from "#convex/services/packages/packageCheckout";
 
 export const setPackageStripeSessionId = internalMutation({
 	args: { packageId: v.id("packages"), stripeSessionId: v.string(), stripeCustomerId: v.string() },

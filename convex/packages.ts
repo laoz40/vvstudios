@@ -20,7 +20,7 @@ import {
 	type PackageLookupError,
 	type PaidPackageResult,
 	updatePackageService
-} from "#convex/services/packages";
+} from "#convex/services/packages/packages";
 
 const bookingInvoiceLineItemValidator = v.object({
 	amount: v.number(),

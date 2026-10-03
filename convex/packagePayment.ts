@@ -10,8 +10,8 @@ import {
 import {
 	closeEmbeddedPackageCheckoutSessionService,
 	createPackageCheckoutSessionService
-} from "#convex/services/packageCheckoutActions";
-import { resendPackageEmailService } from "#convex/services/packagePayment";
+} from "#convex/services/packages/packageCheckoutActions";
+import { resendPackageEmailService } from "#convex/services/packages/packagePayment";
 
 export const createPackageCheckoutSession = action({
 	args: {

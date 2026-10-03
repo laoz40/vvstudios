@@ -7,7 +7,7 @@ import { action, internalAction, type ActionCtx } from "#convex/_generated/serve
 import {
 	retryPackageAdjustmentInvoiceEmailService,
 	sendPackageAdjustmentInvoiceService
-} from "#convex/services/packageAdjustmentInvoices";
+} from "#convex/services/packages/packageAdjustmentInvoices";
 
 export const sendPackageAdjustmentInvoice = internalAction({
 	args: {
