@@ -10,7 +10,7 @@ import {
 import {
 	closeEmbeddedCheckoutSessionService,
 	createEmbeddedCheckoutSessionService
-} from "#convex/services/stripe";
+} from "#convex/services/stripe/stripe";
 
 // Creates a pending booking, opens a Stripe checkout session, then links both records.
 export const createEmbeddedCheckoutSession = action({

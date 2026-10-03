@@ -8,7 +8,7 @@ import {
 import {
 	createBookingCustomInvoiceService,
 	listCustomInvoicesForBookingService
-} from "#convex/services/customInvoices";
+} from "#convex/services/stripe/customInvoices";
 
 export const createCustomInvoice = mutation({
 	args: {

@@ -9,7 +9,7 @@ import {
 	getBookingInvoicePdfByStripeSessionIdService,
 	getBookingReceiptPdfByStripeSessionIdService,
 	getPackageReceiptPdfByIdService
-} from "#convex/services/invoices";
+} from "#convex/services/stripe/invoices";
 
 export const getBookingReceiptPdfByStripeSessionId = action({
 	args: { stripeSessionId: v.string() },
