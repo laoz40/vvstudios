@@ -10,7 +10,10 @@ import {
 	notifyHostOfAdminSessionReschedule,
 	sendBookingRescheduledEmailsForBooking
 } from "#convex/lib/sessions/sessionHostEmails";
-import { getBusyWindows, getBusyWindowsInRange } from "#convex/lib/googleCalendar/googleCalendarAvailability";
+import {
+	getBusyWindows,
+	getBusyWindowsInRange
+} from "#convex/lib/googleCalendar/googleCalendarAvailability";
 import { cleanupCancelledSessionDriveService } from "#convex/lib/drive/sessionFolders/cancelCleanup";
 import {
 	getGoogleCalendarClient,

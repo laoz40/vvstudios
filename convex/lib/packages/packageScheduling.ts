@@ -32,7 +32,10 @@ import {
 	capacityConsumingSessionStatuses,
 	sessionConsumesPackageCapacity
 } from "#convex/lib/packages/packageSessionCapacity";
-import { generateRescheduleToken, hashRescheduleToken } from "#convex/lib/sessions/sessionRescheduleLinks";
+import {
+	generateRescheduleToken,
+	hashRescheduleToken
+} from "#convex/lib/sessions/sessionRescheduleLinks";
 
 export { sessionConsumesPackageCapacity } from "#convex/lib/packages/packageSessionCapacity";
 

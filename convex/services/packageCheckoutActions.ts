@@ -6,7 +6,10 @@ import type { Id } from "#convex/_generated/dataModel";
 import type { ActionCtx } from "#convex/_generated/server";
 import { checkPackageSubmitRateLimit } from "#convex/lib/booking/bookingSubmission";
 import { createPendingPackage } from "#convex/lib/packages/packagePayment";
-import { parsePackageRequest, type CreatePackageRequestArgs } from "#convex/lib/packages/packageUpdates";
+import {
+	parsePackageRequest,
+	type CreatePackageRequestArgs
+} from "#convex/lib/packages/packageUpdates";
 import { fromConvexTuple } from "#convex/lib/result";
 import { getStripeClient, type StripeClient } from "#convex/lib/stripe/stripeClient";
 import { buildPackageCheckoutLineItems } from "#studio/features/booking-invoice/lib/stripe-checkout-line-items";

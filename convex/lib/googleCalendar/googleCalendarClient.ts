@@ -4,7 +4,10 @@ import { google } from "googleapis";
 
 import { env } from "#convex/env";
 import { getGoogleOAuthClient } from "#convex/lib/googleCalendar/googleAuth";
-import { calendarResultAsync, type CalendarFallbackCode } from "#convex/lib/googleCalendar/googleCalendarErrors";
+import {
+	calendarResultAsync,
+	type CalendarFallbackCode
+} from "#convex/lib/googleCalendar/googleCalendarErrors";
 
 function parseGoogleCalendarAvailabilityIds(calendarId: string) {
 	return (env.GOOGLE_CALENDAR_AVAILABILITY_IDS ?? calendarId)

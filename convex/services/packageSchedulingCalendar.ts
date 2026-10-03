@@ -3,7 +3,10 @@
 import { err, ok, ResultAsync } from "neverthrow";
 import { internal } from "#convex/_generated/api";
 import type { ActionCtx } from "#convex/_generated/server";
-import { getBusyWindows, getBusyWindowsInRange } from "#convex/lib/googleCalendar/googleCalendarAvailability";
+import {
+	getBusyWindows,
+	getBusyWindowsInRange
+} from "#convex/lib/googleCalendar/googleCalendarAvailability";
 import { loadGoogleCalendarClient } from "#convex/lib/googleCalendar/googleCalendarClient";
 import { calendarResultAsync } from "#convex/lib/googleCalendar/googleCalendarErrors";
 import type { ValidPackageByTokenError } from "#convex/lib/packages/packageScheduling";

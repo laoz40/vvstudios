@@ -5,7 +5,10 @@ import type { ResultAsync } from "neverthrow";
 import type { Id } from "#convex/_generated/dataModel";
 import type { ActionCtx } from "#convex/_generated/server";
 import { env } from "#convex/env";
-import { markPackagePaid, sendPackageCheckoutPaidEmails } from "#convex/lib/packages/packagePayment";
+import {
+	markPackagePaid,
+	sendPackageCheckoutPaidEmails
+} from "#convex/lib/packages/packagePayment";
 import { okOrThrow } from "#convex/lib/result";
 import type { BookingAvailabilitySettings } from "#studio/lib/bookingAvailabilitySettings";
 

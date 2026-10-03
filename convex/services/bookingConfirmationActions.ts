@@ -13,7 +13,10 @@ import { getGoogleCalendarClient } from "#convex/lib/googleCalendar/googleCalend
 import { buildSessionCalendarEventPayload } from "#convex/lib/sessions/sessionCalendarEvents";
 import { pickBookingAddonQuantities } from "#studio/features/booking-form/lib/booking-form-model";
 import type { SessionAvailabilitySettings } from "#convex/lib/sessions/sessionCalendarTime";
-import { failBookingConfirmation, verifySessionCanBeScheduled } from "#convex/lib/sessions/sessionAdminEdit";
+import {
+	failBookingConfirmation,
+	verifySessionCanBeScheduled
+} from "#convex/lib/sessions/sessionAdminEdit";
 import { getSessionFromQuery } from "#convex/lib/sessions/sessionLookup";
 import { fromConvexTuple, okOrThrow } from "#convex/lib/result";
 import type { CompleteClaimedSessionSuccess } from "#convex/services/bookingConfirmation";
