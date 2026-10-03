@@ -92,16 +92,18 @@ export function BookingSummary() {
 	const showBookingLine = isPackageBooking ? Boolean(values.duration) : Boolean(bookingLabel);
 
 	return (
-		<div className="space-y-2 text-sm leading-normal tabular-nums">
+		<div className="text-sm leading-normal tabular-nums">
 			<Accordion
 				type="single"
 				collapsible
 				value={openSummaryItem}
 				onValueChange={setOpenSummaryItem}>
-				<AccordionItem value="booking-summary">
+				<AccordionItem
+					value="booking-summary"
+					className="border-b-0">
 					<AccordionTrigger
 						showArrow={false}
-						className="py-3 text-sm hover:text-foreground">
+						className="py-2 text-sm hover:text-foreground md:py-2">
 						<span className="flex w-full items-center justify-between gap-4">
 							<span className={sectionHeadingClassName}>Booking Summary</span>
 							<span className="text-sm font-medium text-muted-foreground transition-colors group-hover:text-primary">
@@ -111,7 +113,7 @@ export function BookingSummary() {
 					</AccordionTrigger>
 					<AccordionContent
 						layout={false}
-						className="border-b pb-3 text-sm md:text-sm">
+						className="border-b border-border pb-2 text-sm md:pb-2 md:text-sm">
 						<div className="space-y-2">
 							{showBookingLine && !isWaitingForPackage ? (
 								<div className="flex items-start justify-between gap-4">
@@ -137,15 +139,15 @@ export function BookingSummary() {
 							})}
 						</div>
 					</AccordionContent>
+					<div className="space-y-2 pt-1">
+						<BookingSummaryTotal
+							isWaitingForPackage={isWaitingForPackage}
+							packageAmounts={packageAmounts}
+							total={total}
+						/>
+					</div>
 				</AccordionItem>
 			</Accordion>
-			<div className="space-y-2 border-border pt-2">
-				<BookingSummaryTotal
-					isWaitingForPackage={isWaitingForPackage}
-					packageAmounts={packageAmounts}
-					total={total}
-				/>
-			</div>
 		</div>
 	);
 }
