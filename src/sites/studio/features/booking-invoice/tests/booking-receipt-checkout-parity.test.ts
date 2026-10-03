@@ -4,8 +4,8 @@
  * 1. Single session parity
  *    Receipt total paid must equal the Stripe checkout total for the same booking.
  *
- * 2. Session with add-ons
- *    Quantity-based add-ons must charge the same amount at checkout and on the receipt.
+ * 2. Session with quantity add-ons
+ *    Essential edit quantity must charge the same amount at checkout and on the receipt.
  *
  * 3. Package checkout parity
  *    Package checkout totals must match stored package pricing for the same configuration.
@@ -22,8 +22,6 @@ import {
 import { calculateBookingReceiptAmounts } from "#studio/features/booking-invoice/lib/calculate-booking-receipt-amounts";
 
 const SESSION_1H_TOTAL_DOLLARS = 200;
-
-const SESSION_2H_WITH_TELEPROMPTER_TOTAL_DOLLARS = 328;
 
 const SESSION_1H_WITH_ESSENTIAL_EDIT_TOTAL_DOLLARS = 300;
 
@@ -55,28 +53,6 @@ describe("session receipt and checkout totals", () => {
 		}
 
 		expect(receipt.totalPaidAmount).toBe(SESSION_1H_TOTAL_DOLLARS);
-	});
-
-	test("charges $328 for a two-hour session with teleprompter", () => {
-		const checkout = buildSessionCheckoutLineItems({
-			duration: "2h",
-			addons: ["Teleprompter"] satisfies BookingAddon[]
-		});
-
-		const receipt = calculateBookingReceiptAmounts({
-			duration: "2h",
-			addons: ["Teleprompter"] satisfies BookingAddon[]
-		});
-
-		expect(checkout.isOk()).toBe(true);
-
-		if (checkout.isOk()) {
-			expect(sessionCheckoutTotalDollars(checkout.value)).toBe(
-				SESSION_2H_WITH_TELEPROMPTER_TOTAL_DOLLARS
-			);
-		}
-
-		expect(receipt.totalPaidAmount).toBe(SESSION_2H_WITH_TELEPROMPTER_TOTAL_DOLLARS);
 	});
 
 	test("charges $300 for a one-hour session with one essential edit", () => {

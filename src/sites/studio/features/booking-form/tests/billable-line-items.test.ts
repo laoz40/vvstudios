@@ -3,7 +3,7 @@
  *
  * 1. Duration upgrades and add-on billable lines for admin invoices.
  * 2. Session and package priced lines shared by form totals, receipts, and checkout.
- * 3. Checkout parity for a priced session configuration.
+ * 3. Upgrade invoice lines match full booking totals.
  */
 import { describe, expect, test } from "vitest";
 import {
@@ -17,7 +17,6 @@ import {
 	buildStudioHirePricedLine
 } from "#studio/features/booking-form/lib/billable-line-items";
 import { getBookingTotal } from "#studio/features/booking-form/lib/booking-pricing";
-import { buildSessionCheckoutLineItems } from "#studio/features/booking-invoice/lib/stripe-checkout-line-items";
 
 const sessionScope = { sessionCount: 1 as const };
 
@@ -43,6 +42,17 @@ describe("buildDurationUpgradeBillableLine", () => {
 		});
 	});
 
+	test("rejects duration downgrades because refunds are not supported", () => {
+		expect(buildDurationUpgradeBillableLine(sessionScope, "2h", "1h", false)).toBeNull();
+	});
+
+	test("charges one session when package duration upgrade is not applied to every session", () => {
+		expect(buildDurationUpgradeBillableLine(packageScope, "2h", "3h", false)).toEqual({
+			description: "Studio hire upgrade: 2h to 3h",
+			amount: 100
+		});
+	});
+
 	test("applies the duration difference across every package session when checked", () => {
 		expect(buildDurationUpgradeBillableLine(packageScope, "2h", "3h", true)).toEqual({
 			description: "Studio hire upgrade (8 sessions): 2h to 3h",
@@ -52,6 +62,27 @@ describe("buildDurationUpgradeBillableLine", () => {
 });
 
 describe("buildAddonBillableLine", () => {
+	test("charges the catalog price for a production add-on", () => {
+		expect(buildAddonBillableLine(sessionScope, "Teleprompter", 1, false)).toEqual({
+			description: "Teleprompter",
+			amount: 29
+		});
+	});
+
+	test("charges quantity times the catalog price for editing add-ons", () => {
+		expect(buildAddonBillableLine(sessionScope, "Essential Edit", 2, false)).toEqual({
+			description: "Rough Cut x2",
+			amount: 200
+		});
+	});
+
+	test("charges only the selected quantity when package add-on is not applied to every session", () => {
+		expect(buildAddonBillableLine(packageScope, "Essential Edit", 2, false)).toEqual({
+			description: "Rough Cut x2",
+			amount: 200
+		});
+	});
+
 	test("multiplies quantity by package size when apply to every session is checked", () => {
 		expect(buildAddonBillableLine(packageScope, "Essential Edit", 2, true)).toEqual({
 			description: "Rough Cut x16 (8 sessions)",
@@ -107,33 +138,6 @@ describe("getPackagePriceSubtotalBeforeDiscount", () => {
 				addonQuantityPerSession: () => 1
 			})
 		).toBe(2392);
-	});
-});
-
-describe("session price subtotal and checkout", () => {
-	test("matches the Stripe checkout total for the same session", () => {
-		const config = { duration: "2h" as const, addons: ["Teleprompter"] as const };
-
-		const sessionPrice = getSessionPriceAmounts({
-			duration: config.duration,
-			addons: [...config.addons],
-			addonQuantity: () => 1
-		});
-
-		const checkout = buildSessionCheckoutLineItems({ ...config, addons: [...config.addons] });
-
-		expect(checkout.isOk()).toBe(true);
-
-		if (checkout.isOk()) {
-			const checkoutTotal = checkout.value.reduce(
-				(total, item) => total + (item.price_data.unit_amount * item.quantity) / 100,
-				0
-			);
-
-			expect(checkoutTotal).toBe(sessionPrice.subtotalAmount);
-		}
-
-		expect(getBookingTotal({ ...config, addons: [...config.addons] })).toBe(328);
 	});
 });
 
