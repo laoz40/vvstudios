@@ -10,7 +10,7 @@ import {
 	runEditorAccessSetupService,
 	runEditorDriveAccessUpdateService,
 	type DriveEditorPermissionsError
-} from "#convex/services/driveEditorPermissions";
+} from "#convex/services/drive/driveEditorPermissions";
 
 type RetryEditorAccessError =
 	| DriveEditorPermissionsError

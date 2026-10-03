@@ -23,12 +23,12 @@ import {
 	runScheduledDriveSetupService,
 	setupDriveService,
 	type SetupError
-} from "#convex/services/drive";
+} from "#convex/services/drive/drive";
 import {
 	retryClientAssetsEmailService,
 	retryClientDrivePermissionsService,
 	type DriveClientPermissionsError
-} from "#convex/services/driveClientPermissions";
+} from "#convex/services/drive/driveClientPermissions";
 import {
 	completeClaimedSessionService,
 	sendSessionReminderEmailService

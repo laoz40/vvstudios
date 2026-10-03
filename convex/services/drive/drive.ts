@@ -14,7 +14,7 @@ import {
 } from "#convex/lib/drive/sessionFolders/driveSetupInfo";
 import { ensureSessionDriveFolders } from "#convex/lib/drive/sessionFolders/ensureFolders";
 import { fromConvexTuple } from "#convex/lib/result";
-import { requireClientDrivePermissionsAndSendAssetsEmail } from "#convex/services/driveClientPermissions";
+import { requireClientDrivePermissionsAndSendAssetsEmail } from "#convex/services/drive/driveClientPermissions";
 import { setupEditorAccess } from "#convex/lib/drive/driveEditorPermissions";
 
 export type { SetupError } from "#convex/lib/drive/sessionFolders/driveSetupInfo";
