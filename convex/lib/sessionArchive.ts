@@ -13,7 +13,7 @@ import {
 	listStripeInvoicesForBooking,
 	summarizeStripeInvoices,
 	type StripeInvoiceAmountSummary
-} from "#convex/lib/stripeInvoices";
+} from "#convex/lib/stripe/stripeInvoices";
 
 const DEAD_CHECKOUT_STATUSES = ["cancelled", "expired", "abandoned"] as const;
 

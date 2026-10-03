@@ -6,8 +6,8 @@ import { requirePermissionActions } from "#convex/lib/auth";
 import {
 	getStripeInvoiceBillingUrls,
 	type StripeInvoiceBillingUrls
-} from "#convex/lib/stripeInvoiceBillingUrls";
-import { getStripeClient, type StripeClient } from "#convex/lib/stripeClient";
+} from "#convex/lib/stripe/stripeInvoiceBillingUrls";
+import { getStripeClient, type StripeClient } from "#convex/lib/stripe/stripeClient";
 
 type GetStripeInvoiceBillingUrlsError =
 	| { reason: "NOT_AUTHENTICATED" }

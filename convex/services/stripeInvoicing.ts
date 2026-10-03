@@ -12,8 +12,8 @@ import {
 	createAndSendStripeInvoice,
 	type StripeInvoiceLineItem,
 	validateStripeInvoiceLineItems
-} from "#convex/lib/stripeInvoice";
-import { getStripeClient, type StripeClient } from "#convex/lib/stripeClient";
+} from "#convex/lib/stripe/stripeInvoice";
+import { getStripeClient, type StripeClient } from "#convex/lib/stripe/stripeClient";
 
 type SendStripeInvoiceArgs = { lineItems: StripeInvoiceLineItem[]; requestId: string };
 

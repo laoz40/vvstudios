@@ -11,7 +11,7 @@ import {
 	archiveSessionWhenFullyDone,
 	unarchiveSessionForNewUnpaidInvoice
 } from "#convex/lib/sessionArchive";
-import type { StripeInvoiceLineItem } from "#convex/lib/stripeInvoice";
+import type { StripeInvoiceLineItem } from "#convex/lib/stripe/stripeInvoice";
 import {
 	listStripeInvoicesForBooking,
 	listStripeInvoicesForPackage,
@@ -19,7 +19,7 @@ import {
 	recordBookingStripeInvoice,
 	recordPackageAdjustmentStripeInvoice,
 	recordPackageStripeInvoice
-} from "#convex/lib/stripeInvoices";
+} from "#convex/lib/stripe/stripeInvoices";
 
 export function listStripeInvoicesForBookingService(
 	ctx: QueryCtx,

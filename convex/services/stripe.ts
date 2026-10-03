@@ -8,7 +8,7 @@ import type { BookingAddonQuantitiesArgs } from "#convex/lib/bookingAddonQuantit
 import type { BookingAddon } from "#studio/features/booking-form/lib/booking-form-model";
 import { getBookingSubmitRateLimitKey } from "#convex/lib/bookingSubmission";
 import { fromConvexTuple } from "#convex/lib/result";
-import { getStripeClient, type StripeClient } from "#convex/lib/stripeClient";
+import { getStripeClient, type StripeClient } from "#convex/lib/stripe/stripeClient";
 import { buildSessionCheckoutLineItems } from "#studio/features/booking-invoice/lib/stripe-checkout-line-items";
 import {
 	closeOpenStripeCheckoutSession,
@@ -17,7 +17,7 @@ import {
 	createStripeCheckoutCustomer,
 	linkStripeCheckoutToPendingBooking,
 	requireValidBookingEmailDomain
-} from "#convex/lib/stripeCheckoutSession";
+} from "#convex/lib/stripe/stripeCheckoutSession";
 import type { SessionAvailabilityValidationError } from "#convex/lib/sessionCalendarTime";
 import { publicBookingSchema } from "#studio/features/booking-form/lib/booking-form-model";
 

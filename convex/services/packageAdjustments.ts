@@ -12,7 +12,7 @@ import { claimPackageAdjustmentInvoicePayment } from "#convex/lib/packageAdjustm
 import { archivePackageWhenFullyDone } from "#convex/lib/packageArchive";
 import { getPackageFromDb } from "#convex/lib/packageLookup";
 import { okOrThrow } from "#convex/lib/result";
-import { recordPackageAdjustmentStripeInvoice } from "#convex/lib/stripeInvoices";
+import { recordPackageAdjustmentStripeInvoice } from "#convex/lib/stripe/stripeInvoices";
 import { getCustomerAddonDisplayLabel } from "#studio/features/booking-form/lib/booking-form-model";
 
 export type ClaimPackageAdjustmentInvoiceEmailArgs = PackageAdjustmentEmailClaim & {

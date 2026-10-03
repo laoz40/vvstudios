@@ -6,7 +6,7 @@ import { requirePermission } from "#convex/lib/auth";
 import {
 	saveNumberedCustomInvoice,
 	validateCustomTotalDueAmount
-} from "#convex/lib/customInvoices";
+} from "#convex/lib/stripe/customInvoices";
 import { okOrThrow } from "#convex/lib/result";
 import { getSessionFromDb } from "#convex/lib/sessionLookup";
 

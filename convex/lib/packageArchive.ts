@@ -16,7 +16,7 @@ import {
 	listStripeInvoicesForPackage,
 	summarizeCustomPackageStripeInvoices,
 	type StripeInvoiceAmountSummary
-} from "#convex/lib/stripeInvoices";
+} from "#convex/lib/stripe/stripeInvoices";
 
 export const DEAD_PACKAGE_STATUSES = ["expired", "abandoned"] as const;
 

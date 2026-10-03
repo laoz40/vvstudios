@@ -8,7 +8,7 @@ import { checkPackageSubmitRateLimit } from "#convex/lib/bookingSubmission";
 import { createPendingPackage } from "#convex/lib/packagePayment";
 import { parsePackageRequest, type CreatePackageRequestArgs } from "#convex/lib/packageUpdates";
 import { fromConvexTuple } from "#convex/lib/result";
-import { getStripeClient, type StripeClient } from "#convex/lib/stripeClient";
+import { getStripeClient, type StripeClient } from "#convex/lib/stripe/stripeClient";
 import { buildPackageCheckoutLineItems } from "#studio/features/booking-invoice/lib/stripe-checkout-line-items";
 import {
 	closeOpenStripeCheckoutSession,
@@ -16,7 +16,7 @@ import {
 	createStripeCheckoutCustomer,
 	linkStripeCheckoutToPendingPackage,
 	requireValidBookingEmailDomain
-} from "#convex/lib/stripeCheckoutSession";
+} from "#convex/lib/stripe/stripeCheckoutSession";
 
 export type CreatePackageCheckoutSessionError =
 	| { reason: "BOOKING_EMAIL_DOMAIN_INVALID" }

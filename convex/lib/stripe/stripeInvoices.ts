@@ -2,7 +2,7 @@ import { okAsync, type ResultAsync } from "neverthrow";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
 import { okOrThrow } from "#convex/lib/result";
-import type { StripeInvoiceLineItem } from "#convex/lib/stripeInvoice";
+import type { StripeInvoiceLineItem } from "#convex/lib/stripe/stripeInvoice";
 
 export type StripeInvoiceKind = Doc<"stripeInvoices">["kind"];
 

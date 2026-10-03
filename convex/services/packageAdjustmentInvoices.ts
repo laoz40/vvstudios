@@ -8,8 +8,8 @@ import type { ActionCtx } from "#convex/_generated/server";
 import { requirePermissionActions } from "#convex/lib/auth";
 import type { PackageAdjustmentInvoiceInput } from "#studio/features/booking-invoice/lib/booking-artifacts";
 import { fromConvexTuple } from "#convex/lib/result";
-import { createAndSendPackageAdjustmentStripeInvoice } from "#convex/lib/stripeAdjustmentInvoice";
-import { getStripeClient, type StripeClient } from "#convex/lib/stripeClient";
+import { createAndSendPackageAdjustmentStripeInvoice } from "#convex/lib/stripe/stripeAdjustmentInvoice";
+import { getStripeClient, type StripeClient } from "#convex/lib/stripe/stripeClient";
 
 export type SendPackageAdjustmentInvoiceArgs = {
 	adjustmentId: Id<"packageAdjustments">;

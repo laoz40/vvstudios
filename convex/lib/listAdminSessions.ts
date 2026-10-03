@@ -7,7 +7,7 @@ import {
 	sessionConsumesPackageCapacity
 } from "#convex/lib/packageScheduling";
 import { getDriveWorkflowFailureForBooking } from "#convex/lib/driveStatus";
-import { listStripeInvoicesForBooking, summarizeStripeInvoices } from "#convex/lib/stripeInvoices";
+import { listStripeInvoicesForBooking, summarizeStripeInvoices } from "#convex/lib/stripe/stripeInvoices";
 import { normalizeAbn, normalizePhone } from "#convex/lib/contactNormalization";
 import { parseAdminSearchDateValue } from "#convex/lib/adminSearch/adminSearchDateParse";
 import {

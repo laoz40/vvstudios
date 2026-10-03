@@ -3,7 +3,7 @@
 import { ResultAsync } from "neverthrow";
 import { z } from "zod";
 import { tryPromise } from "#convex/lib/result";
-import type { StripeClient } from "#convex/lib/stripeClient";
+import type { StripeClient } from "#convex/lib/stripe/stripeClient";
 
 export type StripeInvoiceBillingUrls = { invoicePdf?: string; receiptUrl?: string };
 

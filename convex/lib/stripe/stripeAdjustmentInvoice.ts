@@ -7,7 +7,7 @@ import {
 	REMOTE_PODCAST_ADJUSTMENT_RATE
 } from "#convex/lib/packageAdjustments";
 import { tryPromise } from "#convex/lib/result";
-import type { StripeClient } from "#convex/lib/stripeClient";
+import type { StripeClient } from "#convex/lib/stripe/stripeClient";
 import { getCustomerAddonDisplayLabel } from "#studio/features/booking-form/lib/booking-form-model";
 import { BOOKING_INVOICE_CURRENCY } from "#studio/features/booking-form/lib/booking-pricing";
 

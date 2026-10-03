@@ -19,7 +19,7 @@ import {
 	validateBookingInvoiceDownload,
 	validatePackageReceiptDownload,
 	type InvoicePdfPayload
-} from "#convex/lib/invoiceDownloads";
+} from "#convex/lib/stripe/invoiceDownloads";
 import { getPackageForAction } from "#convex/lib/packageLookup";
 import { okOrThrow } from "#convex/lib/result";
 import { getSessionFromQuery } from "#convex/lib/sessionLookup";

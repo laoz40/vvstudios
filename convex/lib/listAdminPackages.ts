@@ -5,7 +5,7 @@ import { getCapacityConsumingPackageSessions } from "#convex/lib/packageScheduli
 import {
 	listStripeInvoicesForPackage,
 	summarizeCustomPackageStripeInvoices
-} from "#convex/lib/stripeInvoices";
+} from "#convex/lib/stripe/stripeInvoices";
 import { normalizeAbn, normalizePhone } from "#convex/lib/contactNormalization";
 import {
 	adminPartialFieldSearchArgs,

@@ -4,7 +4,7 @@ import { err, ok, type Result } from "neverthrow";
 import { ResultAsync } from "neverthrow";
 import type { Id } from "#convex/_generated/dataModel";
 import { tryPromise } from "#convex/lib/result";
-import type { StripeClient } from "#convex/lib/stripeClient";
+import type { StripeClient } from "#convex/lib/stripe/stripeClient";
 import { BOOKING_INVOICE_CURRENCY } from "#studio/features/booking-form/lib/booking-pricing";
 
 export const ADMIN_STRIPE_INVOICE_DAYS_UNTIL_DUE = 7;
