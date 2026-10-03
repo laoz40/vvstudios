@@ -1,20 +1,19 @@
 import { paginationOptsValidator } from "convex/server";
 import { ConvexError, v } from "convex/values";
 import { tupleErr, tupleOk } from "#/lib/result";
-import { detectDeliverablesCustomerType as detectCustomerType } from "#convex/lib/editorSessions";
+import { detectDeliverablesCustomerType as detectCustomerType } from "#convex/lib/editor/editorSessions";
 import { internalMutation, internalQuery, mutation, query } from "#convex/_generated/server";
 import {
 	claimClientAssetsEmail as claimClientAssetsEmailRecord,
 	saveClientAssetsEmailResult as saveClientAssetsEmailResultRecord,
 	saveClientDrivePermission as saveClientDrivePermissionRecord,
 	saveClientDrivePermissionsStatus as saveClientDrivePermissionsStatusRecord
-} from "#convex/lib/driveClientAccess";
+} from "#convex/lib/drive/driveClientAccess";
 import {
 	ensureBookingDriveClientId as ensureBookingDriveClientIdRecord,
 	syncBookingDriveClientIdFromSession as syncBookingDriveClientIdFromSessionRecord
-} from "#convex/lib/driveBookingDriveClient";
+} from "#convex/lib/drive/driveBookingDriveClient";
 import {
-	allocatePackageSessionNumber as allocatePackageSessionNumberRecord,
 	clearSavedDriveFolder as clearSavedDriveFolderRecord,
 	saveDriveClientAssetsFolder as saveDriveClientAssetsFolderRecord,
 	saveDriveChildFolder as saveDriveChildFolderRecord,
@@ -22,10 +21,13 @@ import {
 	saveDrivePackageFolder as saveDrivePackageFolderRecord,
 	saveDriveSessionFolder as saveDriveSessionFolderRecord,
 	saveDriveSetupResult as saveDriveSetupResultRecord
-} from "#convex/lib/driveFolders";
-import { clearSessionDriveDb as clearSessionDriveDbRecord } from "#convex/lib/driveSessionCancelCleanup";
-import { allocateClientSessionNumber as allocateClientSessionNumberRecord } from "#convex/lib/driveSessionFolderNumber";
-import { getDriveSetup as loadDriveSetup } from "#convex/lib/driveLookup";
+} from "#convex/lib/drive/driveFolders";
+import {
+	allocatePackageSessionNumber as allocatePackageSessionNumberRecord,
+	allocateClientSessionNumber as allocateClientSessionNumberRecord
+} from "#convex/lib/drive/sessionFolders/allocateNumbers";
+import { clearSessionDriveDb as clearSessionDriveDbRecord } from "#convex/lib/drive/sessionFolders/clearSessionRecords";
+import { getDriveSetup as loadDriveSetup } from "#convex/lib/drive/driveLookup";
 import {
 	claimEditorAssignmentEmail as claimEditorAssignmentEmailRecord,
 	clearPreviousEditorDriveAccess as clearPreviousEditorDriveAccessRecord,
@@ -36,7 +38,7 @@ import {
 	saveEditorAssignmentEmailResult as saveEditorAssignmentEmailResultRecord,
 	saveEditorDrivePermission as saveEditorDrivePermissionRecord,
 	saveEditorDrivePermissionsStatus as saveEditorDrivePermissionsStatusRecord
-} from "#convex/lib/driveEditor";
+} from "#convex/lib/drive/driveEditor";
 import {
 	archivePastDeadCheckoutSessionsService,
 	archiveSessionService,
@@ -53,7 +55,7 @@ import {
 	updateSessionAdminNotesService,
 	updateSessionNotesService,
 	updateSessionEditStatusService
-} from "#convex/services/sessions";
+} from "#convex/services/sessions/sessions";
 
 const savedDriveFolderValidator = v.object({
 	id: v.string(),

@@ -3,7 +3,7 @@
 import { v } from "convex/values";
 import { tupleErr, tupleOk } from "#/lib/result";
 import { action } from "#convex/_generated/server";
-import { inviteUserService } from "#convex/services/employeeInvitations";
+import { inviteUserService } from "#convex/services/employees/employeeInvitations";
 
 export const inviteUser = action({
 	args: { email: v.string() },

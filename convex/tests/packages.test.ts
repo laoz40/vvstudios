@@ -16,7 +16,7 @@ import { api, internal } from "#convex/_generated/api";
 import type { Id } from "#convex/_generated/dataModel";
 import type { BookingAddon } from "#studio/features/booking-form/lib/booking-form-model";
 import { getPackageExpiresAt } from "#studio/features/booking-form/lib/booking-pricing";
-import { hashRescheduleToken } from "#convex/lib/sessionRescheduleLinks";
+import { hashRescheduleToken } from "#convex/lib/sessions/sessionRescheduleLinks";
 import { createConvexTest } from "#convex/test.setup";
 
 const now = Date.parse("2030-01-01T00:00:00.000Z");

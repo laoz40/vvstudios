@@ -17,7 +17,7 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { bookingDocument, packageDocument } from "#convex/tests/insertDocumentDefaults";
 import { api } from "#convex/_generated/api";
 import type { BookingAddon } from "#studio/features/booking-form/lib/booking-form-model";
-import { createBookingInvoiceArtifactsForBooking } from "#convex/lib/bookingInvoiceArtifacts";
+import { createBookingInvoiceArtifactsForBooking } from "#studio/features/booking-invoice/lib/booking-artifacts";
 import { createConvexTest } from "#convex/test.setup";
 import { buildBookingInvoiceData } from "#studio/features/booking-invoice/lib/build-booking-invoice-data";
 

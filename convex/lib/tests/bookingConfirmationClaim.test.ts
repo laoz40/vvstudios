@@ -8,11 +8,11 @@
  *    Maps idempotent replays and invalid booking states to claim errors.
  */
 import { describe, expect, test } from "vitest";
-import type { BookingClaimSession } from "#convex/lib/bookingConfirmationClaim";
+import type { BookingClaimSession } from "#convex/lib/booking/bookingConfirmationClaim";
 import {
 	getBookingClaimStatus,
 	validateClaimStripeSession
-} from "#convex/lib/bookingConfirmationClaim";
+} from "#convex/lib/booking/bookingConfirmationClaim";
 
 const now = Date.parse("2030-01-01T00:00:00.000Z");
 

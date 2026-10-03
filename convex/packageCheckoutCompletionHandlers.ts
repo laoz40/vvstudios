@@ -3,7 +3,7 @@
 import { v } from "convex/values";
 import { tupleErr, tupleOk, type Result } from "#/lib/result";
 import { internalAction } from "#convex/_generated/server";
-import { completeClaimedPackageCheckoutService } from "#convex/services/packageCheckoutCompletionActions";
+import { completeClaimedPackageCheckoutService } from "#convex/services/packages/packageCheckoutCompletionActions";
 
 type CompleteClaimedPackageCheckoutSuccess = { outcome: "completed" };
 

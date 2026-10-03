@@ -8,7 +8,7 @@ import {
 	recordBookingStripeInvoiceService,
 	recordPackageAdjustmentStripeInvoiceService,
 	recordPackageStripeInvoiceService
-} from "#convex/services/stripeInvoices";
+} from "#convex/services/stripe/stripeInvoices";
 
 const stripeInvoiceLineItemValidator = v.object({ description: v.string(), amount: v.number() });
 

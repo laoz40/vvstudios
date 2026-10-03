@@ -16,7 +16,7 @@ import {
 	getAvailableTimeOptions,
 	isTimeSlotAvailable,
 	type SessionAvailabilitySettings
-} from "#convex/lib/sessionCalendarTime";
+} from "#convex/lib/sessions/sessionCalendarTime";
 
 const timeZone = "Australia/Sydney";
 

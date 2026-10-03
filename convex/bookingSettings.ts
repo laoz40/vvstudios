@@ -2,7 +2,7 @@ import { v } from "convex/values";
 import { mutation, query } from "#convex/_generated/server";
 import { tupleErr, tupleOk } from "#/lib/result";
 import { DEFAULT_BOOKING_AVAILABILITY_SETTINGS } from "#studio/lib/bookingAvailabilitySettings";
-import { updateBookingSettingsService } from "#convex/services/bookingSettings";
+import { updateBookingSettingsService } from "#convex/services/booking/bookingSettings";
 
 export const get = query({
 	args: {},

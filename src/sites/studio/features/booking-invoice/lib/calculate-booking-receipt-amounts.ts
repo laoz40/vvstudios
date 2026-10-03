@@ -3,17 +3,12 @@ import {
 	type BookingAddon,
 	type BookingAddonQuantities
 } from "#studio/features/booking-form/lib/booking-form-model";
-import { DURATION_PRICES } from "#studio/features/booking-form/lib/booking-pricing";
+import { getSessionPriceAmounts } from "#studio/features/booking-form/lib/billable-line-items";
 import {
 	getAddonAmount,
 	getAddonQuantity
 } from "#studio/features/booking-invoice/lib/calculate-booking-invoice-amounts";
-import { sumMoney } from "#studio/features/booking-invoice/lib/money";
 import type { BookingReceiptMoneyAmounts } from "#studio/features/booking-invoice/lib/types";
-
-function isBookingDuration(value: string): value is keyof typeof DURATION_PRICES {
-	return value in DURATION_PRICES;
-}
 
 export type CalculateBookingReceiptAmountsInput = {
 	duration: string;
@@ -29,11 +24,11 @@ export function calculateBookingReceiptAmounts({
 }: CalculateBookingReceiptAmountsInput): BookingReceiptMoneyAmounts {
 	const addonQuantities = pickBookingAddonQuantities(quantityValues);
 
-	const baseAmount =
-		includeBaseAmount && isBookingDuration(duration) ? DURATION_PRICES[duration] : 0;
-
-	const addonsAmount = sumMoney(addons.map((addon) => getAddonAmount(addon, addonQuantities)));
-	const subtotalAmount = baseAmount + addonsAmount;
+	const { baseAmount, addonsAmount, subtotalAmount } = getSessionPriceAmounts({
+		duration: includeBaseAmount ? duration : "",
+		addons,
+		addonQuantity: (addon) => getAddonQuantity(addon, addonQuantities)
+	});
 
 	return {
 		addonsAmount,

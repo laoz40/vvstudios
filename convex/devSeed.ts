@@ -9,7 +9,10 @@ import { v } from "convex/values";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { MutationCtx } from "#convex/_generated/server";
 import { internalMutation } from "#convex/_generated/server";
-import { buildBookingSearchBlob, buildPackageSearchBlob } from "#convex/lib/adminSearchBlob";
+import {
+	buildBookingSearchBlob,
+	buildPackageSearchBlob
+} from "#convex/lib/adminSearch/adminSearchBlob";
 
 const SESSION_STATUSES_OTHER: Array<Doc<"bookings">["status"]> = [
 	"pending_payment",

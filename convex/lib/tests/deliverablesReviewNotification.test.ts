@@ -6,7 +6,7 @@
  */
 import type { UserIdentity } from "convex/server";
 import { describe, expect, test } from "vitest";
-import { shouldNotifyHostOfDeliverablesReview } from "#convex/lib/deliverablesReviewNotification";
+import { shouldNotifyHostOfDeliverablesReview } from "#convex/lib/editor/deliverablesReviewNotification";
 
 const editorIdentity: UserIdentity = {
 	tokenIdentifier: "https://clerk.example|editor",

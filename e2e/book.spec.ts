@@ -3,7 +3,7 @@
  * Does not complete Stripe checkout (hCaptcha blocks headless Pay in GitHub Actions).
  *
  * Prerequisites
- * Shared dev/e2e Convex deployment and test Clerk/Stripe publishable keys (see `AGENTS.md`).
+ * Local env: `.env.local` (Playwright loads it via `playwright.config.ts`). See `.agents/skills/verify-vvstudios/features/README.md`.
  * Run with `bun run test:e2e`.
  *
  * 1. Loads booking form sections

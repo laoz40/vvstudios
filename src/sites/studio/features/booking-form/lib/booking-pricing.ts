@@ -1,39 +1,24 @@
+import {
+	getPackagePriceSubtotalBeforeDiscount,
+	getSessionPriceAmounts,
+	isBookingDuration
+} from "#studio/features/booking-form/lib/billable-line-items";
 import { getBookingAddonQuantityForForm } from "#studio/features/booking-form/lib/editing-addon-quantities";
 import {
-	DURATION_OPTIONS,
 	pickBookingAddonQuantities,
-	type BookingAddon,
 	type BookingAddonQuantities,
 	type BookingFormValues
 } from "#studio/features/booking-form/lib/booking-form-model";
+import {
+	ADDON_PRICES,
+	BOOKING_INVOICE_CURRENCY,
+	DURATION_PRICES,
+	PACKAGE_PLANS,
+	type PackageSize
+} from "#studio/features/booking-form/lib/booking-price-constants";
 import { z } from "zod";
 
-export const BOOKING_INVOICE_CURRENCY = "AUD" as const;
-
-type BookingDuration = (typeof DURATION_OPTIONS)[number];
-
-export const DURATION_PRICES = { "1h": 200, "2h": 299, "3h": 399 } as const satisfies Record<
-	BookingDuration,
-	number
->;
-
-export const ADDON_PRICES = {
-	"4K UHD Recording": 49,
-	Teleprompter: 29,
-	"Essential Edit": 100,
-	"Clip Volume Pack": 80,
-	"Complete Edit": 249,
-	"Handcrafted Clips": 199,
-	"Remote Podcast": 59
-} as const satisfies Record<BookingAddon, number>;
-
-export const PACKAGE_PLANS = {
-	4: { discountPercent: 5, validityDays: 60 },
-	8: { discountPercent: 10, validityDays: 120 },
-	12: { discountPercent: 15, validityDays: 180 }
-} as const;
-
-export type PackageSize = keyof typeof PACKAGE_PLANS;
+export { ADDON_PRICES, BOOKING_INVOICE_CURRENCY, DURATION_PRICES, PACKAGE_PLANS, type PackageSize };
 
 const packageSizeSchema = z.union([z.literal(4), z.literal(8), z.literal(12)]);
 
@@ -82,20 +67,28 @@ export function getBookingTotal(
 		duration: BookingFormValues["duration"] | "";
 	} & BookingAddonQuantities
 ) {
-	const durationTotal = values.duration ? DURATION_PRICES[values.duration] : 0;
 	const addonQuantities = pickBookingAddonQuantities(values);
 
-	const addonsTotal = values.addons.reduce((total, addon) => {
-		return total + ADDON_PRICES[addon] * getBookingAddonQuantityForForm(addon, addonQuantities);
-	}, 0);
-
-	return durationTotal + addonsTotal;
+	return getSessionPriceAmounts({
+		duration: values.duration,
+		addons: values.addons,
+		addonQuantity: (addon) => getBookingAddonQuantityForForm(addon, addonQuantities)
+	}).subtotalAmount;
 }
 
 export function calculatePackageAmounts(values: PackagePricingValues): PackageAmounts {
 	const plan = PACKAGE_PLANS[values.packageSize];
 	const singleSessionAmount = getBookingTotal(values);
-	const packageSubtotalAmount = singleSessionAmount * values.packageSize;
+	const addonQuantities = pickBookingAddonQuantities(values);
+
+	const packageSubtotalAmount = isBookingDuration(values.duration)
+		? getPackagePriceSubtotalBeforeDiscount({
+				duration: values.duration,
+				packageSize: values.packageSize,
+				addons: values.addons,
+				addonQuantityPerSession: (addon) => getBookingAddonQuantityForForm(addon, addonQuantities)
+			})
+		: singleSessionAmount * values.packageSize;
 
 	const discountAmount =
 		values.includeDiscount === false

@@ -1,0 +1,385 @@
+import { err, errAsync, ok, type Result, type ResultAsync } from "neverthrow";
+import type { Doc } from "#convex/_generated/dataModel";
+import {
+	bookingSchema,
+	packageFormSchema,
+	type BookingFormValues
+} from "#studio/features/booking-form/lib/booking-form-model";
+import {
+	buildBookingInvoiceData,
+	createStoredAmountPackageInvoiceLineItemSnapshot
+} from "#studio/features/booking-invoice/lib/build-booking-invoice-data";
+import {
+	buildBookingReceiptData,
+	buildPackageReceiptData
+} from "#studio/features/booking-invoice/lib/build-booking-receipt-data";
+import { renderBookingReceiptEmail } from "#studio/features/booking-invoice/email/render-booking-receipt-email";
+import {
+	bookingReceiptPaidAt,
+	resolveBookingReceiptNumber,
+	resolvePackageReceiptNumber
+} from "#studio/features/booking-invoice/lib/receipt-number";
+import type {
+	BookingInvoiceLineItem,
+	BookingReceiptData
+} from "#studio/features/booking-invoice/lib/types";
+
+export type PackageReceiptArtifactOptions = {
+	leadTimeMinutes: number;
+	scheduleExpiresAtLabel?: string;
+	scheduleUrl?: string;
+};
+
+export type PackageAdjustmentInvoiceInput = {
+	adjustment: Extract<Doc<"packageAdjustments">, { outcome: "invoice_required" }>;
+	packageRecord: Doc<"packages">;
+};
+
+export type PackageInvoiceInput = Pick<
+	Doc<"packages">,
+	| "_id"
+	| "name"
+	| "phone"
+	| "accountName"
+	| "abn"
+	| "email"
+	| "duration"
+	| "addons"
+	| "essentialEditQuantity"
+	| "completeEditQuantity"
+	| "clipsPackageQuantity"
+	| "handcraftedClipsQuantity"
+	| "notes"
+	| "packageSize"
+	| "createdAt"
+	| "receiptNumber"
+	| "singleSessionAmount"
+	| "packageSubtotalAmount"
+	| "discountPercent"
+	| "discountAmount"
+	| "totalDueAmount"
+> & { invoiceLineItems?: BookingInvoiceLineItem[] };
+
+function getCustomInvoiceQuantityDefault(
+	booking: Doc<"bookings">,
+	customInvoice: Doc<"customInvoices"> | undefined,
+	field:
+		| "essentialEditQuantity"
+		| "completeEditQuantity"
+		| "clipsPackageQuantity"
+		| "handcraftedClipsQuantity"
+) {
+	if (customInvoice?.[field] !== undefined) {
+		return customInvoice[field];
+	}
+
+	return booking[field] ?? "";
+}
+
+function getCustomInvoiceFieldDefaults(
+	booking: Doc<"bookings">,
+	customInvoice: Doc<"customInvoices"> | undefined
+) {
+	return {
+		duration: customInvoice?.duration ?? booking.duration,
+		// Custom invoices may intentionally omit studio hire and contain only add-ons.
+		// Parse against the booking's valid service, then omit it from the artifact below.
+		service: customInvoice?.service ?? booking.service,
+		addons: customInvoice?.addons ?? booking.addons,
+		essentialEditQuantity: getCustomInvoiceQuantityDefault(
+			booking,
+			customInvoice,
+			"essentialEditQuantity"
+		),
+		completeEditQuantity: getCustomInvoiceQuantityDefault(
+			booking,
+			customInvoice,
+			"completeEditQuantity"
+		),
+		clipsPackageQuantity: getCustomInvoiceQuantityDefault(
+			booking,
+			customInvoice,
+			"clipsPackageQuantity"
+		),
+		handcraftedClipsQuantity: getCustomInvoiceQuantityDefault(
+			booking,
+			customInvoice,
+			"handcraftedClipsQuantity"
+		)
+	};
+}
+
+function getBookingInvoiceParseInput(
+	booking: Doc<"bookings">,
+	customInvoice: Doc<"customInvoices"> | undefined
+) {
+	const {
+		duration,
+		service,
+		addons,
+		essentialEditQuantity,
+		completeEditQuantity,
+		clipsPackageQuantity,
+		handcraftedClipsQuantity
+	} = getCustomInvoiceFieldDefaults(booking, customInvoice);
+
+	return {
+		name: booking.name,
+		phone: booking.phone,
+		accountName: booking.accountName,
+		abn: booking.abn,
+		email: booking.email,
+		bookingMode: "single",
+		packageSize: "",
+		date: booking.date,
+		time: booking.time,
+		duration,
+		service,
+		addons,
+		essentialEditQuantity,
+		completeEditQuantity,
+		clipsPackageQuantity,
+		handcraftedClipsQuantity,
+		notes: booking.notes ?? ""
+	};
+}
+
+function getBookingInvoiceService(
+	customInvoice: Doc<"customInvoices"> | undefined,
+	service: BookingFormValues["service"]
+) {
+	if (customInvoice && !customInvoice.service) {
+		return undefined;
+	}
+
+	return service || undefined;
+}
+
+export function createBookingInvoiceArtifactsForBooking(
+	booking: Doc<"bookings">,
+	createdAt: number,
+	options: {
+		customInvoice?: Doc<"customInvoices">;
+		leadTimeMinutes: number;
+		rescheduleUrl?: string;
+	}
+) {
+	const customInvoice = options.customInvoice;
+
+	const parsedBooking = bookingSchema.safeParse(
+		getBookingInvoiceParseInput(booking, customInvoice)
+	);
+
+	if (!parsedBooking.success) {
+		return err({ reason: "INVALID_BOOKING_DATA" as const });
+	}
+
+	const data = buildBookingInvoiceData({
+		bookingId: booking._id,
+		name: parsedBooking.data.name,
+		phone: parsedBooking.data.phone,
+		accountName: parsedBooking.data.accountName,
+		abn: parsedBooking.data.abn,
+		email: parsedBooking.data.email,
+		date: parsedBooking.data.date,
+		time: parsedBooking.data.time,
+		duration: parsedBooking.data.duration,
+		service: getBookingInvoiceService(customInvoice, parsedBooking.data.service),
+		addons: parsedBooking.data.addons,
+		essentialEditQuantity: parsedBooking.data.essentialEditQuantity || undefined,
+		completeEditQuantity: parsedBooking.data.completeEditQuantity || undefined,
+		clipsPackageQuantity: parsedBooking.data.clipsPackageQuantity || undefined,
+		handcraftedClipsQuantity: parsedBooking.data.handcraftedClipsQuantity || undefined,
+		createdAt: customInvoice?.createdAt ?? createdAt,
+		dueDate: customInvoice?.dueDate,
+		includeDepositLineItem: customInvoice?.includeDepositLineItem,
+		invoiceNumber: customInvoice?.invoiceNumber,
+		customTotalDueAmount: customInvoice?.customTotalDueAmount,
+		leadTimeMinutes: options.leadTimeMinutes,
+		rescheduleUrl: options.rescheduleUrl
+	});
+
+	return ok({
+		artifacts: {
+			data,
+			pdf: {
+				contentType: "application/pdf",
+				filename: `booking-invoice-${data.invoice.number.toLowerCase()}.pdf`
+			}
+		},
+		booking: parsedBooking.data
+	});
+}
+
+export function createBookingReceiptArtifactsForBooking(
+	booking: Doc<"bookings">,
+	createdAt: number,
+	options: { leadTimeMinutes: number; rescheduleUrl?: string }
+) {
+	const parsedBooking = bookingSchema.safeParse(getBookingInvoiceParseInput(booking, undefined));
+
+	if (!parsedBooking.success) {
+		return err({ reason: "INVALID_BOOKING_DATA" as const });
+	}
+
+	const receiptNumber = resolveBookingReceiptNumber(
+		booking,
+		bookingReceiptPaidAt(booking, createdAt)
+	);
+
+	const data = buildBookingReceiptData({
+		bookingId: booking._id,
+		name: parsedBooking.data.name,
+		phone: parsedBooking.data.phone,
+		accountName: parsedBooking.data.accountName,
+		abn: parsedBooking.data.abn,
+		email: parsedBooking.data.email,
+		date: parsedBooking.data.date,
+		time: parsedBooking.data.time,
+		duration: parsedBooking.data.duration,
+		service: parsedBooking.data.service || undefined,
+		addons: parsedBooking.data.addons,
+		essentialEditQuantity: parsedBooking.data.essentialEditQuantity || undefined,
+		completeEditQuantity: parsedBooking.data.completeEditQuantity || undefined,
+		clipsPackageQuantity: parsedBooking.data.clipsPackageQuantity || undefined,
+		handcraftedClipsQuantity: parsedBooking.data.handcraftedClipsQuantity || undefined,
+		createdAt,
+		leadTimeMinutes: options.leadTimeMinutes,
+		rescheduleUrl: options.rescheduleUrl,
+		receiptNumber
+	});
+
+	return ok({
+		artifacts: {
+			data,
+			pdf: {
+				contentType: "application/pdf",
+				filename: `booking-receipt-${data.receipt.number.toLowerCase()}.pdf`
+			}
+		},
+		booking: parsedBooking.data
+	});
+}
+
+export function createPackageReceiptEmailArtifacts(
+	packageRecord: PackageInvoiceInput,
+	paidAt: number,
+	options: PackageReceiptArtifactOptions
+) {
+	return createPackageReceiptArtifacts(packageRecord, paidAt, options).asyncAndThen(
+		(artifactsResult) =>
+			renderBookingReceiptEmail(artifactsResult.artifacts.data).map((emailHtml) => ({
+				...artifactsResult,
+				artifacts: { ...artifactsResult.artifacts, emailHtml }
+			}))
+	);
+}
+
+export function createBookingReceiptEmailArtifactsForBooking(
+	booking: Doc<"bookings">,
+	createdAt: number,
+	options: { leadTimeMinutes: number; rescheduleUrl?: string }
+): ResultAsync<
+	{
+		artifacts: {
+			data: BookingReceiptData;
+			emailHtml: string;
+			pdf: { contentType: string; filename: string };
+		};
+		booking: BookingFormValues;
+	},
+	{ reason: "INVALID_BOOKING_DATA" | "RECEIPT_EMAIL_RENDER_FAILED" }
+> {
+	const artifactsResult = createBookingReceiptArtifactsForBooking(booking, createdAt, options);
+
+	if (artifactsResult.isErr()) {
+		return errAsync(artifactsResult.error);
+	}
+
+	return artifactsResult.asyncAndThen((value) =>
+		renderBookingReceiptEmail(value.artifacts.data).map((emailHtml) => ({
+			...value,
+			artifacts: { ...value.artifacts, emailHtml }
+		}))
+	);
+}
+
+export function createPackageReceiptArtifacts(
+	packageRecord: PackageInvoiceInput,
+	paidAt: number,
+	options: PackageReceiptArtifactOptions
+): Result<
+	{ artifacts: { data: BookingReceiptData; pdf: { contentType: string; filename: string } } },
+	{ reason: "INVALID_BOOKING_DATA" }
+> {
+	const parsedPackage = packageFormSchema.safeParse({
+		name: packageRecord.name,
+		phone: packageRecord.phone,
+		accountName: packageRecord.accountName,
+		abn: packageRecord.abn,
+		email: packageRecord.email,
+		duration: packageRecord.duration,
+		addons: packageRecord.addons,
+		essentialEditQuantity: packageRecord.essentialEditQuantity ?? "",
+		completeEditQuantity: packageRecord.completeEditQuantity ?? "",
+		clipsPackageQuantity: packageRecord.clipsPackageQuantity ?? "",
+		handcraftedClipsQuantity: packageRecord.handcraftedClipsQuantity ?? "",
+		notes: packageRecord.notes ?? "",
+		packageSize: packageRecord.packageSize
+	});
+
+	if (!parsedPackage.success) {
+		return err({ reason: "INVALID_BOOKING_DATA" as const });
+	}
+
+	const receiptNumber = resolvePackageReceiptNumber(packageRecord, paidAt);
+
+	const packageFormData = parsedPackage.data;
+
+	const invoiceLineItems =
+		packageRecord.invoiceLineItems ??
+		createStoredAmountPackageInvoiceLineItemSnapshot({
+			discountAmount: packageRecord.discountAmount,
+			discountPercent: packageRecord.discountPercent,
+			duration: packageFormData.duration,
+			packageSize: packageRecord.packageSize,
+			packageSubtotalAmount: packageRecord.packageSubtotalAmount,
+			singleSessionAmount: packageRecord.singleSessionAmount
+		});
+
+	const data = buildPackageReceiptData({
+		packageId: packageRecord._id,
+		name: packageFormData.name,
+		phone: packageFormData.phone,
+		accountName: packageFormData.accountName,
+		abn: packageFormData.abn,
+		email: packageFormData.email,
+		duration: packageFormData.duration,
+		addons: packageFormData.addons,
+		essentialEditQuantity: packageFormData.essentialEditQuantity || undefined,
+		completeEditQuantity: packageFormData.completeEditQuantity || undefined,
+		clipsPackageQuantity: packageFormData.clipsPackageQuantity || undefined,
+		handcraftedClipsQuantity: packageFormData.handcraftedClipsQuantity || undefined,
+		paidAt,
+		packageSize: packageRecord.packageSize,
+		packageSubtotalAmount: packageRecord.packageSubtotalAmount,
+		discountPercent: packageRecord.discountPercent,
+		discountAmount: packageRecord.discountAmount,
+		totalDueAmount: packageRecord.totalDueAmount,
+		invoiceLineItems,
+		leadTimeMinutes: options.leadTimeMinutes,
+		receiptNumber,
+		scheduleExpiresAtLabel: options.scheduleExpiresAtLabel,
+		scheduleUrl: options.scheduleUrl
+	});
+
+	return ok({
+		artifacts: {
+			data,
+			pdf: {
+				contentType: "application/pdf",
+				filename: `package-receipt-${data.receipt.number.toLowerCase()}.pdf`
+			}
+		}
+	});
+}

@@ -3,7 +3,7 @@
 import { v } from "convex/values";
 import { tupleErr, tupleOk, type Result } from "#/lib/result";
 import { action, internalAction } from "#convex/_generated/server";
-import { type BusyDayWindow } from "#convex/lib/sessionCalendarTime";
+import { type BusyDayWindow } from "#convex/lib/sessions/sessionCalendarTime";
 import {
 	cancelBookingFromAdminService,
 	getAvailableBookingTimesService,
@@ -13,27 +13,27 @@ import {
 	rescheduleSessionService,
 	type GetAvailableRescheduleTimesError,
 	updateSessionFromAdminService
-} from "#convex/services/sessionCalendar";
+} from "#convex/services/googleCalendar/sessionCalendar";
 import {
 	bookingAddonQuantitiesValidator,
 	bookingAddonsValidator
-} from "#convex/lib/bookingAddonQuantities";
+} from "#convex/lib/booking/bookingAddonQuantities";
 import {
 	retryDriveSetupService,
 	runScheduledDriveSetupService,
 	setupDriveService,
 	type SetupError
-} from "#convex/services/drive";
+} from "#convex/services/drive/drive";
 import {
 	retryClientAssetsEmailService,
 	retryClientDrivePermissionsService,
 	type DriveClientPermissionsError
-} from "#convex/services/driveClientPermissions";
+} from "#convex/services/drive/driveClientPermissions";
 import {
 	completeClaimedSessionService,
 	sendSessionReminderEmailService
-} from "#convex/services/bookingConfirmationActions";
-import { cleanupCancelledSessionDriveService } from "#convex/services/driveSessionCancelCleanup";
+} from "#convex/services/booking/bookingConfirmationActions";
+import { cleanupCancelledSessionDriveService } from "#convex/services/drive/cleanupCancelledSessionDrive";
 
 export const setupDrive = action({
 	args: { bookingId: v.id("bookings") },

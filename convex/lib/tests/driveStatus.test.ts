@@ -6,8 +6,8 @@
  */
 import { describe, expect, test } from "vitest";
 import type { Doc, Id } from "#convex/_generated/dataModel";
-import { dismissedClientFolderPermission } from "#convex/lib/driveClientAccess";
-import { buildClientDrivePermissionsStatus } from "#convex/lib/driveStatus";
+import { dismissedClientFolderPermission } from "#convex/lib/drive/driveClientAccess";
+import { buildClientDrivePermissionsStatus } from "#convex/lib/drive/driveStatus";
 import { testBookingId } from "#convex/lib/tests/testIds";
 
 // SAFETY: Convex ids are opaque strings at runtime; unit tests never persist these values.

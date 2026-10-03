@@ -10,7 +10,7 @@ import {
 import { internal } from "#convex/_generated/api";
 import type { Id } from "#convex/_generated/dataModel";
 import { SERVICES } from "#studio/features/booking-form/lib/booking-form-model";
-import { getValidPackageByToken as findValidPackageByToken } from "#convex/lib/packageLookup";
+import { getValidPackageByToken as findValidPackageByToken } from "#convex/lib/packages/packageLookup";
 import {
 	cancelPackageSessionService,
 	createPackageSessionService,
@@ -24,7 +24,7 @@ import {
 	validatePackageRescheduleRequestService,
 	validatePackageSessionRequestService,
 	validatePackageUnscheduleRequestService
-} from "#convex/services/packageScheduling";
+} from "#convex/services/packages/packageScheduling";
 
 export const getPackageByToken = query({
 	args: { token: v.string() },

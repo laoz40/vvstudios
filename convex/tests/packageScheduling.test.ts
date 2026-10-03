@@ -10,7 +10,7 @@
 import { beforeEach, describe, expect, test, vi } from "vitest";
 import { packageDocument } from "#convex/tests/insertDocumentDefaults";
 import { api } from "#convex/_generated/api";
-import { hashRescheduleToken } from "#convex/lib/sessionRescheduleLinks";
+import { hashRescheduleToken } from "#convex/lib/sessions/sessionRescheduleLinks";
 import { createConvexTest } from "#convex/test.setup";
 
 const now = Date.parse("2030-01-01T00:00:00.000Z");

@@ -29,7 +29,7 @@ import {
 	PACKAGE_ADJUSTMENT_EMAIL_CLAIM_TIMEOUT_MS,
 	PACKAGE_ADJUSTMENT_PAYMENT_DUE_MS,
 	REMOTE_PODCAST_ADJUSTMENT_RATE
-} from "#convex/lib/packageAdjustments";
+} from "#convex/lib/packages/packageAdjustments";
 import { createConvexTest } from "#convex/test.setup";
 
 const now = Date.parse("2030-01-10T00:00:00.000Z");

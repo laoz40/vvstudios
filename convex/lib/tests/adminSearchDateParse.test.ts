@@ -11,7 +11,7 @@
  *    today, tomorrow, and yesterday from a fixed anchor instant.
  */
 import { describe, expect, test } from "vitest";
-import { parseAdminSearchDateValue } from "#convex/lib/adminSearchDateParse";
+import { parseAdminSearchDateValue } from "#convex/lib/adminSearch/adminSearchDateParse";
 import { REMINDER_TIME_ZONE } from "#convex/lib/reminderScheduleTime";
 
 const sydneyTimeZone = REMINDER_TIME_ZONE;

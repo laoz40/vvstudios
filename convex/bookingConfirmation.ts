@@ -1,7 +1,7 @@
 import { v } from "convex/values";
 import { tupleErr, tupleOk } from "#/lib/result";
 import { internalMutation } from "#convex/_generated/server";
-import { sessionReservationValidator } from "#convex/lib/sessionReservations";
+import { sessionReservationValidator } from "#convex/lib/sessions/sessionReservations";
 import {
 	claimBookingConfirmationService,
 	ensureStandaloneBookingReceiptNumberService,
@@ -10,7 +10,7 @@ import {
 	markSessionInvoiceEmailFailedService,
 	markSessionInvoiceEmailRetrySentService,
 	recordBookingReceiptNumberService
-} from "#convex/services/bookingConfirmation";
+} from "#convex/services/booking/bookingConfirmation";
 
 export const claimBookingConfirmation = internalMutation({
 	args: {

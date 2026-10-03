@@ -7,15 +7,15 @@ import {
 	sessionReservationValidator,
 	reserveSessionTime,
 	unreserveSessionTime
-} from "#convex/lib/sessionReservations";
+} from "#convex/lib/sessions/sessionReservations";
 import {
 	bookingAddonQuantitiesValidator,
 	bookingAddonsValidator
-} from "#convex/lib/bookingAddonQuantities";
+} from "#convex/lib/booking/bookingAddonQuantities";
 import {
 	saveAdminSessionUpdateService,
 	saveClientSessionRescheduleService
-} from "#convex/services/sessionScheduling";
+} from "#convex/services/sessions/sessionScheduling";
 
 // Reserve a target before any Calendar write. The shared helper checks confirmed
 // bookings and reservations from every session workflow in the same transaction.

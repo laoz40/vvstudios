@@ -6,6 +6,9 @@
  *
  * 2. All packages list
  *    Returns archived and unarchived packages.
+ *
+ * 3. Email prefix search
+ *    Finds packages by stored email via the email index.
  */
 import { describe, expect, test } from "vitest";
 import { packageDocument } from "#convex/tests/insertDocumentDefaults";
@@ -45,6 +48,23 @@ describe("listPackages admin views", () => {
 			.query(api.packages.listPackages, { paginationOpts, view: "all" });
 
 		expect(result.page.map((packageRecord) => packageRecord._id)).toContain(archivedId);
+	});
+
+	test("email prefix finds the matching package", async () => {
+		const t = createConvexTest();
+		const targetEmail = "package-search@example.com";
+		const targetId = await seedPackage(t, targetEmail);
+		await seedPackage(t, "other-package@example.com");
+
+		const result = await t
+			.withIdentity(adminIdentity)
+			.query(api.packages.listPackages, {
+				paginationOpts,
+				view: "inbox",
+				searchQuery: `email:${targetEmail}`
+			});
+
+		expect(result.page.map((packageRecord) => packageRecord._id)).toEqual([targetId]);
 	});
 });
 

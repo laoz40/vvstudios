@@ -1,27 +1,18 @@
 /**
- * Stripe invoice line item pricing from structured admin selections.
+ * Admin Stripe invoice draft UI and line item assembly.
  *
- * 1. Duration upgrade
- *    Charges the price difference for a longer session duration. Downgrades are rejected.
+ * 1. Draft assembly
+ *    Builds priced invoice lines from structured admin selections.
  *
- * 2. Session add-ons
- *    Uses catalog prices with optional quantity for editing add-ons.
+ * 2. Picker encoding
+ *    Combined duration and add-on options for the line item selector.
  *
- * 3. Package add-ons
- *    Optional apply-to-every-session multiplies quantity by package size.
- *
- * 4. Package duration upgrade
- *    Optional apply-to-all-sessions multiplies the per-session duration difference.
- *
- * 5. Full booking price parity
- *    A one-hour checkout plus a two-hour upgrade invoice matches the two-hour booking total.
+ * 3. Draft totals
+ *    Sums priced lines or returns null when pricing is incomplete.
  */
 import { describe, expect, test } from "vitest";
 import {
 	buildStripeInvoiceLineItemsFromDrafts,
-	calculateAddonLineItem,
-	calculateDurationUpgradeLineItem,
-	getAvailableDurationUpgradeOptions,
 	getApplyToAllSessionsLabel,
 	getStripeInvoiceLineItemOptions,
 	getStripeInvoiceLineItemSelectionValue,
@@ -30,11 +21,8 @@ import {
 	type StripeInvoiceContext,
 	type StripeInvoiceLineItemDraft
 } from "#studio/features/admin/lib/stripe-invoice-pricing";
-import { getBookingTotal } from "#studio/features/booking-form/lib/booking-pricing";
 
 const sessionContext: StripeInvoiceContext = { currentDuration: "2h", sessionCount: 1 };
-
-const packageContext: StripeInvoiceContext = { currentDuration: "2h", sessionCount: 8 };
 
 function createDraft(
 	overrides: Partial<StripeInvoiceLineItemDraft> = {}
@@ -49,75 +37,6 @@ function createDraft(
 		...overrides
 	};
 }
-
-describe("getAvailableDurationUpgradeOptions", () => {
-	test("returns only longer durations than the current booking", () => {
-		expect(getAvailableDurationUpgradeOptions("1h")).toEqual(["2h", "3h"]);
-		expect(getAvailableDurationUpgradeOptions("2h")).toEqual(["3h"]);
-		expect(getAvailableDurationUpgradeOptions("3h")).toEqual([]);
-	});
-});
-
-describe("calculateDurationUpgradeLineItem", () => {
-	test("charges the session price difference when upgrading duration", () => {
-		expect(calculateDurationUpgradeLineItem(sessionContext, "3h", false)).toEqual({
-			description: "Studio hire upgrade: 2h to 3h",
-			amount: 100
-		});
-	});
-
-	test("rejects duration downgrades because refunds are not supported", () => {
-		expect(calculateDurationUpgradeLineItem(sessionContext, "1h", false)).toBeNull();
-	});
-
-	test("rejects selecting the same duration", () => {
-		expect(calculateDurationUpgradeLineItem(sessionContext, "2h", false)).toBeNull();
-	});
-
-	test("charges one session when package duration upgrade is not applied to every session", () => {
-		expect(calculateDurationUpgradeLineItem(packageContext, "3h", false)).toEqual({
-			description: "Studio hire upgrade: 2h to 3h",
-			amount: 100
-		});
-	});
-
-	test("applies the duration difference across every package session when checked", () => {
-		expect(calculateDurationUpgradeLineItem(packageContext, "3h", true)).toEqual({
-			description: "Studio hire upgrade (8 sessions): 2h to 3h",
-			amount: 800
-		});
-	});
-});
-
-describe("calculateAddonLineItem", () => {
-	test("charges the catalog price for a production add-on", () => {
-		expect(calculateAddonLineItem(sessionContext, "Teleprompter", 1, false)).toEqual({
-			description: "Teleprompter",
-			amount: 29
-		});
-	});
-
-	test("charges quantity times the catalog price for editing add-ons", () => {
-		expect(calculateAddonLineItem(sessionContext, "Essential Edit", 2, false)).toEqual({
-			description: "Rough Cut x2",
-			amount: 200
-		});
-	});
-
-	test("charges only the selected quantity when package add-on is not applied to every session", () => {
-		expect(calculateAddonLineItem(packageContext, "Essential Edit", 2, false)).toEqual({
-			description: "Rough Cut x2",
-			amount: 200
-		});
-	});
-
-	test("multiplies quantity by package size when apply to every session is checked", () => {
-		expect(calculateAddonLineItem(packageContext, "Essential Edit", 2, true)).toEqual({
-			description: "Rough Cut x16 (8 sessions)",
-			amount: 1600
-		});
-	});
-});
 
 describe("buildStripeInvoiceLineItemsFromDrafts", () => {
 	test("builds multiple priced line items from structured selections", () => {
@@ -219,25 +138,6 @@ describe("parseStripeInvoiceLineItemSelection", () => {
 			quantity: "1",
 			applyToEverySession: false
 		});
-	});
-});
-
-describe("duration upgrade and full booking price", () => {
-	test("one-hour checkout plus a two-hour upgrade invoice equals the two-hour booking total", () => {
-		const paidAtCheckout = getBookingTotal({ duration: "1h", addons: [] });
-
-		const upgradeLineItem = calculateDurationUpgradeLineItem(
-			{ currentDuration: "1h", sessionCount: 1 },
-			"2h",
-			false
-		);
-
-		const fullTwoHourPrice = getBookingTotal({ duration: "2h", addons: [] });
-
-		expect(paidAtCheckout).toBe(200);
-		expect(upgradeLineItem).toEqual({ description: "Studio hire upgrade: 1h to 2h", amount: 99 });
-		expect(paidAtCheckout + (upgradeLineItem?.amount ?? 0)).toBe(fullTwoHourPrice);
-		expect(fullTwoHourPrice).toBe(299);
 	});
 });
 

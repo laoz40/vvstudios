@@ -7,7 +7,7 @@ import { checkBookingSubmitRateLimit } from "#convex/lib/rateLimits";
 import {
 	bookingAddonQuantitiesValidator,
 	bookingAddonsValidator
-} from "#convex/lib/bookingAddonQuantities";
+} from "#convex/lib/booking/bookingAddonQuantities";
 import {
 	archivePackageService,
 	createPendingPackageService,
@@ -20,7 +20,7 @@ import {
 	type PackageLookupError,
 	type PaidPackageResult,
 	updatePackageService
-} from "#convex/services/packages";
+} from "#convex/services/packages/packages";
 
 const bookingInvoiceLineItemValidator = v.object({
 	amount: v.number(),

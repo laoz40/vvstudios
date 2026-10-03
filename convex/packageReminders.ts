@@ -6,9 +6,9 @@ import {
 	listPackagesPotentiallyDueForExpiryReminderService,
 	markPackageReminderFailedService,
 	markPackageReminderSentService
-} from "#convex/services/packageReminders";
+} from "#convex/services/packages/packageReminders";
 
-export { sendDuePackageReminders } from "#convex/services/packageReminders";
+export { sendDuePackageReminders } from "#convex/services/packages/packageReminders";
 
 export const listPackagesPotentiallyDueForExpiryReminder = internalQuery({
 	args: { expiresAfter: v.number(), expiresBefore: v.number(), limit: v.optional(v.number()) },

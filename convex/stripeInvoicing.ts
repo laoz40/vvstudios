@@ -3,11 +3,11 @@
 import { v } from "convex/values";
 import { tupleErr, tupleOk } from "#/lib/result";
 import { action } from "#convex/_generated/server";
-import { getStripeInvoiceBillingUrlsService } from "#convex/services/stripeInvoiceBillingUrls";
+import { getStripeInvoiceBillingUrlsService } from "#convex/services/stripe/stripeInvoiceBillingUrls";
 import {
 	sendBookingStripeInvoiceService,
 	sendPackageStripeInvoiceService
-} from "#convex/services/stripeInvoicing";
+} from "#convex/services/stripe/stripeInvoicing";
 
 const stripeInvoiceLineItemValidator = v.object({ description: v.string(), amount: v.number() });
 

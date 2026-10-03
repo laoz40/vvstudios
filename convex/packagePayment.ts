@@ -6,12 +6,12 @@ import { tupleErr, tupleOk } from "#/lib/result";
 import {
 	bookingAddonQuantitiesValidator,
 	bookingAddonsValidator
-} from "#convex/lib/bookingAddonQuantities";
+} from "#convex/lib/booking/bookingAddonQuantities";
 import {
 	closeEmbeddedPackageCheckoutSessionService,
 	createPackageCheckoutSessionService
-} from "#convex/services/packageCheckoutActions";
-import { resendPackageEmailService } from "#convex/services/packagePayment";
+} from "#convex/services/packages/packageCheckoutActions";
+import { resendPackageEmailService } from "#convex/services/packages/packagePayment";
 
 export const createPackageCheckoutSession = action({
 	args: {

@@ -6,17 +6,12 @@ import {
 	type BookingAddonQuantities
 } from "#studio/features/booking-form/lib/booking-form-model";
 import {
-	ADDON_PRICES,
-	BOOKING_INVOICE_CURRENCY,
-	DURATION_PRICES
-} from "#studio/features/booking-form/lib/booking-pricing";
+	buildAddonPricedLine,
+	getSessionPriceAmounts
+} from "#studio/features/booking-form/lib/billable-line-items";
+import { BOOKING_INVOICE_CURRENCY } from "#studio/features/booking-form/lib/booking-pricing";
 import { BOOKING_DEPOSIT_AMOUNT } from "#studio/features/booking-invoice/lib/constants";
-import { sumMoney } from "#studio/features/booking-invoice/lib/money";
 import type { BookingInvoiceMoneyAmounts } from "#studio/features/booking-invoice/lib/types";
-
-function isBookingDuration(value: string): value is keyof typeof DURATION_PRICES {
-	return value in DURATION_PRICES;
-}
 
 export function getAddonQuantity(addon: BookingAddon, quantities: BookingAddonQuantities = {}) {
 	// Non-editing add-ons are one-time charges. Quantity-tracked add-ons are charged
@@ -29,8 +24,9 @@ export function getAddonQuantity(addon: BookingAddon, quantities: BookingAddonQu
 }
 
 export function getAddonAmount(addon: BookingAddon, quantities: BookingAddonQuantities = {}) {
-	// Add-on total is unit price multiplied by the quantity rules above.
-	return ADDON_PRICES[addon] * getAddonQuantity(addon, quantities);
+	const pricedLine = buildAddonPricedLine(addon, getAddonQuantity(addon, quantities));
+
+	return pricedLine?.amount ?? 0;
 }
 
 export type CalculateBookingInvoiceAmountsInput = {
@@ -45,12 +41,15 @@ export function calculateBookingInvoiceAmounts({
 	includeDepositLineItem = true,
 	...quantityValues
 }: CalculateBookingInvoiceAmountsInput): BookingInvoiceMoneyAmounts {
-	const baseAmount =
-		includeBaseAmount && isBookingDuration(duration) ? DURATION_PRICES[duration] : 0;
-
 	const addonQuantities = pickBookingAddonQuantities(quantityValues);
-	const addonsAmount = sumMoney(addons.map((addon) => getAddonAmount(addon, addonQuantities)));
-	const subtotalAmount = baseAmount + addonsAmount;
+
+	const sessionPriceAmounts = getSessionPriceAmounts({
+		duration: includeBaseAmount ? duration : "",
+		addons,
+		addonQuantity: (addon) => getAddonQuantity(addon, addonQuantities)
+	});
+
+	const { baseAmount, addonsAmount, subtotalAmount } = sessionPriceAmounts;
 	const depositAmount = includeDepositLineItem ? BOOKING_DEPOSIT_AMOUNT : 0;
 	const totalDueAmount = Math.max(subtotalAmount - depositAmount, 0);
 

@@ -8,7 +8,7 @@
  *    Parses field:value admin queries or unprefixed blob text.
  */
 import { describe, expect, test } from "vitest";
-import { parseAdminSearchQuery } from "#convex/lib/adminSearchQuery";
+import { parseAdminSearchQuery } from "#convex/lib/adminSearch/adminSearchQuery";
 import {
 	instagramHandleMatchesQuery,
 	normalizeAbn,
