@@ -9,7 +9,7 @@ import { updateSessionTimingWithGoogleCalendar } from "#convex/lib/sessions/sess
 import { validateSessionTimingEdit } from "#convex/lib/sessions/sessionAdminEdit";
 import type { SessionAvailabilitySettings } from "#convex/lib/sessions/sessionCalendarTime";
 import { fromConvexTuple } from "#convex/lib/result";
-import type { SaveClientSessionRescheduleArgs } from "#convex/services/sessionScheduling";
+import type { SaveClientSessionRescheduleArgs } from "#convex/lib/sessions/sessionSchedulingArgs";
 import { pickBookingAddonQuantities } from "#studio/features/booking-form/lib/booking-form-model";
 
 export type RescheduleSessionArgs = { date: string; time: string; token: string };

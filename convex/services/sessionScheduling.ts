@@ -5,8 +5,7 @@ import { env } from "#convex/env";
 import { scheduleDriveSetup } from "#convex/lib/drive/driveScheduling";
 import {
 	buildAdminSessionUpdatePatch,
-	type AdminSessionTimingPatch,
-	type AdminSessionUpdateArgs
+	type AdminSessionTimingPatch
 } from "#convex/lib/sessions/sessionAdminEdit";
 import { getSessionFromDb } from "#convex/lib/sessions/sessionLookup";
 import {
@@ -19,9 +18,14 @@ import {
 	type SessionReservation
 } from "#convex/lib/sessions/sessionReservations";
 import { sessionConsumesPackageCapacity } from "#convex/lib/packages/packageScheduling";
-import type { BookingAddon } from "#studio/features/booking-form/lib/booking-form-model";
 import { okOrThrow } from "#convex/lib/result";
+import type {
+	SaveAdminSessionUpdateArgs,
+	SaveClientSessionRescheduleArgs
+} from "#convex/lib/sessions/sessionSchedulingArgs";
 import { searchBlobPatchForBooking } from "#convex/lib/adminSearch/adminSearchBlob";
+
+export type { SaveAdminSessionUpdateArgs, SaveClientSessionRescheduleArgs } from "#convex/lib/sessions/sessionSchedulingArgs";
 
 type AdminSessionDatabasePatch = AdminSessionTimingPatch & {
 	googleCalendarId?: string;
@@ -32,28 +36,6 @@ type AdminSessionDatabasePatch = AdminSessionTimingPatch & {
 	reservationCreatedAt?: undefined;
 	reservationSessionStartAt?: undefined;
 	reservationDuration?: undefined;
-};
-
-export type SaveAdminSessionUpdateArgs = AdminSessionUpdateArgs & {
-	googleCalendarId?: string;
-	googleEventId?: string;
-	confirmBooking?: boolean;
-	reservation?: SessionReservation;
-};
-
-export type SaveClientSessionRescheduleArgs = {
-	bookingId: Id<"bookings">;
-	date: string;
-	time: string;
-	service?: string;
-	addons?: BookingAddon[];
-	notes?: string;
-	sessionStartAt: number;
-	confirmBooking?: boolean;
-	googleCalendarId?: string;
-	googleEventId?: string;
-	packageId?: Id<"packages">;
-	reservation: SessionReservation;
 };
 
 export function saveAdminSessionUpdateService(ctx: MutationCtx, args: SaveAdminSessionUpdateArgs) {

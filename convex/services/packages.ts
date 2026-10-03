@@ -45,14 +45,8 @@ type MarkPackageReceiptEmailAttemptArgs = PackageIdArgs & {
 	failureCode?: string;
 };
 
-export type PackageLookupError = { reason: "PACKAGE_NOT_FOUND" };
-
-export type PaidPackageResult = {
-	expiresAt: number;
-	paidAt: number;
-	packageRecord: Doc<"packages">;
-	token: string;
-};
+export type { PackageLookupError } from "#convex/lib/packages/packageLookup";
+export type { PaidPackageResult } from "#convex/lib/packages/packagePayment";
 
 export function createPendingPackageService(ctx: MutationCtx, args: CreatePendingPackageArgs) {
 	const createdAt = Date.now();

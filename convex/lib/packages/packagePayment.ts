@@ -2,13 +2,20 @@ import { errAsync, ResultAsync } from "neverthrow";
 import { internal } from "#convex/_generated/api";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { ActionCtx } from "#convex/_generated/server";
-import type { PackageLookupError, PaidPackageResult } from "#convex/services/packages";
+import type { PackageLookupError } from "#convex/lib/packages/packageLookup";
 import { calculatePackageAmounts } from "#studio/features/booking-form/lib/booking-pricing";
 import { createPackageInvoiceLineItemSnapshot } from "#studio/features/booking-invoice/lib/build-booking-invoice-data";
 import type { PackageInvoiceInput } from "#studio/features/booking-invoice/lib/booking-artifacts";
 import { sendPackageReceiptEmailsForPackage } from "#convex/lib/booking/bookingDocumentEmails";
 import type { ParsedPackageRequest } from "#convex/lib/packages/packageUpdates";
 import { fromConvexTuple, okOrThrow } from "#convex/lib/result";
+
+export type PaidPackageResult = {
+	expiresAt: number;
+	paidAt: number;
+	packageRecord: Doc<"packages">;
+	token: string;
+};
 
 type PackageScheduleEmailResult = ResultAsync<
 	null,

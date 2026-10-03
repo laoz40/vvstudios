@@ -5,6 +5,8 @@ import type { ActionCtx, MutationCtx, QueryCtx } from "#convex/_generated/server
 import { okOrThrow } from "#convex/lib/result";
 import { hashRescheduleToken } from "#convex/lib/sessions/sessionRescheduleLinks";
 
+export type PackageLookupError = { reason: "PACKAGE_NOT_FOUND" };
+
 export type ValidPackageByTokenError =
 	| { reason: "PACKAGE_LINK_INVALID" }
 	| { reason: "PACKAGE_LINK_EXPIRED" }

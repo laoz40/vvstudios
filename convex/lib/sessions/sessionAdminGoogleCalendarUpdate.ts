@@ -9,7 +9,7 @@ import {
 	mapCalendarErrorCode
 } from "#convex/lib/googleCalendar/googleCalendarErrors";
 import { fromConvexTuple, okOrThrow, tryPromise } from "#convex/lib/result";
-import type { SaveAdminSessionUpdateArgs } from "#convex/services/sessionScheduling";
+import type { SaveAdminSessionUpdateArgs } from "#convex/lib/sessions/sessionSchedulingArgs";
 import { pickBookingAddonQuantities } from "#studio/features/booking-form/lib/booking-form-model";
 import {
 	buildSessionCalendarEventPayload,
