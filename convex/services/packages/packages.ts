@@ -1,6 +1,6 @@
 import type { PaginationOptions } from "convex/server";
 import { err, ok } from "neverthrow";
-import type { Doc, Id } from "#convex/_generated/dataModel";
+import type { Id } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
 import { setPackageArchived } from "#convex/lib/archiveState";
 import { requirePermission } from "#convex/lib/auth";

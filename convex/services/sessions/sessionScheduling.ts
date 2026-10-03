@@ -14,8 +14,7 @@ import {
 } from "#convex/lib/sessions/sessionSavePatch";
 import {
 	clearedSessionReservationPatch,
-	sessionHasReservation,
-	type SessionReservation
+	sessionHasReservation
 } from "#convex/lib/sessions/sessionReservations";
 import { sessionConsumesPackageCapacity } from "#convex/lib/packages/packageScheduling";
 import { okOrThrow } from "#convex/lib/result";
