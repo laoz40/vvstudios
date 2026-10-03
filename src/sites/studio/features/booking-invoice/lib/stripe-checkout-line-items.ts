@@ -1,32 +1,43 @@
 import { err, ok, type Result } from "neverthrow";
 import {
-	getCustomerAddonDisplayLabel,
 	pickBookingAddonQuantities,
 	type BookingAddon,
 	type BookingAddonQuantities
 } from "#studio/features/booking-form/lib/booking-form-model";
 import {
-	ADDON_PRICES,
+	isBookingDuration,
+	buildCatalogAddonLine,
+	buildCatalogStudioHireLine
+} from "#studio/features/booking-form/lib/billable-line-items";
+import {
 	BOOKING_INVOICE_CURRENCY,
 	calculatePackageAmounts,
-	DURATION_PRICES,
 	getBookingAddonQuantity,
 	type PackageSize
 } from "#studio/features/booking-form/lib/booking-pricing";
-
-type BookingDuration = keyof typeof DURATION_PRICES;
 
 export type SessionCheckoutLineItem = {
 	quantity: number;
 	price_data: { currency: string; unit_amount: number; product_data: { name: string } };
 };
 
-function isBookingDuration(value: string): value is BookingDuration {
-	return value in DURATION_PRICES;
-}
-
 function audToStripeUnitAmount(amount: number) {
 	return Math.round(amount * 100);
+}
+
+function toSessionCheckoutLineItem(catalogLine: {
+	description: string;
+	quantity: number;
+	unitAmount: number;
+}): SessionCheckoutLineItem {
+	return {
+		quantity: catalogLine.quantity,
+		price_data: {
+			currency: BOOKING_INVOICE_CURRENCY.toLowerCase(),
+			unit_amount: audToStripeUnitAmount(catalogLine.unitAmount),
+			product_data: { name: catalogLine.description }
+		}
+	};
 }
 
 export type BuildSessionCheckoutLineItemsInput = {
@@ -46,14 +57,7 @@ export function buildSessionCheckoutLineItems(
 	const addonQuantities = pickBookingAddonQuantities(input);
 
 	const lineItems: SessionCheckoutLineItem[] = [
-		{
-			quantity: 1,
-			price_data: {
-				currency: BOOKING_INVOICE_CURRENCY.toLowerCase(),
-				unit_amount: audToStripeUnitAmount(DURATION_PRICES[input.duration]),
-				product_data: { name: `Studio Hire (${input.duration})` }
-			}
-		}
+		toSessionCheckoutLineItem(buildCatalogStudioHireLine(input.duration, 1))
 	];
 
 	for (const addon of input.addons) {
@@ -63,14 +67,13 @@ export function buildSessionCheckoutLineItems(
 			continue;
 		}
 
-		lineItems.push({
-			quantity,
-			price_data: {
-				currency: BOOKING_INVOICE_CURRENCY.toLowerCase(),
-				unit_amount: audToStripeUnitAmount(ADDON_PRICES[addon]),
-				product_data: { name: getCustomerAddonDisplayLabel(addon) }
-			}
-		});
+		const catalogLine = buildCatalogAddonLine(addon, quantity);
+
+		if (catalogLine === null) {
+			continue;
+		}
+
+		lineItems.push(toSessionCheckoutLineItem(catalogLine));
 	}
 
 	return ok(lineItems);
@@ -111,17 +114,10 @@ export function buildPackageCheckoutLineItems(
 		...addonQuantities
 	});
 
-	const currency = BOOKING_INVOICE_CURRENCY.toLowerCase();
-
 	const lineItems: SessionCheckoutLineItem[] = [
-		{
-			quantity: packageFromDb.packageSize,
-			price_data: {
-				currency,
-				unit_amount: audToStripeUnitAmount(DURATION_PRICES[packageFromDb.duration]),
-				product_data: { name: `Studio Hire (${packageFromDb.duration})` }
-			}
-		}
+		toSessionCheckoutLineItem(
+			buildCatalogStudioHireLine(packageFromDb.duration, packageFromDb.packageSize)
+		)
 	];
 
 	for (const addon of packageFromDb.addons) {
@@ -131,14 +127,16 @@ export function buildPackageCheckoutLineItems(
 			continue;
 		}
 
-		lineItems.push({
-			quantity: packageFromDb.packageSize * quantityPerSession,
-			price_data: {
-				currency,
-				unit_amount: audToStripeUnitAmount(ADDON_PRICES[addon]),
-				product_data: { name: getCustomerAddonDisplayLabel(addon) }
-			}
-		});
+		const catalogLine = buildCatalogAddonLine(
+			addon,
+			packageFromDb.packageSize * quantityPerSession
+		);
+
+		if (catalogLine === null) {
+			continue;
+		}
+
+		lineItems.push(toSessionCheckoutLineItem(catalogLine));
 	}
 
 	return ok({

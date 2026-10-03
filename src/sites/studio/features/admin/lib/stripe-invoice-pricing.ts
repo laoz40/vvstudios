@@ -9,10 +9,12 @@ import {
 	type BookingAddon
 } from "#studio/features/booking-form/lib/booking-form-model";
 import {
-	ADDON_PRICES,
-	DURATION_PRICES,
-	type PackageSize
-} from "#studio/features/booking-form/lib/booking-pricing";
+	getAvailableDurationUpgradeOptions,
+	buildAddonBillableLine,
+	buildDurationUpgradeBillableLine,
+	type BillableSessionScope
+} from "#studio/features/booking-form/lib/billable-line-items";
+import { ADDON_PRICES, type PackageSize } from "#studio/features/booking-form/lib/booking-pricing";
 import type { ParsedStripeInvoiceLineItem } from "#studio/features/admin/lib/stripe-invoice-line-items";
 
 const DURATION_UPGRADE_SELECTION_PREFIX = "duration_upgrade:";
@@ -23,10 +25,7 @@ export type StripeInvoiceLineItemOption = { value: string; label: string };
 
 type BookingDuration = (typeof DURATION_OPTIONS)[number];
 
-export type StripeInvoiceContext = {
-	currentDuration: BookingDuration;
-	sessionCount: 1 | PackageSize;
-};
+export type StripeInvoiceContext = BillableSessionScope & { currentDuration: BookingDuration };
 
 export type StripeInvoiceLineItemDraft = {
 	id: string;
@@ -61,61 +60,23 @@ export function createStripeInvoiceLineItemDraft(): StripeInvoiceLineItemDraft {
 	};
 }
 
-function getDurationIndex(duration: BookingDuration) {
-	return DURATION_OPTIONS.indexOf(duration);
-}
-
-export function getAvailableDurationUpgradeOptions(currentDuration: BookingDuration) {
-	const currentIndex = getDurationIndex(currentDuration);
-
-	return DURATION_OPTIONS.filter((_duration, index) => index > currentIndex);
-}
+export { getAvailableDurationUpgradeOptions };
 
 export function calculateDurationUpgradeLineItem(
 	context: StripeInvoiceContext,
 	newDuration: BookingDuration,
 	applyToEverySession: boolean
 ): ParsedStripeInvoiceLineItem | null {
-	const currentIndex = getDurationIndex(context.currentDuration);
-	const newIndex = getDurationIndex(newDuration);
-
-	if (newIndex <= currentIndex) {
-		return null;
-	}
-
-	const perSessionAmount = DURATION_PRICES[newDuration] - DURATION_PRICES[context.currentDuration];
-	const { sessionCount } = context;
-	const appliedToEverySession = sessionCount > 1 && applyToEverySession;
-	const billableSessionCount = appliedToEverySession ? sessionCount : 1;
-	const amount = perSessionAmount * billableSessionCount;
-
-	const description = appliedToEverySession
-		? `Studio hire upgrade (${sessionCount} sessions): ${context.currentDuration} to ${newDuration}`
-		: `Studio hire upgrade: ${context.currentDuration} to ${newDuration}`;
-
-	return { description, amount };
+	return buildDurationUpgradeBillableLine(
+		context,
+		context.currentDuration,
+		newDuration,
+		applyToEverySession
+	);
 }
 
 export function getApplyToAllSessionsLabel(sessionCount: number) {
 	return `Apply to all ${sessionCount} sessions`;
-}
-
-function formatAddonDescription(
-	addon: BookingAddon,
-	totalQuantity: number,
-	options: { appliedToEverySession: boolean; sessionCount: number }
-) {
-	const label = getCustomerAddonDisplayLabel(addon);
-
-	if (totalQuantity <= 1) {
-		return label;
-	}
-
-	if (options.appliedToEverySession) {
-		return `${label} x${totalQuantity} (${options.sessionCount} sessions)`;
-	}
-
-	return `${label} x${totalQuantity}`;
 }
 
 export function calculateAddonLineItem(
@@ -124,22 +85,7 @@ export function calculateAddonLineItem(
 	quantity: number,
 	applyToEverySession: boolean
 ): ParsedStripeInvoiceLineItem | null {
-	if (!Number.isInteger(quantity) || quantity <= 0) {
-		return null;
-	}
-
-	const { sessionCount } = context;
-	const appliedToEverySession = sessionCount > 1 && applyToEverySession;
-	const billableQuantity = appliedToEverySession ? quantity * sessionCount : quantity;
-	const amount = ADDON_PRICES[addon] * billableQuantity;
-
-	return {
-		description: formatAddonDescription(addon, billableQuantity, {
-			appliedToEverySession,
-			sessionCount
-		}),
-		amount
-	};
+	return buildAddonBillableLine(context, addon, quantity, applyToEverySession);
 }
 
 function isDeliverableCount(value: string): value is (typeof DELIVERABLE_COUNT_OPTIONS)[number] {
