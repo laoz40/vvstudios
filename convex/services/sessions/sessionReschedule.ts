@@ -1,4 +1,4 @@
-import { err, ok, type ResultAsync as NeverthrowResultAsync } from "neverthrow";
+import { err, ok, ResultAsync, type ResultAsync as NeverthrowResultAsync } from "neverthrow";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
 import { okOrThrow } from "#convex/lib/result";
@@ -104,13 +104,14 @@ export function markActiveRescheduleLinksUsedForSessionService(
 	args: { bookingId: Doc<"bookings">["_id"]; now: number }
 ) {
 	return getSessionFromDb(ctx, args.bookingId).andThen(() =>
-		okOrThrow(
+		ResultAsync.fromPromise(
 			markExistingActiveSessionRescheduleLinksUsed({
 				ctx,
 				bookingId: args.bookingId,
 				now: args.now
-			}).then(() => null)
-		)
+			}),
+			() => ({ reason: "RESCHEDULE_LINK_UPDATE_FAILED" as const })
+		).map(() => null)
 	);
 }
 

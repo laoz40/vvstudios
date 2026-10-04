@@ -18,31 +18,23 @@ export function updateBookingSettingsService(
 ) {
 	return requirePermission(ctx, "update:availability")
 		.andThen((identity) => validateBookingSettings(settings).map(() => identity))
-		.andThen((identity) =>
-			okOrThrow(
-				(async () => {
-					const existing = await ctx.db
-						.query("bookingSettings")
-						.withIndex("by_key", (query) => query.eq("key", "main"))
-						.unique();
+		.andThen((identity) => {
+			const value = {
+				...settings,
+				key: "main" as const,
+				updatedAt: Date.now(),
+				updatedBy: identity.email
+			};
 
-					const value = {
-						...settings,
-						key: "main",
-						updatedAt: Date.now(),
-						updatedBy: identity.email
-					};
-
-					if (existing) {
-						await ctx.db.patch("bookingSettings", existing._id, value);
-
-						return null;
-					}
-
-					await ctx.db.insert("bookingSettings", value);
-
-					return null;
-				})()
-			)
-		);
+			return okOrThrow(
+				ctx.db
+					.query("bookingSettings")
+					.withIndex("by_key", (query) => query.eq("key", "main"))
+					.unique()
+			).andThen((existing) =>
+				existing
+					? okOrThrow(ctx.db.patch("bookingSettings", existing._id, value).then(() => null))
+					: okOrThrow(ctx.db.insert("bookingSettings", value).then(() => null))
+			);
+		});
 }
