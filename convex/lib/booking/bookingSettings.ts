@@ -7,14 +7,17 @@ import {
 import { parseScheduleTime, scheduleTimeStringSchema } from "#studio/lib/calendarDate";
 import { okOrThrow } from "#convex/lib/result";
 
+export async function readBookingAvailabilitySettings(ctx: QueryCtx) {
+	const settings = await ctx.db
+		.query("bookingSettings")
+		.withIndex("by_key", (query) => query.eq("key", "main"))
+		.unique();
+
+	return settings ?? DEFAULT_BOOKING_AVAILABILITY_SETTINGS;
+}
+
 export function getBookingAvailabilitySettings(ctx: QueryCtx) {
-	return okOrThrow(
-		ctx.db
-			.query("bookingSettings")
-			.withIndex("by_key", (query) => query.eq("key", "main"))
-			.unique()
-			.then((settings) => settings ?? DEFAULT_BOOKING_AVAILABILITY_SETTINGS)
-	);
+	return okOrThrow(readBookingAvailabilitySettings(ctx));
 }
 
 function getTimeMinutes(value: string) {

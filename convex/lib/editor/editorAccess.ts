@@ -44,10 +44,8 @@ export async function getEditorWorkStatus(
 	return hasAssignedSession ? "assigned" : "unassigned";
 }
 
-export async function buildEditorManagementProjection(
-	ctx: QueryCtx,
-	editor: Doc<"editorProfiles">
-) {
+/** Profile fields for the admin employees table, plus current session workload. */
+async function loadEditorWithWorkStatus(ctx: QueryCtx, editor: Doc<"editorProfiles">) {
 	const workStatus = await getEditorWorkStatus(ctx, editor.tokenIdentifier);
 
 	return {
@@ -60,6 +58,13 @@ export async function buildEditorManagementProjection(
 		totalEdits: editor.totalEdits,
 		workStatus
 	};
+}
+
+export function listEmployeesForManagement(ctx: QueryCtx) {
+	return listEditorProfiles(ctx).andThen((editors) =>
+		// One bounded bookings query per editor; fine at the studio's editor count.
+		okOrThrow(Promise.all(editors.map((editor) => loadEditorWithWorkStatus(ctx, editor))))
+	);
 }
 
 function getEditorProfile(ctx: MutationCtx, tokenIdentifier: string) {

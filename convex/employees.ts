@@ -3,25 +3,16 @@ import { tupleErr, tupleOk } from "#/lib/result";
 import { mutation, query } from "#convex/_generated/server";
 import { requirePermission } from "#convex/lib/auth";
 import {
-	buildEditorManagementProjection,
-	listEditorProfiles,
+	listEmployeesForManagement,
 	updateEditorAccess,
 	updateEditorNotes
 } from "#convex/lib/editor/editorAccess";
-import { okOrThrow } from "#convex/lib/result";
 
 export const listEmployees = query({
 	args: {},
 	handler: (ctx) =>
 		requirePermission(ctx, "update:editor-access")
-			.andThen(() => listEditorProfiles(ctx))
-			.andThen((editors) =>
-				// Deriving workload from sessions creates one bounded query per editor and is
-				// acceptable for the studio's small editor count.
-				okOrThrow(
-					Promise.all(editors.map((editor) => buildEditorManagementProjection(ctx, editor)))
-				)
-			)
+			.andThen(() => listEmployeesForManagement(ctx))
 			.match(tupleOk, tupleErr)
 });
 
