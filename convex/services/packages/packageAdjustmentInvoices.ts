@@ -5,7 +5,7 @@ import type { Result as ConvexResult } from "#/lib/result";
 import { internal } from "#convex/_generated/api";
 import type { Id } from "#convex/_generated/dataModel";
 import type { ActionCtx } from "#convex/_generated/server";
-import { requirePermissionActions } from "#convex/lib/auth";
+import { requirePermissionActions } from "#convex/services/auth";
 import type { PackageAdjustmentInvoiceInput } from "#studio/features/booking-invoice/lib/booking-artifacts";
 import { fromConvexTuple } from "#convex/lib/result";
 import { createAndSendPackageAdjustmentStripeInvoice } from "#convex/lib/stripe/stripeAdjustmentInvoice";

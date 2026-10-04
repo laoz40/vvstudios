@@ -5,7 +5,7 @@ import { api, internal } from "#convex/_generated/api";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import { formatDateValue, getLastBookableDate, startOfToday } from "#studio/lib/bookingdatetime";
 import type { ActionCtx } from "#convex/_generated/server";
-import { requirePermissionActions } from "#convex/lib/auth";
+import { requirePermissionActions } from "#convex/services/auth";
 import {
 	notifyHostOfAdminSessionReschedule,
 	sendBookingRescheduledEmailsForBooking

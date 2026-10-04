@@ -3,7 +3,7 @@ import { err, ok } from "neverthrow";
 import type { Id } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
 import { setPackageArchived } from "#convex/lib/archiveState";
-import { requirePermission } from "#convex/lib/auth";
+import { requirePermission } from "#convex/services/auth";
 import { getPackageFromDb } from "#convex/lib/packages/packageLookup";
 import {
 	createPackageScheduleToken,

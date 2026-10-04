@@ -3,7 +3,8 @@ import { err, errAsync, ok, type ResultAsync } from "neverthrow";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
 import { setBookingArchived } from "#convex/lib/archiveState";
-import { getEditorByToken, requirePermission } from "#convex/lib/auth";
+import { getEditorByToken } from "#convex/lib/auth";
+import { requirePermission } from "#convex/services/auth";
 import {
 	scheduleDeliverablesReviewHostEmail,
 	shouldNotifyHostOfDeliverablesReview

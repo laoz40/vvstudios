@@ -2,7 +2,7 @@
 
 import { err, ok, type ResultAsync } from "neverthrow";
 import type { ActionCtx } from "#convex/_generated/server";
-import { requirePermissionActions } from "#convex/lib/auth";
+import { requirePermissionActions } from "#convex/services/auth";
 import { emailDomainCanReceiveMail } from "#convex/lib/email/emailDomain";
 import { createClerkInvitation, parseInviteEmail } from "#convex/lib/clerkInvitations";
 import { okOrThrow } from "#convex/lib/result";

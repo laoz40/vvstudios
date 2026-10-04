@@ -4,7 +4,7 @@ import { err, ok, type ResultAsync } from "neverthrow";
 import { api, internal } from "#convex/_generated/api";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { ActionCtx } from "#convex/_generated/server";
-import { requirePermissionActions } from "#convex/lib/auth";
+import { requirePermissionActions } from "#convex/services/auth";
 import {
 	createBookingInvoiceArtifactsForBooking,
 	createBookingReceiptArtifactsForBooking,

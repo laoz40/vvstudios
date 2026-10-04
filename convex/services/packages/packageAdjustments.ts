@@ -1,7 +1,7 @@
 import { ok, okAsync } from "neverthrow";
 import type { Id } from "#convex/_generated/dataModel";
 import type { MutationCtx } from "#convex/_generated/server";
-import { requirePermission } from "#convex/lib/auth";
+import { requirePermission } from "#convex/services/auth";
 import {
 	getPackageAdjustmentInvoice,
 	requirePackageAdjustmentPaymentEligibility,
