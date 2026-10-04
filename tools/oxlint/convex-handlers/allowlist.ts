@@ -4,7 +4,6 @@
  * See `README.md`.
  */
 export const ROOT_HANDLER_LIB_IMPORT_ALLOWLIST = new Set([
-	"convex/auth.ts",
 	"convex/bookingConfirmation.ts",
 	"convex/customInvoices.ts",
 	"convex/devSeed.ts",
