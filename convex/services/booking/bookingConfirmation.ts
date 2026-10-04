@@ -3,9 +3,8 @@ import { exhaustiveCheck } from "#/lib/result";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import { internal } from "#convex/_generated/api";
 import type { ActionCtx, MutationCtx } from "#convex/_generated/server";
-import { scheduleDriveSetup } from "#convex/lib/drive/driveScheduling";
-import { fromConvexTuple, okOrThrow } from "#convex/lib/result";
 import { searchBlobPatchForBooking } from "#convex/lib/adminSearch/adminSearchBlob";
+import { fromConvexTuple, okOrThrow } from "#convex/lib/result";
 import {
 	bookingReceiptPaidAt,
 	resolveBookingReceiptNumber
@@ -41,13 +40,6 @@ export type CompleteClaimedSessionSuccess = {
 type CompleteSessionCheckoutSuccess =
 	| CompleteClaimedSessionSuccess
 	| { outcome: "already_confirmed" | "already_claimed" };
-
-type MarkBookingConfirmedArgs = {
-	bookingId: Id<"bookings">;
-	googleEventId?: string;
-	googleCalendarId?: string;
-	reservation: SessionReservation;
-};
 
 type MarkBookingConfirmationFailedArgs = {
 	bookingId: Id<"bookings">;
@@ -139,67 +131,6 @@ export function claimBookingConfirmationService(
 					.then(() => ({ outcome: "claimed", session: buildClaimedBookingSession(session) }))
 			);
 		});
-}
-
-export function markBookingConfirmedService(ctx: MutationCtx, args: MarkBookingConfirmedArgs) {
-	return (
-		getSessionFromDb(ctx, args.bookingId)
-			// Check that this attempt still holds the booking time.
-			.andThen((session) => {
-				if (!sessionHasReservation(session, args.reservation, Date.now())) {
-					return err({ reason: "BOOKING_RESERVATION_MISMATCH" as const });
-				}
-
-				return ok(session);
-			})
-			// Save the confirmed status and Calendar IDs while clearing the temporary time-slot reservation.
-			.andThen((session) => {
-				const confirmedAt = Date.now();
-
-				return okOrThrow(
-					(async () => {
-						const confirmedPatch = {
-							status: "confirmed" as const,
-							googleEventId: args.googleEventId,
-							googleCalendarId: args.googleCalendarId,
-							bookingConfirmedAt: confirmedAt,
-							bookingFailureCode: undefined,
-							...clearedSessionReservationPatch
-						};
-
-						if (session.packageId !== undefined || session.receiptNumber) {
-							await ctx.db.patch("bookings", args.bookingId, confirmedPatch);
-
-							return;
-						}
-
-						const receiptNumber = resolveBookingReceiptNumber(
-							session,
-							bookingReceiptPaidAt(session, confirmedAt)
-						);
-
-						const searchBlobPatch = await searchBlobPatchForBooking(ctx, session, {
-							receiptNumber
-						});
-
-						await ctx.db.patch("bookings", args.bookingId, {
-							...confirmedPatch,
-							receiptNumber,
-							...searchBlobPatch
-						});
-					})()
-				).andThen(() =>
-					okOrThrow(
-						scheduleDriveSetup(ctx, {
-							bookingId: session._id,
-							sessionStartAt: session.sessionStartAt,
-							duration: session.duration,
-							packageId: session.packageId
-						})
-					).andThen((scheduled) => scheduled)
-				);
-			})
-	);
 }
 
 export function ensureStandaloneBookingReceiptNumberService(

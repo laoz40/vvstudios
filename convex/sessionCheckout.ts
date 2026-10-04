@@ -6,8 +6,14 @@ import {
 	bookingAddonQuantitiesValidator,
 	bookingAddonsValidator
 } from "#convex/lib/booking/bookingAddonQuantities";
+import { getBookingAvailabilitySettings } from "#convex/lib/booking/bookingSettings";
+import { env } from "#convex/env";
+import { getSessionStartAt } from "#convex/lib/sessions/sessionAdminEdit";
 import {
-	createPendingSessionService,
+	insertPendingCheckoutBooking,
+	validateCheckoutSessionAvailability
+} from "#convex/lib/sessions/pendingCheckoutSession";
+import {
 	deletePendingSessionService,
 	markSessionExpiredByStripeSessionIdService
 } from "#convex/services/booking/sessionCheckout";
@@ -33,7 +39,12 @@ export const createPendingSession = internalMutation({
 		...bookingAddonQuantitiesValidator,
 		notes: v.optional(v.string())
 	},
-	handler: (ctx, args) => createPendingSessionService(ctx, args).match(tupleOk, tupleErr)
+	handler: (ctx, args) =>
+		getBookingAvailabilitySettings(ctx)
+			.andThen((settings) => validateCheckoutSessionAvailability(settings, args))
+			.andThen(() => getSessionStartAt(args.date, args.time, env.GOOGLE_CALENDAR_TIMEZONE))
+			.andThen((sessionStartAt) => insertPendingCheckoutBooking(ctx, args, sessionStartAt))
+			.match(tupleOk, tupleErr)
 });
 
 export const getSessionByStripeSessionId = internalQuery({

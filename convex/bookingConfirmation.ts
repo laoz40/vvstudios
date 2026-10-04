@@ -3,10 +3,15 @@ import { tupleErr, tupleOk } from "#/lib/result";
 import { internalMutation } from "#convex/_generated/server";
 import { sessionReservationValidator } from "#convex/lib/sessions/sessionReservations";
 import {
+	persistConfirmedBooking,
+	requireBookingConfirmationReservation,
+	scheduleDriveSetupForConfirmedBooking
+} from "#convex/lib/booking/bookingConfirmationSave";
+import { getSessionFromDb } from "#convex/lib/sessions/sessionLookup";
+import {
 	claimBookingConfirmationService,
 	ensureStandaloneBookingReceiptNumberService,
 	markBookingConfirmationFailedService,
-	markBookingConfirmedService,
 	markSessionInvoiceEmailFailedService,
 	markSessionInvoiceEmailRetrySentService,
 	recordBookingReceiptNumberService
@@ -29,7 +34,14 @@ export const markBookingConfirmed = internalMutation({
 		googleCalendarId: v.optional(v.string()),
 		reservation: sessionReservationValidator
 	},
-	handler: (ctx, args) => markBookingConfirmedService(ctx, args).match(tupleOk, tupleErr)
+	handler: (ctx, args) =>
+		getSessionFromDb(ctx, args.bookingId)
+			.andThen((session) =>
+				requireBookingConfirmationReservation(session, args.reservation, Date.now())
+			)
+			.andThen((session) => persistConfirmedBooking(ctx, args, session))
+			.andThen((session) => scheduleDriveSetupForConfirmedBooking(ctx, session))
+			.match(tupleOk, tupleErr)
 });
 
 export const ensureStandaloneBookingReceiptNumber = internalMutation({

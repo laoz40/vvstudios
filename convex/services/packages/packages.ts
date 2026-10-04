@@ -7,7 +7,6 @@ import { requirePermission } from "#convex/lib/auth";
 import { getPackageFromDb } from "#convex/lib/packages/packageLookup";
 import {
 	createPackageScheduleToken,
-	createPackageSchedulingDetails,
 	getCapacityConsumingPackageSessions,
 	validatePackageScheduleTokenRefresh
 } from "#convex/lib/packages/packageScheduling";
@@ -20,7 +19,6 @@ import {
 	validatePackageUpdate
 } from "#convex/lib/packages/packageUpdates";
 import { listAdminPackages, type AdminPackagesView } from "#convex/lib/listAdminPackages";
-import { resolvePackageReceiptNumber } from "#studio/features/booking-invoice/lib/receipt-number";
 import {
 	searchBlobPatchForBooking,
 	searchBlobPatchForPackage,
@@ -34,8 +32,6 @@ type SavePackageInstagramHandleArgs = { packageId: Id<"packages">; instagramHand
 type ArchivePackageArgs = { packageId: Id<"packages">; archived: boolean };
 
 type PackageIdArgs = { packageId: Id<"packages"> };
-
-type MarkPackagePaidArgs = PackageIdArgs & { paidAt: number };
 
 type MarkPackageScheduleEmailAttemptArgs = PackageIdArgs & { status: "sent" | "failed" };
 
@@ -174,88 +170,6 @@ export function archivePackageService(ctx: MutationCtx, args: ArchivePackageArgs
 		.andThen(() =>
 			okOrThrow(setPackageArchived(ctx, args.packageId, args.archived).then(() => null))
 		);
-}
-
-export function markPackagePaidAndCreateScheduleTokenService(
-	ctx: MutationCtx,
-	args: MarkPackagePaidArgs,
-	scheduleExpiry: (expiresAt: number) => Promise<Id<"_scheduled_functions">>
-) {
-	return (
-		getPackageFromDb(ctx, args.packageId)
-			// Reject packages that have already entered their paid lifecycle.
-			.andThen((packageFromDb) => {
-				if (packageFromDb.status === "paid" || packageFromDb.status === "schedule_email_failed") {
-					return err({ reason: "PACKAGE_ALREADY_PAID" as const });
-				}
-
-				return ok(packageFromDb);
-			})
-			// Generate the scheduling token and calculate the package expiry.
-			.andThen((packageFromDb) =>
-				okOrThrow(createPackageSchedulingDetails(packageFromDb, args.paidAt))
-			)
-			// Persist the package's paid scheduling lifecycle.
-			.andThen((packageSchedulingDetails) =>
-				okOrThrow(
-					(async () => {
-						const packageFromDb = packageSchedulingDetails.packageFromDb;
-
-						const paidLifecyclePatch = {
-							expiresAt: packageSchedulingDetails.expiresAt,
-							paidAt: args.paidAt,
-							packageReminderState: undefined,
-							scheduleLinkStatus: "active" as const,
-							scheduleTokenHash: packageSchedulingDetails.scheduleTokenHash,
-							status: "schedule_email_failed" as const
-						};
-
-						if (packageFromDb.receiptNumber) {
-							await ctx.db.patch("packages", args.packageId, paidLifecyclePatch);
-
-							return packageSchedulingDetails;
-						}
-
-						const receiptNumber = resolvePackageReceiptNumber(packageFromDb, args.paidAt);
-
-						const searchBlobPatch = searchBlobPatchForPackage(packageFromDb, { receiptNumber });
-
-						await ctx.db.patch("packages", args.packageId, {
-							...paidLifecyclePatch,
-							receiptNumber,
-							...searchBlobPatch
-						});
-
-						return packageSchedulingDetails;
-					})()
-				)
-			)
-			// Schedule the package-expiry adjustment check.
-			.andThen((packageSchedulingDetails) =>
-				okOrThrow(
-					scheduleExpiry(packageSchedulingDetails.expiresAt).then(() => packageSchedulingDetails)
-				)
-			)
-			.map((packageSchedulingDetails) => {
-				const packageFromDb = packageSchedulingDetails.packageFromDb;
-				const receiptNumber = resolvePackageReceiptNumber(packageFromDb, args.paidAt);
-
-				return {
-					expiresAt: packageSchedulingDetails.expiresAt,
-					paidAt: args.paidAt,
-					packageRecord: {
-						...packageFromDb,
-						expiresAt: packageSchedulingDetails.expiresAt,
-						paidAt: args.paidAt,
-						receiptNumber,
-						scheduleLinkStatus: "active" as const,
-						scheduleTokenHash: packageSchedulingDetails.scheduleTokenHash,
-						status: "schedule_email_failed" as const
-					},
-					token: packageSchedulingDetails.token
-				};
-			})
-	);
 }
 
 export function refreshPackageScheduleTokenService(ctx: MutationCtx, args: PackageIdArgs) {

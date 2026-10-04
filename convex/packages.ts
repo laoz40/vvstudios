@@ -1,24 +1,30 @@
 import { paginationOptsValidator } from "convex/server";
 import { ConvexError, v } from "convex/values";
 import { tupleErr, tupleOk, type Result } from "#/lib/result";
-import { internal } from "#convex/_generated/api";
 import { internalMutation, internalQuery, mutation, query } from "#convex/_generated/server";
 import { checkBookingSubmitRateLimit } from "#convex/lib/rateLimits";
 import {
 	bookingAddonQuantitiesValidator,
 	bookingAddonsValidator
 } from "#convex/lib/booking/bookingAddonQuantities";
+import { getPackageFromDb, type PackageLookupError } from "#convex/lib/packages/packageLookup";
+import type { PaidPackageResult } from "#convex/lib/packages/packagePayment";
+import {
+	buildPaidPackageResult,
+	persistPackagePaidLifecycle,
+	rejectAlreadyPaidPackage,
+	schedulePackageAdjustmentAtExpiry
+} from "#convex/lib/packages/packagePaidLifecycle";
+import { createPackageSchedulingDetails } from "#convex/lib/packages/packageScheduling";
+import { okOrThrow } from "#convex/lib/result";
 import {
 	archivePackageService,
 	createPendingPackageService,
 	listPackagesService,
-	markPackagePaidAndCreateScheduleTokenService,
 	markPackageReceiptEmailAttemptService,
 	markPackageScheduleEmailAttemptService,
 	refreshPackageScheduleTokenService,
 	savePackageInstagramHandleService,
-	type PackageLookupError,
-	type PaidPackageResult,
 	updatePackageService
 } from "#convex/services/packages/packages";
 
@@ -103,12 +109,25 @@ export const markPackagePaidAndCreateScheduleToken = internalMutation({
 		ctx,
 		args
 	): Promise<Result<PaidPackageResult, PackageLookupError | { reason: "PACKAGE_ALREADY_PAID" }>> =>
-		markPackagePaidAndCreateScheduleTokenService(ctx, args, (expiresAt) =>
-			ctx.scheduler.runAt(expiresAt, internal.packageScheduling.processPackageAdjustmentAtExpiry, {
-				packageId: args.packageId,
-				expectedExpiresAt: expiresAt
-			})
-		).match(tupleOk, tupleErr)
+		getPackageFromDb(ctx, args.packageId)
+			.andThen(rejectAlreadyPaidPackage)
+			.andThen((packageFromDb) =>
+				okOrThrow(createPackageSchedulingDetails(packageFromDb, args.paidAt))
+			)
+			.andThen((packageSchedulingDetails) =>
+				persistPackagePaidLifecycle(ctx, args.packageId, args.paidAt, packageSchedulingDetails)
+			)
+			.andThen((packageSchedulingDetails) =>
+				schedulePackageAdjustmentAtExpiry(
+					ctx,
+					args.packageId,
+					packageSchedulingDetails.expiresAt
+				).map(() => packageSchedulingDetails)
+			)
+			.map((packageSchedulingDetails) =>
+				buildPaidPackageResult(packageSchedulingDetails, args.paidAt)
+			)
+			.match(tupleOk, tupleErr)
 });
 
 export const refreshPackageScheduleToken = internalMutation({
