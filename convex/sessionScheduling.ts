@@ -11,11 +11,11 @@ import {
 	bookingAddonsValidator
 } from "#convex/lib/booking/bookingAddonQuantities";
 import {
-	commitAdminSessionUpdate,
-	commitClientSessionReschedule,
-	finalizeClientSessionReschedule,
-	prepareAdminSessionUpdate,
-	prepareClientSessionReschedule
+	persistAdminSessionUpdate,
+	patchClientSessionReschedule,
+	resolveAdminSessionUpdate,
+	schedulePackageAdjustmentAfterReschedule,
+	validateClientSessionReschedule
 } from "#convex/lib/sessions/sessionSchedulingSave";
 
 // Reserve a target before any Calendar write. The shared helper checks confirmed
@@ -58,8 +58,8 @@ export const saveAdminSessionUpdate = internalMutation({
 		reservation: v.optional(sessionReservationValidator)
 	},
 	handler: (ctx, args) =>
-		prepareAdminSessionUpdate(ctx, args)
-			.andThen((plan) => commitAdminSessionUpdate(ctx, args, plan))
+		resolveAdminSessionUpdate(ctx, args)
+			.andThen((resolved) => persistAdminSessionUpdate(ctx, args, resolved))
 			.match(tupleOk, tupleErr)
 });
 
@@ -79,8 +79,8 @@ export const saveClientSessionReschedule = internalMutation({
 		reservation: sessionReservationValidator
 	},
 	handler: (ctx, args) =>
-		prepareClientSessionReschedule(ctx, args)
-			.andThen((plan) => commitClientSessionReschedule(ctx, args, plan))
-			.andThen(() => finalizeClientSessionReschedule(ctx, args))
+		validateClientSessionReschedule(ctx, args)
+			.andThen((validated) => patchClientSessionReschedule(ctx, args, validated))
+			.andThen(() => schedulePackageAdjustmentAfterReschedule(ctx, args))
 			.match(tupleOk, tupleErr)
 });

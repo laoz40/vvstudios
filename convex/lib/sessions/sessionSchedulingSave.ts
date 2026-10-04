@@ -117,18 +117,20 @@ type AdminSessionDatabasePatch = AdminSessionTimingPatch & {
 	reservationDuration?: undefined;
 };
 
-export type AdminSessionUpdatePlan = {
+/** Loaded booking + computed patch + flags, before any write. */
+export type ResolvedAdminSessionUpdate = {
 	session: Doc<"bookings">;
 	updatePatch: AdminSessionTimingPatch;
 	timingChanged: boolean;
 };
 
-export type ClientSessionReschedulePlan = {
+/** Booking that passed package/reservation checks, before patch. */
+export type ValidatedClientSessionReschedule = {
 	session: Doc<"bookings">;
 	searchOverrides: BookingSearchPatchOverrides;
 };
 
-export function prepareAdminSessionUpdate(ctx: MutationCtx, args: SaveAdminSessionUpdateArgs) {
+export function resolveAdminSessionUpdate(ctx: MutationCtx, args: SaveAdminSessionUpdateArgs) {
 	const now = Date.now();
 
 	return getSessionFromDb(ctx, args.bookingId)
@@ -153,13 +155,13 @@ export function prepareAdminSessionUpdate(ctx: MutationCtx, args: SaveAdminSessi
 		}));
 }
 
-export function commitAdminSessionUpdate(
+export function persistAdminSessionUpdate(
 	ctx: MutationCtx,
 	args: SaveAdminSessionUpdateArgs,
-	plan: AdminSessionUpdatePlan
+	resolved: ResolvedAdminSessionUpdate
 ) {
 	const patch: AdminSessionDatabasePatch = {
-		...plan.updatePatch,
+		...resolved.updatePatch,
 		...buildSessionCalendarConfirmationPatch({
 			confirmBooking: args.confirmBooking,
 			googleCalendarId: args.googleCalendarId,
@@ -171,18 +173,24 @@ export function commitAdminSessionUpdate(
 		Object.assign(patch, clearedSessionReservationPatch);
 	}
 
-	return applySessionPatch(ctx, args.bookingId, plan.session, patch, plan.updatePatch).andThen(() =>
+	return applySessionPatch(
+		ctx,
+		args.bookingId,
+		resolved.session,
+		patch,
+		resolved.updatePatch
+	).andThen(() =>
 		scheduleDriveSetupWhenConfirmed(ctx, {
 			confirmBooking: args.confirmBooking,
 			duration: args.duration,
-			session: plan.session,
-			sessionStartAt: plan.updatePatch.sessionStartAt,
-			timingChanged: plan.timingChanged
+			session: resolved.session,
+			sessionStartAt: resolved.updatePatch.sessionStartAt,
+			timingChanged: resolved.timingChanged
 		})
 	);
 }
 
-export function prepareClientSessionReschedule(
+export function validateClientSessionReschedule(
 	ctx: MutationCtx,
 	args: SaveClientSessionRescheduleArgs
 ) {
@@ -205,12 +213,12 @@ export function prepareClientSessionReschedule(
 		}));
 }
 
-export function commitClientSessionReschedule(
+export function patchClientSessionReschedule(
 	ctx: MutationCtx,
 	args: SaveClientSessionRescheduleArgs,
-	plan: ClientSessionReschedulePlan
+	validated: ValidatedClientSessionReschedule
 ) {
-	const session = plan.session;
+	const session = validated.session;
 
 	return applySessionPatch(
 		ctx,
@@ -226,7 +234,7 @@ export function commitClientSessionReschedule(
 			...buildClientSessionRescheduleOptionalPatch(args),
 			...clearedSessionReservationPatch
 		},
-		plan.searchOverrides
+		validated.searchOverrides
 	).andThen(() =>
 		scheduleDriveSetupWhenConfirmed(ctx, {
 			confirmBooking: args.confirmBooking,
@@ -238,7 +246,7 @@ export function commitClientSessionReschedule(
 	);
 }
 
-export function finalizeClientSessionReschedule(
+export function schedulePackageAdjustmentAfterReschedule(
 	ctx: MutationCtx,
 	args: SaveClientSessionRescheduleArgs
 ) {
