@@ -31,6 +31,12 @@ export function checkGoogleCalendarAvailabilityRateLimit(ctx: ActionCtx, key: st
 	);
 }
 
+export function checkFeedbackSubmitRateLimit(ctx: RateLimitCtx) {
+	return okOrThrow(rateLimiter.limit(ctx, "feedbackSubmitGlobal")).andThen((rateLimitStatus) =>
+		rateLimitStatus.ok ? ok(null) : err({ reason: "FEEDBACK_RATE_LIMITED" as const })
+	);
+}
+
 export function checkBookingSubmitRateLimit(ctx: RateLimitCtx, key: string) {
 	return okOrThrow(rateLimiter.limit(ctx, "bookingSubmitGlobal")).andThen(
 		(globalRateLimitStatus) => {
