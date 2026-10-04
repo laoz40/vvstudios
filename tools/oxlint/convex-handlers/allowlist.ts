@@ -8,7 +8,6 @@ export const ROOT_HANDLER_LIB_IMPORT_ALLOWLIST = new Set([
 	"convex/bookingConfirmation.ts",
 	"convex/customInvoices.ts",
 	"convex/devSeed.ts",
-	"convex/feedback.ts",
 	"convex/googleCalendar.ts",
 	"convex/http.ts",
 	"convex/packageAdjustments.ts",
