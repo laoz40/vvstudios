@@ -13,6 +13,7 @@ import {
 } from "#convex/lib/sessions/sessionArchive";
 import type { StripeInvoiceLineItem } from "#convex/lib/stripe/stripeInvoice";
 import {
+	applyUnarchiveWhenNewStripeInvoice,
 	listStripeInvoicesForBooking,
 	listStripeInvoicesForPackage,
 	markStripeInvoicePaid,
@@ -39,6 +40,20 @@ export function listStripeInvoicesForPackageService(
 	);
 }
 
+function recordStripeInvoiceWithPackageUnarchive(
+	ctx: MutationCtx,
+	packageId: Id<"packages">,
+	record: () => ReturnType<typeof recordPackageStripeInvoice>
+) {
+	return record().andThen((insertResult) =>
+		applyUnarchiveWhenNewStripeInvoice(
+			insertResult,
+			() => okOrThrow(ctx.db.get("packages", packageId)),
+			(packageRecord) => unarchivePackageForNewUnpaidInvoice(ctx, packageRecord)
+		)
+	);
+}
+
 export function recordBookingStripeInvoiceService(
 	ctx: MutationCtx,
 	args: {
@@ -49,19 +64,13 @@ export function recordBookingStripeInvoiceService(
 		createdBy?: string;
 	}
 ) {
-	return recordBookingStripeInvoice(ctx, args).andThen((insertResult) => {
-		if (!insertResult.created) {
-			return okAsync(insertResult);
-		}
-
-		return okOrThrow(ctx.db.get("bookings", args.bookingId)).andThen((booking) => {
-			if (booking === null) {
-				return okAsync(insertResult);
-			}
-
-			return unarchiveSessionForNewUnpaidInvoice(ctx, booking).map(() => insertResult);
-		});
-	});
+	return recordBookingStripeInvoice(ctx, args).andThen((insertResult) =>
+		applyUnarchiveWhenNewStripeInvoice(
+			insertResult,
+			() => okOrThrow(ctx.db.get("bookings", args.bookingId)),
+			(booking) => unarchiveSessionForNewUnpaidInvoice(ctx, booking)
+		)
+	);
 }
 
 export function recordPackageStripeInvoiceService(
@@ -74,19 +83,9 @@ export function recordPackageStripeInvoiceService(
 		createdBy?: string;
 	}
 ) {
-	return recordPackageStripeInvoice(ctx, args).andThen((insertResult) => {
-		if (!insertResult.created) {
-			return okAsync(insertResult);
-		}
-
-		return okOrThrow(ctx.db.get("packages", args.packageId)).andThen((packageRecord) => {
-			if (packageRecord === null) {
-				return okAsync(insertResult);
-			}
-
-			return unarchivePackageForNewUnpaidInvoice(ctx, packageRecord).map(() => insertResult);
-		});
-	});
+	return recordStripeInvoiceWithPackageUnarchive(ctx, args.packageId, () =>
+		recordPackageStripeInvoice(ctx, args)
+	);
 }
 
 export function recordPackageAdjustmentStripeInvoiceService(
@@ -99,19 +98,9 @@ export function recordPackageAdjustmentStripeInvoiceService(
 		totalAmount: number;
 	}
 ) {
-	return recordPackageAdjustmentStripeInvoice(ctx, args).andThen((insertResult) => {
-		if (!insertResult.created) {
-			return okAsync(insertResult);
-		}
-
-		return okOrThrow(ctx.db.get("packages", args.packageId)).andThen((packageRecord) => {
-			if (packageRecord === null) {
-				return okAsync(insertResult);
-			}
-
-			return unarchivePackageForNewUnpaidInvoice(ctx, packageRecord).map(() => insertResult);
-		});
-	});
+	return recordStripeInvoiceWithPackageUnarchive(ctx, args.packageId, () =>
+		recordPackageAdjustmentStripeInvoice(ctx, args)
+	);
 }
 
 export function markStripeInvoicePaidService(

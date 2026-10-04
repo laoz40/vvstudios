@@ -7,7 +7,8 @@ import { PACKAGE_ADJUSTMENT_EMAIL_CLAIM_TIMEOUT_MS } from "#convex/lib/packages/
 import {
 	claimPackageAdjustmentInvoiceEmailService,
 	claimPackageAdjustmentInvoicePaymentService,
-	completePackageAdjustmentInvoiceEmailService,
+	completePackageAdjustmentInvoiceEmailFailedService,
+	completePackageAdjustmentInvoiceEmailSentService,
 	markPackageAdjustmentPaymentStatusService,
 	markStalledPackageAdjustmentInvoiceEmailFailedService
 } from "#convex/services/packages/packageAdjustments";
@@ -46,7 +47,7 @@ export const markPackageAdjustmentInvoiceEmailSent = internalMutation({
 		stripeInvoiceId: v.string()
 	},
 	handler: (ctx, args) =>
-		completePackageAdjustmentInvoiceEmailService(ctx, args, "sent").match(tupleOk, tupleErr)
+		completePackageAdjustmentInvoiceEmailSentService(ctx, args).match(tupleOk, tupleErr)
 });
 
 export const claimPackageAdjustmentInvoicePayment = internalMutation({
@@ -58,7 +59,7 @@ export const claimPackageAdjustmentInvoicePayment = internalMutation({
 export const markPackageAdjustmentInvoiceEmailFailed = internalMutation({
 	args: { adjustmentId: v.id("packageAdjustments"), claimedAt: v.number() },
 	handler: (ctx, args) =>
-		completePackageAdjustmentInvoiceEmailService(ctx, args, "failed").match(tupleOk, tupleErr)
+		completePackageAdjustmentInvoiceEmailFailedService(ctx, args).match(tupleOk, tupleErr)
 });
 
 export const markPackageAdjustmentPaymentStatus = mutation({
