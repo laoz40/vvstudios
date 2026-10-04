@@ -1,5 +1,5 @@
 import { err, ok, ResultAsync } from "neverthrow";
-import type { Result as ConvexResult } from "#/lib/result";
+import { tupleErr, tupleOk, type Result as ConvexResult } from "#/lib/result";
 
 /** Wraps a promise as a ResultAsync while allowing unexpected rejections to escape. */
 export function okOrThrow<T>(promise: Promise<T>) {
@@ -21,6 +21,13 @@ export function fromConvexTuple(promise: Promise<ConvexResult<unknown, { reason:
 	return ResultAsync.fromSafePromise<ConvexResult<unknown, { reason: string }>>(promise).andThen(
 		([error, value]) => (error !== null ? err(error) : ok(value))
 	);
+}
+
+/** Serializes a neverthrow result into the tuple returned to the client. Mirror of `fromConvexTuple`. */
+export function toConvexTuple<T, E extends { reason: string }>(
+	result: ResultAsync<T, E>
+): Promise<ConvexResult<T, E>> {
+	return result.match<ConvexResult<T, E>, ConvexResult<T, E>>(tupleOk, tupleErr);
 }
 
 type ConvexSuccess<R> = R extends readonly [infer Error, infer Success]

@@ -54,7 +54,8 @@ export function GiveFeedbackModal() {
 					toast.error("You’re sending feedback too quickly. Please try again later.");
 					break;
 
-				case "SEND_FAILED":
+				case "EMAIL_REQUEST_FAILED":
+				case "EMAIL_RESPONSE_FAILED":
 					toast.error("We couldn’t send your feedback. Please try again.");
 					break;
 

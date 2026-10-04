@@ -321,8 +321,8 @@ export function sendPackageExpiryReminderEmail({
 	);
 }
 
-export async function sendFeedbackEmailForMessage(message: string) {
-	return await sendEmail({
+export function sendFeedbackEmailForMessage(message: string) {
+	return sendEmail({
 		to: [CONTACT_EMAIL],
 		subject: "New VV Studios feedback",
 		html: [
