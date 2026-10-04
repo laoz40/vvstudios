@@ -94,7 +94,7 @@ function validateTarget(
 	);
 }
 
-export function prepareReschedule(ctx: ActionCtx, args: RescheduleSessionArgs) {
+export function loadRescheduleTargetAndValidate(ctx: ActionCtx, args: RescheduleSessionArgs) {
 	return loadLink(ctx, args).andThen((details) => validateTarget(ctx, args, details));
 }
 
@@ -236,7 +236,7 @@ function saveReschedule(
 		.orElse((error) => clearReservationThenUnlock(ctx, state).andThen(() => err(error)));
 }
 
-export function commitReschedule(
+export function persistRescheduleAfterCalendar(
 	ctx: ActionCtx,
 	args: RescheduleSessionArgs,
 	state: RescheduleState & { timingUpdate: RescheduledSessionTimingUpdate }

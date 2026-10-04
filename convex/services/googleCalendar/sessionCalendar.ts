@@ -34,16 +34,16 @@ import { getBookingSettingsService } from "#convex/services/booking/bookingSetti
 import type { RescheduleLinkLookupError } from "#convex/services/sessions/sessionReschedule";
 import { loadBookingAvailabilitySettings } from "#convex/lib/booking/bookingConfirmationActionBoundaries";
 import {
-	commitReschedule,
 	finishReschedule,
+	loadRescheduleTargetAndValidate,
 	lockAndReserve,
-	prepareReschedule,
+	persistRescheduleAfterCalendar,
 	syncCalendar,
 	type RescheduleSessionArgs,
 	type RescheduleSessionError
 } from "#convex/services/googleCalendar/sessionRescheduleWorkflow";
 import {
-	applyUpdate,
+	persistAdminSessionGoogleUpdate,
 	notifyHostIfNeeded
 } from "#convex/services/googleCalendar/sessionAdminUpdateWorkflow";
 import type {
@@ -227,7 +227,7 @@ export function rescheduleSessionService(
 	{ bookingId: Id<"bookings">; warning?: "RESCHEDULE_EMAIL_SEND_FAILED" },
 	RescheduleSessionError
 > {
-	return prepareReschedule(ctx, args)
+	return loadRescheduleTargetAndValidate(ctx, args)
 		.andThen(({ calendarClient, details, sessionStartAt, settings }) =>
 			lockAndReserve(ctx, details, sessionStartAt, settings).map((state) => ({
 				calendarClient,
@@ -235,7 +235,7 @@ export function rescheduleSessionService(
 			}))
 		)
 		.andThen(({ calendarClient, state }) => syncCalendar(ctx, args, state, calendarClient))
-		.andThen((state) => commitReschedule(ctx, args, state))
+		.andThen((state) => persistRescheduleAfterCalendar(ctx, args, state))
 		.andThen(({ session, settings, timingUpdate }) =>
 			finishReschedule(session, args, timingUpdate, settings)
 		);
@@ -269,7 +269,7 @@ export function updateSessionFromAdminService(
 	return authorizeAdminSessionEdit(ctx, args.bookingId)
 		.andThen((session) => loadAdminSessionEditDeps(ctx).map((deps) => ({ session, ...deps })))
 		.andThen(({ client, session, settings }) =>
-			applyUpdate({ args, session, client, ctx, settings }).andThen((result) =>
+			persistAdminSessionGoogleUpdate({ args, session, client, ctx, settings }).andThen((result) =>
 				notifyHostIfNeeded(ctx, args, session, settings, result)
 			)
 		);

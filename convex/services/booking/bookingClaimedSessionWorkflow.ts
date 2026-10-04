@@ -116,7 +116,7 @@ function completeClaimed(
 						return okAsync(calendar.outcome);
 					}
 
-					return finalizeAfterCalendar(
+					return saveConfirmedClaimedBookingAndInvoice(
 						ctx,
 						session,
 						settings,
@@ -234,7 +234,7 @@ function insertCalendarEvent(
 		);
 }
 
-function finalizeAfterCalendar(
+function saveConfirmedClaimedBookingAndInvoice(
 	ctx: ActionCtx,
 	session: Doc<"bookings">,
 	settings: SessionAvailabilitySettings,
