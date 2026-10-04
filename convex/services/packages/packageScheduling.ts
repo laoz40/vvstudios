@@ -11,7 +11,7 @@ import { schedulePackageAdjustmentWhenSessionsComplete } from "#convex/lib/packa
 import { processPackageAdjustment } from "#convex/lib/packages/packageAdjustments";
 import {
 	checkPackageSessionAvailability,
-	getCapacityConsumingPackageSessionsAsync,
+	getCapacityConsumingPackageSessions,
 	getEditablePackageSession,
 	getPackageSessionForToken,
 	sessionConsumesPackageCapacity,
@@ -79,11 +79,9 @@ export type PackageUnscheduleRequestDetails = {
 export function getPackageByTokenService(ctx: QueryCtx, token: string) {
 	return getValidPackageByToken(ctx, token, Date.now())
 		.andThen((packageRecord) =>
-			getCapacityConsumingPackageSessionsAsync(
-				ctx,
-				packageRecord._id,
-				packageRecord.packageSize
-			).map((sessions) => ({ packageRecord, sessions }))
+			getCapacityConsumingPackageSessions(ctx, packageRecord._id, packageRecord.packageSize).map(
+				(sessions) => ({ packageRecord, sessions })
+			)
 		)
 		.map(({ packageRecord, sessions }) => ({
 			_id: packageRecord._id,
@@ -375,7 +373,7 @@ export function validatePackageSessionRequestService(
 			)
 			// Confirm a package slot remains before parsing the requested start time.
 			.andThen(({ packageRecord, settings }) =>
-				getCapacityConsumingPackageSessionsAsync(
+				getCapacityConsumingPackageSessions(
 					ctx,
 					packageRecord._id,
 					packageRecord.packageSize
@@ -460,11 +458,9 @@ export function saveCreatedPackageSessionService(
 		getValidPackageByToken(ctx, args.token, args.now)
 			// Load the sessions that currently consume this package's capacity.
 			.andThen((packageFromDb) =>
-				getCapacityConsumingPackageSessionsAsync(
-					ctx,
-					packageFromDb._id,
-					packageFromDb.packageSize
-				).map((packageSessions) => ({ packageFromDb, packageSessions }))
+				getCapacityConsumingPackageSessions(ctx, packageFromDb._id, packageFromDb.packageSize).map(
+					(packageSessions) => ({ packageFromDb, packageSessions })
+				)
 			)
 			// Confirm the package has capacity and parse the requested session start.
 			.andThen(({ packageFromDb, packageSessions }) => {

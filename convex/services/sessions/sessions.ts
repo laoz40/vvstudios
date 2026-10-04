@@ -10,7 +10,7 @@ import {
 	shouldNotifyHostOfDeliverablesReview
 } from "#convex/lib/editor/deliverablesReviewNotification";
 import {
-	buildActiveEditorProjectionAsync,
+	buildActiveEditorProjection,
 	listActiveEditorProfiles,
 	updateSessionEditorAssignment
 } from "#convex/lib/editor/editorAssignments";
@@ -108,7 +108,7 @@ export function listActiveEditorsService(ctx: QueryCtx) {
 	return requirePermission(ctx, "assign:session-editor")
 		.andThen(() => listActiveEditorProfiles(ctx))
 		.andThen((editors) =>
-			ResultAsync.combine(editors.map((editor) => buildActiveEditorProjectionAsync(ctx, editor)))
+			ResultAsync.combine(editors.map((editor) => buildActiveEditorProjection(ctx, editor)))
 		);
 }
 

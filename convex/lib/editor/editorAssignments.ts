@@ -1,5 +1,4 @@
 import { err, ok, type Result } from "neverthrow";
-import { liftPromise } from "#convex/lib/result";
 import { internal } from "#convex/_generated/api";
 import type { Doc } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
@@ -69,18 +68,14 @@ export async function getEditorDisplayNamesByToken(ctx: QueryCtx, tokenIdentifie
 }
 
 // TODO(scale): This indexed lookup runs once per active editor; persist workload counters if that becomes inefficient at scale.
-export async function buildActiveEditorProjection(ctx: QueryCtx, editor: Doc<"editorProfiles">) {
-	return {
+export function buildActiveEditorProjection(ctx: QueryCtx, editor: Doc<"editorProfiles">) {
+	return getEditorWorkStatus(ctx, editor.tokenIdentifier).map((workStatus) => ({
 		tokenIdentifier: editor.tokenIdentifier,
 		displayName: editor.displayName,
 		email: editor.email,
 		totalEdits: editor.totalEdits,
-		workStatus: await getEditorWorkStatus(ctx, editor.tokenIdentifier)
-	};
-}
-
-export function buildActiveEditorProjectionAsync(ctx: QueryCtx, editor: Doc<"editorProfiles">) {
-	return liftPromise(buildActiveEditorProjection(ctx, editor));
+		workStatus
+	}));
 }
 
 export function getActiveEditor(ctx: MutationCtx, editorTokenIdentifier: string) {

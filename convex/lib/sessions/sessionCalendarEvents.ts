@@ -6,7 +6,9 @@ import {
 	type BookingAddon
 } from "#studio/features/booking-form/lib/booking-form-model";
 import { formatEditingAddonList } from "#studio/features/booking-form/lib/editing-addon-quantities";
-import { err, ok, type Result } from "neverthrow";
+import { err, errAsync, ok, okAsync, ResultAsync, type Result } from "neverthrow";
+import { tryPromise } from "#convex/lib/result";
+import { calendarResultAsync } from "#convex/lib/googleCalendar/googleCalendarErrors";
 import type { Id } from "#convex/_generated/dataModel";
 
 import {
@@ -119,44 +121,6 @@ function isMatchingSessionCalendarEvent(
 	return attendeeMatches || summaryMatches;
 }
 
-async function findSessionCalendarEventIncludingDeclined({
-	session,
-	calendar,
-	calendarId,
-	timeZone
-}: {
-	session: SessionCalendarEventRecord;
-	calendar: Pick<calendar_v3.Calendar, "events">;
-	calendarId: string;
-	timeZone: string;
-}) {
-	const eventWindowResult = buildEventWindow(
-		session.date,
-		session.time,
-		session.duration,
-		timeZone
-	);
-
-	if (eventWindowResult.isErr()) {
-		return err(eventWindowResult.error);
-	}
-
-	const { startDateTime, endDateTime } = eventWindowResult.value;
-
-	const events = await calendar.events.list({
-		calendarId,
-		singleEvents: true,
-		showDeleted: false,
-		showHiddenInvitations: true,
-		timeMax: endDateTime,
-		timeMin: startDateTime
-	});
-
-	return ok(
-		events.data.items?.find((event) => isMatchingSessionCalendarEvent(event, session)) ?? null
-	);
-}
-
 export async function removeOrphanedSessionCalendarEvent({
 	bookingId,
 	calendar,
@@ -199,67 +163,125 @@ async function deleteCalendarEventIfFound(
 	}
 }
 
-export async function deleteSessionCalendarEvent({
+type DeleteSessionCalendarEventError = {
+	reason:
+		| "GOOGLE_CALENDAR_DELETE_FAILED"
+		| "GOOGLE_CALENDAR_AUTH_FAILED"
+		| "GOOGLE_CALENDAR_RATE_LIMITED";
+};
+
+function deleteCalendarEventIfFoundAsync(
+	calendar: Pick<calendar_v3.Calendar, "events">,
+	calendarId: string,
+	eventId: string
+): ResultAsync<boolean, DeleteSessionCalendarEventError> {
+	return tryPromise({
+		try: () => deleteCalendarEventIfFound(calendar, calendarId, eventId),
+		catch: (cause) => {
+			const parsedError = calendarErrorSchema.safeParse(cause);
+
+			if (parsedError.success && isCalendarEventNotFound(parsedError.data)) {
+				return { reason: "GOOGLE_CALENDAR_DELETE_FAILED" as const };
+			}
+
+			return {
+				reason: parsedError.success
+					? mapCalendarErrorCode(parsedError.data, "GOOGLE_CALENDAR_DELETE_FAILED")
+					: ("GOOGLE_CALENDAR_DELETE_FAILED" as const)
+			};
+		}
+	});
+}
+
+function findSessionCalendarEventIncludingDeclinedAsync({
+	session,
+	calendar,
+	calendarId,
+	timeZone
+}: {
+	session: SessionCalendarEventRecord;
+	calendar: Pick<calendar_v3.Calendar, "events">;
+	calendarId: string;
+	timeZone: string;
+}): ResultAsync<calendar_v3.Schema$Event | null, DeleteSessionCalendarEventError> {
+	const eventWindowResult = buildEventWindow(
+		session.date,
+		session.time,
+		session.duration,
+		timeZone
+	);
+
+	if (eventWindowResult.isErr()) {
+		return errAsync({ reason: "GOOGLE_CALENDAR_DELETE_FAILED" as const });
+	}
+
+	const { startDateTime, endDateTime } = eventWindowResult.value;
+
+	return calendarResultAsync(
+		calendar.events
+			.list({
+				calendarId,
+				singleEvents: true,
+				showDeleted: false,
+				showHiddenInvitations: true,
+				timeMax: endDateTime,
+				timeMin: startDateTime
+			})
+			.then(
+				(events) =>
+					events.data.items?.find((event) => isMatchingSessionCalendarEvent(event, session)) ?? null
+			),
+		"GOOGLE_CALENDAR_DELETE_FAILED"
+	);
+}
+
+function deleteSessionCalendarEventAfterLookup({
+	session,
+	client,
+	calendarId
+}: {
+	session: SessionCalendarEventRecord;
+	client: GoogleCalendarEventClient;
+	calendarId: string;
+}): ResultAsync<{ calendarEventDeleted: boolean }, DeleteSessionCalendarEventError> {
+	return findSessionCalendarEventIncludingDeclinedAsync({
+		session,
+		calendar: client.calendar,
+		calendarId,
+		timeZone: client.timeZone
+	}).andThen((foundEvent) => {
+		const foundEventId = foundEvent?.id ?? null;
+
+		if (!foundEventId) {
+			return okAsync({ calendarEventDeleted: false });
+		}
+
+		return deleteCalendarEventIfFoundAsync(client.calendar, calendarId, foundEventId).map(
+			(wasFoundEventDeleted) => ({ calendarEventDeleted: wasFoundEventDeleted })
+		);
+	});
+}
+
+export function deleteSessionCalendarEvent({
 	session,
 	client
 }: {
 	session: SessionCalendarEventRecord;
 	client: GoogleCalendarEventClient;
-}) {
-	try {
-		const calendarId = session.googleCalendarId ?? client.calendarId;
-		const savedEventId = session.googleEventId ?? null;
+}): ResultAsync<{ calendarEventDeleted: boolean }, DeleteSessionCalendarEventError> {
+	const calendarId = session.googleCalendarId ?? client.calendarId;
+	const savedEventId = session.googleEventId ?? null;
 
-		if (savedEventId) {
-			const wasDeleted = await deleteCalendarEventIfFound(
-				client.calendar,
-				calendarId,
-				savedEventId
-			);
-
-			if (wasDeleted) {
-				return ok({ calendarEventDeleted: true });
-			}
-		}
-
-		// Declined Calendar invites can be hidden from direct event lookup, so search the session window before giving up.
-		const foundEventResult = await findSessionCalendarEventIncludingDeclined({
-			session,
-			calendar: client.calendar,
-			calendarId,
-			timeZone: client.timeZone
-		});
-
-		if (foundEventResult.isErr()) {
-			return err({ reason: "GOOGLE_CALENDAR_DELETE_FAILED" as const });
-		}
-
-		const foundEventId = foundEventResult.value?.id ?? null;
-
-		if (!foundEventId) {
-			return ok({ calendarEventDeleted: false });
-		}
-
-		const wasFoundEventDeleted = await deleteCalendarEventIfFound(
-			client.calendar,
-			calendarId,
-			foundEventId
-		);
-
-		return ok({ calendarEventDeleted: wasFoundEventDeleted });
-	} catch (error) {
-		const parsedError = calendarErrorSchema.safeParse(error);
-
-		if (parsedError.success && isCalendarEventNotFound(parsedError.data)) {
-			return ok({ calendarEventDeleted: false });
-		}
-
-		return err({
-			reason: parsedError.success
-				? mapCalendarErrorCode(parsedError.data, "GOOGLE_CALENDAR_DELETE_FAILED")
-				: "GOOGLE_CALENDAR_DELETE_FAILED"
-		});
+	if (!savedEventId) {
+		return deleteSessionCalendarEventAfterLookup({ session, client, calendarId });
 	}
+
+	return deleteCalendarEventIfFoundAsync(client.calendar, calendarId, savedEventId).andThen(
+		(wasDeleted) =>
+			wasDeleted
+				? okAsync({ calendarEventDeleted: true })
+				: deleteSessionCalendarEventAfterLookup({ session, client, calendarId })
+	);
 }
 
 export type SessionCalendarTimingUpdateError = {

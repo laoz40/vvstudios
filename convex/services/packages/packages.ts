@@ -7,7 +7,7 @@ import { requirePermission } from "#convex/services/auth";
 import { getPackageFromDb } from "#convex/lib/packages/packageLookup";
 import {
 	createPackageScheduleToken,
-	getCapacityConsumingPackageSessionsAsync,
+	getCapacityConsumingPackageSessions,
 	validatePackageScheduleTokenRefresh
 } from "#convex/lib/packages/packageScheduling";
 import {
@@ -18,7 +18,7 @@ import {
 	type UpdatePackageArgs,
 	validatePackageUpdate
 } from "#convex/lib/packages/packageUpdates";
-import { listAdminPackagesAsync, type AdminPackagesView } from "#convex/lib/listAdminPackages";
+import { listAdminPackages, type AdminPackagesView } from "#convex/lib/listAdminPackages";
 import {
 	searchBlobPatchForBooking,
 	searchBlobPatchForPackage,
@@ -69,7 +69,7 @@ type ListPackagesArgs = {
 };
 
 export function listPackagesService(ctx: QueryCtx, args: ListPackagesArgs) {
-	return requirePermission(ctx, "view:packages").andThen(() => listAdminPackagesAsync(ctx, args));
+	return requirePermission(ctx, "view:packages").andThen(() => listAdminPackages(ctx, args));
 }
 
 export function updatePackageService(ctx: MutationCtx, args: UpdatePackageArgs) {
@@ -79,7 +79,7 @@ export function updatePackageService(ctx: MutationCtx, args: UpdatePackageArgs) 
 			parsePackageUpdate(args).map((updatedPackage) => ({ existingPackage, updatedPackage }))
 		)
 		.andThen(({ existingPackage, updatedPackage }) =>
-			getCapacityConsumingPackageSessionsAsync(
+			getCapacityConsumingPackageSessions(
 				ctx,
 				existingPackage._id,
 				existingPackage.packageSize

@@ -450,12 +450,29 @@ export async function getDriveWorkflowFailureForBooking(ctx: QueryCtx, booking: 
 		booking.packageId !== undefined ? ctx.db.get("packages", booking.packageId) : null
 	]);
 
-	const driveClient = await resolveDriveClientForBooking(ctx, driveSession, driveClientFromBooking);
+	const driveClientResult = await resolveDriveClientForBooking(
+		ctx,
+		driveSession,
+		driveClientFromBooking
+	);
 
-	const sharedPackageFolder =
-		driveSession?.packageFolder === undefined && booking.packageId !== undefined
-			? await loadSharedPackageFolder(ctx, booking.packageId, booking._id)
-			: undefined;
+	if (driveClientResult.isErr()) {
+		throw new Error("resolveDriveClientForBooking failed");
+	}
+
+	const driveClient = driveClientResult.value;
+
+	let sharedPackageFolder: Doc<"driveSessions">["packageFolder"] | undefined;
+
+	if (driveSession?.packageFolder === undefined && booking.packageId !== undefined) {
+		const sharedFolderResult = await loadSharedPackageFolder(ctx, booking.packageId, booking._id);
+
+		if (sharedFolderResult.isErr()) {
+			throw new Error("loadSharedPackageFolder failed");
+		}
+
+		sharedPackageFolder = sharedFolderResult.value;
+	}
 
 	return computeHasDriveWorkflowFailure({
 		booking,

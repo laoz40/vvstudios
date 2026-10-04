@@ -469,11 +469,17 @@ async function loadAdminSessionListRows(ctx: QueryCtx, sessionsPage: Doc<"bookin
 				return { ...session, hasDriveWorkflowFailure, stripeInvoicesSummary };
 			}
 
-			const packageSessions = await getCapacityConsumingPackageSessions(
+			const packageSessionsResult = await getCapacityConsumingPackageSessions(
 				ctx,
 				packageRecord._id,
 				packageRecord.packageSize
 			);
+
+			if (packageSessionsResult.isErr()) {
+				throw new Error("getCapacityConsumingPackageSessions failed");
+			}
+
+			const packageSessions = packageSessionsResult.value;
 
 			return {
 				...session,

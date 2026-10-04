@@ -75,8 +75,6 @@ Rules:
 - Lib and service steps return `Result` / `ResultAsync` with `ok` / `err` for domain outcomes. Chain with `.andThen` / `.map`; do not wrap a whole lib function in `okOrThrow`.
 - Result helpers live in `convex/lib/result.ts`. Do not call `fromSafePromise` / `fromPromise` directly.
   - `okOrThrow` — only the **single** Convex I/O expression at that step: `ctx.db.*`, `ctx.scheduler.*`, `ctx.auth.getUserIdentity()`, or `ctx.runQuery` / `ctx.runMutation` returning a raw value. Infra failure throws; expected domain errors belong in `.andThen` as `err(...)`.
-  - `promiseResult` — a `Promise` that already resolves to `Result`. Prefer refactoring the callee to `ResultAsync`.
-  - `liftPromise` — local async that is not Convex I/O (crypto, DNS, legacy async lib). Prefer new lib helpers that return `ResultAsync` directly.
   - `fromConvexTuple` — `runQuery` / `runMutation` whose handler uses `.match(tupleOk, tupleErr)`.
   - `tryPromise` — external APIs (Stripe, Resend, Google, render). Failure becomes domain `err` in `catch`.
 

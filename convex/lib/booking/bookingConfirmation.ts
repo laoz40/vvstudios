@@ -1,6 +1,6 @@
 "use node";
 
-import { okAsync } from "neverthrow";
+import { okAsync, type ResultAsync } from "neverthrow";
 import { createRescheduleUrlForSession } from "#convex/lib/sessions/sessionRescheduleLinks";
 import { internal } from "#convex/_generated/api";
 import type { Doc, Id } from "#convex/_generated/dataModel";
@@ -15,7 +15,7 @@ import {
 	type SessionAvailabilitySettings
 } from "#convex/lib/sessions/sessionCalendarTime";
 import type { SessionReservation } from "#convex/lib/sessions/sessionReservations";
-import { fromConvexTuple } from "#convex/lib/result";
+import { fromConvexTuple, tryPromise } from "#convex/lib/result";
 import { exhaustiveCheck } from "#/lib/result";
 
 function getReminderRescheduleUrl(ctx: ActionCtx, session: Doc<"bookings">) {
@@ -52,122 +52,125 @@ export function sendBookingReminderEmailForSession(ctx: ActionCtx, session: Doc<
 	);
 }
 
-export async function saveConfirmedBooking(
+export function saveConfirmedBooking(
 	ctx: ActionCtx,
 	session: Doc<"bookings">,
 	calendarClient: ReturnType<typeof getGoogleCalendarClient>,
 	reservation: SessionReservation,
 	googleEventId: string | undefined
-) {
-	const completionResult = await fromConvexTuple(
+): ResultAsync<boolean, never> {
+	return fromConvexTuple(
 		ctx.runMutation(internal.bookingConfirmation.markBookingConfirmed, {
 			bookingId: session._id,
 			googleEventId,
 			googleCalendarId: calendarClient.calendarId,
 			reservation
 		})
-	);
+	)
+		.map(() => true)
+		.orElse((error) => {
+			const reason = error.reason;
 
-	if (completionResult.isOk()) {
-		return true;
-	}
+			switch (reason) {
+				case "BOOKING_NOT_FOUND":
+					console.error("Booking disappeared before confirmation completed", {
+						bookingId: session._id
+					});
+					break;
+				case "BOOKING_RESERVATION_MISMATCH":
+					console.error("Booking reservation changed before confirmation completed", {
+						bookingId: session._id
+					});
+					break;
+				case "BOOKING_INVALID_DURATION":
+					console.error("Booking duration was invalid before Drive setup could be scheduled", {
+						bookingId: session._id
+					});
+					break;
+				default:
+					exhaustiveCheck(reason);
+			}
 
-	const reason = completionResult.error.reason;
+			if (!googleEventId) {
+				return okAsync(false);
+			}
 
-	switch (reason) {
-		case "BOOKING_NOT_FOUND":
-			console.error("Booking disappeared before confirmation completed", {
-				bookingId: session._id
-			});
-			break;
-		case "BOOKING_RESERVATION_MISMATCH":
-			console.error("Booking reservation changed before confirmation completed", {
-				bookingId: session._id
-			});
-			break;
-		case "BOOKING_INVALID_DURATION":
-			console.error("Booking duration was invalid before Drive setup could be scheduled", {
-				bookingId: session._id
-			});
-			break;
-		default:
-			exhaustiveCheck(reason);
-	}
-
-	// Confirmation failed, so remove any Calendar event that was created but not recorded.
-	if (googleEventId) {
-		await removeOrphanedSessionCalendarEvent({
-			bookingId: session._id,
-			calendar: calendarClient.calendar,
-			calendarId: calendarClient.calendarId,
-			googleEventId
+			return tryPromise({
+				try: () =>
+					removeOrphanedSessionCalendarEvent({
+						bookingId: session._id,
+						calendar: calendarClient.calendar,
+						calendarId: calendarClient.calendarId,
+						googleEventId
+					}),
+				catch: (cause): never => {
+					throw cause;
+				}
+			}).map(() => false);
 		});
-	}
-
-	return false;
 }
 
-async function recordInvoiceEmailFailure(
+function recordInvoiceEmailFailure(
 	ctx: ActionCtx,
 	{ bookingId, message, reason }: { bookingId: Id<"bookings">; message: string; reason: string }
-) {
+): ResultAsync<null, never> {
 	console.error(message, { bookingId, reason });
 
-	const markFailedResult = await fromConvexTuple(
+	return fromConvexTuple(
 		ctx.runMutation(internal.bookingConfirmation.markSessionInvoiceEmailFailed, { bookingId })
-	);
+	)
+		.map(() => null)
+		.orElse((markFailedError) => {
+			console.error("Failed to record booking invoice email failure", {
+				bookingId,
+				reason: markFailedError.reason
+			});
 
-	if (markFailedResult.isErr()) {
-		console.error("Failed to record booking invoice email failure", {
-			bookingId,
-			reason: markFailedResult.error.reason
+			return okAsync(null);
 		});
-	}
 }
 
-export async function sendConfirmedBookingInvoice(
+export function sendConfirmedBookingInvoice(
 	ctx: ActionCtx,
 	session: Doc<"bookings">,
 	settings: SessionAvailabilitySettings
-) {
-	const linkResult = await createRescheduleUrlForSession(ctx, session);
+): ResultAsync<null, never> {
+	return createRescheduleUrlForSession(ctx, session)
+		.andThen((rescheduleUrl) =>
+			sendBookingReceiptEmailsForBooking(session, {
+				leadTimeMinutes: settings.leadTimeMinutes,
+				rescheduleUrl
+			})
+				.andThen((emailResult) =>
+					fromConvexTuple(
+						ctx.runMutation(internal.bookingConfirmation.recordBookingReceiptNumber, {
+							bookingId: session._id,
+							receiptNumber: emailResult.receiptNumber
+						})
+					)
+						.map(() => null)
+						.orElse((recordReceiptError) => {
+							console.error("Failed to store booking receipt number after email send", {
+								bookingId: session._id,
+								reason: recordReceiptError.reason
+							});
 
-	if (linkResult.isErr()) {
-		await recordInvoiceEmailFailure(ctx, {
-			bookingId: session._id,
-			message: "Booking invoice reschedule link create failed",
-			reason: linkResult.error.reason
-		});
-
-		return;
-	}
-
-	const emailResult = await sendBookingReceiptEmailsForBooking(session, {
-		leadTimeMinutes: settings.leadTimeMinutes,
-		rescheduleUrl: linkResult.value
-	});
-
-	if (emailResult.isErr()) {
-		await recordInvoiceEmailFailure(ctx, {
-			bookingId: session._id,
-			message: "Booking invoice email failed during booking confirmation",
-			reason: emailResult.error.reason
-		});
-
-		return;
-	}
-
-	const recordReceiptResult = await fromConvexTuple(
-		ctx.runMutation(internal.bookingConfirmation.recordBookingReceiptNumber, {
-			bookingId: session._id,
-			receiptNumber: emailResult.value.receiptNumber
-		})
-	);
-
-	if (recordReceiptResult.isErr()) {
-		console.error("Failed to store booking receipt number after email send", {
-			bookingId: session._id,
-			reason: recordReceiptResult.error.reason
-		});
-	}
+							return okAsync(null);
+						})
+				)
+				.orElse((error) =>
+					recordInvoiceEmailFailure(ctx, {
+						bookingId: session._id,
+						message: "Booking invoice email failed during booking confirmation",
+						reason: error.reason
+					})
+				)
+		)
+		.orElse((error) =>
+			recordInvoiceEmailFailure(ctx, {
+				bookingId: session._id,
+				message: "Booking invoice reschedule link create failed",
+				reason: error.reason
+			})
+		);
 }

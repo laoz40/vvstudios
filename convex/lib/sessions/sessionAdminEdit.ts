@@ -1,5 +1,5 @@
 import type { calendar_v3 } from "googleapis/build/src/apis/calendar/v3";
-import { err, ok, okAsync, type Result } from "neverthrow";
+import { err, ok, okAsync, type Result, type ResultAsync } from "neverthrow";
 import { internal } from "#convex/_generated/api";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { ActionCtx } from "#convex/_generated/server";
@@ -258,13 +258,21 @@ export function failBookingConfirmation(
 	);
 }
 
-export async function verifySessionCanBeScheduled({
+export function verifySessionCanBeScheduled({
 	session,
 	calendar,
 	calendarIds,
 	settings,
 	timeZone
-}: VerifySessionCanBeScheduledArgs) {
+}: VerifySessionCanBeScheduledArgs): ResultAsync<
+	boolean,
+	{
+		reason:
+			| "GOOGLE_CALENDAR_AUTH_FAILED"
+			| "GOOGLE_CALENDAR_AVAILABILITY_FAILED"
+			| "GOOGLE_CALENDAR_RATE_LIMITED";
+	}
+> {
 	const availabilityResult = checkSessionMeetsAvailabilitySettings({
 		date: session.date,
 		duration: session.duration,
@@ -274,19 +282,22 @@ export async function verifySessionCanBeScheduled({
 	});
 
 	if (availabilityResult.isErr()) {
-		return false;
+		return okAsync(false);
 	}
 
-	const busyWindows = await getBusyWindows({ calendar, calendarIds, date: session.date, timeZone });
-
-	return isTimeSlotAvailable({
-		busyWindows,
-		date: session.date,
-		duration: session.duration,
-		eventBufferMinutes: settings.eventBufferMinutes,
-		time: session.time,
-		timeZone
-	});
+	return calendarResultAsync(
+		getBusyWindows({ calendar, calendarIds, date: session.date, timeZone }),
+		"GOOGLE_CALENDAR_AVAILABILITY_FAILED"
+	).map((busyWindows) =>
+		isTimeSlotAvailable({
+			busyWindows,
+			date: session.date,
+			duration: session.duration,
+			eventBufferMinutes: settings.eventBufferMinutes,
+			time: session.time,
+			timeZone
+		})
+	);
 }
 
 export type AdminSessionUpdateError =

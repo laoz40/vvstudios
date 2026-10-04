@@ -67,15 +67,13 @@ function promoteFailedSessionFromAdmin({
 	settings: SessionAvailabilitySettings;
 }): ResultAsync<AdminSessionUpdateResult, AdminSessionUpdateError> {
 	// Failed bookings are only promoted when the edited time is valid and available.
-	return okOrThrow(
-		verifySessionCanBeScheduled({
-			session: { ...session, date: args.date, duration: args.duration, time: args.time },
-			calendar: client.calendar,
-			calendarIds: client.calendarIds,
-			settings,
-			timeZone: client.timeZone
-		})
-	).andThen((canBeScheduled) => {
+	return verifySessionCanBeScheduled({
+		session: { ...session, date: args.date, duration: args.duration, time: args.time },
+		calendar: client.calendar,
+		calendarIds: client.calendarIds,
+		settings,
+		timeZone: client.timeZone
+	}).andThen((canBeScheduled) => {
 		if (!canBeScheduled) {
 			return err({ reason: "BOOKING_TIME_UNAVAILABLE" as const });
 		}

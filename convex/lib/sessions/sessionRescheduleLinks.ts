@@ -3,7 +3,7 @@ import { internal } from "#convex/_generated/api";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { ActionCtx, MutationCtx } from "#convex/_generated/server";
 import { env } from "#convex/env";
-import { fromConvexTuple, liftPromise, okOrThrow } from "#convex/lib/result";
+import { fromConvexTuple, okOrThrow, tryPromise } from "#convex/lib/result";
 
 const rescheduleLinkInvalidationBatchSize = 100;
 
@@ -48,15 +48,28 @@ export function generateRescheduleToken() {
 	return bytesToHex(bytes);
 }
 
-export async function hashRescheduleToken(token: string) {
+export function hashRescheduleTokenAsync(token: string): ResultAsync<string, never> {
 	const encodedToken = new TextEncoder().encode(token);
-	const hashBuffer = await crypto.subtle.digest("SHA-256", encodedToken);
 
-	return bytesToHex(new Uint8Array(hashBuffer));
+	return tryPromise({
+		try: async () => {
+			const hashBuffer = await crypto.subtle.digest("SHA-256", encodedToken);
+
+			return bytesToHex(new Uint8Array(hashBuffer));
+		},
+		catch: (cause): never => {
+			throw cause;
+		}
+	});
 }
 
-export function hashRescheduleTokenAsync(token: string): ResultAsync<string, never> {
-	return liftPromise(hashRescheduleToken(token));
+export async function hashRescheduleToken(token: string) {
+	return hashRescheduleTokenAsync(token).match(
+		(hash) => hash,
+		() => {
+			throw new Error("hashRescheduleToken failed");
+		}
+	);
 }
 
 export function buildRescheduleUrl(baseUrl: string, token: string) {

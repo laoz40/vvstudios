@@ -1,5 +1,5 @@
-import { err, ok, type ResultAsync } from "neverthrow";
-import { liftPromise, okOrThrow } from "#convex/lib/result";
+import { err, ok, ResultAsync } from "neverthrow";
+import { okOrThrow } from "#convex/lib/result";
 import { hashRescheduleTokenAsync } from "#convex/lib/sessions/sessionRescheduleLinks";
 import type {
 	SessionAvailabilitySettings,
@@ -118,37 +118,31 @@ export type UnschedulePackageSessionError =
 	| PackageSessionEditError
 	| GoogleCalendarWriteError;
 
-export async function getCapacityConsumingPackageSessions(
+export function getCapacityConsumingPackageSessions(
 	ctx: QueryCtx | MutationCtx,
 	packageId: Id<"packages">,
 	packageSize: 4 | 8 | 12
-) {
-	const bookings: Doc<"bookings">[] = [];
-
-	const bookingsByStatus = await Promise.all(
+): ResultAsync<Doc<"bookings">[], never> {
+	return ResultAsync.combine(
 		capacityConsumingSessionStatuses.map((status) =>
-			ctx.db
-				.query("bookings")
-				.withIndex("by_packageId_and_status_and_sessionStartAt", (q) =>
-					q.eq("packageId", packageId).eq("status", status)
-				)
-				.take(packageSize)
+			okOrThrow(
+				ctx.db
+					.query("bookings")
+					.withIndex("by_packageId_and_status_and_sessionStartAt", (q) =>
+						q.eq("packageId", packageId).eq("status", status)
+					)
+					.take(packageSize)
+			)
 		)
-	);
+	).map((bookingsByStatus) => {
+		const bookings: Doc<"bookings">[] = [];
 
-	for (const statusBookings of bookingsByStatus) {
-		bookings.push(...statusBookings);
-	}
+		for (const statusBookings of bookingsByStatus) {
+			bookings.push(...statusBookings);
+		}
 
-	return bookings.toSorted((a, b) => a.sessionStartAt - b.sessionStartAt);
-}
-
-export function getCapacityConsumingPackageSessionsAsync(
-	ctx: QueryCtx | MutationCtx,
-	packageId: Id<"packages">,
-	packageSize: 4 | 8 | 12
-) {
-	return liftPromise(getCapacityConsumingPackageSessions(ctx, packageId, packageSize));
+		return bookings.toSorted((a, b) => a.sessionStartAt - b.sessionStartAt);
+	});
 }
 
 export function getPackageSessionForToken(

@@ -1,4 +1,4 @@
-import { liftPromise } from "#convex/lib/result";
+import { tryPromise } from "#convex/lib/result";
 import type { Doc } from "#convex/_generated/dataModel";
 import type { QueryCtx } from "#convex/_generated/server";
 import { exhaustiveCheck } from "#/lib/result";
@@ -335,7 +335,7 @@ async function paginateAdminPackagesWithoutSearch(
 async function loadAdminPackageListRows(ctx: QueryCtx, packagesOnPage: Doc<"packages">[]) {
 	return Promise.all(
 		packagesOnPage.map(async (packageFromDb) => {
-			const [packageSessions, packageAdjustment, stripeInvoicesResult] = await Promise.all([
+			const [packageSessionsResult, packageAdjustment, stripeInvoicesResult] = await Promise.all([
 				getCapacityConsumingPackageSessions(ctx, packageFromDb._id, packageFromDb.packageSize),
 				ctx.db
 					.query("packageAdjustments")
@@ -343,6 +343,12 @@ async function loadAdminPackageListRows(ctx: QueryCtx, packagesOnPage: Doc<"pack
 					.unique(),
 				listStripeInvoicesForPackage(ctx, packageFromDb._id)
 			]);
+
+			if (packageSessionsResult.isErr()) {
+				throw new Error("getCapacityConsumingPackageSessions failed");
+			}
+
+			const packageSessions = packageSessionsResult.value;
 
 			const customStripeInvoicesSummary = summarizeCustomPackageStripeInvoices(
 				stripeInvoicesResult.unwrapOr([])
@@ -389,7 +395,7 @@ async function fetchAdminPackagesListPage(
 		: paginateAdminPackagesWithoutSearch(ctx, searchContext);
 }
 
-export async function listAdminPackages(ctx: QueryCtx, args: ListAdminPackagesArgs) {
+async function fetchListAdminPackages(ctx: QueryCtx, args: ListAdminPackagesArgs) {
 	const view = args.view ?? "inbox";
 	const includeStale = args.includeStale ?? false;
 
@@ -402,6 +408,11 @@ export async function listAdminPackages(ctx: QueryCtx, args: ListAdminPackagesAr
 	return { ...packagesPage, page };
 }
 
-export function listAdminPackagesAsync(ctx: QueryCtx, args: ListAdminPackagesArgs) {
-	return liftPromise(listAdminPackages(ctx, args));
+export function listAdminPackages(ctx: QueryCtx, args: ListAdminPackagesArgs) {
+	return tryPromise({
+		try: () => fetchListAdminPackages(ctx, args),
+		catch: (cause): never => {
+			throw cause;
+		}
+	});
 }

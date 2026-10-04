@@ -51,18 +51,22 @@ export async function listPackagesPotentiallyDueForExpiryReminderService(
 		.slice(0, limit);
 
 	return await Promise.all(
-		eligiblePackages.map(async (packageFromDb) => ({
-			...packageFromDb,
-			remainingSessions:
-				packageFromDb.packageSize -
-				(
-					await getCapacityConsumingPackageSessions(
-						ctx,
-						packageFromDb._id,
-						packageFromDb.packageSize
-					)
-				).length
-		}))
+		eligiblePackages.map(async (packageFromDb) => {
+			const sessionsResult = await getCapacityConsumingPackageSessions(
+				ctx,
+				packageFromDb._id,
+				packageFromDb.packageSize
+			);
+
+			if (sessionsResult.isErr()) {
+				throw new Error("getCapacityConsumingPackageSessions failed");
+			}
+
+			return {
+				...packageFromDb,
+				remainingSessions: packageFromDb.packageSize - sessionsResult.value.length
+			};
+		})
 	);
 }
 
