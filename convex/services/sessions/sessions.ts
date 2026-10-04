@@ -23,6 +23,7 @@ import {
 	saveSessionEditorNotes,
 	saveSessionEditStatus
 } from "#convex/lib/editor/editorSessions";
+import { loadSessionForDeliverables } from "#convex/services/editor/loadSessionForDeliverables";
 import { getDriveStatus, getEditorSessionDriveFolders } from "#convex/lib/drive/driveStatus";
 import { okOrThrow } from "#convex/lib/result";
 import { searchBlobPatchForBooking } from "#convex/lib/adminSearch/adminSearchBlob";
@@ -97,13 +98,9 @@ export function getDeliverablesCustomerTypeService(
 	ctx: QueryCtx,
 	args: GetDeliverablesCustomerTypeArgs
 ) {
-	return requirePermission(ctx, "send:deliverables-email")
-		.andThen((identity) =>
-			getSessionFromDb(ctx, args.bookingId).map((session) => ({ identity, session }))
-		)
-		.andThen(requireDeliverablesOwnership)
-		.andThen(requireDeliverablesEligibility)
-		.andThen((session) => detectDeliverablesCustomerType(ctx, session));
+	return loadSessionForDeliverables(ctx, args.bookingId).andThen((session) =>
+		detectDeliverablesCustomerType(ctx, session)
+	);
 }
 
 export function listActiveEditorsService(ctx: QueryCtx) {

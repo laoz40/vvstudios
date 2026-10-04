@@ -4,12 +4,8 @@ import { errAsync, okAsync, type ResultAsync } from "neverthrow";
 import { internal } from "#convex/_generated/api";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { ActionCtx } from "#convex/_generated/server";
-import { requirePermissionActions } from "#convex/lib/auth";
-import {
-	requireDeliverablesEligibility,
-	requireDeliverablesOwnership
-} from "#convex/lib/editor/editorSessions";
 import { sendSessionDeliverablesEmail as sendDeliverablesEmail } from "#convex/lib/email/emailTemplateSenders";
+import { loadSessionForDeliverablesFromAction } from "#convex/services/editor/loadSessionForDeliverables";
 import {
 	ensureAnyoneReaderPermission,
 	listDriveFolderChildren,
@@ -17,7 +13,6 @@ import {
 	type DriveError
 } from "#convex/lib/drive/googleDrive";
 import { fromConvexTuple } from "#convex/lib/result";
-import { getSessionFromQuery } from "#convex/lib/sessions/sessionLookup";
 
 export type SendSessionDeliverablesEmailArgs = { bookingId: Id<"bookings">; editorNotes?: string };
 
@@ -120,23 +115,17 @@ export function sendSessionDeliverablesEmailService(
 	ctx: ActionCtx,
 	args: SendSessionDeliverablesEmailArgs
 ): ResultAsync<null, SendDeliverablesError> {
-	return requirePermissionActions(ctx, "send:deliverables-email")
-		.andThen((identity) =>
-			getSessionFromQuery(ctx, args.bookingId).map((session) => ({ identity, session }))
-		)
-		.andThen(requireDeliverablesOwnership)
-		.andThen((access) => requireDeliverablesEligibility(access))
-		.andThen((session) => {
-			// A session already marked completed was delivered. Skip a second email until it leaves completed.
-			if (session.editStatus === "completed") {
-				return okAsync(null);
-			}
+	return loadSessionForDeliverablesFromAction(ctx, args.bookingId).andThen((session) => {
+		// A session already marked completed was delivered. Skip a second email until it leaves completed.
+		if (session.editStatus === "completed") {
+			return okAsync(null);
+		}
 
-			return requireSavedDeliverablesFolder(session._id, ctx)
-				.andThen(requireDeliverablesFolderContents)
-				.andThen((folder) => grantGuestViewerLink(folder))
-				.andThen((folder) =>
-					sendDeliverablesEmailForSession(ctx, session, folder.url, args.editorNotes)
-				);
-		});
+		return requireSavedDeliverablesFolder(session._id, ctx)
+			.andThen(requireDeliverablesFolderContents)
+			.andThen((folder) => grantGuestViewerLink(folder))
+			.andThen((folder) =>
+				sendDeliverablesEmailForSession(ctx, session, folder.url, args.editorNotes)
+			);
+	});
 }
