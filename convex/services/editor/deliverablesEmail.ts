@@ -58,17 +58,17 @@ function grantGuestViewerLink(folder: { id: string; url: string }) {
 }
 
 function requireSavedDeliverablesFolder(bookingId: Id<"bookings">, ctx: ActionCtx) {
-	return fromConvexTuple(ctx.runQuery(internal.sessions.getDriveSetup, { bookingId })).andThen(
-		(setupInfo) => {
-			const deliverablesFolder = setupInfo?.driveSession?.deliverablesFolder;
+	return fromConvexTuple(
+		ctx.runQuery(internal.internal.sessionsDrive.getDriveSetup, { bookingId })
+	).andThen((setupInfo) => {
+		const deliverablesFolder = setupInfo?.driveSession?.deliverablesFolder;
 
-			if (deliverablesFolder === undefined) {
-				return errAsync({ reason: "DELIVERABLES_FOLDER_MISSING" as const });
-			}
-
-			return okAsync(deliverablesFolder);
+		if (deliverablesFolder === undefined) {
+			return errAsync({ reason: "DELIVERABLES_FOLDER_MISSING" as const });
 		}
-	);
+
+		return okAsync(deliverablesFolder);
+	});
 }
 
 function requireDeliverablesFolderContents(folder: { id: string; url: string }) {

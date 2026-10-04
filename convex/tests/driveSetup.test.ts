@@ -76,12 +76,14 @@ describe("drive setup guards", () => {
 		});
 
 		expect(
-			await t.mutation(internal.sessions.syncBookingDriveClientIdFromSession, {
+			await t.mutation(internal.internal.sessionsDrive.syncBookingDriveClientIdFromSession, {
 				bookingId: deletedBookingId
 			})
 		).toEqual([{ reason: "BOOKING_NOT_FOUND" }, null]);
 		expect(
-			await t.mutation(internal.sessions.syncBookingDriveClientIdFromSession, { bookingId })
+			await t.mutation(internal.internal.sessionsDrive.syncBookingDriveClientIdFromSession, {
+				bookingId
+			})
 		).toEqual([{ reason: "DRIVE_RECORD_NOT_FOUND" }, null]);
 	});
 
@@ -109,15 +111,17 @@ describe("drive setup guards", () => {
 		});
 
 		expect(
-			await t.mutation(internal.sessions.allocateClientSessionNumber, { bookingId: laterBookingId })
+			await t.mutation(internal.internal.sessionsDrive.allocateClientSessionNumber, {
+				bookingId: laterBookingId
+			})
 		).toEqual([null, 2]);
 		expect(
-			await t.mutation(internal.sessions.allocateClientSessionNumber, {
+			await t.mutation(internal.internal.sessionsDrive.allocateClientSessionNumber, {
 				bookingId: earlierBookingId
 			})
 		).toEqual([null, 1]);
 		expect(
-			await t.mutation(internal.sessions.allocateClientSessionNumber, {
+			await t.mutation(internal.internal.sessionsDrive.allocateClientSessionNumber, {
 				bookingId: earlierBookingId
 			})
 		).toEqual([null, 1]);
@@ -165,7 +169,9 @@ describe("drive setup guards", () => {
 		});
 
 		expect(
-			await t.mutation(internal.sessions.allocateClientSessionNumber, { bookingId: laterBookingId })
+			await t.mutation(internal.internal.sessionsDrive.allocateClientSessionNumber, {
+				bookingId: laterBookingId
+			})
 		).toEqual([null, 2]);
 	});
 
@@ -183,12 +189,11 @@ describe("drive setup guards", () => {
 			email: "release@example.com"
 		});
 
-		expect(await t.mutation(internal.sessions.allocateClientSessionNumber, { bookingId })).toEqual([
-			null,
-			1
-		]);
+		expect(
+			await t.mutation(internal.internal.sessionsDrive.allocateClientSessionNumber, { bookingId })
+		).toEqual([null, 1]);
 
-		await t.mutation(internal.sessions.saveDriveSessionFolder, {
+		await t.mutation(internal.internal.sessionsDrive.saveDriveSessionFolder, {
 			bookingId,
 			driveClientId,
 			folder: {
@@ -198,10 +203,9 @@ describe("drive setup guards", () => {
 			}
 		});
 
-		expect(await t.mutation(internal.sessions.clearSessionDriveDb, { bookingId })).toEqual([
-			null,
-			null
-		]);
+		expect(
+			await t.mutation(internal.internal.sessionsDrive.clearSessionDriveDb, { bookingId })
+		).toEqual([null, null]);
 
 		const driveSession = await readDriveSession(t, bookingId);
 
@@ -231,14 +235,14 @@ describe("drive setup guards", () => {
 		};
 
 		expect(
-			await t.mutation(internal.sessions.saveDriveSessionFolder, {
+			await t.mutation(internal.internal.sessionsDrive.saveDriveSessionFolder, {
 				bookingId,
 				driveClientId,
 				folder: firstFolder
 			})
 		).toEqual([null, firstFolder.id]);
 		expect(
-			await t.mutation(internal.sessions.saveDriveSessionFolder, {
+			await t.mutation(internal.internal.sessionsDrive.saveDriveSessionFolder, {
 				bookingId,
 				driveClientId,
 				folder: secondFolder
