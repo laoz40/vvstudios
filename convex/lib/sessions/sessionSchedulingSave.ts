@@ -6,13 +6,29 @@ import {
 	type BookingSearchPatchOverrides
 } from "#convex/lib/adminSearch/adminSearchBlob";
 import { scheduleDriveSetup } from "#convex/lib/drive/driveScheduling";
+import { env } from "#convex/env";
+import { schedulePackageAdjustmentWhenSessionsComplete } from "#convex/lib/packages/packageAdjustmentScheduling";
 import { sessionConsumesPackageCapacity } from "#convex/lib/packages/packageSessionCapacity";
 import { okOrThrow } from "#convex/lib/result";
 import {
+	buildAdminSessionUpdatePatch,
+	type AdminSessionTimingPatch
+} from "#convex/lib/sessions/sessionAdminEdit";
+import { getSessionFromDb } from "#convex/lib/sessions/sessionLookup";
+import {
+	buildClientSessionRescheduleOptionalPatch,
+	buildSessionCalendarConfirmationPatch
+} from "#convex/lib/sessions/sessionSavePatch";
+import {
+	clearedSessionReservationPatch,
 	sessionHasReservation,
 	type SessionReservation,
 	type SessionReservationBooking
 } from "#convex/lib/sessions/sessionReservations";
+import type {
+	SaveAdminSessionUpdateArgs,
+	SaveClientSessionRescheduleArgs
+} from "#convex/lib/sessions/sessionSchedulingArgs";
 
 export function requireSessionReservation(
 	session: SessionReservationBooking,
@@ -88,4 +104,147 @@ export function applySessionPatch(
 			ctx.db.patch("bookings", bookingId, { ...patch, ...searchBlobPatch }).then(() => null)
 		)
 	);
+}
+
+type AdminSessionDatabasePatch = AdminSessionTimingPatch & {
+	googleCalendarId?: string;
+	googleEventId?: string;
+	status?: "confirmed";
+	bookingConfirmedAt?: number;
+	bookingFailureCode?: undefined;
+	reservationCreatedAt?: undefined;
+	reservationSessionStartAt?: undefined;
+	reservationDuration?: undefined;
+};
+
+export type AdminSessionUpdatePlan = {
+	session: Doc<"bookings">;
+	updatePatch: AdminSessionTimingPatch;
+	timingChanged: boolean;
+};
+
+export type ClientSessionReschedulePlan = {
+	session: Doc<"bookings">;
+	searchOverrides: BookingSearchPatchOverrides;
+};
+
+export function prepareAdminSessionUpdate(ctx: MutationCtx, args: SaveAdminSessionUpdateArgs) {
+	const now = Date.now();
+
+	return getSessionFromDb(ctx, args.bookingId)
+		.andThen((session) =>
+			buildAdminSessionUpdatePatch({
+				session,
+				timeZone: env.GOOGLE_CALENDAR_TIMEZONE,
+				values: args
+			}).map((updatePatch) => ({ session, updatePatch }))
+		)
+		.andThen(({ session, updatePatch }) =>
+			requireSessionReservation(session, args.reservation, now).map(() => ({
+				session,
+				updatePatch
+			}))
+		)
+		.map(({ session, updatePatch }) => ({
+			session,
+			updatePatch,
+			timingChanged:
+				session.sessionStartAt !== updatePatch.sessionStartAt || session.duration !== args.duration
+		}));
+}
+
+export function commitAdminSessionUpdate(
+	ctx: MutationCtx,
+	args: SaveAdminSessionUpdateArgs,
+	plan: AdminSessionUpdatePlan
+) {
+	const patch: AdminSessionDatabasePatch = {
+		...plan.updatePatch,
+		...buildSessionCalendarConfirmationPatch({
+			confirmBooking: args.confirmBooking,
+			googleCalendarId: args.googleCalendarId,
+			googleEventId: args.googleEventId
+		})
+	};
+
+	if (args.reservation) {
+		Object.assign(patch, clearedSessionReservationPatch);
+	}
+
+	return applySessionPatch(ctx, args.bookingId, plan.session, patch, plan.updatePatch).andThen(() =>
+		scheduleDriveSetupWhenConfirmed(ctx, {
+			confirmBooking: args.confirmBooking,
+			duration: args.duration,
+			session: plan.session,
+			sessionStartAt: plan.updatePatch.sessionStartAt,
+			timingChanged: plan.timingChanged
+		})
+	);
+}
+
+export function prepareClientSessionReschedule(
+	ctx: MutationCtx,
+	args: SaveClientSessionRescheduleArgs
+) {
+	const now = Date.now();
+
+	return getSessionFromDb(ctx, args.bookingId)
+		.andThen((session) => requirePackageSessionForReschedule(session, args.packageId))
+		.andThen((session) =>
+			requireSessionReservation(session, args.reservation, now).map(() => session)
+		)
+		.map((session) => ({
+			session,
+			searchOverrides: {
+				addons: args.addons ?? session.addons,
+				date: args.date,
+				notes: args.notes ?? session.notes,
+				service: args.service ?? session.service,
+				time: args.time
+			}
+		}));
+}
+
+export function commitClientSessionReschedule(
+	ctx: MutationCtx,
+	args: SaveClientSessionRescheduleArgs,
+	plan: ClientSessionReschedulePlan
+) {
+	const session = plan.session;
+
+	return applySessionPatch(
+		ctx,
+		args.bookingId,
+		session,
+		{
+			date: args.date,
+			time: args.time,
+			sessionStartAt: args.sessionStartAt,
+			reminderEmailClaimedAt: undefined,
+			reminderEmailSentAt: undefined,
+			reminderEmailFailureCode: undefined,
+			...buildClientSessionRescheduleOptionalPatch(args),
+			...clearedSessionReservationPatch
+		},
+		plan.searchOverrides
+	).andThen(() =>
+		scheduleDriveSetupWhenConfirmed(ctx, {
+			confirmBooking: args.confirmBooking,
+			duration: session.duration,
+			session,
+			sessionStartAt: args.sessionStartAt,
+			timingChanged: true
+		})
+	);
+}
+
+export function finalizeClientSessionReschedule(
+	ctx: MutationCtx,
+	args: SaveClientSessionRescheduleArgs
+) {
+	if (args.packageId === undefined) {
+		return okAsync(null);
+	}
+
+	return schedulePackageAdjustmentWhenSessionsComplete(ctx, args.packageId);
 }
