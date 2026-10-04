@@ -29,10 +29,16 @@ import {
 	retryClientDrivePermissionsService,
 	type DriveClientPermissionsError
 } from "#convex/services/drive/driveClientPermissions";
+import { sendSessionReminderEmailService } from "#convex/services/booking/bookingConfirmationActions";
 import {
-	completeClaimedSessionService,
-	sendSessionReminderEmailService
-} from "#convex/services/booking/bookingConfirmationActions";
+	alreadyCompletedClaimedSessionOutcome,
+	finishIncompleteClaimedSession,
+	requireBookingConfirmationClaimed,
+	type CompleteClaimedSessionError
+} from "#convex/services/booking/bookingClaimedSessionWorkflow";
+import type { CompleteClaimedSessionSuccess } from "#convex/services/booking/bookingConfirmation";
+import { getSessionFromQuery } from "#convex/lib/sessions/sessionLookup";
+import { okAsync } from "neverthrow";
 import { cleanupCancelledSessionDriveService } from "#convex/services/drive/cleanupCancelledSessionDrive";
 
 export const setupDrive = action({
@@ -138,8 +144,19 @@ export const sendSessionReminderEmail = internalAction({
 
 export const completeClaimedSession = internalAction({
 	args: { bookingId: v.id("bookings") },
-	handler: async (ctx, args) =>
-		(await completeClaimedSessionService(ctx, args)).match(tupleOk, tupleErr)
+	handler: async (
+		ctx,
+		args
+	): Promise<Result<CompleteClaimedSessionSuccess, CompleteClaimedSessionError>> =>
+		(
+			await getSessionFromQuery(ctx, args.bookingId)
+				.andThen(requireBookingConfirmationClaimed)
+				.andThen((session) => {
+					const completed = alreadyCompletedClaimedSessionOutcome(session);
+
+					return completed ? okAsync(completed) : finishIncompleteClaimedSession(ctx, session);
+				})
+		).match(tupleOk, tupleErr)
 });
 
 export const cleanupCancelledSessionDrive = internalAction({
