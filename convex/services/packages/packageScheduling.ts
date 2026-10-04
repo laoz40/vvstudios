@@ -1,7 +1,8 @@
 import { err, ok, ResultAsync } from "neverthrow";
-import { api, internal } from "#convex/_generated/api";
+import { internal } from "#convex/_generated/api";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { ActionCtx, MutationCtx, QueryCtx } from "#convex/_generated/server";
+import { getBookingAvailabilitySettings } from "#convex/lib/booking/bookingSettings";
 import { getOrCreateDriveClientId } from "#convex/lib/drive/driveFolders";
 import { buildBookingSearchBlob } from "#convex/lib/adminSearch/adminSearchBlob";
 import { scheduleDriveSetup } from "#convex/lib/drive/driveScheduling";
@@ -28,7 +29,6 @@ import { fromConvexTuple, okOrThrow } from "#convex/lib/result";
 import { archivePackageWhenFullyDone } from "#convex/lib/packages/packageArchive";
 import { archiveDeadCheckoutBooking } from "#convex/lib/sessions/sessionArchive";
 import { getSessionStartAt } from "#convex/lib/sessions/sessionAdminEdit";
-import type { SessionAvailabilitySettings } from "#convex/lib/sessions/sessionCalendarTime";
 import { env } from "#convex/env";
 import {
 	getPackageSessionAddons,
@@ -361,9 +361,7 @@ export function validatePackageSessionRequestService(
 		getValidPackageByToken(ctx, args.token, args.now)
 			// Load availability settings after validating the package link.
 			.andThen((packageRecord) =>
-				okOrThrow<SessionAvailabilitySettings>(ctx.runQuery(api.bookingSettings.get, {})).map(
-					(settings) => ({ packageRecord, settings })
-				)
+				getBookingAvailabilitySettings(ctx).map((settings) => ({ packageRecord, settings }))
 			)
 			// Enforce package availability before reading sessions that consume capacity.
 			.andThen(({ packageRecord, settings }) =>
