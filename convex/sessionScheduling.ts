@@ -1,17 +1,28 @@
 import { v } from "convex/values";
+import { ADDON_OPTIONS } from "#studio/features/booking-form/lib/booking-form-model";
 import { tupleErr, tupleOk } from "#/lib/result";
 import { internal } from "#convex/_generated/api";
 import type { Id } from "#convex/_generated/dataModel";
 import { internalMutation } from "#convex/_generated/server";
-import {
-	sessionReservationValidator,
-	reserveSessionTime,
-	unreserveSessionTime
-} from "#convex/lib/sessions/sessionReservations";
-import {
-	bookingAddonQuantitiesValidator,
-	bookingAddonsValidator
-} from "#convex/lib/booking/bookingAddonQuantities";
+import { reserveSessionTime, unreserveSessionTime } from "#convex/lib/sessions/sessionReservations";
+
+const bookingAddonValidator = v.union(...ADDON_OPTIONS.map((addon) => v.literal(addon)));
+
+const bookingAddonsValidator = v.array(bookingAddonValidator);
+
+const bookingAddonQuantitiesValidator = {
+	essentialEditQuantity: v.optional(v.string()),
+	completeEditQuantity: v.optional(v.string()),
+	clipsPackageQuantity: v.optional(v.string()),
+	handcraftedClipsQuantity: v.optional(v.string())
+};
+
+const sessionReservationValidator = v.object({
+	reservedAt: v.number(),
+	sessionStartAt: v.number(),
+	duration: v.string()
+});
+
 import {
 	saveAdminSessionUpdateService,
 	saveClientSessionRescheduleService

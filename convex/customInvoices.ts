@@ -1,14 +1,22 @@
 import { v } from "convex/values";
+import { ADDON_OPTIONS } from "#studio/features/booking-form/lib/booking-form-model";
 import { tupleErr, tupleOk } from "#/lib/result";
 import { internalQuery, mutation, query } from "#convex/_generated/server";
-import {
-	bookingAddonQuantitiesValidator,
-	bookingAddonsValidator
-} from "#convex/validators/bookingAddonQuantities";
 import {
 	createBookingCustomInvoiceService,
 	listCustomInvoicesForBookingService
 } from "#convex/services/stripe/customInvoices";
+
+const bookingAddonValidator = v.union(...ADDON_OPTIONS.map((addon) => v.literal(addon)));
+
+const bookingAddonsValidator = v.array(bookingAddonValidator);
+
+const bookingAddonQuantitiesValidator = {
+	essentialEditQuantity: v.optional(v.string()),
+	completeEditQuantity: v.optional(v.string()),
+	clipsPackageQuantity: v.optional(v.string()),
+	handcraftedClipsQuantity: v.optional(v.string())
+};
 
 export const createCustomInvoice = mutation({
 	args: {

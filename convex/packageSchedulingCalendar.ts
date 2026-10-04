@@ -1,8 +1,12 @@
 "use node";
 
 import { v } from "convex/values";
+import {
+	ADDON_OPTIONS,
+	DURATION_OPTIONS,
+	SERVICES
+} from "#studio/features/booking-form/lib/booking-form-model";
 import { tupleErr, tupleOk, type Result } from "#/lib/result";
-import { DURATION_OPTIONS, SERVICES } from "#studio/features/booking-form/lib/booking-form-model";
 import { action, internalAction } from "#convex/_generated/server";
 import type { SessionCalendarEventRecord } from "#convex/lib/sessions/sessionCalendarEvents";
 import {
@@ -11,7 +15,10 @@ import {
 	savePackageSessionCalendarEventService,
 	type PackageCalendarWriteError
 } from "#convex/services/googleCalendar/packageSchedulingCalendar";
-import { bookingAddonsValidator } from "#convex/lib/booking/bookingAddonQuantities";
+
+const bookingAddonValidator = v.union(...ADDON_OPTIONS.map((addon) => v.literal(addon)));
+
+const bookingAddonsValidator = v.array(bookingAddonValidator);
 
 const packageCalendarBookingValidator = v.object({
 	date: v.string(),

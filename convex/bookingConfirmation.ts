@@ -1,7 +1,13 @@
 import { v } from "convex/values";
 import { tupleErr, tupleOk } from "#/lib/result";
 import { internalMutation } from "#convex/_generated/server";
-import { sessionReservationValidator } from "#convex/validators/sessionReservations";
+
+const sessionReservationValidator = v.object({
+	reservedAt: v.number(),
+	sessionStartAt: v.number(),
+	duration: v.string()
+});
+
 import {
 	claimBookingConfirmationService,
 	ensureStandaloneBookingReceiptNumberService,
