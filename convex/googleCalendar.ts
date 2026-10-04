@@ -10,10 +10,30 @@ import {
 	getAvailableRescheduleTimesService,
 	getBookableRangeBusyWindowsService,
 	getRescheduleBookableRangeBusyWindowsService,
-	rescheduleSessionService,
 	type GetAvailableRescheduleTimesError,
-	updateSessionFromAdminService
+	type RescheduleSessionError
 } from "#convex/services/googleCalendar/sessionCalendar";
+import { loadBookingAvailabilitySettings } from "#convex/lib/booking/bookingConfirmationActionBoundaries";
+import { loadGoogleCalendarClient } from "#convex/lib/googleCalendar/googleCalendarClient";
+import { requirePermissionActions } from "#convex/services/auth";
+import { getSessionFromQuery } from "#convex/lib/sessions/sessionLookup";
+import type {
+	AdminSessionUpdateError,
+	AdminSessionUpdateResult
+} from "#convex/lib/sessions/sessionAdminEdit";
+import {
+	finishRescheduledSession,
+	lockAndReserveReschedule,
+	loadRescheduleDetails,
+	saveRescheduledSession,
+	unlockRescheduleAfterSave,
+	updateRescheduleCalendar,
+	validateRescheduleTarget
+} from "#convex/services/googleCalendar/sessionRescheduleWorkflow";
+import {
+	maybeNotifyHostAfterAdminReschedule,
+	updateAdminSession
+} from "#convex/services/googleCalendar/sessionAdminUpdateWorkflow";
 import {
 	bookingAddonQuantitiesValidator,
 	bookingAddonsValidator
@@ -37,8 +57,8 @@ import {
 	type CompleteClaimedSessionError
 } from "#convex/services/booking/bookingClaimedSessionWorkflow";
 import type { CompleteClaimedSessionSuccess } from "#convex/services/booking/bookingConfirmation";
-import { getSessionFromQuery } from "#convex/lib/sessions/sessionLookup";
 import { okAsync } from "neverthrow";
+import type { Id } from "#convex/_generated/dataModel";
 import { cleanupCancelledSessionDriveService } from "#convex/services/drive/cleanupCancelledSessionDrive";
 
 export const setupDrive = action({
@@ -107,8 +127,40 @@ export const getAvailableRescheduleTimes = action({
 
 export const rescheduleSession = action({
 	args: { token: v.string(), date: v.string(), time: v.string() },
-	handler: async (ctx, args) => await rescheduleSessionService(ctx, args).match(tupleOk, tupleErr)
+	handler: async (
+		ctx,
+		args
+	): Promise<
+		Result<
+			{ bookingId: Id<"bookings">; warning?: "RESCHEDULE_EMAIL_SEND_FAILED" },
+			RescheduleSessionError
+		>
+	> =>
+		(
+			await loadRescheduleDetails(ctx, args)
+				.andThen((details) => validateRescheduleTarget(ctx, args, details))
+				.andThen(({ calendarClient, details, sessionStartAt, settings }) =>
+					lockAndReserveReschedule(ctx, details, sessionStartAt, settings).map((state) => ({
+						calendarClient,
+						state
+					}))
+				)
+				.andThen(({ calendarClient, state }) =>
+					updateRescheduleCalendar(ctx, args, state, calendarClient)
+				)
+				.andThen((state) => saveRescheduledSession(ctx, args, state))
+				.andThen((state) => unlockRescheduleAfterSave(ctx, state))
+				.andThen(({ session, settings, timingUpdate }) =>
+					finishRescheduledSession(session, args, timingUpdate, settings)
+				)
+		).match(tupleOk, tupleErr)
 });
+
+type UpdateSessionFromAdminError =
+	| AdminSessionUpdateError
+	| { reason: "NOT_AUTHENTICATED" }
+	| { reason: "NOT_AUTHORIZED" }
+	| { reason: "BOOKING_NOT_FOUND" };
 
 export const updateSessionFromAdmin = action({
 	args: {
@@ -126,8 +178,29 @@ export const updateSessionFromAdmin = action({
 		...bookingAddonQuantitiesValidator,
 		notes: v.optional(v.string())
 	},
-	handler: async (ctx, args) =>
-		await updateSessionFromAdminService(ctx, args).match(tupleOk, tupleErr)
+	handler: async (
+		ctx,
+		args
+	): Promise<Result<AdminSessionUpdateResult, UpdateSessionFromAdminError>> =>
+		(
+			await requirePermissionActions(ctx, "edit:sessions")
+				.andThen(() => getSessionFromQuery(ctx, args.bookingId))
+				.andThen((session) =>
+					loadBookingAvailabilitySettings(ctx).map((settings) => ({ session, settings }))
+				)
+				.andThen(({ session, settings }) =>
+					loadGoogleCalendarClient("GOOGLE_CALENDAR_AVAILABILITY_FAILED").map((client) => ({
+						client,
+						session,
+						settings
+					}))
+				)
+				.andThen(({ client, session, settings }) =>
+					updateAdminSession({ args, session, client, ctx, settings }).andThen((result) =>
+						maybeNotifyHostAfterAdminReschedule(ctx, args, session, settings, result)
+					)
+				)
+		).match(tupleOk, tupleErr)
 });
 
 export const cancelBookingFromAdmin = action({
