@@ -16,7 +16,7 @@ import {
 	resolveAdminSessionUpdate,
 	schedulePackageAdjustmentAfterReschedule,
 	validateClientSessionReschedule
-} from "#convex/lib/sessions/sessionSchedulingSave";
+} from "#convex/services/sessions/sessionSchedulingSave";
 
 // Reserve a target before any Calendar write. The shared helper checks confirmed
 // bookings and reservations from every session workflow in the same transaction.

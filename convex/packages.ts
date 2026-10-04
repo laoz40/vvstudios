@@ -9,15 +9,15 @@ import {
 } from "#convex/lib/booking/bookingAddonQuantities";
 import { getPackageFromDb, type PackageLookupError } from "#convex/lib/packages/packageLookup";
 import type { PaidPackageResult } from "#convex/lib/packages/packagePayment";
+import { createPackageSchedulingDetails } from "#convex/lib/packages/packageScheduling";
+import { okOrThrow } from "#convex/lib/result";
 import {
+	buildPackagePaidLifecyclePatch,
 	buildPaidPackageResult,
-	rejectAlreadyPaidPackage
+	patchPackagePaidLifecycle,
+	rejectAlreadyPaidPackage,
+	schedulePackageAdjustmentAtExpiry
 } from "#convex/lib/packages/packagePaidLifecycle";
-import {
-	createPackageSchedulingDetailsForPayment,
-	recordPackagePaidLifecycle,
-	schedulePaidPackageAdjustment
-} from "#convex/services/packages/packagePaid";
 import {
 	archivePackageService,
 	createPendingPackageService,
@@ -113,15 +113,25 @@ export const markPackagePaidAndCreateScheduleToken = internalMutation({
 		getPackageFromDb(ctx, args.packageId)
 			.andThen(rejectAlreadyPaidPackage)
 			.andThen((packageFromDb) =>
-				createPackageSchedulingDetailsForPayment(packageFromDb, args.paidAt)
+				okOrThrow(createPackageSchedulingDetails(packageFromDb, args.paidAt))
 			)
-			.andThen((packageSchedulingDetails) =>
-				recordPackagePaidLifecycle(ctx, args.packageId, args.paidAt, packageSchedulingDetails)
-			)
-			.andThen((packageSchedulingDetails) =>
-				schedulePaidPackageAdjustment(ctx, args.packageId, packageSchedulingDetails.expiresAt).map(
+			.andThen((packageSchedulingDetails) => {
+				const patch = buildPackagePaidLifecyclePatch(
+					packageSchedulingDetails.packageFromDb,
+					args.paidAt,
+					packageSchedulingDetails
+				);
+
+				return patchPackagePaidLifecycle(ctx, args.packageId, patch).map(
 					() => packageSchedulingDetails
-				)
+				);
+			})
+			.andThen((packageSchedulingDetails) =>
+				schedulePackageAdjustmentAtExpiry(
+					ctx,
+					args.packageId,
+					packageSchedulingDetails.expiresAt
+				).map(() => packageSchedulingDetails)
 			)
 			.map((packageSchedulingDetails) =>
 				buildPaidPackageResult(packageSchedulingDetails, args.paidAt)

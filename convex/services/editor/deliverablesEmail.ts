@@ -25,32 +25,23 @@ type SendDeliverablesError =
 	| { reason: "SESSION_NOT_IN_PAST" }
 	| { reason: "DELIVERABLES_FOLDER_MISSING" }
 	| { reason: "DELIVERABLES_FOLDER_EMPTY" }
-	| { reason: "DELIVERABLES_FOLDER_LIST_FAILED" }
-	| { reason: "DELIVERABLES_LINK_SHARE_FAILED" }
 	| { reason: "EMAIL_RENDER_FAILED" }
 	| { reason: "EMAIL_REQUEST_FAILED" }
-	| { reason: "EMAIL_RESPONSE_FAILED" };
+	| { reason: "EMAIL_RESPONSE_FAILED" }
+	| DriveError;
 
-function mapFolderListError(error: DriveError): SendDeliverablesError {
+function mapDeliverablesDriveError(error: DriveError): SendDeliverablesError {
 	if (error.reason === "GOOGLE_DRIVE_FOLDER_MISSING") {
 		return { reason: "DELIVERABLES_FOLDER_MISSING" };
 	}
 
-	return { reason: "DELIVERABLES_FOLDER_LIST_FAILED" };
-}
-
-function mapLinkShareError(error: DriveError): SendDeliverablesError {
-	if (error.reason === "GOOGLE_DRIVE_FOLDER_MISSING") {
-		return { reason: "DELIVERABLES_FOLDER_MISSING" };
-	}
-
-	return { reason: "DELIVERABLES_LINK_SHARE_FAILED" };
+	return error;
 }
 
 function grantGuestViewerLink(folder: { id: string; url: string }) {
 	return loadDriveClient()
 		.andThen((drive) => ensureAnyoneReaderPermission(drive, folder.id))
-		.mapErr(mapLinkShareError)
+		.mapErr(mapDeliverablesDriveError)
 		.map(() => folder);
 }
 
@@ -71,7 +62,7 @@ function requireSavedDeliverablesFolder(bookingId: Id<"bookings">, ctx: ActionCt
 function requireDeliverablesFolderContents(folder: { id: string; url: string }) {
 	return loadDriveClient()
 		.andThen((drive) => listDriveFolderChildren(drive, folder.id))
-		.mapErr(mapFolderListError)
+		.mapErr(mapDeliverablesDriveError)
 		.andThen((children) => {
 			if (children.length === 0) {
 				return errAsync({ reason: "DELIVERABLES_FOLDER_EMPTY" as const });

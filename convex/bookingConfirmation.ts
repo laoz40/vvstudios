@@ -2,17 +2,21 @@ import { v } from "convex/values";
 import { tupleErr, tupleOk } from "#/lib/result";
 import { internalMutation } from "#convex/_generated/server";
 import { sessionReservationValidator } from "#convex/lib/sessions/sessionReservations";
-import { getSessionFromDb } from "#convex/lib/sessions/sessionLookup";
 import {
-	assertBookingConfirmationReservation,
+	buildConfirmedBookingPatch,
+	patchConfirmedBooking,
+	requireBookingConfirmationReservation,
+	scheduleDriveSetupForConfirmedBooking
+} from "#convex/lib/booking/bookingConfirmationSave";
+import { getSessionFromDb } from "#convex/lib/sessions/sessionLookup";
+import { okOrThrow } from "#convex/lib/result";
+import {
 	claimBookingConfirmationService,
 	ensureStandaloneBookingReceiptNumberService,
 	markBookingConfirmationFailedService,
 	markSessionInvoiceEmailFailedService,
 	markSessionInvoiceEmailRetrySentService,
-	recordBookingReceiptNumberService,
-	scheduleConfirmedBookingDriveSetup,
-	writeConfirmedBooking
+	recordBookingReceiptNumberService
 } from "#convex/services/booking/bookingConfirmation";
 
 export const claimBookingConfirmation = internalMutation({
@@ -32,14 +36,21 @@ export const markBookingConfirmed = internalMutation({
 		googleCalendarId: v.optional(v.string()),
 		reservation: sessionReservationValidator
 	},
-	handler: (ctx, args) =>
-		getSessionFromDb(ctx, args.bookingId)
+	handler: (ctx, args) => {
+		const confirmedAt = Date.now();
+
+		return getSessionFromDb(ctx, args.bookingId)
 			.andThen((session) =>
-				assertBookingConfirmationReservation(session, args.reservation, Date.now())
+				requireBookingConfirmationReservation(session, args.reservation, confirmedAt)
 			)
-			.andThen((session) => writeConfirmedBooking(ctx, args, session))
-			.andThen((session) => scheduleConfirmedBookingDriveSetup(ctx, session))
-			.match(tupleOk, tupleErr)
+			.andThen((session) =>
+				okOrThrow(buildConfirmedBookingPatch(ctx, session, args, confirmedAt)).andThen((patch) =>
+					patchConfirmedBooking(ctx, args.bookingId, session, patch)
+				)
+			)
+			.andThen((session) => scheduleDriveSetupForConfirmedBooking(ctx, session))
+			.match(tupleOk, tupleErr);
+	}
 });
 
 export const ensureStandaloneBookingReceiptNumber = internalMutation({

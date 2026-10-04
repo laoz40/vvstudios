@@ -23,7 +23,7 @@ type PackageAdjustmentClaimError =
 
 type PackageAdjustmentInvoiceSendFailure =
 	| { reason: "STRIPE_CUSTOMER_NOT_FOUND" }
-	| { reason: "STRIPE_ADJUSTMENT_INVOICE_FAILED" };
+	| { reason: string };
 
 type SendPackageAdjustmentInvoiceError =
 	| PackageAdjustmentClaimError

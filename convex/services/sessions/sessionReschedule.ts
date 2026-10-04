@@ -1,5 +1,5 @@
 import { err, ok, type ResultAsync as NeverthrowResultAsync } from "neverthrow";
-import type { Doc } from "#convex/_generated/dataModel";
+import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
 import { okOrThrow } from "#convex/lib/result";
 import { getSessionFromDb } from "#convex/lib/sessions/sessionLookup";
@@ -10,8 +10,11 @@ import {
 	isRescheduleLinkExpired,
 	isSessionReschedulable,
 	markExistingActiveSessionRescheduleLinksUsed,
-	validateActiveRescheduleLink
+	validateActiveRescheduleLink,
+	validateAdminSessionForReschedule
 } from "#convex/lib/sessions/sessionRescheduleLinks";
+import type { CreateAdminRescheduleLinkError } from "#convex/lib/sessions/sessionRescheduleLinks";
+import { requirePermission } from "#convex/services/auth";
 
 export type RescheduleLinkLookupError =
 	| { reason: "RESCHEDULE_LINK_NOT_FOUND" }
@@ -23,6 +26,16 @@ export type RescheduleLinkLookupError =
 export interface ValidRescheduleLinkAndSession {
 	session: Doc<"bookings">;
 	link: Doc<"bookingRescheduleLinks">;
+}
+
+export function createAdminRescheduleLink(
+	ctx: MutationCtx,
+	args: { bookingId: Id<"bookings"> }
+): NeverthrowResultAsync<{ rescheduleUrl: string }, CreateAdminRescheduleLinkError> {
+	return requirePermission(ctx, "create:reschedule-links")
+		.andThen(() => getSessionFromDb(ctx, args.bookingId))
+		.andThen(validateAdminSessionForReschedule)
+		.andThen((session) => issueRescheduleLink(ctx, session));
 }
 
 export function issueRescheduleLink(

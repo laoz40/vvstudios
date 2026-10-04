@@ -6,29 +6,13 @@ import {
 	type BookingSearchPatchOverrides
 } from "#convex/lib/adminSearch/adminSearchBlob";
 import { scheduleDriveSetup } from "#convex/lib/drive/driveScheduling";
-import { env } from "#convex/env";
-import { schedulePackageAdjustmentWhenSessionsComplete } from "#convex/lib/packages/packageAdjustmentScheduling";
-import { sessionConsumesPackageCapacity } from "#convex/lib/packages/packageSessionCapacity";
 import { okOrThrow } from "#convex/lib/result";
+import { sessionConsumesPackageCapacity } from "#convex/lib/packages/packageSessionCapacity";
 import {
-	buildAdminSessionUpdatePatch,
-	type AdminSessionTimingPatch
-} from "#convex/lib/sessions/sessionAdminEdit";
-import { getSessionFromDb } from "#convex/lib/sessions/sessionLookup";
-import {
-	buildClientSessionRescheduleOptionalPatch,
-	buildSessionCalendarConfirmationPatch
-} from "#convex/lib/sessions/sessionSavePatch";
-import {
-	clearedSessionReservationPatch,
 	sessionHasReservation,
 	type SessionReservation,
 	type SessionReservationBooking
 } from "#convex/lib/sessions/sessionReservations";
-import type {
-	SaveAdminSessionUpdateArgs,
-	SaveClientSessionRescheduleArgs
-} from "#convex/lib/sessions/sessionSchedulingArgs";
 
 export function requireSessionReservation(
 	session: SessionReservationBooking,
@@ -63,15 +47,17 @@ export function requirePackageSessionForReschedule(
 
 type SessionDriveSetupTarget = Pick<Doc<"bookings">, "_id" | "packageId" | "status">;
 
+export type SessionDriveSetupArgs = {
+	confirmBooking?: boolean;
+	duration: string;
+	session: SessionDriveSetupTarget;
+	sessionStartAt: number;
+	timingChanged: boolean;
+};
+
 export function scheduleDriveSetupWhenConfirmed(
 	ctx: MutationCtx,
-	args: {
-		confirmBooking?: boolean;
-		duration: string;
-		session: SessionDriveSetupTarget;
-		sessionStartAt: number;
-		timingChanged: boolean;
-	}
+	args: SessionDriveSetupArgs
 ): ResultAsync<null, { reason: "BOOKING_INVALID_DURATION" }> {
 	const nextStatus = args.confirmBooking ? "confirmed" : args.session.status;
 
@@ -106,153 +92,19 @@ export function applySessionPatch(
 	);
 }
 
-type AdminSessionDatabasePatch = AdminSessionTimingPatch & {
-	googleCalendarId?: string;
-	googleEventId?: string;
-	status?: "confirmed";
-	bookingConfirmedAt?: number;
-	bookingFailureCode?: undefined;
-	reservationCreatedAt?: undefined;
-	reservationSessionStartAt?: undefined;
-	reservationDuration?: undefined;
-};
-
-/** Loaded booking + computed patch + flags, before any write. */
-export type ResolvedAdminSessionUpdate = {
-	session: Doc<"bookings">;
-	updatePatch: AdminSessionTimingPatch;
-	timingChanged: boolean;
-};
-
-/** Booking that passed package/reservation checks, before patch. */
-export type ValidatedClientSessionReschedule = {
-	session: Doc<"bookings">;
-	searchOverrides: BookingSearchPatchOverrides;
-};
-
-export function resolveAdminSessionUpdate(ctx: MutationCtx, args: SaveAdminSessionUpdateArgs) {
-	const now = Date.now();
-
-	return getSessionFromDb(ctx, args.bookingId)
-		.andThen((session) =>
-			buildAdminSessionUpdatePatch({
-				session,
-				timeZone: env.GOOGLE_CALENDAR_TIMEZONE,
-				values: args
-			}).map((updatePatch) => ({ session, updatePatch }))
-		)
-		.andThen(({ session, updatePatch }) =>
-			requireSessionReservation(session, args.reservation, now).map(() => ({
-				session,
-				updatePatch
-			}))
-		)
-		.map(({ session, updatePatch }) => ({
-			session,
-			updatePatch,
-			timingChanged:
-				session.sessionStartAt !== updatePatch.sessionStartAt || session.duration !== args.duration
-		}));
-}
-
-export function persistAdminSessionUpdate(
-	ctx: MutationCtx,
-	args: SaveAdminSessionUpdateArgs,
-	resolved: ResolvedAdminSessionUpdate
-) {
-	const patch: AdminSessionDatabasePatch = {
-		...resolved.updatePatch,
-		...buildSessionCalendarConfirmationPatch({
-			confirmBooking: args.confirmBooking,
-			googleCalendarId: args.googleCalendarId,
-			googleEventId: args.googleEventId
-		})
-	};
-
-	if (args.reservation) {
-		Object.assign(patch, clearedSessionReservationPatch);
-	}
-
+export function persistSessionPatchWithDriveSetup(args: {
+	ctx: MutationCtx;
+	bookingId: Id<"bookings">;
+	booking: Doc<"bookings">;
+	patch: Partial<Doc<"bookings">>;
+	searchOverrides?: BookingSearchPatchOverrides;
+	driveSetup: SessionDriveSetupArgs;
+}) {
 	return applySessionPatch(
-		ctx,
+		args.ctx,
 		args.bookingId,
-		resolved.session,
-		patch,
-		resolved.updatePatch
-	).andThen(() =>
-		scheduleDriveSetupWhenConfirmed(ctx, {
-			confirmBooking: args.confirmBooking,
-			duration: args.duration,
-			session: resolved.session,
-			sessionStartAt: resolved.updatePatch.sessionStartAt,
-			timingChanged: resolved.timingChanged
-		})
-	);
-}
-
-export function validateClientSessionReschedule(
-	ctx: MutationCtx,
-	args: SaveClientSessionRescheduleArgs
-) {
-	const now = Date.now();
-
-	return getSessionFromDb(ctx, args.bookingId)
-		.andThen((session) => requirePackageSessionForReschedule(session, args.packageId))
-		.andThen((session) =>
-			requireSessionReservation(session, args.reservation, now).map(() => session)
-		)
-		.map((session) => ({
-			session,
-			searchOverrides: {
-				addons: args.addons ?? session.addons,
-				date: args.date,
-				notes: args.notes ?? session.notes,
-				service: args.service ?? session.service,
-				time: args.time
-			}
-		}));
-}
-
-export function patchClientSessionReschedule(
-	ctx: MutationCtx,
-	args: SaveClientSessionRescheduleArgs,
-	validated: ValidatedClientSessionReschedule
-) {
-	const session = validated.session;
-
-	return applySessionPatch(
-		ctx,
-		args.bookingId,
-		session,
-		{
-			date: args.date,
-			time: args.time,
-			sessionStartAt: args.sessionStartAt,
-			reminderEmailClaimedAt: undefined,
-			reminderEmailSentAt: undefined,
-			reminderEmailFailureCode: undefined,
-			...buildClientSessionRescheduleOptionalPatch(args),
-			...clearedSessionReservationPatch
-		},
-		validated.searchOverrides
-	).andThen(() =>
-		scheduleDriveSetupWhenConfirmed(ctx, {
-			confirmBooking: args.confirmBooking,
-			duration: session.duration,
-			session,
-			sessionStartAt: args.sessionStartAt,
-			timingChanged: true
-		})
-	);
-}
-
-export function schedulePackageAdjustmentAfterReschedule(
-	ctx: MutationCtx,
-	args: SaveClientSessionRescheduleArgs
-): ResultAsync<null, never> {
-	if (args.packageId === undefined) {
-		return okAsync(null);
-	}
-
-	return schedulePackageAdjustmentWhenSessionsComplete(ctx, args.packageId);
+		args.booking,
+		args.patch,
+		args.searchOverrides
+	).andThen(() => scheduleDriveSetupWhenConfirmed(args.ctx, args.driveSetup));
 }

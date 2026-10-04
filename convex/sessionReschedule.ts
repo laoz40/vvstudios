@@ -1,14 +1,11 @@
 import { v } from "convex/values";
 import { tupleErr, tupleOk } from "#/lib/result";
 import { internalMutation, internalQuery, mutation, query } from "#convex/_generated/server";
-import { requirePermission } from "#convex/services/auth";
-import { getSessionByStripeSessionId, getSessionFromDb } from "#convex/lib/sessions/sessionLookup";
-import {
-	validateAdminSessionForReschedule,
-	validatePublicFailedSessionForReschedule
-} from "#convex/lib/sessions/sessionRescheduleLinks";
+import { getSessionByStripeSessionId } from "#convex/lib/sessions/sessionLookup";
+import { validatePublicFailedSessionForReschedule } from "#convex/lib/sessions/sessionRescheduleLinks";
 import {
 	createActiveRescheduleLinkService,
+	createAdminRescheduleLink as createAdminRescheduleLinkService,
 	getValidRescheduleLinkAndSessionService,
 	issueRescheduleLink,
 	lockRescheduleLinkService,
@@ -30,11 +27,7 @@ export const createPublicFailedSessionRescheduleLink = mutation({
 export const createAdminRescheduleLink = mutation({
 	args: { bookingId: v.id("bookings") },
 	handler: async (ctx, args) =>
-		await requirePermission(ctx, "create:reschedule-links")
-			.andThen(() => getSessionFromDb(ctx, args.bookingId))
-			.andThen(validateAdminSessionForReschedule)
-			.andThen((session) => issueRescheduleLink(ctx, session))
-			.match(tupleOk, tupleErr)
+		await createAdminRescheduleLinkService(ctx, args).match(tupleOk, tupleErr)
 });
 
 export const getRescheduleSessionByToken = query({

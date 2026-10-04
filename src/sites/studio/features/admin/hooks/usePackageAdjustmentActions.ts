@@ -1,7 +1,7 @@
 import { useState, type Dispatch, type SetStateAction } from "react";
 import { useAction } from "convex/react";
 import { toast } from "sonner";
-import { exhaustiveCheck, tryCatch } from "#/lib/result";
+import { tryCatch } from "#/lib/result";
 import { api } from "#convex/_generated/api";
 import type {
 	AdminPackagePendingAction,
@@ -9,6 +9,38 @@ import type {
 } from "#studio/features/admin/lib/admin-packages";
 
 type SetPackagePendingAction = Dispatch<SetStateAction<AdminPackagePendingAction>>;
+
+function showRetryAdjustmentInvoiceError(reason: string) {
+	switch (reason) {
+		case "NOT_AUTHENTICATED":
+			toast.error("You are not signed in.");
+
+			return;
+		case "NOT_AUTHORIZED":
+			toast.error("You do not have access to retry adjustment invoices.");
+
+			return;
+		case "PACKAGE_ADJUSTMENT_NOT_FOUND":
+		case "PACKAGE_NOT_FOUND":
+			toast.error("This package adjustment no longer exists.");
+
+			return;
+		case "PACKAGE_ADJUSTMENT_EMAIL_NOT_SENDABLE":
+			toast.error("Only failed adjustment emails can be retried.");
+
+			return;
+		case "STRIPE_CUSTOMER_NOT_FOUND":
+			toast.error("This package has no Stripe customer ID.");
+
+			return;
+		case "UNEXPECTED_ERROR":
+			toast.error("Something went wrong while retrying the adjustment invoice.");
+
+			return;
+		default:
+			toast.error("The adjustment invoice email failed again.");
+	}
+}
 
 export function usePackageAdjustmentActions(
 	packageRow: AdminPackageRow,
@@ -30,34 +62,7 @@ export function usePackageAdjustmentActions(
 		);
 
 		if (error !== null) {
-			const reason = error.reason;
-
-			switch (reason) {
-				case "NOT_AUTHENTICATED":
-					toast.error("You are not signed in.");
-					break;
-				case "NOT_AUTHORIZED":
-					toast.error("You do not have access to retry adjustment invoices.");
-					break;
-				case "PACKAGE_ADJUSTMENT_NOT_FOUND":
-				case "PACKAGE_NOT_FOUND":
-					toast.error("This package adjustment no longer exists.");
-					break;
-				case "PACKAGE_ADJUSTMENT_EMAIL_NOT_SENDABLE":
-					toast.error("Only failed adjustment emails can be retried.");
-					break;
-				case "STRIPE_CUSTOMER_NOT_FOUND":
-					toast.error("This package has no Stripe customer ID.");
-					break;
-				case "STRIPE_ADJUSTMENT_INVOICE_FAILED":
-					toast.error("The adjustment invoice email failed again.");
-					break;
-				case "UNEXPECTED_ERROR":
-					toast.error("Something went wrong while retrying the adjustment invoice.");
-					break;
-				default:
-					exhaustiveCheck(reason);
-			}
+			showRetryAdjustmentInvoiceError(error.reason);
 
 			setPendingAction(null);
 
