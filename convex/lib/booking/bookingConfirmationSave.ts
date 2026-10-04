@@ -1,7 +1,7 @@
 import { err, ok, okAsync, type Result, type ResultAsync } from "neverthrow";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { MutationCtx } from "#convex/_generated/server";
-import { searchBlobPatchForBooking } from "#convex/lib/adminSearch/adminSearchBlob";
+import { searchBlobPatchForBookingAsync } from "#convex/lib/adminSearch/adminSearchBlob";
 import { scheduleDriveSetup } from "#convex/lib/drive/driveScheduling";
 import { okOrThrow } from "#convex/lib/result";
 import {
@@ -71,13 +71,11 @@ export function buildConfirmedBookingPatch(
 		bookingReceiptPaidAt(session, confirmedAt)
 	);
 
-	return okOrThrow(
-		searchBlobPatchForBooking(ctx, session, { receiptNumber }).then((searchBlobPatch) => ({
-			...confirmedPatch,
-			receiptNumber,
-			...searchBlobPatch
-		}))
-	);
+	return searchBlobPatchForBookingAsync(ctx, session, { receiptNumber }).map((searchBlobPatch) => ({
+		...confirmedPatch,
+		receiptNumber,
+		...searchBlobPatch
+	}));
 }
 
 export function patchConfirmedBooking(

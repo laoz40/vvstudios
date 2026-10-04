@@ -15,32 +15,10 @@ import {
 	validateClaimStripeSession
 } from "#convex/lib/booking/bookingConfirmationClaim";
 import {
-	buildConfirmedBookingPatch,
-	patchConfirmedBooking,
-	requireBookingConfirmationReservation,
-	scheduleDriveSetupForConfirmedBooking,
-	type MarkBookingConfirmedArgs
-} from "#convex/lib/booking/bookingConfirmationSave";
-import {
 	clearedSessionReservationPatch,
 	sessionHasReservation,
 	type SessionReservation
 } from "#convex/lib/sessions/sessionReservations";
-
-export function confirmPaidBooking(ctx: MutationCtx, args: MarkBookingConfirmedArgs) {
-	const confirmedAt = Date.now();
-
-	return getSessionFromDb(ctx, args.bookingId)
-		.andThen((session) =>
-			requireBookingConfirmationReservation(session, args.reservation, confirmedAt)
-		)
-		.andThen((session) =>
-			buildConfirmedBookingPatch(ctx, session, args, confirmedAt).andThen((patch) =>
-				patchConfirmedBooking(ctx, args.bookingId, session, patch)
-			)
-		)
-		.andThen((session) => scheduleDriveSetupForConfirmedBooking(ctx, session));
-}
 
 type ClaimBookingConfirmationArgs = {
 	bookingId: string;

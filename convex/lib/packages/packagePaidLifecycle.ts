@@ -63,6 +63,21 @@ export function patchPackagePaidLifecycle(
 	return okOrThrow(ctx.db.patch("packages", packageId, patch).then(() => null));
 }
 
+export function patchPackagePaidAfterSchedulingDetails(
+	ctx: MutationCtx,
+	packageId: Id<"packages">,
+	paidAt: number,
+	packageSchedulingDetails: PackageSchedulingDetails
+) {
+	const patch = buildPackagePaidLifecyclePatch(
+		packageSchedulingDetails.packageFromDb,
+		paidAt,
+		packageSchedulingDetails
+	);
+
+	return patchPackagePaidLifecycle(ctx, packageId, patch).map(() => packageSchedulingDetails);
+}
+
 export function schedulePackageAdjustmentAtExpiry(
 	ctx: MutationCtx,
 	packageId: Id<"packages">,
