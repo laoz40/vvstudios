@@ -32,8 +32,27 @@ import {
 } from "#convex/lib/sessions/sessionCalendarTime";
 import { getBookingSettingsService } from "#convex/services/booking/bookingSettings";
 import type { RescheduleLinkLookupError } from "#convex/services/sessions/sessionReschedule";
+import { loadBookingAvailabilitySettings } from "#convex/lib/booking/bookingConfirmationActionBoundaries";
+import {
+	commitReschedule,
+	finishReschedule,
+	lockAndReserve,
+	prepareReschedule,
+	syncCalendar,
+	type RescheduleSessionArgs,
+	type RescheduleSessionError
+} from "#convex/services/googleCalendar/sessionRescheduleWorkflow";
+import {
+	applyUpdate,
+	notifyHostIfNeeded
+} from "#convex/services/googleCalendar/sessionAdminUpdateWorkflow";
+import type {
+	AdminSessionUpdateArgs,
+	AdminSessionUpdateError,
+	AdminSessionUpdateResult
+} from "#convex/lib/sessions/sessionAdminEdit";
 
-export type { RescheduleSessionArgs } from "#convex/services/googleCalendar/sessionRescheduleWorkflow";
+export type { RescheduleSessionArgs };
 
 type IgnoredBusyEvent = { calendarId?: string; eventId?: string };
 
@@ -200,6 +219,61 @@ export type CancelBookingFromAdminError = {
 		| "GOOGLE_CALENDAR_DELETE_FAILED"
 		| "GOOGLE_CALENDAR_RATE_LIMITED";
 };
+
+export function rescheduleSessionService(
+	ctx: ActionCtx,
+	args: RescheduleSessionArgs
+): ResultAsync<
+	{ bookingId: Id<"bookings">; warning?: "RESCHEDULE_EMAIL_SEND_FAILED" },
+	RescheduleSessionError
+> {
+	return prepareReschedule(ctx, args)
+		.andThen(({ calendarClient, details, sessionStartAt, settings }) =>
+			lockAndReserve(ctx, details, sessionStartAt, settings).map((state) => ({
+				calendarClient,
+				state
+			}))
+		)
+		.andThen(({ calendarClient, state }) => syncCalendar(ctx, args, state, calendarClient))
+		.andThen((state) => commitReschedule(ctx, args, state))
+		.andThen(({ session, settings, timingUpdate }) =>
+			finishReschedule(session, args, timingUpdate, settings)
+		);
+}
+
+export type UpdateSessionFromAdminError =
+	| AdminSessionUpdateError
+	| { reason: "NOT_AUTHENTICATED" }
+	| { reason: "NOT_AUTHORIZED" }
+	| { reason: "BOOKING_NOT_FOUND" };
+
+function authorizeAdminSessionEdit(ctx: ActionCtx, bookingId: Id<"bookings">) {
+	return requirePermissionActions(ctx, "edit:sessions").andThen(() =>
+		getSessionFromQuery(ctx, bookingId)
+	);
+}
+
+function loadAdminSessionEditDeps(ctx: ActionCtx) {
+	return loadBookingAvailabilitySettings(ctx).andThen((settings) =>
+		loadGoogleCalendarClient("GOOGLE_CALENDAR_AVAILABILITY_FAILED").map((client) => ({
+			client,
+			settings
+		}))
+	);
+}
+
+export function updateSessionFromAdminService(
+	ctx: ActionCtx,
+	args: AdminSessionUpdateArgs
+): ResultAsync<AdminSessionUpdateResult, UpdateSessionFromAdminError> {
+	return authorizeAdminSessionEdit(ctx, args.bookingId)
+		.andThen((session) => loadAdminSessionEditDeps(ctx).map((deps) => ({ session, ...deps })))
+		.andThen(({ client, session, settings }) =>
+			applyUpdate({ args, session, client, ctx, settings }).andThen((result) =>
+				notifyHostIfNeeded(ctx, args, session, settings, result)
+			)
+		);
+}
 
 export function cancelBookingFromAdminService(
 	ctx: ActionCtx,

@@ -301,7 +301,7 @@ function withReservationCompensation(
 	);
 }
 
-export function updateAdminSession({
+export function applyUpdate({
 	args,
 	session,
 	client,
@@ -326,7 +326,7 @@ export function updateAdminSession({
 	);
 }
 
-export function maybeNotifyHostAfterAdminReschedule(
+export function notifyHostIfNeeded(
 	ctx: ActionCtx,
 	args: AdminSessionUpdateArgs,
 	session: Doc<"bookings">,

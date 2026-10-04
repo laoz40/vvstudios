@@ -1,11 +1,17 @@
 "use node";
 
-import { okAsync, type Result } from "neverthrow";
+import { okAsync, type Result, type ResultAsync } from "neverthrow";
 import { internal } from "#convex/_generated/api";
 import type { Id } from "#convex/_generated/dataModel";
 import type { ActionCtx } from "#convex/_generated/server";
 import { sendBookingReminderEmailForSession } from "#convex/lib/booking/bookingConfirmation";
 import { fromConvexTuple } from "#convex/lib/result";
+import {
+	loadClaimedSession,
+	runCompletion,
+	type CompleteClaimedSessionError
+} from "#convex/services/booking/bookingClaimedSessionWorkflow";
+import type { CompleteClaimedSessionSuccess } from "#convex/services/booking/bookingConfirmation";
 
 export async function sendSessionReminderEmailService(
 	ctx: ActionCtx,
@@ -47,4 +53,17 @@ export async function sendSessionReminderEmailService(
 			);
 		})
 		.orElse(() => okAsync(null));
+}
+
+export function completeClaimedSessionService(
+	ctx: ActionCtx,
+	args: { bookingId: Id<"bookings"> }
+): ResultAsync<CompleteClaimedSessionSuccess, CompleteClaimedSessionError> {
+	return loadClaimedSession(ctx, args.bookingId).andThen((loaded) => {
+		if (loaded.kind === "done") {
+			return okAsync(loaded.outcome);
+		}
+
+		return runCompletion(ctx, loaded.session);
+	});
 }

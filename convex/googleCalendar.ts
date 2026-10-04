@@ -10,34 +10,17 @@ import {
 	getAvailableRescheduleTimesService,
 	getBookableRangeBusyWindowsService,
 	getRescheduleBookableRangeBusyWindowsService,
+	rescheduleSessionService,
+	updateSessionFromAdminService,
 	type GetAvailableRescheduleTimesError,
-	type RescheduleSessionError
+	type RescheduleSessionError,
+	type UpdateSessionFromAdminError
 } from "#convex/services/googleCalendar/sessionCalendar";
-import { loadBookingAvailabilitySettings } from "#convex/lib/booking/bookingConfirmationActionBoundaries";
-import { loadGoogleCalendarClient } from "#convex/lib/googleCalendar/googleCalendarClient";
-import { requirePermissionActions } from "#convex/services/auth";
-import { getSessionFromQuery } from "#convex/lib/sessions/sessionLookup";
-import type {
-	AdminSessionUpdateError,
-	AdminSessionUpdateResult
-} from "#convex/lib/sessions/sessionAdminEdit";
-import {
-	finishRescheduledSession,
-	lockAndReserveReschedule,
-	loadRescheduleDetails,
-	saveRescheduledSession,
-	unlockRescheduleAfterSave,
-	updateRescheduleCalendar,
-	validateRescheduleTarget
-} from "#convex/services/googleCalendar/sessionRescheduleWorkflow";
-import {
-	maybeNotifyHostAfterAdminReschedule,
-	updateAdminSession
-} from "#convex/services/googleCalendar/sessionAdminUpdateWorkflow";
 import {
 	bookingAddonQuantitiesValidator,
 	bookingAddonsValidator
 } from "#convex/lib/booking/bookingAddonQuantities";
+import type { AdminSessionUpdateResult } from "#convex/lib/sessions/sessionAdminEdit";
 import {
 	retryDriveSetupService,
 	runScheduledDriveSetupService,
@@ -49,15 +32,12 @@ import {
 	retryClientDrivePermissionsService,
 	type DriveClientPermissionsError
 } from "#convex/services/drive/driveClientPermissions";
-import { sendSessionReminderEmailService } from "#convex/services/booking/bookingConfirmationActions";
 import {
-	alreadyCompletedClaimedSessionOutcome,
-	finishIncompleteClaimedSession,
-	requireBookingConfirmationClaimed,
-	type CompleteClaimedSessionError
-} from "#convex/services/booking/bookingClaimedSessionWorkflow";
+	completeClaimedSessionService,
+	sendSessionReminderEmailService
+} from "#convex/services/booking/bookingConfirmationActions";
+import type { CompleteClaimedSessionError } from "#convex/services/booking/bookingClaimedSessionWorkflow";
 import type { CompleteClaimedSessionSuccess } from "#convex/services/booking/bookingConfirmation";
-import { okAsync } from "neverthrow";
 import type { Id } from "#convex/_generated/dataModel";
 import { cleanupCancelledSessionDriveService } from "#convex/services/drive/cleanupCancelledSessionDrive";
 
@@ -135,32 +115,8 @@ export const rescheduleSession = action({
 			{ bookingId: Id<"bookings">; warning?: "RESCHEDULE_EMAIL_SEND_FAILED" },
 			RescheduleSessionError
 		>
-	> =>
-		(
-			await loadRescheduleDetails(ctx, args)
-				.andThen((details) => validateRescheduleTarget(ctx, args, details))
-				.andThen(({ calendarClient, details, sessionStartAt, settings }) =>
-					lockAndReserveReschedule(ctx, details, sessionStartAt, settings).map((state) => ({
-						calendarClient,
-						state
-					}))
-				)
-				.andThen(({ calendarClient, state }) =>
-					updateRescheduleCalendar(ctx, args, state, calendarClient)
-				)
-				.andThen((state) => saveRescheduledSession(ctx, args, state))
-				.andThen((state) => unlockRescheduleAfterSave(ctx, state))
-				.andThen(({ session, settings, timingUpdate }) =>
-					finishRescheduledSession(session, args, timingUpdate, settings)
-				)
-		).match(tupleOk, tupleErr)
+	> => await rescheduleSessionService(ctx, args).match(tupleOk, tupleErr)
 });
-
-type UpdateSessionFromAdminError =
-	| AdminSessionUpdateError
-	| { reason: "NOT_AUTHENTICATED" }
-	| { reason: "NOT_AUTHORIZED" }
-	| { reason: "BOOKING_NOT_FOUND" };
 
 export const updateSessionFromAdmin = action({
 	args: {
@@ -182,25 +138,7 @@ export const updateSessionFromAdmin = action({
 		ctx,
 		args
 	): Promise<Result<AdminSessionUpdateResult, UpdateSessionFromAdminError>> =>
-		(
-			await requirePermissionActions(ctx, "edit:sessions")
-				.andThen(() => getSessionFromQuery(ctx, args.bookingId))
-				.andThen((session) =>
-					loadBookingAvailabilitySettings(ctx).map((settings) => ({ session, settings }))
-				)
-				.andThen(({ session, settings }) =>
-					loadGoogleCalendarClient("GOOGLE_CALENDAR_AVAILABILITY_FAILED").map((client) => ({
-						client,
-						session,
-						settings
-					}))
-				)
-				.andThen(({ client, session, settings }) =>
-					updateAdminSession({ args, session, client, ctx, settings }).andThen((result) =>
-						maybeNotifyHostAfterAdminReschedule(ctx, args, session, settings, result)
-					)
-				)
-		).match(tupleOk, tupleErr)
+		await updateSessionFromAdminService(ctx, args).match(tupleOk, tupleErr)
 });
 
 export const cancelBookingFromAdmin = action({
@@ -221,15 +159,7 @@ export const completeClaimedSession = internalAction({
 		ctx,
 		args
 	): Promise<Result<CompleteClaimedSessionSuccess, CompleteClaimedSessionError>> =>
-		(
-			await getSessionFromQuery(ctx, args.bookingId)
-				.andThen(requireBookingConfirmationClaimed)
-				.andThen((session) => {
-					const completed = alreadyCompletedClaimedSessionOutcome(session);
-
-					return completed ? okAsync(completed) : finishIncompleteClaimedSession(ctx, session);
-				})
-		).match(tupleOk, tupleErr)
+		(await completeClaimedSessionService(ctx, args)).match(tupleOk, tupleErr)
 });
 
 export const cleanupCancelledSessionDrive = internalAction({

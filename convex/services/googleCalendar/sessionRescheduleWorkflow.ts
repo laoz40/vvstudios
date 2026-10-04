@@ -62,7 +62,7 @@ export type ValidatedRescheduleTarget = {
 	settings: SessionAvailabilitySettings;
 };
 
-export function loadRescheduleDetails(
+function loadLink(
 	ctx: ActionCtx,
 	args: RescheduleSessionArgs
 ): ResultAsync<ValidRescheduleDetails, RescheduleSessionError> {
@@ -75,7 +75,7 @@ export function loadRescheduleDetails(
 	);
 }
 
-export function validateRescheduleTarget(
+function validateTarget(
 	ctx: ActionCtx,
 	args: RescheduleSessionArgs,
 	details: ValidRescheduleDetails
@@ -92,6 +92,10 @@ export function validateRescheduleTarget(
 			)
 		)
 	);
+}
+
+export function prepareReschedule(ctx: ActionCtx, args: RescheduleSessionArgs) {
+	return loadLink(ctx, args).andThen((details) => validateTarget(ctx, args, details));
 }
 
 export function validateRescheduleTiming(
@@ -116,7 +120,7 @@ export function validateRescheduleTiming(
 	});
 }
 
-export function lockAndReserveReschedule(
+export function lockAndReserve(
 	ctx: ActionCtx,
 	details: ValidRescheduleDetails,
 	sessionStartAt: number,
@@ -178,7 +182,7 @@ function clearReservationThenUnlock(ctx: ActionCtx, state: RescheduleState) {
 		.andThen(() => releaseRescheduleLink(ctx, state.link._id, state.lockedAt));
 }
 
-export function updateRescheduleCalendar(
+export function syncCalendar(
 	ctx: ActionCtx,
 	args: RescheduleSessionArgs,
 	state: RescheduleState,
@@ -205,7 +209,7 @@ export function updateRescheduleCalendar(
 		.orElse((error) => clearReservationThenUnlock(ctx, state).andThen(() => err(error)));
 }
 
-export function saveRescheduledSession(
+function saveReschedule(
 	ctx: ActionCtx,
 	args: RescheduleSessionArgs,
 	state: RescheduleState & { timingUpdate: RescheduledSessionTimingUpdate }
@@ -232,18 +236,21 @@ export function saveRescheduledSession(
 		.orElse((error) => clearReservationThenUnlock(ctx, state).andThen(() => err(error)));
 }
 
-export function unlockRescheduleAfterSave(
+export function commitReschedule(
 	ctx: ActionCtx,
+	args: RescheduleSessionArgs,
 	state: RescheduleState & { timingUpdate: RescheduledSessionTimingUpdate }
 ) {
-	return unlockRescheduleLink(ctx, {
-		linkId: state.link._id,
-		lockedAt: state.lockedAt,
-		expiresAt: state.timingUpdate.sessionStartAt
-	}).map(() => state);
+	return saveReschedule(ctx, args, state).andThen((saved) =>
+		unlockRescheduleLink(ctx, {
+			linkId: saved.link._id,
+			lockedAt: saved.lockedAt,
+			expiresAt: saved.timingUpdate.sessionStartAt
+		}).map(() => saved)
+	);
 }
 
-export function finishRescheduledSession(
+export function finishReschedule(
 	session: Doc<"bookings">,
 	args: RescheduleSessionArgs,
 	timingUpdate: RescheduledSessionTimingUpdate,

@@ -21,6 +21,7 @@ import {
 	verifySessionCanBeScheduled
 } from "#convex/lib/sessions/sessionAdminEdit";
 import type { SessionReservation } from "#convex/lib/sessions/sessionReservations";
+import { getSessionFromQuery } from "#convex/lib/sessions/sessionLookup";
 import type { CompleteClaimedSessionSuccess } from "#convex/services/booking/bookingConfirmation";
 
 export type CompleteClaimedSessionError =
@@ -45,7 +46,7 @@ type InsertClaimedBookingCalendarEventResult =
 	| { kind: "created"; googleEventId: string | undefined }
 	| ClaimedSessionStepDone;
 
-export function requireBookingConfirmationClaimed(
+function requireClaimed(
 	session: Doc<"bookings">
 ): Result<Doc<"bookings">, { reason: "BOOKING_CONFIRMATION_NOT_CLAIMED" }> {
 	return session.bookingConfirmationClaimedAt
@@ -53,9 +54,7 @@ export function requireBookingConfirmationClaimed(
 		: err({ reason: "BOOKING_CONFIRMATION_NOT_CLAIMED" as const });
 }
 
-export function alreadyCompletedClaimedSessionOutcome(
-	session: Doc<"bookings">
-): CompleteClaimedSessionSuccess | null {
+export function alreadyCompleted(session: Doc<"bookings">): CompleteClaimedSessionSuccess | null {
 	if (session.status === "confirmed" || session.status === "email_failed") {
 		return { outcome: "already_completed" };
 	}
@@ -63,44 +62,61 @@ export function alreadyCompletedClaimedSessionOutcome(
 	return null;
 }
 
-export function finishIncompleteClaimedSession(
+export type LoadedClaimedSession =
+	| { kind: "done"; outcome: CompleteClaimedSessionSuccess }
+	| { kind: "pending"; session: Doc<"bookings"> };
+
+export function loadClaimedSession(
+	ctx: ActionCtx,
+	bookingId: Id<"bookings">
+): ResultAsync<
+	LoadedClaimedSession,
+	CompleteClaimedSessionError | { reason: "BOOKING_NOT_FOUND" }
+> {
+	return getSessionFromQuery(ctx, bookingId)
+		.andThen(requireClaimed)
+		.andThen((session) => {
+			const completed = alreadyCompleted(session);
+
+			return completed
+				? okAsync({ kind: "done" as const, outcome: completed })
+				: okAsync({ kind: "pending" as const, session });
+		});
+}
+
+export function runCompletion(
 	ctx: ActionCtx,
 	session: Doc<"bookings">
 ): ResultAsync<CompleteClaimedSessionSuccess, CompleteClaimedSessionError> {
 	return loadBookingAvailabilitySettings(ctx).andThen((settings) =>
-		completeClaimedBookingSession(ctx, session, settings)
+		completeClaimed(ctx, session, settings)
 	);
 }
 
-export function completeClaimedBookingSession(
+function completeClaimed(
 	ctx: ActionCtx,
 	session: Doc<"bookings">,
 	settings: SessionAvailabilitySettings
 ): ResultAsync<CompleteClaimedSessionSuccess, CompleteClaimedSessionError> {
 	const calendarClient = getGoogleCalendarClient();
 
-	return verifyClaimedBookingSchedule(ctx, session, settings, calendarClient).andThen(
-		(schedule) => {
-			if (schedule.kind === "done") {
-				return okAsync(schedule.outcome);
+	return verifySchedule(ctx, session, settings, calendarClient).andThen((schedule) => {
+		if (schedule.kind === "done") {
+			return okAsync(schedule.outcome);
+		}
+
+		return reserveSlot(ctx, session, settings).andThen((hold) => {
+			if (hold.kind === "done") {
+				return okAsync(hold.outcome);
 			}
 
-			return reserveClaimedBookingSlot(ctx, session, settings).andThen((hold) => {
-				if (hold.kind === "done") {
-					return okAsync(hold.outcome);
-				}
-
-				return insertClaimedBookingCalendarEvent(
-					ctx,
-					session,
-					calendarClient,
-					hold.reservation
-				).andThen((calendar) => {
+			return insertCalendarEvent(ctx, session, calendarClient, hold.reservation).andThen(
+				(calendar) => {
 					if (calendar.kind === "done") {
 						return okAsync(calendar.outcome);
 					}
 
-					return finalizeClaimedBookingAfterCalendar(
+					return finalizeAfterCalendar(
 						ctx,
 						session,
 						settings,
@@ -108,10 +124,10 @@ export function completeClaimedBookingSession(
 						hold.reservation,
 						calendar.googleEventId
 					);
-				});
-			});
-		}
-	);
+				}
+			);
+		});
+	});
 }
 
 function markClaimedBookingTimeUnavailable(ctx: ActionCtx, bookingId: Id<"bookings">) {
@@ -120,7 +136,7 @@ function markClaimedBookingTimeUnavailable(ctx: ActionCtx, bookingId: Id<"bookin
 	}));
 }
 
-function verifyClaimedBookingSchedule(
+function verifySchedule(
 	ctx: ActionCtx,
 	session: Doc<"bookings">,
 	settings: SessionAvailabilitySettings,
@@ -144,7 +160,7 @@ function verifyClaimedBookingSchedule(
 	});
 }
 
-function reserveClaimedBookingSlot(
+function reserveSlot(
 	ctx: ActionCtx,
 	session: Doc<"bookings">,
 	settings: SessionAvailabilitySettings
@@ -182,7 +198,7 @@ function buildClaimedBookingCalendarPayload(session: Doc<"bookings">, timeZone: 
 	});
 }
 
-function insertClaimedBookingCalendarEvent(
+function insertCalendarEvent(
 	ctx: ActionCtx,
 	session: Doc<"bookings">,
 	calendarClient: GoogleCalendarClient,
@@ -218,7 +234,7 @@ function insertClaimedBookingCalendarEvent(
 		);
 }
 
-function finalizeClaimedBookingAfterCalendar(
+function finalizeAfterCalendar(
 	ctx: ActionCtx,
 	session: Doc<"bookings">,
 	settings: SessionAvailabilitySettings,

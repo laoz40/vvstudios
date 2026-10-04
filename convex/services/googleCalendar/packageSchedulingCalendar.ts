@@ -50,6 +50,60 @@ type PackageAvailabilityError =
 				| "INVALID_ZONED_TIME";
 	  };
 
+function loadPackageAvailabilityContext(
+	ctx: ActionCtx,
+	args: { rateLimitKey: string; token: string }
+) {
+	return fromConvexTuple(
+		ctx.runQuery(internal.packageScheduling.getValidPackageByToken, {
+			now: Date.now(),
+			token: args.token
+		})
+	)
+		.andThen((packageFromDb) =>
+			checkGoogleCalendarAvailabilityRateLimit(ctx, args.rateLimitKey).map(() => packageFromDb)
+		)
+		.andThen((packageFromDb) =>
+			loadGoogleCalendarClient("GOOGLE_CALENDAR_AVAILABILITY_FAILED").map((client) => ({
+				client,
+				packageFromDb
+			}))
+		)
+		.andThen(({ client, packageFromDb }) => {
+			const startDate = formatDateValue(startOfToday());
+			const endDate = formatDateValue(new Date(packageFromDb.expiresAt));
+
+			return getDateAvailabilityRange(startDate, endDate, client.timeZone).map(
+				(availabilityRange) => ({ availabilityRange, client, packageFromDb })
+			);
+		});
+}
+
+function fetchPackageBusyWindows(context: {
+	availabilityRange: { timeMax: string; timeMin: string };
+	client: {
+		calendar: Parameters<typeof getBusyWindowsInRange>[0]["calendar"];
+		calendarIds: string[];
+		timeZone: string;
+	};
+	packageFromDb: { expiresAt: number };
+}) {
+	return calendarResultAsync(
+		getBusyWindowsInRange({
+			calendar: context.client.calendar,
+			calendarIds: context.client.calendarIds,
+			timeMax: context.availabilityRange.timeMax,
+			timeMin: context.availabilityRange.timeMin,
+			timeZone: context.client.timeZone
+		}),
+		"GOOGLE_CALENDAR_AVAILABILITY_FAILED"
+	).map((busyWindows) => ({
+		busyWindows,
+		client: context.client,
+		packageFromDb: context.packageFromDb
+	}));
+}
+
 export function getPackageBusyWindowsService(
 	ctx: ActionCtx,
 	args: { rateLimitKey: string; token: string }
@@ -61,98 +115,58 @@ export function getPackageBusyWindowsService(
 	},
 	PackageAvailabilityError
 > {
-	return (
-		fromConvexTuple(
-			ctx.runQuery(internal.packageScheduling.getValidPackageByToken, {
-				now: Date.now(),
-				token: args.token
-			})
-		)
-			// Apply both customer and global availability limits before calling Calendar.
-			.andThen((packageFromDb) =>
-				checkGoogleCalendarAvailabilityRateLimit(ctx, args.rateLimitKey).map(() => packageFromDb)
-			)
-			// Load Calendar configuration before calculating the package's bookable range.
-			.andThen((packageFromDb) =>
-				loadGoogleCalendarClient("GOOGLE_CALENDAR_AVAILABILITY_FAILED").map((client) => ({
-					client,
-					packageFromDb
-				}))
-			)
-			// Parse the complete date range covered by the package scheduling link.
-			.andThen(({ client, packageFromDb }) => {
-				const startDate = formatDateValue(startOfToday());
-				const endDate = formatDateValue(new Date(packageFromDb.expiresAt));
+	return loadPackageAvailabilityContext(ctx, args)
+		.andThen((context) => fetchPackageBusyWindows(context))
+		.andThen(({ busyWindows, client, packageFromDb }) =>
+			groupBusyWindowsByDay(busyWindows, client.timeZone).map((busyDays) => ({
+				busyWindowsByMonth: groupBusyDaysByMonth(busyDays),
+				packageExpiresAt: packageFromDb.expiresAt,
+				timeZone: client.timeZone
+			}))
+		);
+}
 
-				return getDateAvailabilityRange(startDate, endDate, client.timeZone).map(
-					(availabilityRange) => ({ availabilityRange, client, packageFromDb })
-				);
-			})
-			// Fetch every Calendar event that can block a package booking.
-			.andThen(({ availabilityRange, client, packageFromDb }) =>
-				calendarResultAsync(
-					getBusyWindowsInRange({
-						calendar: client.calendar,
-						calendarIds: client.calendarIds,
-						timeMax: availabilityRange.timeMax,
-						timeMin: availabilityRange.timeMin,
-						timeZone: client.timeZone
-					}),
-					"GOOGLE_CALENDAR_AVAILABILITY_FAILED"
-				).map((busyWindows) => ({ busyWindows, client, packageFromDb }))
-			)
-			// Group busy days by month.
-			.andThen(({ busyWindows, client, packageFromDb }) =>
-				groupBusyWindowsByDay(busyWindows, client.timeZone).map((busyDays) => ({
-					busyWindowsByMonth: groupBusyDaysByMonth(busyDays),
-					packageExpiresAt: packageFromDb.expiresAt,
-					timeZone: client.timeZone
-				}))
-			)
-	);
+function ensurePackageSlotAvailable(args: {
+	session: SessionCalendarEventRecord | null;
+	details: PackageCalendarDetails;
+}) {
+	return loadGoogleCalendarClient("GOOGLE_CALENDAR_SYNC_FAILED").andThen((client) => {
+		const ignoredEvent = args.session
+			? { calendarId: args.session.googleCalendarId, eventId: args.session.googleEventId }
+			: undefined;
+
+		return calendarResultAsync(
+			getBusyWindows({
+				calendar: client.calendar,
+				calendarIds: client.calendarIds,
+				date: args.details.date,
+				ignoredEvent,
+				timeZone: client.timeZone
+			}),
+			"GOOGLE_CALENDAR_SYNC_FAILED"
+		).andThen((busyWindows) => {
+			const isAvailable = isTimeSlotAvailable({
+				busyWindows,
+				date: args.details.date,
+				duration: args.details.duration,
+				eventBufferMinutes: args.details.eventBufferMinutes,
+				time: args.details.time,
+				timeZone: client.timeZone
+			});
+
+			return isAvailable ? ok(client) : err({ reason: "BOOKING_TIME_UNAVAILABLE" as const });
+		});
+	});
 }
 
 export function savePackageSessionCalendarEventService(args: {
 	session: SessionCalendarEventRecord | null;
 	details: PackageCalendarDetails;
 }): ResultAsync<{ googleCalendarId?: string; googleEventId?: string }, PackageCalendarWriteError> {
-	return (
-		loadGoogleCalendarClient("GOOGLE_CALENDAR_SYNC_FAILED")
-			// Confirm the requested slot remains free before writing a Calendar event.
-			.andThen((client) => {
-				const ignoredEvent = args.session
-					? { calendarId: args.session.googleCalendarId, eventId: args.session.googleEventId }
-					: undefined;
-
-				return calendarResultAsync(
-					getBusyWindows({
-						calendar: client.calendar,
-						calendarIds: client.calendarIds,
-						date: args.details.date,
-						ignoredEvent,
-						timeZone: client.timeZone
-					}),
-					"GOOGLE_CALENDAR_SYNC_FAILED"
-				).map((busyWindows) => ({ busyWindows, client }));
-			})
-			.andThen(({ busyWindows, client }) => {
-				const isAvailable = isTimeSlotAvailable({
-					busyWindows,
-					date: args.details.date,
-					duration: args.details.duration,
-					eventBufferMinutes: args.details.eventBufferMinutes,
-					time: args.details.time,
-					timeZone: client.timeZone
-				});
-
-				return isAvailable ? ok(client) : err({ reason: "BOOKING_TIME_UNAVAILABLE" as const });
-			})
-			// Create a new event or update the existing package session event.
-			.andThen((client) =>
-				args.session
-					? updatePackageCalendarEvent(client, args.session, args.details)
-					: createPackageCalendarEvent(client, args.details)
-			)
+	return ensurePackageSlotAvailable(args).andThen((client) =>
+		args.session
+			? updatePackageCalendarEvent(client, args.session, args.details)
+			: createPackageCalendarEvent(client, args.details)
 	);
 }
 
