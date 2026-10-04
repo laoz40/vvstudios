@@ -11,12 +11,13 @@ import { getPackageFromDb, type PackageLookupError } from "#convex/lib/packages/
 import type { PaidPackageResult } from "#convex/lib/packages/packagePayment";
 import {
 	buildPaidPackageResult,
-	persistPackagePaidLifecycle,
-	rejectAlreadyPaidPackage,
-	schedulePackageAdjustmentAtExpiry
+	rejectAlreadyPaidPackage
 } from "#convex/lib/packages/packagePaidLifecycle";
-import { createPackageSchedulingDetails } from "#convex/lib/packages/packageScheduling";
-import { okOrThrow } from "#convex/lib/result";
+import {
+	createPackageSchedulingDetailsForPayment,
+	recordPackagePaidLifecycle,
+	schedulePaidPackageAdjustment
+} from "#convex/services/packages/packagePaid";
 import {
 	archivePackageService,
 	createPendingPackageService,
@@ -112,17 +113,15 @@ export const markPackagePaidAndCreateScheduleToken = internalMutation({
 		getPackageFromDb(ctx, args.packageId)
 			.andThen(rejectAlreadyPaidPackage)
 			.andThen((packageFromDb) =>
-				okOrThrow(createPackageSchedulingDetails(packageFromDb, args.paidAt))
+				createPackageSchedulingDetailsForPayment(packageFromDb, args.paidAt)
 			)
 			.andThen((packageSchedulingDetails) =>
-				persistPackagePaidLifecycle(ctx, args.packageId, args.paidAt, packageSchedulingDetails)
+				recordPackagePaidLifecycle(ctx, args.packageId, args.paidAt, packageSchedulingDetails)
 			)
 			.andThen((packageSchedulingDetails) =>
-				schedulePackageAdjustmentAtExpiry(
-					ctx,
-					args.packageId,
-					packageSchedulingDetails.expiresAt
-				).map(() => packageSchedulingDetails)
+				schedulePaidPackageAdjustment(ctx, args.packageId, packageSchedulingDetails.expiresAt).map(
+					() => packageSchedulingDetails
+				)
 			)
 			.map((packageSchedulingDetails) =>
 				buildPaidPackageResult(packageSchedulingDetails, args.paidAt)

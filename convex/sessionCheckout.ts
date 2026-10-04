@@ -6,14 +6,11 @@ import {
 	bookingAddonQuantitiesValidator,
 	bookingAddonsValidator
 } from "#convex/lib/booking/bookingAddonQuantities";
-import { getBookingAvailabilitySettings } from "#convex/lib/booking/bookingSettings";
 import { env } from "#convex/env";
 import { getSessionStartAt } from "#convex/lib/sessions/sessionAdminEdit";
 import {
-	insertPendingCheckoutBooking,
-	validateCheckoutSessionAvailability
-} from "#convex/lib/sessions/pendingCheckoutSession";
-import {
+	assertCheckoutSessionAvailable,
+	createPendingCheckoutBooking,
 	deletePendingSessionService,
 	markSessionExpiredByStripeSessionIdService
 } from "#convex/services/booking/sessionCheckout";
@@ -40,10 +37,9 @@ export const createPendingSession = internalMutation({
 		notes: v.optional(v.string())
 	},
 	handler: (ctx, args) =>
-		getBookingAvailabilitySettings(ctx)
-			.andThen((settings) => validateCheckoutSessionAvailability(settings, args))
+		assertCheckoutSessionAvailable(ctx, args)
 			.andThen(() => getSessionStartAt(args.date, args.time, env.GOOGLE_CALENDAR_TIMEZONE))
-			.andThen((sessionStartAt) => insertPendingCheckoutBooking(ctx, args, sessionStartAt))
+			.andThen((sessionStartAt) => createPendingCheckoutBooking(ctx, args, sessionStartAt))
 			.match(tupleOk, tupleErr)
 });
 

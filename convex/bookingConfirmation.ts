@@ -2,19 +2,17 @@ import { v } from "convex/values";
 import { tupleErr, tupleOk } from "#/lib/result";
 import { internalMutation } from "#convex/_generated/server";
 import { sessionReservationValidator } from "#convex/lib/sessions/sessionReservations";
-import {
-	persistConfirmedBooking,
-	requireBookingConfirmationReservation,
-	scheduleDriveSetupForConfirmedBooking
-} from "#convex/lib/booking/bookingConfirmationSave";
 import { getSessionFromDb } from "#convex/lib/sessions/sessionLookup";
 import {
+	assertBookingConfirmationReservation,
 	claimBookingConfirmationService,
 	ensureStandaloneBookingReceiptNumberService,
 	markBookingConfirmationFailedService,
 	markSessionInvoiceEmailFailedService,
 	markSessionInvoiceEmailRetrySentService,
-	recordBookingReceiptNumberService
+	recordBookingReceiptNumberService,
+	scheduleConfirmedBookingDriveSetup,
+	writeConfirmedBooking
 } from "#convex/services/booking/bookingConfirmation";
 
 export const claimBookingConfirmation = internalMutation({
@@ -37,10 +35,10 @@ export const markBookingConfirmed = internalMutation({
 	handler: (ctx, args) =>
 		getSessionFromDb(ctx, args.bookingId)
 			.andThen((session) =>
-				requireBookingConfirmationReservation(session, args.reservation, Date.now())
+				assertBookingConfirmationReservation(session, args.reservation, Date.now())
 			)
-			.andThen((session) => persistConfirmedBooking(ctx, args, session))
-			.andThen((session) => scheduleDriveSetupForConfirmedBooking(ctx, session))
+			.andThen((session) => writeConfirmedBooking(ctx, args, session))
+			.andThen((session) => scheduleConfirmedBookingDriveSetup(ctx, session))
 			.match(tupleOk, tupleErr)
 });
 

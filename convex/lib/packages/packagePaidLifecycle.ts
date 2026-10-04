@@ -20,44 +20,47 @@ export function rejectAlreadyPaidPackage(
 	return ok(packageFromDb);
 }
 
-export function persistPackagePaidLifecycle(
-	ctx: MutationCtx,
-	packageId: Id<"packages">,
+export type PackagePaidLifecyclePatch = {
+	expiresAt: number;
+	paidAt: number;
+	packageReminderState: undefined;
+	scheduleLinkStatus: "active";
+	scheduleTokenHash: string;
+	status: "schedule_email_failed";
+	receiptNumber?: string;
+	searchBlob?: string;
+};
+
+export function buildPackagePaidLifecyclePatch(
+	packageFromDb: Doc<"packages">,
 	paidAt: number,
 	packageSchedulingDetails: PackageSchedulingDetails
-): ResultAsync<PackageSchedulingDetails, never> {
-	return okOrThrow(
-		(async () => {
-			const packageFromDb = packageSchedulingDetails.packageFromDb;
+): PackagePaidLifecyclePatch {
+	const paidLifecyclePatch: PackagePaidLifecyclePatch = {
+		expiresAt: packageSchedulingDetails.expiresAt,
+		paidAt,
+		packageReminderState: undefined,
+		scheduleLinkStatus: "active",
+		scheduleTokenHash: packageSchedulingDetails.scheduleTokenHash,
+		status: "schedule_email_failed"
+	};
 
-			const paidLifecyclePatch = {
-				expiresAt: packageSchedulingDetails.expiresAt,
-				paidAt,
-				packageReminderState: undefined,
-				scheduleLinkStatus: "active" as const,
-				scheduleTokenHash: packageSchedulingDetails.scheduleTokenHash,
-				status: "schedule_email_failed" as const
-			};
+	if (packageFromDb.receiptNumber) {
+		return paidLifecyclePatch;
+	}
 
-			if (packageFromDb.receiptNumber) {
-				await ctx.db.patch("packages", packageId, paidLifecyclePatch);
+	const receiptNumber = resolvePackageReceiptNumber(packageFromDb, paidAt);
+	const searchBlobPatch = searchBlobPatchForPackage(packageFromDb, { receiptNumber });
 
-				return packageSchedulingDetails;
-			}
+	return { ...paidLifecyclePatch, receiptNumber, ...searchBlobPatch };
+}
 
-			const receiptNumber = resolvePackageReceiptNumber(packageFromDb, paidAt);
-
-			const searchBlobPatch = searchBlobPatchForPackage(packageFromDb, { receiptNumber });
-
-			await ctx.db.patch("packages", packageId, {
-				...paidLifecyclePatch,
-				receiptNumber,
-				...searchBlobPatch
-			});
-
-			return packageSchedulingDetails;
-		})()
-	);
+export function patchPackagePaidLifecycle(
+	ctx: MutationCtx,
+	packageId: Id<"packages">,
+	patch: PackagePaidLifecyclePatch
+): ResultAsync<null, never> {
+	return okOrThrow(ctx.db.patch("packages", packageId, patch).then(() => null));
 }
 
 export function schedulePackageAdjustmentAtExpiry(

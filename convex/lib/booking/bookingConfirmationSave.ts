@@ -33,7 +33,7 @@ export function requireBookingConfirmationReservation(
 	return ok(session);
 }
 
-async function buildConfirmedBookingPatch(
+export async function buildConfirmedBookingPatch(
 	ctx: MutationCtx,
 	session: Doc<"bookings">,
 	args: Pick<MarkBookingConfirmedArgs, "googleEventId" | "googleCalendarId">,
@@ -62,18 +62,13 @@ async function buildConfirmedBookingPatch(
 	return { ...confirmedPatch, receiptNumber, ...searchBlobPatch };
 }
 
-export function persistConfirmedBooking(
+export function patchConfirmedBooking(
 	ctx: MutationCtx,
-	args: MarkBookingConfirmedArgs,
-	session: Doc<"bookings">
+	bookingId: Id<"bookings">,
+	session: Doc<"bookings">,
+	patch: Awaited<ReturnType<typeof buildConfirmedBookingPatch>>
 ): ResultAsync<Doc<"bookings">, never> {
-	const confirmedAt = Date.now();
-
-	return okOrThrow(
-		buildConfirmedBookingPatch(ctx, session, args, confirmedAt).then((patch) =>
-			ctx.db.patch("bookings", args.bookingId, patch).then(() => session)
-		)
-	);
+	return okOrThrow(ctx.db.patch("bookings", bookingId, patch).then(() => session));
 }
 
 export function scheduleDriveSetupForConfirmedBooking(

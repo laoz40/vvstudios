@@ -1,13 +1,47 @@
 import { ok } from "neverthrow";
 import type { Doc } from "#convex/_generated/dataModel";
 import type { MutationCtx } from "#convex/_generated/server";
+import { getBookingAvailabilitySettings } from "#convex/lib/booking/bookingSettings";
 import { okOrThrow } from "#convex/lib/result";
 import { archiveDeadCheckoutBooking } from "#convex/lib/sessions/sessionArchive";
+import {
+	type CreatePendingCheckoutSessionArgs,
+	buildPendingPaymentBookingFields,
+	findPendingPaymentBookingAtStartTime,
+	insertPendingPaymentBooking,
+	rejectPendingPaymentSlotConflict,
+	resolveCheckoutDriveClientId,
+	validateCheckoutSessionAvailability
+} from "#convex/lib/sessions/pendingCheckoutSession";
 import {
 	validatePendingSessionDeletion,
 	validateSessionExpiry,
 	type DeletePendingSessionSuccess
 } from "#convex/lib/sessions/sessionCheckout";
+
+export function assertCheckoutSessionAvailable(
+	ctx: MutationCtx,
+	args: Pick<CreatePendingCheckoutSessionArgs, "date" | "duration" | "time">
+) {
+	return getBookingAvailabilitySettings(ctx).andThen((settings) =>
+		validateCheckoutSessionAvailability(settings, args)
+	);
+}
+
+export function createPendingCheckoutBooking(
+	ctx: MutationCtx,
+	args: CreatePendingCheckoutSessionArgs,
+	sessionStartAt: number
+) {
+	return findPendingPaymentBookingAtStartTime(ctx, sessionStartAt)
+		.andThen(rejectPendingPaymentSlotConflict)
+		.andThen(() => resolveCheckoutDriveClientId(ctx, args))
+		.andThen((driveClientId) => {
+			const bookingFields = buildPendingPaymentBookingFields(args, sessionStartAt, driveClientId);
+
+			return insertPendingPaymentBooking(ctx, bookingFields);
+		});
+}
 
 export function markSessionExpiredByStripeSessionIdService(
 	ctx: MutationCtx,

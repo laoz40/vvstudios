@@ -1,6 +1,6 @@
-import { err, type Result, type ResultAsync } from "neverthrow";
+import { err, ok, type Result, type ResultAsync } from "neverthrow";
 import { formatDriveClientFolderName } from "#studio/lib/bookingdatetime";
-import type { Doc } from "#convex/_generated/dataModel";
+import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { MutationCtx } from "#convex/_generated/server";
 import { env } from "#convex/env";
 import type { BookingAddonQuantitiesArgs } from "#convex/lib/booking/bookingAddonQuantities";
@@ -42,11 +42,10 @@ export function validateCheckoutSessionAvailability(
 	}).map(() => null);
 }
 
-export function insertPendingCheckoutBooking(
+export function findPendingPaymentBookingAtStartTime(
 	ctx: MutationCtx,
-	args: CreatePendingCheckoutSessionArgs,
 	sessionStartAt: number
-): ResultAsync<{ bookingId: Doc<"bookings">["_id"] }, SessionAvailabilityValidationError> {
+): ResultAsync<Doc<"bookings"> | null, never> {
 	return okOrThrow(
 		ctx.db
 			.query("bookings")
@@ -54,39 +53,70 @@ export function insertPendingCheckoutBooking(
 				query.eq("status", "pending_payment").eq("sessionStartAt", sessionStartAt)
 			)
 			.first()
-	).andThen((pendingBooking) => {
-		if (pendingBooking !== null) {
-			return err({ reason: "BOOKING_TIME_UNAVAILABLE" as const });
-		}
+	);
+}
 
-		return getOrCreateDriveClientId(ctx, {
-			email: args.email,
-			displayName: formatDriveClientFolderName({
-				accountName: args.accountName,
-				contactName: args.name
-			})
-		}).andThen((driveClientId) => {
-			const email = args.email.trim().toLowerCase();
-
-			const phone = normalizePhone(args.phone);
-
-			const bookingFields = {
-				...args,
-				phone,
-				email,
-				sessionStartAt,
-				status: "pending_payment" as const,
-				pendingPaymentCreatedAt: Date.now(),
-				archived: false,
-				driveClientId
-			};
-
-			return okOrThrow(
-				ctx.db.insert("bookings", {
-					...bookingFields,
-					searchBlob: buildBookingSearchBlob(bookingFields)
-				})
-			).map((bookingId) => ({ bookingId }));
-		});
+export function resolveCheckoutDriveClientId(
+	ctx: MutationCtx,
+	args: Pick<CreatePendingCheckoutSessionArgs, "accountName" | "email" | "name">
+): ResultAsync<Id<"driveClients">, never> {
+	return getOrCreateDriveClientId(ctx, {
+		email: args.email,
+		displayName: formatDriveClientFolderName({
+			accountName: args.accountName,
+			contactName: args.name
+		})
 	});
+}
+
+export type PendingPaymentBookingInsertFields = CreatePendingCheckoutSessionArgs & {
+	phone: string;
+	email: string;
+	sessionStartAt: number;
+	status: "pending_payment";
+	pendingPaymentCreatedAt: number;
+	archived: false;
+	driveClientId: Id<"driveClients">;
+};
+
+export function buildPendingPaymentBookingFields(
+	args: CreatePendingCheckoutSessionArgs,
+	sessionStartAt: number,
+	driveClientId: Id<"driveClients">
+): PendingPaymentBookingInsertFields {
+	const email = args.email.trim().toLowerCase();
+	const phone = normalizePhone(args.phone);
+
+	return {
+		...args,
+		phone,
+		email,
+		sessionStartAt,
+		status: "pending_payment",
+		pendingPaymentCreatedAt: Date.now(),
+		archived: false,
+		driveClientId
+	};
+}
+
+export function insertPendingPaymentBooking(
+	ctx: MutationCtx,
+	bookingFields: PendingPaymentBookingInsertFields
+): ResultAsync<{ bookingId: Doc<"bookings">["_id"] }, never> {
+	return okOrThrow(
+		ctx.db.insert("bookings", {
+			...bookingFields,
+			searchBlob: buildBookingSearchBlob(bookingFields)
+		})
+	).map((bookingId) => ({ bookingId }));
+}
+
+export function rejectPendingPaymentSlotConflict(
+	pendingBooking: Doc<"bookings"> | null
+): Result<null, SessionAvailabilityValidationError> {
+	if (pendingBooking !== null) {
+		return err({ reason: "BOOKING_TIME_UNAVAILABLE" as const });
+	}
+
+	return ok(null);
 }
