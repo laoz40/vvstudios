@@ -1,7 +1,5 @@
 import { v } from "convex/values";
 import { tupleErr, tupleOk } from "#/lib/result";
-import { internal } from "#convex/_generated/api";
-import type { Id } from "#convex/_generated/dataModel";
 import { internalMutation } from "#convex/_generated/server";
 import {
 	sessionReservationValidator,
@@ -74,15 +72,5 @@ export const saveClientSessionReschedule = internalMutation({
 		packageId: v.optional(v.id("packages")),
 		reservation: sessionReservationValidator
 	},
-	handler: (ctx, args) =>
-		saveClientSessionRescheduleService(
-			ctx,
-			args,
-			(packageId): Promise<Id<"_scheduled_functions">> =>
-				ctx.scheduler.runAfter(
-					0,
-					internal.packageScheduling.processPackageAdjustmentWhenSessionsComplete,
-					{ packageId }
-				)
-		).match(tupleOk, tupleErr)
+	handler: (ctx, args) => saveClientSessionRescheduleService(ctx, args).match(tupleOk, tupleErr)
 });

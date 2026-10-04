@@ -63,7 +63,7 @@ async function getAssignedEditorDisplayName(ctx: QueryCtx, tokenIdentifier: stri
 	return editor.displayName || editor.email;
 }
 
-type BookingSearchPatchOverrides = Partial<BookingSearchBlobFields> &
+export type BookingSearchPatchOverrides = Partial<BookingSearchBlobFields> &
 	Pick<Partial<Doc<"bookings">>, "assignedEditorTokenIdentifier" | "assignedEditorDisplayName">;
 
 export async function searchBlobPatchForBooking(
