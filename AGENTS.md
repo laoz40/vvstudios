@@ -14,6 +14,23 @@ Operational priorities: accessibility, fast first paint on marketing pages, and 
 - Default to shadcn for UI
 - t3env for env variables
 
+## Skills router
+
+Read [docs/agent-codebase-map.md](./docs/agent-codebase-map.md) when you need to find
+code or pick a workflow.
+
+| Situation | Skill |
+| --- | --- |
+| Planning, audit, or cross-cutting refactor | `.agents/skills/architect/` |
+| Pre-PR pitfall sweep (lint, Convex boundaries, CI) | `.agents/skills/correct/` |
+| Convex work | `.agents/skills/convex/` (then a domain skill) |
+| Tests | `.agents/skills/tests/` |
+| Prove UI in browser | `.agents/skills/verify-vvstudios/` |
+| Zustand / modals | `.agents/skills/zustand/` |
+
+Post-implementation review: load [CODING_STANDARDS.md](./CODING_STANDARDS.md) in a review
+subagent (same standards as the former code-review skill reference).
+
 ## Behaviour
 
 - Ask before making assumptions that change behavior, UX, or architecture.
@@ -38,7 +55,7 @@ Before opening PR:
   - `dead-code`
   - `dupes`
   - `test:e2e` and related `test:e2e:*` scripts when the change touches those flows.
-- Use `code-review` skill within a subagent.
+- Use [CODING_STANDARDS.md](./CODING_STANDARDS.md) in a review subagent (see skills router).
 
 - Do not run `build` unless asked.
 - Do not start the dev server if one is already running.
