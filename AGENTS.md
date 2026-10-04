@@ -72,8 +72,11 @@ Rules:
 - New services are verb-first and have no `Service` suffix. Do not bulk-rename existing ones.
 - Existing code is migrating to this split. When you touch a service that fails these rules, fix it only if the change is in scope; do not sweep.
 - Errors: return the real domain reason from lib, email senders and rate limiters. Do not `mapErr` into a synthetic code. Fire-and-forget success returns `null`.
+- Lib and service steps return `Result` / `ResultAsync` with `ok` / `err` for domain outcomes. Chain with `.andThen` / `.map`; do not wrap a whole lib function in `okOrThrow`.
 - Result helpers live in `convex/lib/result.ts`. Do not call `fromSafePromise` / `fromPromise` directly.
-  - `okOrThrow` — `ctx.db`, `runQuery` / `runMutation` returning raw values. Infra failure throws; domain errors (`NOT_FOUND`, etc.) you return in `.andThen`.
+  - `okOrThrow` — only the **single** Convex I/O expression at that step: `ctx.db.*`, `ctx.scheduler.*`, `ctx.auth.getUserIdentity()`, or `ctx.runQuery` / `ctx.runMutation` returning a raw value. Infra failure throws; expected domain errors belong in `.andThen` as `err(...)`.
+  - `promiseResult` — a `Promise` that already resolves to `Result`. Prefer refactoring the callee to `ResultAsync`.
+  - `liftPromise` — local async that is not Convex I/O (crypto, DNS, legacy async lib). Prefer new lib helpers that return `ResultAsync` directly.
   - `fromConvexTuple` — `runQuery` / `runMutation` whose handler uses `.match(tupleOk, tupleErr)`.
   - `tryPromise` — external APIs (Stripe, Resend, Google, render). Failure becomes domain `err` in `catch`.
 
