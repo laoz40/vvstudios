@@ -382,7 +382,7 @@ function patchExistingSessionCalendarEvent({
 			return sessionCalendarTimingUpdateErrorFromCause(cause);
 		}
 	})
-		.map(() => ({} satisfies SessionCalendarTimingUpdateResult))
+		.map(() => ({}) satisfies SessionCalendarTimingUpdateResult)
 		.orElse(
 			(
 				patchError
@@ -422,11 +422,7 @@ export function updateSessionCalendarEventTiming({
 	const googleEventId = session.googleEventId;
 
 	return tryPromise({
-		try: () =>
-			client.calendar.events.get({
-				calendarId: googleCalendarId,
-				eventId: googleEventId
-			}),
+		try: () => client.calendar.events.get({ calendarId: googleCalendarId, eventId: googleEventId }),
 		catch: (cause): SessionCalendarEventLookupCatch => {
 			const parsedError = calendarErrorSchema.safeParse(cause);
 
