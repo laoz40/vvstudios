@@ -1,26 +1,61 @@
-import { okAsync } from "neverthrow";
+import { ok, okAsync } from "neverthrow";
 import type { Id } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
 import { requirePermission } from "#convex/lib/auth";
-import { okOrThrow } from "#convex/lib/result";
 import {
 	archivePackageWhenFullyDone,
 	unarchivePackageForNewUnpaidInvoice
 } from "#convex/lib/packages/packageArchive";
+import { getPackageFromDb } from "#convex/lib/packages/packageLookup";
+import { okOrThrow } from "#convex/lib/result";
 import {
 	archiveSessionWhenFullyDone,
 	unarchiveSessionForNewUnpaidInvoice
 } from "#convex/lib/sessions/sessionArchive";
 import type { StripeInvoiceLineItem } from "#convex/lib/stripe/stripeInvoice";
 import {
-	applyUnarchiveWhenNewStripeInvoice,
 	listStripeInvoicesForBooking,
 	listStripeInvoicesForPackage,
 	markStripeInvoicePaid,
 	recordBookingStripeInvoice,
 	recordPackageAdjustmentStripeInvoice,
-	recordPackageStripeInvoice
+	recordPackageStripeInvoice,
+	type StripeInvoiceInsertResult
 } from "#convex/lib/stripe/stripeInvoices";
+
+function unarchiveAfterNewBookingInvoice(
+	ctx: MutationCtx,
+	bookingId: Id<"bookings">,
+	insertResult: StripeInvoiceInsertResult
+) {
+	if (!insertResult.created) {
+		return okAsync(insertResult);
+	}
+
+	return okOrThrow(ctx.db.get("bookings", bookingId)).andThen((booking) => {
+		if (booking === null) {
+			return okAsync(insertResult);
+		}
+
+		return unarchiveSessionForNewUnpaidInvoice(ctx, booking).map(() => insertResult);
+	});
+}
+
+function unarchiveAfterNewPackageInvoice(
+	ctx: MutationCtx,
+	packageId: Id<"packages">,
+	insertResult: StripeInvoiceInsertResult
+) {
+	if (!insertResult.created) {
+		return okAsync(insertResult);
+	}
+
+	return getPackageFromDb(ctx, packageId)
+		.andThen((packageRecord) =>
+			unarchivePackageForNewUnpaidInvoice(ctx, packageRecord).map(() => insertResult)
+		)
+		.orElse(() => ok(insertResult));
+}
 
 export function listStripeInvoicesForBookingService(
 	ctx: QueryCtx,
@@ -40,20 +75,6 @@ export function listStripeInvoicesForPackageService(
 	);
 }
 
-function recordStripeInvoiceWithPackageUnarchive(
-	ctx: MutationCtx,
-	packageId: Id<"packages">,
-	record: () => ReturnType<typeof recordPackageStripeInvoice>
-) {
-	return record().andThen((insertResult) =>
-		applyUnarchiveWhenNewStripeInvoice(
-			insertResult,
-			() => okOrThrow(ctx.db.get("packages", packageId)),
-			(packageRecord) => unarchivePackageForNewUnpaidInvoice(ctx, packageRecord)
-		)
-	);
-}
-
 export function recordBookingStripeInvoiceService(
 	ctx: MutationCtx,
 	args: {
@@ -65,11 +86,7 @@ export function recordBookingStripeInvoiceService(
 	}
 ) {
 	return recordBookingStripeInvoice(ctx, args).andThen((insertResult) =>
-		applyUnarchiveWhenNewStripeInvoice(
-			insertResult,
-			() => okOrThrow(ctx.db.get("bookings", args.bookingId)),
-			(booking) => unarchiveSessionForNewUnpaidInvoice(ctx, booking)
-		)
+		unarchiveAfterNewBookingInvoice(ctx, args.bookingId, insertResult)
 	);
 }
 
@@ -83,8 +100,8 @@ export function recordPackageStripeInvoiceService(
 		createdBy?: string;
 	}
 ) {
-	return recordStripeInvoiceWithPackageUnarchive(ctx, args.packageId, () =>
-		recordPackageStripeInvoice(ctx, args)
+	return recordPackageStripeInvoice(ctx, args).andThen((insertResult) =>
+		unarchiveAfterNewPackageInvoice(ctx, args.packageId, insertResult)
 	);
 }
 
@@ -98,8 +115,8 @@ export function recordPackageAdjustmentStripeInvoiceService(
 		totalAmount: number;
 	}
 ) {
-	return recordStripeInvoiceWithPackageUnarchive(ctx, args.packageId, () =>
-		recordPackageAdjustmentStripeInvoice(ctx, args)
+	return recordPackageAdjustmentStripeInvoice(ctx, args).andThen((insertResult) =>
+		unarchiveAfterNewPackageInvoice(ctx, args.packageId, insertResult)
 	);
 }
 

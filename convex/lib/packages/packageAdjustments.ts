@@ -57,18 +57,6 @@ export function getPackageAdjustmentInvoice(
 	});
 }
 
-export type PackageAdjustmentInvoiceRequired = Extract<
-	Doc<"packageAdjustments">,
-	{ outcome: "invoice_required" }
->;
-
-export function packageAdjustmentInvoiceEmailCompletionClaimIsActive(
-	adjustment: PackageAdjustmentInvoiceRequired,
-	claimedAt: number
-) {
-	return adjustment.invoiceEmailClaimedAt === claimedAt;
-}
-
 export function requirePackageAdjustmentPaymentEligibility(
 	adjustment: Extract<Doc<"packageAdjustments">, { outcome: "invoice_required" }>,
 	now: number

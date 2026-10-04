@@ -4,11 +4,9 @@ import type { MutationCtx } from "#convex/_generated/server";
 import { requirePermission } from "#convex/lib/auth";
 import {
 	getPackageAdjustmentInvoice,
-	packageAdjustmentInvoiceEmailCompletionClaimIsActive,
 	requirePackageAdjustmentPaymentEligibility,
 	validatePackageAdjustmentEmailClaim,
-	type PackageAdjustmentEmailClaim,
-	type PackageAdjustmentInvoiceRequired
+	type PackageAdjustmentEmailClaim
 } from "#convex/lib/packages/packageAdjustments";
 import { claimPackageAdjustmentInvoicePayment } from "#convex/lib/packages/packageAdjustmentInvoicePayment";
 import { archivePackageWhenFullyDone } from "#convex/lib/packages/packageArchive";
@@ -94,28 +92,16 @@ export function markStalledPackageAdjustmentInvoiceEmailFailedService(
 	);
 }
 
-function completePackageAdjustmentInvoiceEmailForActiveClaim(
-	ctx: MutationCtx,
-	args: ClaimedPackageAdjustmentInvoiceEmailArgs,
-	complete: (
-		adjustment: PackageAdjustmentInvoiceRequired
-	) => ReturnType<typeof okOrThrow<{ updated: boolean }>>
-) {
-	return getPackageAdjustmentInvoice(ctx, args.adjustmentId).andThen((adjustment) => {
-		if (!packageAdjustmentInvoiceEmailCompletionClaimIsActive(adjustment, args.claimedAt)) {
-			return ok({ updated: false });
-		}
-
-		return complete(adjustment);
-	});
-}
-
 export function completePackageAdjustmentInvoiceEmailSentService(
 	ctx: MutationCtx,
 	args: ClaimedPackageAdjustmentInvoiceEmailArgs & { stripeInvoiceId: string }
 ) {
-	return completePackageAdjustmentInvoiceEmailForActiveClaim(ctx, args, (adjustment) =>
-		okOrThrow(
+	return getPackageAdjustmentInvoice(ctx, args.adjustmentId).andThen((adjustment) => {
+		if (adjustment.invoiceEmailClaimedAt !== args.claimedAt) {
+			return ok({ updated: false });
+		}
+
+		return okOrThrow(
 			ctx.db
 				.patch("packageAdjustments", adjustment._id, {
 					invoiceEmailStatus: "sent",
@@ -138,24 +124,28 @@ export function completePackageAdjustmentInvoiceEmailSentService(
 				],
 				totalAmount: adjustment.totalAmount
 			}).map(() => result);
-		})
-	);
+		});
+	});
 }
 
 export function completePackageAdjustmentInvoiceEmailFailedService(
 	ctx: MutationCtx,
 	args: ClaimedPackageAdjustmentInvoiceEmailArgs
 ) {
-	return completePackageAdjustmentInvoiceEmailForActiveClaim(ctx, args, (adjustment) =>
-		okOrThrow(
+	return getPackageAdjustmentInvoice(ctx, args.adjustmentId).andThen((adjustment) => {
+		if (adjustment.invoiceEmailClaimedAt !== args.claimedAt) {
+			return ok({ updated: false });
+		}
+
+		return okOrThrow(
 			ctx.db
 				.patch("packageAdjustments", adjustment._id, {
 					invoiceEmailStatus: "failed",
 					invoiceEmailClaimedAt: undefined
 				})
 				.then(() => ({ updated: true }))
-		)
-	);
+		);
+	});
 }
 
 export function claimPackageAdjustmentInvoicePaymentService(

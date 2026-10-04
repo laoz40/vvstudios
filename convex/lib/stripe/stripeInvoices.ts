@@ -23,24 +23,6 @@ export type StripeInvoiceInsertResult = {
 	created: boolean;
 };
 
-export function applyUnarchiveWhenNewStripeInvoice<TParent, E extends { reason: string }>(
-	insertResult: StripeInvoiceInsertResult,
-	loadParent: () => ResultAsync<TParent | null, E>,
-	unarchive: (parent: TParent) => ResultAsync<unknown, E>
-): ResultAsync<StripeInvoiceInsertResult, E> {
-	if (!insertResult.created) {
-		return okAsync(insertResult);
-	}
-
-	return loadParent().andThen((parent) => {
-		if (parent === null) {
-			return okAsync(insertResult);
-		}
-
-		return unarchive(parent).map(() => insertResult);
-	});
-}
-
 function sumStripeInvoiceLineItems(lineItems: StripeInvoiceLineItem[]) {
 	return lineItems.reduce((total, lineItem) => total + lineItem.amount, 0);
 }
