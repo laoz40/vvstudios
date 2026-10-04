@@ -3,6 +3,7 @@
 	"jsPlugins": [
 		{ "name": "anti-slop", "specifier": "./tools/oxlint/anti-slop/index.ts" },
 		{ "name": "neverthrow", "specifier": "./tools/oxlint/neverthrow/index.ts" },
+		{ "name": "convex-handlers", "specifier": "./tools/oxlint/convex-handlers/index.ts" },
 		"@convex-dev/eslint-plugin"
 	],
 	"plugins": ["eslint", "oxc", "typescript", "unicorn", "react", "import", "jsx-a11y"],
@@ -15,7 +16,8 @@
 		"convex/_generated/**",
 		"src/**/*.gen.ts",
 		"tools/oxlint/anti-slop/**",
-		"tools/oxlint/neverthrow/**"
+		"tools/oxlint/neverthrow/**",
+		"tools/oxlint/convex-handlers/**"
 	],
 	"rules": {
 		"@typescript-eslint/ban-ts-comment": "error",
@@ -215,6 +217,7 @@
 			"files": ["convex/lib/**", "convex/services/**"],
 			"rules": { "neverthrow/no-service-error-remap-switch": "error" }
 		},
+		{ "files": ["convex/*.ts"], "rules": { "convex-handlers/no-root-lib-import": "error" } },
 		{
 			"files": ["**/*.ts", "**/*.tsx", "**/*.mts", "**/*.cts"],
 			"rules": {
