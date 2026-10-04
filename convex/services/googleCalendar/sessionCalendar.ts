@@ -35,7 +35,7 @@ import {
 	checkBookingSubmitRateLimit,
 	checkGoogleCalendarAvailabilityRateLimit
 } from "#convex/lib/rateLimits";
-import { fromConvexTuple, okOrThrow } from "#convex/lib/result";
+import { fromConvexTuple, okOrThrow, promiseResult } from "#convex/lib/result";
 import { getRescheduleUrlForToken } from "#convex/lib/sessions/sessionRescheduleLinks";
 import {
 	lockAndReserveReschedule,
@@ -346,9 +346,7 @@ export function rescheduleSessionService(
 				).map(() => state)
 			)
 			.andThen(({ session, settings, timingUpdate }) =>
-				okOrThrow(finishRescheduledSession(session, args, timingUpdate, settings)).andThen(
-					(result) => result
-				)
+				promiseResult(finishRescheduledSession(session, args, timingUpdate, settings))
 			)
 	);
 }
@@ -420,7 +418,7 @@ export function cancelBookingFromAdminService(
 			)
 			// Delete the provider event before cancelling the booking in Convex.
 			.andThen(({ client, session }) =>
-				okOrThrow(deleteSessionCalendarEvent({ session, client })).andThen((result) => result)
+				promiseResult(deleteSessionCalendarEvent({ session, client }))
 			)
 			// Persist cancellation after deletion succeeds or the provider event is already missing.
 			.andThen(() =>

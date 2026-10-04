@@ -17,7 +17,12 @@ export async function readBookingAvailabilitySettings(ctx: QueryCtx) {
 }
 
 export function getBookingAvailabilitySettings(ctx: QueryCtx) {
-	return okOrThrow(readBookingAvailabilitySettings(ctx));
+	return okOrThrow(
+		ctx.db
+			.query("bookingSettings")
+			.withIndex("by_key", (query) => query.eq("key", "main"))
+			.unique()
+	).map((settings) => settings ?? DEFAULT_BOOKING_AVAILABILITY_SETTINGS);
 }
 
 function getTimeMinutes(value: string) {

@@ -1,7 +1,7 @@
-import { err, ok } from "neverthrow";
+import { err, ok, ResultAsync } from "neverthrow";
 import type { Doc } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
-import { okOrThrow } from "#convex/lib/result";
+import { liftPromise, okOrThrow } from "#convex/lib/result";
 
 const EDITOR_LIMIT = 200;
 
@@ -62,8 +62,7 @@ async function loadEditorWithWorkStatus(ctx: QueryCtx, editor: Doc<"editorProfil
 
 export function listEmployeesForManagement(ctx: QueryCtx) {
 	return listEditorProfiles(ctx).andThen((editors) =>
-		// One bounded bookings query per editor; fine at the studio's editor count.
-		okOrThrow(Promise.all(editors.map((editor) => loadEditorWithWorkStatus(ctx, editor))))
+		ResultAsync.combine(editors.map((editor) => liftPromise(loadEditorWithWorkStatus(ctx, editor))))
 	);
 }
 

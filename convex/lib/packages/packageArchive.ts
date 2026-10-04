@@ -11,7 +11,7 @@ import {
 	packageArchivedPatch,
 	setPackageArchived
 } from "#convex/lib/archiveState";
-import { okOrThrow } from "#convex/lib/result";
+import { liftPromise, okOrThrow } from "#convex/lib/result";
 import {
 	listStripeInvoicesForPackage,
 	summarizeCustomPackageStripeInvoices,
@@ -124,6 +124,13 @@ export function isPackageEligibleForAutoArchive(
 	return true;
 }
 
+function loadPackageAutoArchiveContextAsync(
+	ctx: QueryCtx | MutationCtx,
+	packageId: Id<"packages">
+): ResultAsync<Awaited<ReturnType<typeof loadPackageAutoArchiveContext>>, never> {
+	return liftPromise(loadPackageAutoArchiveContext(ctx, packageId));
+}
+
 async function loadPackageAutoArchiveContext(
 	ctx: QueryCtx | MutationCtx,
 	packageId: Id<"packages">
@@ -160,7 +167,7 @@ export function archivePackageWhenFullyDone(
 	packageId: Id<"packages">,
 	now = Date.now()
 ): ResultAsync<null, never> {
-	return okOrThrow(loadPackageAutoArchiveContext(ctx, packageId)).andThen((context) => {
+	return loadPackageAutoArchiveContextAsync(ctx, packageId).andThen((context) => {
 		if (!context) {
 			return okAsync(null);
 		}
@@ -183,7 +190,7 @@ export function archivePackageWhenFullyDone(
 			return okAsync(null);
 		}
 
-		return okOrThrow(setPackageArchived(ctx, packageId, true).then(() => null));
+		return setPackageArchived(ctx, packageId, true);
 	});
 }
 
@@ -200,5 +207,5 @@ export function unarchivePackageForNewUnpaidInvoice(
 		return okAsync(null);
 	}
 
-	return okOrThrow(setPackageArchived(ctx, packageRecord._id, false).then(() => null));
+	return setPackageArchived(ctx, packageRecord._id, false);
 }

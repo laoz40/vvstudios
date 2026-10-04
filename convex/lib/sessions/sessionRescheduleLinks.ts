@@ -1,9 +1,9 @@
-import { err, ok, type ResultAsync } from "neverthrow";
+import { err, ok, ResultAsync } from "neverthrow";
 import { internal } from "#convex/_generated/api";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { ActionCtx, MutationCtx } from "#convex/_generated/server";
 import { env } from "#convex/env";
-import { fromConvexTuple } from "#convex/lib/result";
+import { fromConvexTuple, liftPromise, okOrThrow } from "#convex/lib/result";
 
 const rescheduleLinkInvalidationBatchSize = 100;
 
@@ -53,6 +53,10 @@ export async function hashRescheduleToken(token: string) {
 	const hashBuffer = await crypto.subtle.digest("SHA-256", encodedToken);
 
 	return bytesToHex(new Uint8Array(hashBuffer));
+}
+
+export function hashRescheduleTokenAsync(token: string): ResultAsync<string, never> {
+	return liftPromise(hashRescheduleToken(token));
 }
 
 export function buildRescheduleUrl(baseUrl: string, token: string) {
@@ -152,7 +156,7 @@ export function isRescheduleLinkExpired(
 	return now >= link.expiresAt || now >= session.sessionStartAt;
 }
 
-export async function createActiveRescheduleLinkForSession({
+export function createActiveRescheduleLinkForSession({
 	session,
 	ctx,
 	expiresAt,
@@ -162,21 +166,28 @@ export async function createActiveRescheduleLinkForSession({
 	ctx: MutationCtx;
 	expiresAt: number;
 	now: number;
-}) {
-	await markExistingActiveSessionRescheduleLinksUsed({ ctx, bookingId: session._id, now });
+}): ResultAsync<{ linkId: Id<"bookingRescheduleLinks">; token: string }, never> {
+	return okOrThrow(
+		markExistingActiveSessionRescheduleLinksUsed({ ctx, bookingId: session._id, now }).then(
+			() => null
+		)
+	).andThen(() => {
+		const token = generateRescheduleToken();
 
-	const token = generateRescheduleToken();
-	const tokenHash = await hashRescheduleToken(token);
-
-	const linkId = await ctx.db.insert("bookingRescheduleLinks", {
-		bookingId: session._id,
-		tokenHash,
-		status: "active" as const,
-		expiresAt,
-		createdAt: now
+		return hashRescheduleTokenAsync(token).andThen((tokenHash) =>
+			okOrThrow(
+				ctx.db
+					.insert("bookingRescheduleLinks", {
+						bookingId: session._id,
+						tokenHash,
+						status: "active" as const,
+						expiresAt,
+						createdAt: now
+					})
+					.then((linkId) => ({ linkId, token }))
+			)
+		);
 	});
-
-	return { linkId, token };
 }
 
 export async function markExistingActiveSessionRescheduleLinksUsed(args: {

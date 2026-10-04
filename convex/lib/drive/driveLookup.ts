@@ -1,7 +1,7 @@
 import { ok } from "neverthrow";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { QueryCtx } from "#convex/_generated/server";
-import { okOrThrow } from "#convex/lib/result";
+import { liftPromise, okOrThrow } from "#convex/lib/result";
 
 export const DRIVE_EMAIL_CLAIM_TIMEOUT_MS = 15 * 60 * 1000;
 
@@ -51,6 +51,22 @@ export async function loadSharedPackageFolder(
 	return sharedFolders.find((packageFolder) => packageFolder !== undefined);
 }
 
+function resolveDriveClientForBookingAsync(
+	ctx: QueryCtx,
+	driveSession: Doc<"driveSessions"> | null,
+	driveClientFromBooking: Doc<"driveClients"> | null
+) {
+	return liftPromise(resolveDriveClientForBooking(ctx, driveSession, driveClientFromBooking));
+}
+
+function loadSharedPackageFolderAsync(
+	ctx: QueryCtx,
+	packageId: Id<"packages">,
+	currentBookingId: Id<"bookings">
+) {
+	return liftPromise(loadSharedPackageFolder(ctx, packageId, currentBookingId));
+}
+
 export function getDriveSetup(ctx: QueryCtx, bookingId: Id<"bookings">) {
 	return okOrThrow(ctx.db.get("bookings", bookingId)).andThen((booking) => {
 		if (booking === null) return ok(null);
@@ -69,7 +85,7 @@ export function getDriveSetup(ctx: QueryCtx, bookingId: Id<"bookings">) {
 					: Promise.resolve(null)
 			])
 		).andThen(([driveClientFromBooking, driveSession, packageRecord]) =>
-			okOrThrow(resolveDriveClientForBooking(ctx, driveSession, driveClientFromBooking)).andThen(
+			resolveDriveClientForBookingAsync(ctx, driveSession, driveClientFromBooking).andThen(
 				(driveClient) => {
 					if (driveSession?.packageFolder !== undefined || booking.packageId === undefined) {
 						return ok({
@@ -81,7 +97,7 @@ export function getDriveSetup(ctx: QueryCtx, bookingId: Id<"bookings">) {
 						});
 					}
 
-					return okOrThrow(loadSharedPackageFolder(ctx, booking.packageId, booking._id)).map(
+					return loadSharedPackageFolderAsync(ctx, booking.packageId, booking._id).map(
 						(sharedPackageFolder) => ({
 							booking,
 							driveClient,

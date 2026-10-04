@@ -1,5 +1,7 @@
+import type { ResultAsync } from "neverthrow";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { MutationCtx } from "#convex/_generated/server";
+import { okOrThrow } from "#convex/lib/result";
 
 type BookingArchiveFields = Pick<Doc<"bookings">, "archived">;
 
@@ -21,18 +23,18 @@ export function packageArchivedPatch(): Pick<Doc<"packages">, "archived"> {
 	return { archived: true };
 }
 
-export async function setBookingArchived(
+export function setBookingArchived(
 	ctx: MutationCtx,
 	bookingId: Id<"bookings">,
 	archived: boolean
-) {
-	await ctx.db.patch("bookings", bookingId, { archived });
+): ResultAsync<null, never> {
+	return okOrThrow(ctx.db.patch("bookings", bookingId, { archived }).then(() => null));
 }
 
-export async function setPackageArchived(
+export function setPackageArchived(
 	ctx: MutationCtx,
 	packageId: Id<"packages">,
 	archived: boolean
-) {
-	await ctx.db.patch("packages", packageId, { archived });
+): ResultAsync<null, never> {
+	return okOrThrow(ctx.db.patch("packages", packageId, { archived }).then(() => null));
 }

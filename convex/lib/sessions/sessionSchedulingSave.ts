@@ -68,14 +68,12 @@ export function scheduleDriveSetupWhenConfirmed(
 		return okAsync(null);
 	}
 
-	return okOrThrow(
-		scheduleDriveSetup(ctx, {
-			bookingId: args.session._id,
-			duration: args.duration,
-			packageId: args.session.packageId,
-			sessionStartAt: args.sessionStartAt
-		})
-	).andThen((scheduled) => scheduled);
+	return scheduleDriveSetup(ctx, {
+		bookingId: args.session._id,
+		duration: args.duration,
+		packageId: args.session.packageId,
+		sessionStartAt: args.sessionStartAt
+	});
 }
 
 export function applySessionPatch(

@@ -91,12 +91,10 @@ export function scheduleDriveSetupForConfirmedBooking(
 	ctx: MutationCtx,
 	session: Doc<"bookings">
 ): ResultAsync<null, { reason: "BOOKING_INVALID_DURATION" }> {
-	return okOrThrow(
-		scheduleDriveSetup(ctx, {
-			bookingId: session._id,
-			sessionStartAt: session.sessionStartAt,
-			duration: session.duration,
-			packageId: session.packageId
-		})
-	).andThen((scheduled) => scheduled);
+	return scheduleDriveSetup(ctx, {
+		bookingId: session._id,
+		sessionStartAt: session.sessionStartAt,
+		duration: session.duration,
+		packageId: session.packageId
+	});
 }

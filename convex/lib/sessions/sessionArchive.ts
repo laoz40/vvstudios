@@ -69,8 +69,11 @@ export async function archivePastDeadCheckoutSessionsBatch(
 			return;
 		}
 
-		await setBookingArchived(ctx, booking._id, true);
-		newlyArchived += 1;
+		const archived = await setBookingArchived(ctx, booking._id, true);
+
+		if (archived.isOk()) {
+			newlyArchived += 1;
+		}
 	}, Promise.resolve());
 
 	return {
@@ -149,7 +152,7 @@ export function archiveSessionWhenFullyDone(
 				return okAsync(null);
 			}
 
-			return okOrThrow(setBookingArchived(ctx, bookingId, true).then(() => null));
+			return setBookingArchived(ctx, bookingId, true);
 		})
 		.orElse(() => okAsync(null));
 }
@@ -167,5 +170,5 @@ export function unarchiveSessionForNewUnpaidInvoice(
 		return okAsync(null);
 	}
 
-	return okOrThrow(setBookingArchived(ctx, session._id, false).then(() => null));
+	return setBookingArchived(ctx, session._id, false);
 }

@@ -1,4 +1,5 @@
 import { err, ok, type Result } from "neverthrow";
+import { liftPromise } from "#convex/lib/result";
 import { internal } from "#convex/_generated/api";
 import type { Doc } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
@@ -76,6 +77,10 @@ export async function buildActiveEditorProjection(ctx: QueryCtx, editor: Doc<"ed
 		totalEdits: editor.totalEdits,
 		workStatus: await getEditorWorkStatus(ctx, editor.tokenIdentifier)
 	};
+}
+
+export function buildActiveEditorProjectionAsync(ctx: QueryCtx, editor: Doc<"editorProfiles">) {
+	return liftPromise(buildActiveEditorProjection(ctx, editor));
 }
 
 export function getActiveEditor(ctx: MutationCtx, editorTokenIdentifier: string) {

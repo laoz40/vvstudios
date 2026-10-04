@@ -1,3 +1,4 @@
+import { liftPromise } from "#convex/lib/result";
 import type { Doc } from "#convex/_generated/dataModel";
 import type { QueryCtx } from "#convex/_generated/server";
 import { exhaustiveCheck } from "#/lib/result";
@@ -399,4 +400,8 @@ export async function listAdminPackages(ctx: QueryCtx, args: ListAdminPackagesAr
 	const page = await loadAdminPackageListRows(ctx, visiblePackages);
 
 	return { ...packagesPage, page };
+}
+
+export function listAdminPackagesAsync(ctx: QueryCtx, args: ListAdminPackagesArgs) {
+	return liftPromise(listAdminPackages(ctx, args));
 }

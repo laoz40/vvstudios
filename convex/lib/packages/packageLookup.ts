@@ -3,7 +3,7 @@ import type { Doc, Id } from "#convex/_generated/dataModel";
 import { internal } from "#convex/_generated/api";
 import type { ActionCtx, MutationCtx, QueryCtx } from "#convex/_generated/server";
 import { okOrThrow } from "#convex/lib/result";
-import { hashRescheduleToken } from "#convex/lib/sessions/sessionRescheduleLinks";
+import { hashRescheduleTokenAsync } from "#convex/lib/sessions/sessionRescheduleLinks";
 
 export type PackageLookupError = { reason: "PACKAGE_NOT_FOUND" };
 
@@ -38,7 +38,7 @@ export function getPackageForAction(ctx: ActionCtx, packageId: Id<"packages">) {
 }
 
 export function getValidPackageByToken(ctx: QueryCtx | MutationCtx, token: string, now: number) {
-	return okOrThrow(hashRescheduleToken(token))
+	return hashRescheduleTokenAsync(token)
 		.andThen((scheduleTokenHash) =>
 			okOrThrow(
 				ctx.db

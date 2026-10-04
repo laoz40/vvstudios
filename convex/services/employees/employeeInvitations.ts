@@ -3,9 +3,8 @@
 import { err, ok, type ResultAsync } from "neverthrow";
 import type { ActionCtx } from "#convex/_generated/server";
 import { requirePermissionActions } from "#convex/services/auth";
-import { emailDomainCanReceiveMail } from "#convex/lib/email/emailDomain";
+import { emailDomainCanReceiveMailAsync } from "#convex/lib/email/emailDomain";
 import { createClerkInvitation, parseInviteEmail } from "#convex/lib/clerkInvitations";
-import { okOrThrow } from "#convex/lib/result";
 
 type InviteUserArgs = { email: string };
 
@@ -27,7 +26,7 @@ export function inviteUserService(
 	return requirePermissionActions(ctx, "update:editor-access")
 		.andThen(() => parseInviteEmail(args.email))
 		.andThen((email) =>
-			okOrThrow(emailDomainCanReceiveMail(email)).andThen((canReceiveMail) =>
+			emailDomainCanReceiveMailAsync(email).andThen((canReceiveMail) =>
 				canReceiveMail ? ok(email) : err({ reason: "EMAIL_DOMAIN_INVALID" as const })
 			)
 		)

@@ -1,6 +1,6 @@
 import { internal } from "#convex/_generated/api";
 import type { ActionCtx } from "#convex/_generated/server";
-import { fromConvexTuple, okOrThrow } from "#convex/lib/result";
+import { fromConvexTuple, liftPromise } from "#convex/lib/result";
 
 const hexRadix = 16;
 
@@ -18,7 +18,7 @@ async function hashEmailForRateLimit(email: string) {
 }
 
 export function getBookingSubmitRateLimitKey(email: string) {
-	return okOrThrow(hashEmailForRateLimit(email));
+	return liftPromise(hashEmailForRateLimit(email));
 }
 
 export function checkPackageSubmitRateLimit(ctx: ActionCtx, email: string) {

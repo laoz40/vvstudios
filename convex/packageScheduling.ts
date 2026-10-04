@@ -7,8 +7,6 @@ import {
 	internalQuery,
 	query
 } from "#convex/_generated/server";
-import { internal } from "#convex/_generated/api";
-import type { Id } from "#convex/_generated/dataModel";
 import { SERVICES } from "#studio/features/booking-form/lib/booking-form-model";
 import { getValidPackageByToken as findValidPackageByToken } from "#convex/lib/packages/packageLookup";
 import {
@@ -104,17 +102,7 @@ export const saveCreatedPackageSession = internalMutation({
 		googleCalendarId: v.optional(v.string()),
 		googleEventId: v.optional(v.string())
 	},
-	handler: (ctx, args) =>
-		saveCreatedPackageSessionService(
-			ctx,
-			args,
-			(packageId): Promise<Id<"_scheduled_functions">> =>
-				ctx.scheduler.runAfter(
-					0,
-					internal.packageScheduling.processPackageAdjustmentWhenSessionsComplete,
-					{ packageId: packageId }
-				)
-		).match(tupleOk, tupleErr)
+	handler: (ctx, args) => saveCreatedPackageSessionService(ctx, args).match(tupleOk, tupleErr)
 });
 
 export const cancelPackageSession = internalMutation({

@@ -1,6 +1,6 @@
 "use node";
 
-import { err, ok, okAsync, type Result } from "neverthrow";
+import { err, ok, okAsync, type Result, type ResultAsync } from "neverthrow";
 import { api, internal } from "#convex/_generated/api";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { ActionCtx } from "#convex/_generated/server";
@@ -18,7 +18,7 @@ import {
 	verifySessionCanBeScheduled
 } from "#convex/lib/sessions/sessionAdminEdit";
 import { getSessionFromQuery } from "#convex/lib/sessions/sessionLookup";
-import { fromConvexTuple, okOrThrow } from "#convex/lib/result";
+import { fromConvexTuple, okOrThrow, promiseResult } from "#convex/lib/result";
 import type { CompleteClaimedSessionSuccess } from "#convex/services/booking/bookingConfirmation";
 
 type CompleteClaimedSessionError =
@@ -68,30 +68,34 @@ export async function sendSessionReminderEmailService(
 		.orElse(() => okAsync(null));
 }
 
-export async function completeClaimedSessionService(
+export function completeClaimedSessionService(
 	ctx: ActionCtx,
 	args: { bookingId: Id<"bookings"> }
-): Promise<Result<CompleteClaimedSessionSuccess, CompleteClaimedSessionError>> {
-	return await getSessionFromQuery(ctx, args.bookingId)
-		.andThen((session) =>
-			session.bookingConfirmationClaimedAt
-				? ok(session)
-				: err({ reason: "BOOKING_CONFIRMATION_NOT_CLAIMED" as const })
-		)
-		// Skip provider work when another attempt already completed the booking.
-		.andThen((session) => {
-			if (session.status === "confirmed" || session.status === "email_failed") {
-				return okAsync({ outcome: "already_completed" as const });
-			}
+): ResultAsync<CompleteClaimedSessionSuccess, CompleteClaimedSessionError> {
+	return (
+		getSessionFromQuery(ctx, args.bookingId)
+			.andThen((session) =>
+				session.bookingConfirmationClaimedAt
+					? ok(session)
+					: err({ reason: "BOOKING_CONFIRMATION_NOT_CLAIMED" as const })
+			)
+			// Skip provider work when another attempt already completed the booking.
+			.andThen((session) => {
+				if (session.status === "confirmed" || session.status === "email_failed") {
+					return okAsync({ outcome: "already_completed" as const });
+				}
 
-			return (
-				okOrThrow(ctx.runQuery(api.bookingSettings.get, {}))
-					// Run the provider and persistence workflow with current booking settings.
-					.andThen((settings) =>
-						okOrThrow(completeClaimedSession(ctx, session, settings)).andThen((result) => result)
-					)
-			);
-		});
+				return (
+					okOrThrow(ctx.runQuery(api.bookingSettings.get, {}))
+						// Run the provider and persistence workflow with current booking settings.
+						.andThen((settings) =>
+							promiseResult<CompleteClaimedSessionSuccess, CompleteClaimedSessionError>(
+								completeClaimedSession(ctx, session, settings)
+							)
+						)
+				);
+			})
+	);
 }
 
 async function completeClaimedSession(

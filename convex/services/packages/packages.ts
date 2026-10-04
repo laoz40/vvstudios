@@ -7,7 +7,7 @@ import { requirePermission } from "#convex/services/auth";
 import { getPackageFromDb } from "#convex/lib/packages/packageLookup";
 import {
 	createPackageScheduleToken,
-	getCapacityConsumingPackageSessions,
+	getCapacityConsumingPackageSessionsAsync,
 	validatePackageScheduleTokenRefresh
 } from "#convex/lib/packages/packageScheduling";
 import {
@@ -18,7 +18,7 @@ import {
 	type UpdatePackageArgs,
 	validatePackageUpdate
 } from "#convex/lib/packages/packageUpdates";
-import { listAdminPackages, type AdminPackagesView } from "#convex/lib/listAdminPackages";
+import { listAdminPackagesAsync, type AdminPackagesView } from "#convex/lib/listAdminPackages";
 import {
 	searchBlobPatchForBooking,
 	searchBlobPatchForPackage,
@@ -69,9 +69,7 @@ type ListPackagesArgs = {
 };
 
 export function listPackagesService(ctx: QueryCtx, args: ListPackagesArgs) {
-	return requirePermission(ctx, "view:packages").andThen(() =>
-		okOrThrow(listAdminPackages(ctx, args))
-	);
+	return requirePermission(ctx, "view:packages").andThen(() => listAdminPackagesAsync(ctx, args));
 }
 
 export function updatePackageService(ctx: MutationCtx, args: UpdatePackageArgs) {
@@ -81,8 +79,10 @@ export function updatePackageService(ctx: MutationCtx, args: UpdatePackageArgs) 
 			parsePackageUpdate(args).map((updatedPackage) => ({ existingPackage, updatedPackage }))
 		)
 		.andThen(({ existingPackage, updatedPackage }) =>
-			okOrThrow(
-				getCapacityConsumingPackageSessions(ctx, existingPackage._id, existingPackage.packageSize)
+			getCapacityConsumingPackageSessionsAsync(
+				ctx,
+				existingPackage._id,
+				existingPackage.packageSize
 			).map((activeBookedSessions) => ({ activeBookedSessions, existingPackage, updatedPackage }))
 		)
 		.andThen(({ activeBookedSessions, existingPackage, updatedPackage }) =>
@@ -167,9 +167,7 @@ export function savePackageInstagramHandleService(
 export function archivePackageService(ctx: MutationCtx, args: ArchivePackageArgs) {
 	return requirePermission(ctx, "archive:sessions")
 		.andThen(() => getPackageFromDb(ctx, args.packageId))
-		.andThen(() =>
-			okOrThrow(setPackageArchived(ctx, args.packageId, args.archived).then(() => null))
-		);
+		.andThen(() => setPackageArchived(ctx, args.packageId, args.archived));
 }
 
 export function refreshPackageScheduleTokenService(ctx: MutationCtx, args: PackageIdArgs) {

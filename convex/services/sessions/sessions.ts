@@ -1,5 +1,5 @@
 import { ConvexError } from "convex/values";
-import { err, errAsync, ok, type ResultAsync } from "neverthrow";
+import { err, errAsync, ok, ResultAsync } from "neverthrow";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
 import { setBookingArchived } from "#convex/lib/archiveState";
@@ -10,7 +10,7 @@ import {
 	shouldNotifyHostOfDeliverablesReview
 } from "#convex/lib/editor/deliverablesReviewNotification";
 import {
-	buildActiveEditorProjection,
+	buildActiveEditorProjectionAsync,
 	listActiveEditorProfiles,
 	updateSessionEditorAssignment
 } from "#convex/lib/editor/editorAssignments";
@@ -108,7 +108,7 @@ export function listActiveEditorsService(ctx: QueryCtx) {
 	return requirePermission(ctx, "assign:session-editor")
 		.andThen(() => listActiveEditorProfiles(ctx))
 		.andThen((editors) =>
-			okOrThrow(Promise.all(editors.map((editor) => buildActiveEditorProjection(ctx, editor))))
+			ResultAsync.combine(editors.map((editor) => buildActiveEditorProjectionAsync(ctx, editor)))
 		);
 }
 
@@ -228,9 +228,7 @@ export function assignSessionEditorService(ctx: MutationCtx, args: AssignSession
 export function archiveSessionService(ctx: MutationCtx, args: ArchiveSessionArgs) {
 	return requirePermission(ctx, "archive:sessions")
 		.andThen(() => getSessionFromDb(ctx, args.bookingId))
-		.andThen(() =>
-			okOrThrow(setBookingArchived(ctx, args.bookingId, args.archived).then(() => null))
-		);
+		.andThen(() => setBookingArchived(ctx, args.bookingId, args.archived));
 }
 
 export function archivePastDeadCheckoutSessionsService(

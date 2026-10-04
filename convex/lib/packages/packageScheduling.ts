@@ -1,5 +1,6 @@
 import { err, ok, type ResultAsync } from "neverthrow";
-import { okOrThrow } from "#convex/lib/result";
+import { liftPromise, okOrThrow } from "#convex/lib/result";
+import { hashRescheduleTokenAsync } from "#convex/lib/sessions/sessionRescheduleLinks";
 import type {
 	SessionAvailabilitySettings,
 	SessionAvailabilityValidationError
@@ -32,10 +33,7 @@ import {
 	capacityConsumingSessionStatuses,
 	sessionConsumesPackageCapacity
 } from "#convex/lib/packages/packageSessionCapacity";
-import {
-	generateRescheduleToken,
-	hashRescheduleToken
-} from "#convex/lib/sessions/sessionRescheduleLinks";
+import { generateRescheduleToken } from "#convex/lib/sessions/sessionRescheduleLinks";
 
 export { sessionConsumesPackageCapacity } from "#convex/lib/packages/packageSessionCapacity";
 
@@ -53,9 +51,7 @@ export type PackageSchedulingDetails = PackageScheduleToken & {
 export function createPackageScheduleToken(): ResultAsync<PackageScheduleToken, never> {
 	const token = generateRescheduleToken();
 
-	return okOrThrow(
-		hashRescheduleToken(token).then((scheduleTokenHash) => ({ scheduleTokenHash, token }))
-	);
+	return hashRescheduleTokenAsync(token).map((scheduleTokenHash) => ({ scheduleTokenHash, token }));
 }
 
 export function createPackageSchedulingDetails(
@@ -147,18 +143,26 @@ export async function getCapacityConsumingPackageSessions(
 	return bookings.toSorted((a, b) => a.sessionStartAt - b.sessionStartAt);
 }
 
-export async function getPackageSessionForToken(
+export function getCapacityConsumingPackageSessionsAsync(
+	ctx: QueryCtx | MutationCtx,
+	packageId: Id<"packages">,
+	packageSize: 4 | 8 | 12
+) {
+	return liftPromise(getCapacityConsumingPackageSessions(ctx, packageId, packageSize));
+}
+
+export function getPackageSessionForToken(
 	ctx: QueryCtx | MutationCtx,
 	packageId: Id<"packages">,
 	bookingId: Id<"bookings">
-) {
-	const session = await ctx.db.get("bookings", bookingId);
+): ResultAsync<Doc<"bookings"> | null, never> {
+	return okOrThrow(ctx.db.get("bookings", bookingId)).map((session) => {
+		if (!session || session.packageId !== packageId) {
+			return null;
+		}
 
-	if (!session || session.packageId !== packageId) {
-		return null;
-	}
-
-	return session;
+		return session;
+	});
 }
 
 export function checkPackageSessionAvailability(
@@ -239,9 +243,10 @@ export function getEditablePackageSession(
 		getValidPackageByTokenResult(ctx, args.token, args.now)
 			// Load the requested session through the package to enforce ownership.
 			.andThen((packageRecord) =>
-				okOrThrow(getPackageSessionForToken(ctx, packageRecord._id, args.bookingId)).map(
-					(session) => ({ packageRecord, session })
-				)
+				getPackageSessionForToken(ctx, packageRecord._id, args.bookingId).map((session) => ({
+					packageRecord,
+					session
+				}))
 			)
 			// Reject missing, foreign, and inactive sessions before loading scheduling settings.
 			.andThen(({ packageRecord, session }) => {

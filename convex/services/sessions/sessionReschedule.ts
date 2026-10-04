@@ -6,7 +6,7 @@ import { getSessionFromDb } from "#convex/lib/sessions/sessionLookup";
 import {
 	createActiveRescheduleLinkForSession,
 	getRescheduleUrlForToken,
-	hashRescheduleToken,
+	hashRescheduleTokenAsync,
 	isRescheduleLinkExpired,
 	isSessionReschedulable,
 	markExistingActiveSessionRescheduleLinksUsed,
@@ -42,21 +42,19 @@ export function issueRescheduleLink(
 	ctx: MutationCtx,
 	session: Doc<"bookings">
 ): NeverthrowResultAsync<{ rescheduleUrl: string }, never> {
-	return okOrThrow(
-		createActiveRescheduleLinkForSession({
-			ctx,
-			session,
-			expiresAt: session.sessionStartAt,
-			now: Date.now()
-		})
-	).map((link) => ({ rescheduleUrl: getRescheduleUrlForToken(link.token) }));
+	return createActiveRescheduleLinkForSession({
+		ctx,
+		session,
+		expiresAt: session.sessionStartAt,
+		now: Date.now()
+	}).map((link) => ({ rescheduleUrl: getRescheduleUrlForToken(link.token) }));
 }
 
 export function getValidRescheduleLinkAndSessionService(
 	ctx: QueryCtx,
 	args: { now: number; token: string }
 ): NeverthrowResultAsync<ValidRescheduleLinkAndSession, RescheduleLinkLookupError> {
-	return okOrThrow(hashRescheduleToken(args.token))
+	return hashRescheduleTokenAsync(args.token)
 		.andThen((tokenHash) =>
 			okOrThrow(
 				ctx.db
@@ -97,14 +95,7 @@ export function createActiveRescheduleLinkService(
 	args: { bookingId: Doc<"bookings">["_id"]; expiresAt: number; now: number }
 ) {
 	return getSessionFromDb(ctx, args.bookingId).andThen((session) =>
-		okOrThrow(
-			createActiveRescheduleLinkForSession({
-				session,
-				ctx,
-				expiresAt: args.expiresAt,
-				now: args.now
-			})
-		)
+		createActiveRescheduleLinkForSession({ session, ctx, expiresAt: args.expiresAt, now: args.now })
 	);
 }
 

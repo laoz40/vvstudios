@@ -3,7 +3,7 @@ import { exhaustiveCheck } from "#/lib/result";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import { internal } from "#convex/_generated/api";
 import type { ActionCtx, MutationCtx } from "#convex/_generated/server";
-import { searchBlobPatchForBooking } from "#convex/lib/adminSearch/adminSearchBlob";
+import { searchBlobPatchForBookingAsync } from "#convex/lib/adminSearch/adminSearchBlob";
 import { fromConvexTuple, okOrThrow } from "#convex/lib/result";
 import {
 	bookingReceiptPaidAt,
@@ -187,15 +187,16 @@ export function recordBookingReceiptNumberService(
 			return ok(null);
 		}
 
-		return okOrThrow(
-			searchBlobPatchForBooking(ctx, session, { receiptNumber: args.receiptNumber }).then(
-				(searchBlobPatch) =>
-					ctx.db
-						.patch("bookings", args.bookingId, {
-							receiptNumber: args.receiptNumber,
-							...searchBlobPatch
-						})
-						.then(() => null)
+		return searchBlobPatchForBookingAsync(ctx, session, {
+			receiptNumber: args.receiptNumber
+		}).andThen((searchBlobPatch) =>
+			okOrThrow(
+				ctx.db
+					.patch("bookings", args.bookingId, {
+						receiptNumber: args.receiptNumber,
+						...searchBlobPatch
+					})
+					.then(() => null)
 			)
 		);
 	});
