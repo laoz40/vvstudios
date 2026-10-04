@@ -1,3 +1,4 @@
+import { ResultAsync } from "neverthrow";
 import { okOrThrow } from "#convex/lib/result";
 import type { Doc } from "#convex/_generated/dataModel";
 import type { QueryCtx } from "#convex/_generated/server";
@@ -332,45 +333,42 @@ async function paginateAdminPackagesWithoutSearch(
 	};
 }
 
-async function loadAdminPackageListRows(ctx: QueryCtx, packagesOnPage: Doc<"packages">[]) {
-	return Promise.all(
-		packagesOnPage.map(async (packageFromDb) => {
-			const [packageSessionsResult, packageAdjustment, stripeInvoicesResult] = await Promise.all([
-				getCapacityConsumingPackageSessions(ctx, packageFromDb._id, packageFromDb.packageSize),
-				ctx.db
-					.query("packageAdjustments")
-					.withIndex("by_packageId", (indexQuery) => indexQuery.eq("packageId", packageFromDb._id))
-					.unique(),
-				listStripeInvoicesForPackage(ctx, packageFromDb._id)
-			]);
+function loadAdminPackageListRow(ctx: QueryCtx, packageFromDb: Doc<"packages">) {
+	return okOrThrow(
+		ctx.db
+			.query("packageAdjustments")
+			.withIndex("by_packageId", (indexQuery) => indexQuery.eq("packageId", packageFromDb._id))
+			.unique()
+	).andThen((packageAdjustment) =>
+		getCapacityConsumingPackageSessions(ctx, packageFromDb._id, packageFromDb.packageSize).andThen(
+			(packageSessions) =>
+				listStripeInvoicesForPackage(ctx, packageFromDb._id).map((stripeInvoices) => {
+					const customStripeInvoicesSummary = summarizeCustomPackageStripeInvoices(stripeInvoices);
 
-			if (packageSessionsResult.isErr()) {
-				throw new Error("getCapacityConsumingPackageSessions failed");
-			}
+					return {
+						...packageFromDb,
+						bookedSessions: packageSessions.length,
+						areSessionsComplete: packageAdjustment !== null,
+						adjustment:
+							packageAdjustment?.outcome === "invoice_required"
+								? {
+										_id: packageAdjustment._id,
+										totalAmount: packageAdjustment.totalAmount,
+										invoiceDueAt: packageAdjustment.invoiceDueAt,
+										invoiceEmailStatus: packageAdjustment.invoiceEmailStatus,
+										paymentStatus: packageAdjustment.paymentStatus
+									}
+								: null,
+						customStripeInvoicesSummary
+					};
+				})
+		)
+	);
+}
 
-			const packageSessions = packageSessionsResult.value;
-
-			const customStripeInvoicesSummary = summarizeCustomPackageStripeInvoices(
-				stripeInvoicesResult.unwrapOr([])
-			);
-
-			return {
-				...packageFromDb,
-				bookedSessions: packageSessions.length,
-				areSessionsComplete: packageAdjustment !== null,
-				adjustment:
-					packageAdjustment?.outcome === "invoice_required"
-						? {
-								_id: packageAdjustment._id,
-								totalAmount: packageAdjustment.totalAmount,
-								invoiceDueAt: packageAdjustment.invoiceDueAt,
-								invoiceEmailStatus: packageAdjustment.invoiceEmailStatus,
-								paymentStatus: packageAdjustment.paymentStatus
-							}
-						: null,
-				customStripeInvoicesSummary
-			};
-		})
+function loadAdminPackageListRows(ctx: QueryCtx, packagesOnPage: Doc<"packages">[]) {
+	return ResultAsync.combine(
+		packagesOnPage.map((packageFromDb) => loadAdminPackageListRow(ctx, packageFromDb))
 	);
 }
 
@@ -399,17 +397,12 @@ export function listAdminPackages(ctx: QueryCtx, args: ListAdminPackagesArgs) {
 	const view = args.view ?? "inbox";
 	const includeStale = args.includeStale ?? false;
 
-	return okOrThrow(
-		fetchAdminPackagesListPage(ctx, args).then(async (packagesPage) => {
-			const visiblePackages = applyAdminPackageListVisibility(
-				packagesPage.page,
-				view,
-				includeStale
-			);
+	return okOrThrow(fetchAdminPackagesListPage(ctx, args)).andThen((packagesPage) => {
+		const visiblePackages = applyAdminPackageListVisibility(packagesPage.page, view, includeStale);
 
-			const page = await loadAdminPackageListRows(ctx, visiblePackages);
-
-			return { ...packagesPage, page };
-		})
-	);
+		return loadAdminPackageListRows(ctx, visiblePackages).map((page) => ({
+			...packagesPage,
+			page
+		}));
+	});
 }

@@ -79,6 +79,7 @@ Rules:
   - `tryPromise` — external APIs (Stripe, Resend, Google, render). Failure becomes domain `err` in `catch`.
 - Do not use `tryPromise` with a `catch` that rethrows; use `okOrThrow` on Convex I/O (or `fromSafePromise` via `okOrThrow`) and reserve `tryPromise` for when `catch` maps to a domain `err({ reason })`.
 - Lib exports that return `ResultAsync` should build it from their steps; do not wrap an internal async helper in `tryPromise` or `okOrThrow` at the export boundary.
+- Paginated Convex query handlers may return plain pagination values at the boundary when tuple `Result` would break Convex pagination; use `okOrThrow` on individual `ctx.db` reads inside internal `ResultAsync` row-load steps.
 
 ## Tests
 

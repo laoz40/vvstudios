@@ -6,10 +6,10 @@ import {
 	type BookingAddon
 } from "#studio/features/booking-form/lib/booking-form-model";
 import { formatEditingAddonList } from "#studio/features/booking-form/lib/editing-addon-quantities";
-import { err, errAsync, ok, okAsync, ResultAsync, type Result } from "neverthrow";
-import { tryPromise } from "#convex/lib/result";
+import { errAsync, okAsync, type ResultAsync } from "neverthrow";
 import { calendarResultAsync } from "#convex/lib/googleCalendar/googleCalendarErrors";
 import type { Id } from "#convex/_generated/dataModel";
+import { tryPromise } from "#convex/lib/result";
 
 import {
 	buildEventWindow,
@@ -121,7 +121,14 @@ function isMatchingSessionCalendarEvent(
 	return attendeeMatches || summaryMatches;
 }
 
-export async function removeOrphanedSessionCalendarEvent({
+export type OrphanedSessionCalendarEventCleanupError = {
+	reason:
+		| "GOOGLE_CALENDAR_DELETE_FAILED"
+		| "GOOGLE_CALENDAR_AUTH_FAILED"
+		| "GOOGLE_CALENDAR_RATE_LIMITED";
+};
+
+export function removeOrphanedSessionCalendarEvent({
 	bookingId,
 	calendar,
 	calendarId,
@@ -131,16 +138,25 @@ export async function removeOrphanedSessionCalendarEvent({
 	calendar: Pick<calendar_v3.Calendar, "events">;
 	calendarId: string;
 	googleEventId: string;
-}) {
-	try {
-		await calendar.events.delete({ calendarId, eventId: googleEventId, sendUpdates: "all" });
-	} catch (error) {
-		console.error("Orphaned session Calendar event cleanup failed", {
-			bookingId,
-			googleEventId,
-			error
-		});
-	}
+}): ResultAsync<void, OrphanedSessionCalendarEventCleanupError> {
+	return tryPromise({
+		try: () => calendar.events.delete({ calendarId, eventId: googleEventId, sendUpdates: "all" }),
+		catch: (error) => {
+			console.error("Orphaned session Calendar event cleanup failed", {
+				bookingId,
+				googleEventId,
+				error
+			});
+
+			const parsedError = calendarErrorSchema.safeParse(error);
+
+			return {
+				reason: parsedError.success
+					? mapCalendarErrorCode(parsedError.data, "GOOGLE_CALENDAR_DELETE_FAILED")
+					: "GOOGLE_CALENDAR_DELETE_FAILED"
+			};
+		}
+	}).map(() => undefined);
 }
 
 async function deleteCalendarEventIfFound(
@@ -298,7 +314,86 @@ export type SessionCalendarTimingUpdateResult = {
 	outcome?: "replacementCreated";
 };
 
-export async function updateSessionCalendarEventTiming({
+type SessionCalendarEventMissing = { kind: "missing" };
+
+type SessionCalendarEventLookupCatch =
+	| SessionCalendarEventMissing
+	| SessionCalendarTimingUpdateError;
+
+function isMissingSessionCalendarEvent(
+	value: SessionCalendarEventLookupCatch
+): value is SessionCalendarEventMissing {
+	return "kind" in value;
+}
+
+function sessionCalendarTimingUpdateErrorFromCause(
+	cause: unknown
+): SessionCalendarTimingUpdateError {
+	const parsedError = calendarErrorSchema.safeParse(cause);
+
+	return {
+		reason: parsedError.success
+			? mapCalendarErrorCode(parsedError.data, "GOOGLE_CALENDAR_UPDATE_FAILED")
+			: "GOOGLE_CALENDAR_UPDATE_FAILED"
+	};
+}
+
+function patchExistingSessionCalendarEvent({
+	client,
+	date,
+	details,
+	googleCalendarId,
+	googleEventId,
+	time
+}: {
+	client: GoogleCalendarEventClient;
+	date: string;
+	details: SessionCalendarEventDetails;
+	googleCalendarId: string;
+	googleEventId: string;
+	time: string;
+}): ResultAsync<SessionCalendarTimingUpdateResult, SessionCalendarTimingUpdateError> {
+	const payloadResult = buildSessionCalendarEventPayload({
+		date,
+		details,
+		time,
+		timeZone: client.timeZone
+	});
+
+	if (payloadResult.isErr()) {
+		return errAsync({ reason: "GOOGLE_CALENDAR_UPDATE_FAILED" as const });
+	}
+
+	return tryPromise({
+		try: () =>
+			client.calendar.events.patch({
+				calendarId: googleCalendarId,
+				eventId: googleEventId,
+				sendUpdates: "all",
+				requestBody: payloadResult.value
+			}),
+		catch: (cause): SessionCalendarEventLookupCatch => {
+			const parsedError = calendarErrorSchema.safeParse(cause);
+
+			if (parsedError.success && isCalendarEventNotFound(parsedError.data)) {
+				return { kind: "missing" };
+			}
+
+			return sessionCalendarTimingUpdateErrorFromCause(cause);
+		}
+	})
+		.map(() => ({} satisfies SessionCalendarTimingUpdateResult))
+		.orElse(
+			(
+				patchError
+			): ResultAsync<SessionCalendarTimingUpdateResult, SessionCalendarTimingUpdateError> =>
+				isMissingSessionCalendarEvent(patchError)
+					? createSessionCalendarEvent({ client, date, details, time })
+					: errAsync(patchError)
+		);
+}
+
+export function updateSessionCalendarEventTiming({
 	session,
 	client,
 	date,
@@ -312,7 +407,7 @@ export async function updateSessionCalendarEventTiming({
 	details: SessionCalendarEventDetails;
 	time: string;
 	createMissingEvent?: boolean;
-}): Promise<Result<SessionCalendarTimingUpdateResult, SessionCalendarTimingUpdateError>> {
+}): ResultAsync<SessionCalendarTimingUpdateResult, SessionCalendarTimingUpdateError> {
 	// Some reschedulable failed bookings never created a Google event in the original flow.
 	// When requested, create that missing event before saving the new session time.
 	if (!session.googleEventId || !session.googleCalendarId) {
@@ -320,57 +415,51 @@ export async function updateSessionCalendarEventTiming({
 			return createSessionCalendarEvent({ client, date, details, time });
 		}
 
-		return ok({});
+		return okAsync({});
 	}
 
 	const googleCalendarId = session.googleCalendarId;
 	const googleEventId = session.googleEventId;
 
-	try {
-		const existingGoogleEvent = await client.calendar.events.get({
-			calendarId: googleCalendarId,
-			eventId: googleEventId
-		});
+	return tryPromise({
+		try: () =>
+			client.calendar.events.get({
+				calendarId: googleCalendarId,
+				eventId: googleEventId
+			}),
+		catch: (cause): SessionCalendarEventLookupCatch => {
+			const parsedError = calendarErrorSchema.safeParse(cause);
 
-		if (existingGoogleEvent.data.status === "cancelled") {
-			return createSessionCalendarEvent({ client, date, details, time });
+			if (parsedError.success && isCalendarEventNotFound(parsedError.data)) {
+				return { kind: "missing" };
+			}
+
+			return sessionCalendarTimingUpdateErrorFromCause(cause);
 		}
-
-		const payloadResult = buildSessionCalendarEventPayload({
-			date,
-			details,
-			time,
-			timeZone: client.timeZone
-		});
-
-		if (payloadResult.isErr()) {
-			return err({ reason: "GOOGLE_CALENDAR_UPDATE_FAILED" as const });
-		}
-
-		await client.calendar.events.patch({
-			calendarId: googleCalendarId,
-			eventId: googleEventId,
-			sendUpdates: "all",
-			requestBody: payloadResult.value
-		});
-	} catch (error) {
-		const parsedError = calendarErrorSchema.safeParse(error);
-
-		if (parsedError.success && isCalendarEventNotFound(parsedError.data)) {
-			return createSessionCalendarEvent({ client, date, details, time });
-		}
-
-		return err({
-			reason: parsedError.success
-				? mapCalendarErrorCode(parsedError.data, "GOOGLE_CALENDAR_UPDATE_FAILED")
-				: "GOOGLE_CALENDAR_UPDATE_FAILED"
-		});
-	}
-
-	return ok({});
+	})
+		.andThen((existingGoogleEvent) =>
+			existingGoogleEvent.data.status === "cancelled"
+				? createSessionCalendarEvent({ client, date, details, time })
+				: patchExistingSessionCalendarEvent({
+						client,
+						date,
+						details,
+						googleCalendarId,
+						googleEventId,
+						time
+					})
+		)
+		.orElse(
+			(
+				lookupError
+			): ResultAsync<SessionCalendarTimingUpdateResult, SessionCalendarTimingUpdateError> =>
+				isMissingSessionCalendarEvent(lookupError)
+					? createSessionCalendarEvent({ client, date, details, time })
+					: errAsync(lookupError)
+		);
 }
 
-export async function createSessionCalendarEvent({
+export function createSessionCalendarEvent({
 	client,
 	date,
 	details,
@@ -380,37 +469,28 @@ export async function createSessionCalendarEvent({
 	date: string;
 	details: SessionCalendarEventDetails;
 	time: string;
-}) {
-	try {
-		const payloadResult = buildSessionCalendarEventPayload({
-			date,
-			details,
-			time,
-			timeZone: client.timeZone
-		});
+}): ResultAsync<SessionCalendarTimingUpdateResult, SessionCalendarTimingUpdateError> {
+	const payloadResult = buildSessionCalendarEventPayload({
+		date,
+		details,
+		time,
+		timeZone: client.timeZone
+	});
 
-		if (payloadResult.isErr()) {
-			return err({ reason: "GOOGLE_CALENDAR_CREATE_FAILED" as const });
-		}
+	if (payloadResult.isErr()) {
+		return errAsync({ reason: "GOOGLE_CALENDAR_CREATE_FAILED" as const });
+	}
 
-		const replacementEvent = await client.calendar.events.insert({
+	return calendarResultAsync(
+		client.calendar.events.insert({
 			calendarId: client.calendarId,
 			sendUpdates: "all",
 			requestBody: payloadResult.value
-		});
-
-		return ok({
-			googleCalendarId: client.calendarId,
-			googleEventId: replacementEvent.data.id ?? undefined,
-			outcome: "replacementCreated" as const
-		});
-	} catch (error) {
-		const parsedError = calendarErrorSchema.safeParse(error);
-
-		return err({
-			reason: parsedError.success
-				? mapCalendarErrorCode(parsedError.data, "GOOGLE_CALENDAR_CREATE_FAILED")
-				: "GOOGLE_CALENDAR_CREATE_FAILED"
-		});
-	}
+		}),
+		"GOOGLE_CALENDAR_CREATE_FAILED"
+	).map((replacementEvent) => ({
+		googleCalendarId: client.calendarId,
+		googleEventId: replacementEvent.data.id ?? undefined,
+		outcome: "replacementCreated" as const
+	}));
 }
