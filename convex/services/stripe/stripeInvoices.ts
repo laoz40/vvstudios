@@ -8,6 +8,7 @@ import {
 } from "#convex/lib/packages/packageArchive";
 import { getPackageFromDb } from "#convex/lib/packages/packageLookup";
 import { okOrThrow } from "#convex/lib/result";
+import { getSessionFromDb } from "#convex/lib/sessions/sessionLookup";
 import {
 	archiveSessionWhenFullyDone,
 	unarchiveSessionForNewUnpaidInvoice
@@ -32,13 +33,9 @@ function unarchiveAfterNewBookingInvoice(
 		return okAsync(insertResult);
 	}
 
-	return okOrThrow(ctx.db.get("bookings", bookingId)).andThen((booking) => {
-		if (booking === null) {
-			return okAsync(insertResult);
-		}
-
-		return unarchiveSessionForNewUnpaidInvoice(ctx, booking).map(() => insertResult);
-	});
+	return getSessionFromDb(ctx, bookingId)
+		.andThen((session) => unarchiveSessionForNewUnpaidInvoice(ctx, session).map(() => insertResult))
+		.orElse(() => ok(insertResult));
 }
 
 function unarchiveAfterNewPackageInvoice(
