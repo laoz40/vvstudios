@@ -4,7 +4,6 @@ import { errAsync, type ResultAsync } from "neverthrow";
 import type { ActionCtx } from "#convex/_generated/server";
 import { sendFeedbackEmailForMessage } from "#convex/lib/email/email";
 import { checkFeedbackSubmitRateLimit } from "#convex/lib/rateLimits";
-import { okOrThrow } from "#convex/lib/result";
 
 export type SubmitFeedbackArgs = { message: string };
 
@@ -24,7 +23,5 @@ export function submitFeedbackService(
 		return errAsync({ reason: "INVALID_MESSAGE" as const });
 	}
 
-	return checkFeedbackSubmitRateLimit(ctx).andThen(() =>
-		okOrThrow(sendFeedbackEmailForMessage(message)).andThen((emailResult) => emailResult)
-	);
+	return checkFeedbackSubmitRateLimit(ctx).andThen(() => sendFeedbackEmailForMessage(message));
 }
