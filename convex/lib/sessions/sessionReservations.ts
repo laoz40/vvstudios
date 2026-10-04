@@ -1,20 +1,17 @@
-import { v } from "convex/values";
 import { err, ok, type Result } from "neverthrow";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { MutationCtx } from "#convex/_generated/server";
 import { doSessionWindowsOverlap } from "#convex/lib/sessions/sessionCalendarTime";
 
+import type { SessionReservation } from "#convex/validators/sessionReservations";
+
+export { sessionReservationValidator } from "#convex/validators/sessionReservations";
+
+export type { SessionReservation };
+
 export const SLOT_RESERVATION_TTL_MS = 10 * 60 * 1000;
 
 const MAX_BOOKING_DURATION_MINUTES = 180;
-
-export const sessionReservationValidator = v.object({
-	reservedAt: v.number(),
-	sessionStartAt: v.number(),
-	duration: v.string()
-});
-
-export type SessionReservation = { reservedAt: number; sessionStartAt: number; duration: string };
 
 export type SessionReservationBooking = Pick<
 	Doc<"bookings">,
