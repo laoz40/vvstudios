@@ -157,11 +157,17 @@ export async function processPackageAdjustment(
 
 	if (existingAdjustment) return null;
 
-	const bookings = await getCapacityConsumingPackageSessions(
+	const bookingsResult = await getCapacityConsumingPackageSessions(
 		ctx,
 		packageRecord._id,
 		packageRecord.packageSize
 	);
+
+	if (bookingsResult.isErr()) {
+		throw new Error("getCapacityConsumingPackageSessions failed");
+	}
+
+	const bookings = bookingsResult.value;
 
 	// Closing before expiry requires every package session to be scheduled.
 	if (args.trigger === "all_sessions_completed" && bookings.length !== packageRecord.packageSize) {

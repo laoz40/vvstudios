@@ -1,7 +1,7 @@
 import { ok, okAsync } from "neverthrow";
 import type { Id } from "#convex/_generated/dataModel";
 import type { MutationCtx } from "#convex/_generated/server";
-import { requirePermission } from "#convex/lib/auth";
+import { requirePermission } from "#convex/services/auth";
 import {
 	getPackageAdjustmentInvoice,
 	requirePackageAdjustmentPaymentEligibility,
@@ -92,33 +92,24 @@ export function markStalledPackageAdjustmentInvoiceEmailFailedService(
 	);
 }
 
-export function completePackageAdjustmentInvoiceEmailService(
+export function completePackageAdjustmentInvoiceEmailSentService(
 	ctx: MutationCtx,
-	args: ClaimedPackageAdjustmentInvoiceEmailArgs,
-	status: "sent" | "failed"
+	args: ClaimedPackageAdjustmentInvoiceEmailArgs & { stripeInvoiceId: string }
 ) {
 	return getPackageAdjustmentInvoice(ctx, args.adjustmentId).andThen((adjustment) => {
-		// Ignore completion from a timed-out attempt after a newer retry claimed the email.
 		if (adjustment.invoiceEmailClaimedAt !== args.claimedAt) {
 			return ok({ updated: false });
 		}
 
-		const patch =
-			status === "sent" && args.stripeInvoiceId
-				? {
-						invoiceEmailStatus: status,
-						invoiceEmailClaimedAt: undefined,
-						stripeInvoiceId: args.stripeInvoiceId
-					}
-				: { invoiceEmailStatus: status, invoiceEmailClaimedAt: undefined };
-
 		return okOrThrow(
-			ctx.db.patch("packageAdjustments", adjustment._id, patch).then(() => ({ updated: true }))
+			ctx.db
+				.patch("packageAdjustments", adjustment._id, {
+					invoiceEmailStatus: "sent",
+					invoiceEmailClaimedAt: undefined,
+					stripeInvoiceId: args.stripeInvoiceId
+				})
+				.then(() => ({ updated: true }))
 		).andThen((result) => {
-			if (status !== "sent" || !args.stripeInvoiceId) {
-				return ok(result);
-			}
-
 			const remotePodcastLabel = getCustomerAddonDisplayLabel("Remote Podcast");
 
 			return recordPackageAdjustmentStripeInvoice(ctx, {
@@ -134,6 +125,26 @@ export function completePackageAdjustmentInvoiceEmailService(
 				totalAmount: adjustment.totalAmount
 			}).map(() => result);
 		});
+	});
+}
+
+export function completePackageAdjustmentInvoiceEmailFailedService(
+	ctx: MutationCtx,
+	args: ClaimedPackageAdjustmentInvoiceEmailArgs
+) {
+	return getPackageAdjustmentInvoice(ctx, args.adjustmentId).andThen((adjustment) => {
+		if (adjustment.invoiceEmailClaimedAt !== args.claimedAt) {
+			return ok({ updated: false });
+		}
+
+		return okOrThrow(
+			ctx.db
+				.patch("packageAdjustments", adjustment._id, {
+					invoiceEmailStatus: "failed",
+					invoiceEmailClaimedAt: undefined
+				})
+				.then(() => ({ updated: true }))
+		);
 	});
 }
 

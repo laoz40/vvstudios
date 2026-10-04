@@ -1,4 +1,4 @@
-import { err, type Result } from "neverthrow";
+import { errAsync, type ResultAsync } from "neverthrow";
 import { internal } from "#convex/_generated/api";
 import type { Id } from "#convex/_generated/dataModel";
 import type { MutationCtx } from "#convex/_generated/server";
@@ -7,7 +7,7 @@ import { parseDurationMinutes } from "#convex/lib/sessions/sessionCalendarTime";
 
 type DriveSchedulingError = { reason: "BOOKING_INVALID_DURATION" };
 
-export async function scheduleDriveSetup(
+export function scheduleDriveSetup(
 	ctx: MutationCtx,
 	booking: {
 		bookingId: Id<"bookings">;
@@ -15,14 +15,14 @@ export async function scheduleDriveSetup(
 		duration: string;
 		packageId?: Id<"packages">;
 	}
-): Promise<Result<null, DriveSchedulingError>> {
+): ResultAsync<null, DriveSchedulingError> {
 	const durationResult = parseDurationMinutes(booking.duration);
 
-	if (durationResult.isErr()) return err(durationResult.error);
+	if (durationResult.isErr()) return errAsync(durationResult.error);
 
 	const runAt = booking.sessionStartAt + durationResult.value * 60_000;
 
-	return await okOrThrow(
+	return okOrThrow(
 		ctx.scheduler
 			.runAt(Math.max(runAt, Date.now()), internal.googleCalendar.runScheduledDriveSetup, {
 				bookingId: booking.bookingId,

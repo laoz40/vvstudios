@@ -1,11 +1,13 @@
 import { err, ok, ResultAsync } from "neverthrow";
-import { api, internal } from "#convex/_generated/api";
+import { internal } from "#convex/_generated/api";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { ActionCtx, MutationCtx, QueryCtx } from "#convex/_generated/server";
+import { getBookingAvailabilitySettings } from "#convex/lib/booking/bookingSettings";
 import { getOrCreateDriveClientId } from "#convex/lib/drive/driveFolders";
 import { buildBookingSearchBlob } from "#convex/lib/adminSearch/adminSearchBlob";
 import { scheduleDriveSetup } from "#convex/lib/drive/driveScheduling";
 import { formatDriveClientFolderName } from "#studio/lib/bookingdatetime";
+import { schedulePackageAdjustmentWhenSessionsComplete } from "#convex/lib/packages/packageAdjustmentScheduling";
 import { processPackageAdjustment } from "#convex/lib/packages/packageAdjustments";
 import {
 	checkPackageSessionAvailability,
@@ -28,7 +30,6 @@ import { fromConvexTuple, okOrThrow } from "#convex/lib/result";
 import { archivePackageWhenFullyDone } from "#convex/lib/packages/packageArchive";
 import { archiveDeadCheckoutBooking } from "#convex/lib/sessions/sessionArchive";
 import { getSessionStartAt } from "#convex/lib/sessions/sessionAdminEdit";
-import type { SessionAvailabilitySettings } from "#convex/lib/sessions/sessionCalendarTime";
 import { env } from "#convex/env";
 import {
 	getPackageSessionAddons,
@@ -78,9 +79,9 @@ export type PackageUnscheduleRequestDetails = {
 export function getPackageByTokenService(ctx: QueryCtx, token: string) {
 	return getValidPackageByToken(ctx, token, Date.now())
 		.andThen((packageRecord) =>
-			okOrThrow(
-				getCapacityConsumingPackageSessions(ctx, packageRecord._id, packageRecord.packageSize)
-			).map((sessions) => ({ packageRecord, sessions }))
+			getCapacityConsumingPackageSessions(ctx, packageRecord._id, packageRecord.packageSize).map(
+				(sessions) => ({ packageRecord, sessions })
+			)
 		)
 		.map(({ packageRecord, sessions }) => ({
 			_id: packageRecord._id,
@@ -361,9 +362,7 @@ export function validatePackageSessionRequestService(
 		getValidPackageByToken(ctx, args.token, args.now)
 			// Load availability settings after validating the package link.
 			.andThen((packageRecord) =>
-				okOrThrow<SessionAvailabilitySettings>(ctx.runQuery(api.bookingSettings.get, {})).map(
-					(settings) => ({ packageRecord, settings })
-				)
+				getBookingAvailabilitySettings(ctx).map((settings) => ({ packageRecord, settings }))
 			)
 			// Enforce package availability before reading sessions that consume capacity.
 			.andThen(({ packageRecord, settings }) =>
@@ -374,8 +373,10 @@ export function validatePackageSessionRequestService(
 			)
 			// Confirm a package slot remains before parsing the requested start time.
 			.andThen(({ packageRecord, settings }) =>
-				okOrThrow(
-					getCapacityConsumingPackageSessions(ctx, packageRecord._id, packageRecord.packageSize)
+				getCapacityConsumingPackageSessions(
+					ctx,
+					packageRecord._id,
+					packageRecord.packageSize
 				).andThen((bookings) => {
 					if (bookings.length >= packageRecord.packageSize) {
 						return err({ reason: "PACKAGE_CAPACITY_EXCEEDED" as const });
@@ -451,16 +452,15 @@ export async function processPackageAdjustmentWhenSessionsCompleteService(
 
 export function saveCreatedPackageSessionService(
 	ctx: MutationCtx,
-	args: SaveCreatedPackageSessionArgs,
-	schedulePackageAdjustment: (packageId: Id<"packages">) => Promise<Id<"_scheduled_functions">>
+	args: SaveCreatedPackageSessionArgs
 ) {
 	return (
 		getValidPackageByToken(ctx, args.token, args.now)
 			// Load the sessions that currently consume this package's capacity.
 			.andThen((packageFromDb) =>
-				okOrThrow(
-					getCapacityConsumingPackageSessions(ctx, packageFromDb._id, packageFromDb.packageSize)
-				).map((packageSessions) => ({ packageFromDb, packageSessions }))
+				getCapacityConsumingPackageSessions(ctx, packageFromDb._id, packageFromDb.packageSize).map(
+					(packageSessions) => ({ packageFromDb, packageSessions })
+				)
 			)
 			// Confirm the package has capacity and parse the requested session start.
 			.andThen(({ packageFromDb, packageSessions }) => {
@@ -517,14 +517,12 @@ export function saveCreatedPackageSessionService(
 							searchBlob: buildBookingSearchBlob(bookingFields)
 						})
 					).andThen((bookingId) =>
-						okOrThrow(
-							scheduleDriveSetup(ctx, {
-								bookingId,
-								sessionStartAt,
-								duration: packageFromDb.duration,
-								packageId: packageFromDb._id
-							})
-						).andThen((scheduled) => scheduled.map(() => ({ bookingId, packageFromDb })))
+						scheduleDriveSetup(ctx, {
+							bookingId,
+							sessionStartAt,
+							duration: packageFromDb.duration,
+							packageId: packageFromDb._id
+						}).map(() => ({ bookingId, packageFromDb }))
 					);
 				})
 			)
@@ -543,7 +541,9 @@ export function saveCreatedPackageSessionService(
 			// Check whether every package slot is now scheduled. Once full, adjustment processing
 			// waits for the final session to end before recording whether Remote Podcast charges are due.
 			.andThen(({ bookingId, packageFromDb }) =>
-				okOrThrow(schedulePackageAdjustment(packageFromDb._id).then(() => ({ bookingId })))
+				schedulePackageAdjustmentWhenSessionsComplete(ctx, packageFromDb._id).map(() => ({
+					bookingId
+				}))
 			)
 	);
 }
@@ -553,9 +553,10 @@ export function cancelPackageSessionService(ctx: MutationCtx, args: CancelPackag
 		getValidPackageByToken(ctx, args.token, args.now)
 			// Load the session through the package to enforce ownership.
 			.andThen((packageFromDb) =>
-				okOrThrow(getPackageSessionForToken(ctx, packageFromDb._id, args.bookingId)).map(
-					(session) => ({ packageFromDb, session })
-				)
+				getPackageSessionForToken(ctx, packageFromDb._id, args.bookingId).map((session) => ({
+					packageFromDb,
+					session
+				}))
 			)
 			// Confirm the session exists and still consumes package capacity.
 			.andThen(({ session }) => {

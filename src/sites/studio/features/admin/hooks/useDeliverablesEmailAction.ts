@@ -18,11 +18,37 @@ const deliverablesEmailErrorMessage = {
 	SESSION_NOT_IN_PAST: "This session is not eligible for a deliverables email.",
 	DELIVERABLES_FOLDER_MISSING: "This session has no Deliverables folder yet.",
 	DELIVERABLES_FOLDER_EMPTY: "Deliverables is empty. Add the finished files before sending.",
-	DELIVERABLES_FOLDER_LIST_FAILED: "Couldn't check the Deliverables folder. Try again.",
-	DELIVERABLES_LINK_SHARE_FAILED: "Couldn't create a viewable Deliverables link. Try again.",
-	DELIVERABLES_SEND_FAILED: "Unable to send deliverables email.",
+	GOOGLE_DRIVE_AUTH_FAILED: "Couldn't access Google Drive. Try again.",
+	GOOGLE_DRIVE_FOLDER_CREATE_FAILED: "Couldn't access the Deliverables folder. Try again.",
+	GOOGLE_DRIVE_FOLDER_RESPONSE_INVALID: "Couldn't access the Deliverables folder. Try again.",
+	GOOGLE_DRIVE_FOLDER_LOOKUP_FAILED: "Couldn't access the Deliverables folder. Try again.",
+	GOOGLE_DRIVE_FOLDER_RENAME_FAILED: "Couldn't access the Deliverables folder. Try again.",
+	GOOGLE_DRIVE_FOLDER_DELETE_FAILED: "Couldn't access the Deliverables folder. Try again.",
+	GOOGLE_DRIVE_PERMISSION_CREATE_FAILED: "Couldn't create a viewable Deliverables link. Try again.",
+	GOOGLE_DRIVE_PERMISSION_DELETE_FAILED: "Couldn't create a viewable Deliverables link. Try again.",
+	GOOGLE_DRIVE_PERMISSION_LOOKUP_FAILED: "Couldn't create a viewable Deliverables link. Try again.",
+	GOOGLE_DRIVE_PERMISSION_RESPONSE_INVALID:
+		"Couldn't create a viewable Deliverables link. Try again.",
+	GOOGLE_DRIVE_SHARE_TARGET_MISSING: "Couldn't create a viewable Deliverables link. Try again.",
+	EMAIL_RENDER_FAILED: "Unable to send deliverables email.",
+	EMAIL_REQUEST_FAILED: "Unable to send deliverables email.",
+	EMAIL_RESPONSE_FAILED: "Unable to send deliverables email.",
 	UNEXPECTED_ERROR: "Something went wrong while sending the deliverables email."
 } as const;
+
+function isDeliverablesEmailErrorReason(
+	reason: string
+): reason is keyof typeof deliverablesEmailErrorMessage {
+	return Object.hasOwn(deliverablesEmailErrorMessage, reason);
+}
+
+function deliverablesEmailErrorToast(reason: string) {
+	if (isDeliverablesEmailErrorReason(reason)) {
+		return deliverablesEmailErrorMessage[reason];
+	}
+
+	return deliverablesEmailErrorMessage.UNEXPECTED_ERROR;
+}
 
 type DeliverablesEmailSendState = { status: "ready-to-send" } | { status: "status-repair" };
 
@@ -81,7 +107,7 @@ export function useDeliverablesEmailAction(session: SessionRecord) {
 		);
 
 		if (emailError !== null) {
-			toast.error(deliverablesEmailErrorMessage[emailError.reason]);
+			toast.error(deliverablesEmailErrorToast(emailError.reason));
 			setIsEmailingDeliverables(false);
 
 			return;

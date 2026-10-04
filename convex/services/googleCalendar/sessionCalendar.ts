@@ -5,7 +5,7 @@ import { api, internal } from "#convex/_generated/api";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import { formatDateValue, getLastBookableDate, startOfToday } from "#studio/lib/bookingdatetime";
 import type { ActionCtx } from "#convex/_generated/server";
-import { requirePermissionActions } from "#convex/lib/auth";
+import { requirePermissionActions } from "#convex/services/auth";
 import {
 	notifyHostOfAdminSessionReschedule,
 	sendBookingRescheduledEmailsForBooking
@@ -252,12 +252,12 @@ type RescheduledSessionTimingUpdate = {
 	sessionStartAt: number;
 };
 
-async function finishRescheduledSession(
+function finishRescheduledSession(
 	session: Doc<"bookings">,
 	args: RescheduleSessionArgs,
 	timingUpdate: RescheduledSessionTimingUpdate,
 	settings: SessionAvailabilitySettings
-) {
+): ResultAsync<{ bookingId: Id<"bookings">; warning?: "RESCHEDULE_EMAIL_SEND_FAILED" }, never> {
 	const updatedBooking = {
 		...session,
 		date: args.date,
@@ -267,18 +267,14 @@ async function finishRescheduledSession(
 		googleEventId: timingUpdate.googleEventId ?? session.googleEventId
 	};
 
-	const emailResult = await sendBookingRescheduledEmailsForBooking(updatedBooking, {
+	return sendBookingRescheduledEmailsForBooking(updatedBooking, {
 		leadTimeMinutes: settings.leadTimeMinutes,
 		originalDate: session.date,
 		originalTime: session.time,
 		rescheduleUrl: getRescheduleUrlForToken(args.token)
-	});
-
-	if (emailResult.isErr()) {
-		return ok({ bookingId: session._id, warning: "RESCHEDULE_EMAIL_SEND_FAILED" as const });
-	}
-
-	return ok({ bookingId: session._id });
+	})
+		.map(() => ({ bookingId: session._id }))
+		.orElse(() => ok({ bookingId: session._id, warning: "RESCHEDULE_EMAIL_SEND_FAILED" as const }));
 }
 
 export function rescheduleSessionService(
@@ -346,9 +342,7 @@ export function rescheduleSessionService(
 				).map(() => state)
 			)
 			.andThen(({ session, settings, timingUpdate }) =>
-				okOrThrow(finishRescheduledSession(session, args, timingUpdate, settings)).andThen(
-					(result) => result
-				)
+				finishRescheduledSession(session, args, timingUpdate, settings)
 			)
 	);
 }
@@ -419,9 +413,7 @@ export function cancelBookingFromAdminService(
 				}))
 			)
 			// Delete the provider event before cancelling the booking in Convex.
-			.andThen(({ client, session }) =>
-				okOrThrow(deleteSessionCalendarEvent({ session, client })).andThen((result) => result)
-			)
+			.andThen(({ client, session }) => deleteSessionCalendarEvent({ session, client }))
 			// Persist cancellation after deletion succeeds or the provider event is already missing.
 			.andThen(() =>
 				fromConvexTuple(

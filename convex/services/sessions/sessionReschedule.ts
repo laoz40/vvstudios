@@ -1,41 +1,20 @@
 import { err, ok, type ResultAsync as NeverthrowResultAsync } from "neverthrow";
-import { internal } from "#convex/_generated/api";
-import type { Doc } from "#convex/_generated/dataModel";
+import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
-import { env } from "#convex/env";
-import type { BookingAddon } from "#studio/features/booking-form/lib/booking-form-model";
-import { requirePermission } from "#convex/lib/auth";
-import { fromConvexTuple, okOrThrow } from "#convex/lib/result";
-import { getSessionByStripeSessionId, getSessionFromDb } from "#convex/lib/sessions/sessionLookup";
+import { okOrThrow } from "#convex/lib/result";
+import { getSessionFromDb } from "#convex/lib/sessions/sessionLookup";
 import {
-	buildRescheduleUrl,
 	createActiveRescheduleLinkForSession,
-	hashRescheduleToken,
+	getRescheduleUrlForToken,
+	hashRescheduleTokenAsync,
 	isRescheduleLinkExpired,
 	isSessionReschedulable,
 	markExistingActiveSessionRescheduleLinksUsed,
 	validateActiveRescheduleLink,
-	validateAdminSessionForReschedule,
-	validatePublicFailedSessionForReschedule,
-	type CreateAdminRescheduleLinkError,
-	type CreatePublicFailedSessionRescheduleLinkError
+	validateAdminSessionForReschedule
 } from "#convex/lib/sessions/sessionRescheduleLinks";
-
-export interface GetRescheduleSessionByTokenArgs {
-	token: string;
-}
-
-export interface RescheduleSessionSummary {
-	session: {
-		date: string;
-		time: string;
-		duration: string;
-		service: string;
-		addons: BookingAddon[];
-		name: string;
-	};
-	expiresAt: number;
-}
+import type { CreateAdminRescheduleLinkError } from "#convex/lib/sessions/sessionRescheduleLinks";
+import { requirePermission } from "#convex/services/auth";
 
 export type RescheduleLinkLookupError =
 	| { reason: "RESCHEDULE_LINK_NOT_FOUND" }
@@ -49,82 +28,33 @@ export interface ValidRescheduleLinkAndSession {
 	link: Doc<"bookingRescheduleLinks">;
 }
 
-export function createPublicFailedSessionRescheduleLinkService(
+export function createAdminRescheduleLink(
 	ctx: MutationCtx,
-	args: { stripeSessionId: string }
-): NeverthrowResultAsync<{ rescheduleUrl: string }, CreatePublicFailedSessionRescheduleLinkError> {
-	return getSessionByStripeSessionId(ctx, args.stripeSessionId)
-		.andThen(validatePublicFailedSessionForReschedule)
-		.andThen((session) =>
-			okOrThrow(
-				createActiveRescheduleLinkForSession({
-					ctx,
-					session,
-					expiresAt: session.sessionStartAt,
-					now: Date.now()
-				})
-			).map((link) => ({
-				rescheduleUrl: buildRescheduleUrl(
-					new URL(env.STRIPE_CHECKOUT_RETURN_URL).origin,
-					link.token
-				)
-			}))
-		);
-}
-
-export function createAdminRescheduleLinkService(
-	ctx: MutationCtx,
-	args: { bookingId: Doc<"bookings">["_id"] }
+	args: { bookingId: Id<"bookings"> }
 ): NeverthrowResultAsync<{ rescheduleUrl: string }, CreateAdminRescheduleLinkError> {
 	return requirePermission(ctx, "create:reschedule-links")
 		.andThen(() => getSessionFromDb(ctx, args.bookingId))
 		.andThen(validateAdminSessionForReschedule)
-		.andThen((session) =>
-			okOrThrow(
-				createActiveRescheduleLinkForSession({
-					ctx,
-					session,
-					expiresAt: session.sessionStartAt,
-					now: Date.now()
-				})
-			).map((link) => ({
-				rescheduleUrl: buildRescheduleUrl(
-					new URL(env.STRIPE_CHECKOUT_RETURN_URL).origin,
-					link.token
-				)
-			}))
-		);
+		.andThen((session) => issueRescheduleLink(ctx, session));
 }
 
-export function getRescheduleSessionByTokenService(
-	ctx: QueryCtx,
-	args: GetRescheduleSessionByTokenArgs
-): NeverthrowResultAsync<RescheduleSessionSummary, RescheduleLinkLookupError> {
-	return fromConvexTuple(
-		ctx.runQuery(internal.sessionReschedule.getValidRescheduleLinkAndSession, {
-			now: Date.now(),
-			token: args.token
-		})
-	).map(
-		({ session, link }): RescheduleSessionSummary => ({
-			session: {
-				date: session.date,
-				time: session.time,
-				duration: session.duration,
-				service: session.service,
-				addons: session.addons,
-				name: session.name
-			},
-			expiresAt: link.expiresAt
-		})
-	);
+export function issueRescheduleLink(
+	ctx: MutationCtx,
+	session: Doc<"bookings">
+): NeverthrowResultAsync<{ rescheduleUrl: string }, never> {
+	return createActiveRescheduleLinkForSession({
+		ctx,
+		session,
+		expiresAt: session.sessionStartAt,
+		now: Date.now()
+	}).map((link) => ({ rescheduleUrl: getRescheduleUrlForToken(link.token) }));
 }
 
 export function getValidRescheduleLinkAndSessionService(
 	ctx: QueryCtx,
 	args: { now: number; token: string }
 ): NeverthrowResultAsync<ValidRescheduleLinkAndSession, RescheduleLinkLookupError> {
-	return okOrThrow(hashRescheduleToken(args.token))
+	return hashRescheduleTokenAsync(args.token)
 		.andThen((tokenHash) =>
 			okOrThrow(
 				ctx.db
@@ -165,14 +95,7 @@ export function createActiveRescheduleLinkService(
 	args: { bookingId: Doc<"bookings">["_id"]; expiresAt: number; now: number }
 ) {
 	return getSessionFromDb(ctx, args.bookingId).andThen((session) =>
-		okOrThrow(
-			createActiveRescheduleLinkForSession({
-				session,
-				ctx,
-				expiresAt: args.expiresAt,
-				now: args.now
-			})
-		)
+		createActiveRescheduleLinkForSession({ session, ctx, expiresAt: args.expiresAt, now: args.now })
 	);
 }
 

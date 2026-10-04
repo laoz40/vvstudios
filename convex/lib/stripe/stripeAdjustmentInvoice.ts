@@ -7,6 +7,7 @@ import {
 	REMOTE_PODCAST_ADJUSTMENT_RATE
 } from "#convex/lib/packages/packageAdjustments";
 import { tryPromise } from "#convex/lib/result";
+import { stripeApiFailureReason, type StripeApiFailure } from "#convex/lib/stripe/stripeApiErrors";
 import type { StripeClient } from "#convex/lib/stripe/stripeClient";
 import { getCustomerAddonDisplayLabel } from "#studio/features/booking-form/lib/booking-form-model";
 import { BOOKING_INVOICE_CURRENCY } from "#studio/features/booking-form/lib/booking-pricing";
@@ -65,7 +66,7 @@ function packageAdjustmentInvoiceIdempotencyKey(
 export function createAndSendPackageAdjustmentStripeInvoice(
 	stripe: StripeClient,
 	input: CreatePackageAdjustmentStripeInvoiceInput
-): ResultAsync<{ stripeInvoiceId: string }, { reason: "STRIPE_ADJUSTMENT_INVOICE_FAILED" }> {
+): ResultAsync<{ stripeInvoiceId: string }, StripeApiFailure> {
 	const remotePodcastLabel = getCustomerAddonDisplayLabel("Remote Podcast");
 	const unitAmount = audToStripeUnitAmount(REMOTE_PODCAST_ADJUSTMENT_RATE);
 
@@ -111,6 +112,6 @@ export function createAndSendPackageAdjustmentStripeInvoice(
 
 			return finalizedInvoice.id;
 		},
-		catch: () => ({ reason: "STRIPE_ADJUSTMENT_INVOICE_FAILED" as const })
+		catch: (cause) => stripeApiFailureReason(cause)
 	}).map((stripeInvoiceId) => ({ stripeInvoiceId }));
 }

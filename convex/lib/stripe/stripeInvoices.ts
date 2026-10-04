@@ -18,6 +18,11 @@ export type StripeInvoicePaymentClaim =
 
 type StripeInvoiceInsert = Omit<Doc<"stripeInvoices">, "_id" | "_creationTime">;
 
+export type StripeInvoiceInsertResult = {
+	stripeInvoiceRecordId: Id<"stripeInvoices">;
+	created: boolean;
+};
+
 function sumStripeInvoiceLineItems(lineItems: StripeInvoiceLineItem[]) {
 	return lineItems.reduce((total, lineItem) => total + lineItem.amount, 0);
 }

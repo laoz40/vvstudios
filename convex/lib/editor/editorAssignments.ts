@@ -68,14 +68,14 @@ export async function getEditorDisplayNamesByToken(ctx: QueryCtx, tokenIdentifie
 }
 
 // TODO(scale): This indexed lookup runs once per active editor; persist workload counters if that becomes inefficient at scale.
-export async function buildActiveEditorProjection(ctx: QueryCtx, editor: Doc<"editorProfiles">) {
-	return {
+export function buildActiveEditorProjection(ctx: QueryCtx, editor: Doc<"editorProfiles">) {
+	return getEditorWorkStatus(ctx, editor.tokenIdentifier).map((workStatus) => ({
 		tokenIdentifier: editor.tokenIdentifier,
 		displayName: editor.displayName,
 		email: editor.email,
 		totalEdits: editor.totalEdits,
-		workStatus: await getEditorWorkStatus(ctx, editor.tokenIdentifier)
-	};
+		workStatus
+	}));
 }
 
 export function getActiveEditor(ctx: MutationCtx, editorTokenIdentifier: string) {

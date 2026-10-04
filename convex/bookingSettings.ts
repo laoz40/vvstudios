@@ -1,20 +1,10 @@
 import { v } from "convex/values";
 import { mutation, query } from "#convex/_generated/server";
 import { tupleErr, tupleOk } from "#/lib/result";
-import { DEFAULT_BOOKING_AVAILABILITY_SETTINGS } from "#studio/lib/bookingAvailabilitySettings";
+import { readBookingAvailabilitySettings } from "#convex/lib/booking/bookingSettings";
 import { updateBookingSettingsService } from "#convex/services/booking/bookingSettings";
 
-export const get = query({
-	args: {},
-	handler: async (ctx) => {
-		const settings = await ctx.db
-			.query("bookingSettings")
-			.withIndex("by_key", (q) => q.eq("key", "main"))
-			.unique();
-
-		return settings ?? DEFAULT_BOOKING_AVAILABILITY_SETTINGS;
-	}
-});
+export const get = query({ args: {}, handler: (ctx) => readBookingAvailabilitySettings(ctx) });
 
 export const update = mutation({
 	args: {

@@ -1,22 +1,22 @@
-import { ok } from "neverthrow";
+import { ok, okAsync, ResultAsync } from "neverthrow";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { QueryCtx } from "#convex/_generated/server";
 import { okOrThrow } from "#convex/lib/result";
 
 export const DRIVE_EMAIL_CLAIM_TIMEOUT_MS = 15 * 60 * 1000;
 
-export async function resolveDriveClientForBooking(
+export function resolveDriveClientForBooking(
 	ctx: QueryCtx,
 	driveSession: Doc<"driveSessions"> | null,
 	driveClientFromBooking: Doc<"driveClients"> | null
-): Promise<Doc<"driveClients"> | null> {
+): ResultAsync<Doc<"driveClients"> | null, never> {
 	if (driveSession?.driveClientId !== undefined) {
-		const sessionClient = await ctx.db.get("driveClients", driveSession.driveClientId);
-
-		if (sessionClient !== null) return sessionClient;
+		return okOrThrow(ctx.db.get("driveClients", driveSession.driveClientId)).map((sessionClient) =>
+			sessionClient !== null ? sessionClient : driveClientFromBooking
+		);
 	}
 
-	return driveClientFromBooking;
+	return okAsync(driveClientFromBooking);
 }
 
 export async function loadPackageBookings(ctx: Pick<QueryCtx, "db">, packageId: Id<"packages">) {
@@ -28,27 +28,25 @@ export async function loadPackageBookings(ctx: Pick<QueryCtx, "db">, packageId: 
 		.collect();
 }
 
-export async function loadSharedPackageFolder(
+export function loadSharedPackageFolder(
 	ctx: QueryCtx,
 	packageId: Id<"packages">,
 	currentBookingId: Id<"bookings">
-) {
-	const packageBookings = await loadPackageBookings(ctx, packageId);
-
-	const sharedFolders = await Promise.all(
-		packageBookings
-			.filter((packageBooking) => packageBooking._id !== currentBookingId)
-			.map(async (packageBooking) => {
-				const driveSession = await ctx.db
-					.query("driveSessions")
-					.withIndex("by_bookingId", (query) => query.eq("bookingId", packageBooking._id))
-					.unique();
-
-				return driveSession?.packageFolder;
-			})
+): ResultAsync<Doc<"driveSessions">["packageFolder"] | undefined, never> {
+	return okOrThrow(loadPackageBookings(ctx, packageId)).andThen((packageBookings) =>
+		ResultAsync.combine(
+			packageBookings
+				.filter((packageBooking) => packageBooking._id !== currentBookingId)
+				.map((packageBooking) =>
+					okOrThrow(
+						ctx.db
+							.query("driveSessions")
+							.withIndex("by_bookingId", (query) => query.eq("bookingId", packageBooking._id))
+							.unique()
+					).map((driveSession) => driveSession?.packageFolder)
+				)
+		).map((sharedFolders) => sharedFolders.find((packageFolder) => packageFolder !== undefined))
 	);
-
-	return sharedFolders.find((packageFolder) => packageFolder !== undefined);
 }
 
 export function getDriveSetup(ctx: QueryCtx, bookingId: Id<"bookings">) {
@@ -69,7 +67,7 @@ export function getDriveSetup(ctx: QueryCtx, bookingId: Id<"bookings">) {
 					: Promise.resolve(null)
 			])
 		).andThen(([driveClientFromBooking, driveSession, packageRecord]) =>
-			okOrThrow(resolveDriveClientForBooking(ctx, driveSession, driveClientFromBooking)).andThen(
+			resolveDriveClientForBooking(ctx, driveSession, driveClientFromBooking).andThen(
 				(driveClient) => {
 					if (driveSession?.packageFolder !== undefined || booking.packageId === undefined) {
 						return ok({
@@ -81,7 +79,7 @@ export function getDriveSetup(ctx: QueryCtx, bookingId: Id<"bookings">) {
 						});
 					}
 
-					return okOrThrow(loadSharedPackageFolder(ctx, booking.packageId, booking._id)).map(
+					return loadSharedPackageFolder(ctx, booking.packageId, booking._id).map(
 						(sharedPackageFolder) => ({
 							booking,
 							driveClient,

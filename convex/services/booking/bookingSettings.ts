@@ -2,7 +2,7 @@ import type { BookingAvailabilitySettings } from "#studio/lib/bookingAvailabilit
 import type { ResultAsync as NeverthrowResultAsync } from "neverthrow";
 import { api } from "#convex/_generated/api";
 import type { ActionCtx, MutationCtx } from "#convex/_generated/server";
-import { requirePermission } from "#convex/lib/auth";
+import { requirePermission } from "#convex/services/auth";
 import { validateBookingSettings } from "#convex/lib/booking/bookingSettings";
 import { okOrThrow } from "#convex/lib/result";
 

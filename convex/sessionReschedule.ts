@@ -1,12 +1,13 @@
 import { v } from "convex/values";
 import { tupleErr, tupleOk } from "#/lib/result";
 import { internalMutation, internalQuery, mutation, query } from "#convex/_generated/server";
+import { getSessionByStripeSessionId } from "#convex/lib/sessions/sessionLookup";
+import { validatePublicFailedSessionForReschedule } from "#convex/lib/sessions/sessionRescheduleLinks";
 import {
 	createActiveRescheduleLinkService,
-	createAdminRescheduleLinkService,
-	createPublicFailedSessionRescheduleLinkService,
-	getRescheduleSessionByTokenService,
+	createAdminRescheduleLink as createAdminRescheduleLinkService,
 	getValidRescheduleLinkAndSessionService,
+	issueRescheduleLink,
 	lockRescheduleLinkService,
 	markActiveRescheduleLinksUsedForSessionService,
 	unlockRescheduleLinkService
@@ -17,7 +18,10 @@ export type { RescheduleLinkLookupError } from "#convex/services/sessions/sessio
 export const createPublicFailedSessionRescheduleLink = mutation({
 	args: { stripeSessionId: v.string() },
 	handler: async (ctx, args) =>
-		await createPublicFailedSessionRescheduleLinkService(ctx, args).match(tupleOk, tupleErr)
+		await getSessionByStripeSessionId(ctx, args.stripeSessionId)
+			.andThen(validatePublicFailedSessionForReschedule)
+			.andThen((session) => issueRescheduleLink(ctx, session))
+			.match(tupleOk, tupleErr)
 });
 
 export const createAdminRescheduleLink = mutation({
@@ -29,7 +33,19 @@ export const createAdminRescheduleLink = mutation({
 export const getRescheduleSessionByToken = query({
 	args: { token: v.string() },
 	handler: async (ctx, args) =>
-		await getRescheduleSessionByTokenService(ctx, args).match(tupleOk, tupleErr)
+		await getValidRescheduleLinkAndSessionService(ctx, { now: Date.now(), token: args.token })
+			.map(({ session, link }) => ({
+				session: {
+					date: session.date,
+					time: session.time,
+					duration: session.duration,
+					service: session.service,
+					addons: session.addons,
+					name: session.name
+				},
+				expiresAt: link.expiresAt
+			}))
+			.match(tupleOk, tupleErr)
 });
 
 export const getValidRescheduleLinkAndSession = internalQuery({

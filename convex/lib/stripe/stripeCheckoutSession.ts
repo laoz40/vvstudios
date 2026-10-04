@@ -6,7 +6,7 @@ import { internal } from "#convex/_generated/api";
 import type { Id } from "#convex/_generated/dataModel";
 import type { ActionCtx } from "#convex/_generated/server";
 import { env } from "#convex/env";
-import { emailDomainCanReceiveMail } from "#convex/lib/email/emailDomain";
+import { emailDomainCanReceiveMailAsync } from "#convex/lib/email/emailDomain";
 import { fromConvexTuple, okOrThrow, tryPromise } from "#convex/lib/result";
 import type { SessionAvailabilityValidationError } from "#convex/lib/sessions/sessionCalendarTime";
 import type {
@@ -41,7 +41,7 @@ type StripeCheckoutDraft = SessionCheckoutDraft & {
 export function requireValidBookingEmailDomain(
 	email: string
 ): ResultAsync<null, { reason: "BOOKING_EMAIL_DOMAIN_INVALID" }> {
-	return okOrThrow(emailDomainCanReceiveMail(email)).andThen((canReceiveMail) =>
+	return emailDomainCanReceiveMailAsync(email).andThen((canReceiveMail) =>
 		canReceiveMail ? ok(null) : err({ reason: "BOOKING_EMAIL_DOMAIN_INVALID" as const })
 	);
 }

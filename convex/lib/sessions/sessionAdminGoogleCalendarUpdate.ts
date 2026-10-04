@@ -1,5 +1,5 @@
 import type { calendar_v3 } from "googleapis/build/src/apis/calendar/v3";
-import { err, ok, ResultAsync } from "neverthrow";
+import { err, ok, okAsync, ResultAsync } from "neverthrow";
 import { internal } from "#convex/_generated/api";
 import type { Doc } from "#convex/_generated/dataModel";
 import type { ActionCtx } from "#convex/_generated/server";
@@ -8,7 +8,7 @@ import {
 	calendarResultAsync,
 	mapCalendarErrorCode
 } from "#convex/lib/googleCalendar/googleCalendarErrors";
-import { fromConvexTuple, okOrThrow, tryPromise } from "#convex/lib/result";
+import { fromConvexTuple, tryPromise } from "#convex/lib/result";
 import type { SaveAdminSessionUpdateArgs } from "#convex/lib/sessions/sessionSchedulingArgs";
 import { pickBookingAddonQuantities } from "#studio/features/booking-form/lib/booking-form-model";
 import {
@@ -67,15 +67,13 @@ function promoteFailedSessionFromAdmin({
 	settings: SessionAvailabilitySettings;
 }): ResultAsync<AdminSessionUpdateResult, AdminSessionUpdateError> {
 	// Failed bookings are only promoted when the edited time is valid and available.
-	return okOrThrow(
-		verifySessionCanBeScheduled({
-			session: { ...session, date: args.date, duration: args.duration, time: args.time },
-			calendar: client.calendar,
-			calendarIds: client.calendarIds,
-			settings,
-			timeZone: client.timeZone
-		})
-	).andThen((canBeScheduled) => {
+	return verifySessionCanBeScheduled({
+		session: { ...session, date: args.date, duration: args.duration, time: args.time },
+		calendar: client.calendar,
+		calendarIds: client.calendarIds,
+		settings,
+		timeZone: client.timeZone
+	}).andThen((canBeScheduled) => {
 		if (!canBeScheduled) {
 			return err({ reason: "BOOKING_TIME_UNAVAILABLE" as const });
 		}
@@ -140,14 +138,14 @@ function promoteFailedSessionFromAdmin({
 						return err(saveError);
 					}
 
-					return okOrThrow(
-						removeOrphanedSessionCalendarEvent({
-							bookingId: session._id,
-							calendar: client.calendar,
-							calendarId: client.calendarId,
-							googleEventId
-						})
-					).andThen(() => err(saveError));
+					return removeOrphanedSessionCalendarEvent({
+						bookingId: session._id,
+						calendar: client.calendar,
+						calendarId: client.calendarId,
+						googleEventId
+					})
+						.orElse(() => okAsync(undefined))
+						.andThen(() => err(saveError));
 				});
 			})
 			.map(() => ({ googleOutcome: "createdFromFailed" as const }));
@@ -195,16 +193,14 @@ export function updateSessionTimingWithGoogleCalendar({
 			timeZone: client.timeZone
 		})
 			.andThen(() =>
-				okOrThrow(
-					updateSessionCalendarEventTiming({
-						session,
-						client,
-						date,
-						details,
-						createMissingEvent,
-						time
-					})
-				).andThen((calendarResult) => calendarResult)
+				updateSessionCalendarEventTiming({
+					session,
+					client,
+					date,
+					details,
+					createMissingEvent,
+					time
+				})
 			)
 			.map((calendarUpdate) => ({ ...calendarUpdate, sessionStartAt }))
 	);

@@ -1,4 +1,4 @@
-import { err, ok, okAsync, ResultAsync, type Result } from "neverthrow";
+import { errAsync, okAsync, ResultAsync } from "neverthrow";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { ActionCtx } from "#convex/_generated/server";
 import { createBookingInvoiceArtifactsForBooking } from "#studio/features/booking-invoice/lib/booking-artifacts";
@@ -7,11 +7,16 @@ import {
 	sendSessionHostDetailsEmail
 } from "#convex/lib/email/email";
 import type { AdminSessionUpdateResult } from "#convex/lib/sessions/sessionAdminEdit";
-import { okOrThrow } from "#convex/lib/result";
 import { getSessionFromQuery } from "#convex/lib/sessions/sessionLookup";
 import { pickBookingAddonQuantities } from "#studio/features/booking-form/lib/booking-form-model";
 
-export async function sendBookingRescheduledEmailsForBooking(
+type BookingRescheduleEmailError =
+	| { reason: "EMAIL_RENDER_FAILED" }
+	| { reason: "EMAIL_REQUEST_FAILED" }
+	| { reason: "EMAIL_RESPONSE_FAILED" }
+	| { reason: "INVALID_BOOKING_DATA" };
+
+export function sendBookingRescheduledEmailsForBooking(
 	booking: Doc<"bookings">,
 	options: {
 		leadTimeMinutes: number;
@@ -19,16 +24,8 @@ export async function sendBookingRescheduledEmailsForBooking(
 		originalTime: string;
 		rescheduleUrl?: string;
 	}
-): Promise<
-	Result<
-		null,
-		| { reason: "EMAIL_RENDER_FAILED" }
-		| { reason: "EMAIL_REQUEST_FAILED" }
-		| { reason: "EMAIL_RESPONSE_FAILED" }
-		| { reason: "INVALID_BOOKING_DATA" }
-	>
-> {
-	const customerEmailResult = await sendBookingRescheduledCustomerEmail({
+): ResultAsync<null, BookingRescheduleEmailError> {
+	return sendBookingRescheduledCustomerEmail({
 		addons: booking.addons,
 		date: booking.date,
 		duration: booking.duration,
@@ -40,32 +37,26 @@ export async function sendBookingRescheduledEmailsForBooking(
 		service: booking.service,
 		time: booking.time,
 		...pickBookingAddonQuantities(booking)
-	});
+	}).andThen(() =>
+		sendSessionHostRescheduleEmailForBooking(booking, {
+			leadTimeMinutes: options.leadTimeMinutes,
+			originalDate: options.originalDate,
+			originalTime: options.originalTime
+		}).orElse((error) => {
+			console.error("Booking reschedule host email send failed", {
+				bookingId: booking._id,
+				reason: error.reason
+			});
 
-	if (customerEmailResult.isErr()) {
-		return customerEmailResult;
-	}
-
-	const hostEmailResult = await sendSessionHostRescheduleEmailForBooking(booking, {
-		leadTimeMinutes: options.leadTimeMinutes,
-		originalDate: options.originalDate,
-		originalTime: options.originalTime
-	});
-
-	if (hostEmailResult.isErr()) {
-		console.error("Booking reschedule host email send failed", {
-			bookingId: booking._id,
-			reason: hostEmailResult.error.reason
-		});
-	}
-
-	return ok(null);
+			return okAsync(null);
+		})
+	);
 }
 
-export async function sendSessionHostRescheduleEmailForBooking(
+export function sendSessionHostRescheduleEmailForBooking(
 	booking: Doc<"bookings">,
 	options: { leadTimeMinutes: number; originalDate: string; originalTime: string }
-): Promise<Result<null, { reason: "INVALID_BOOKING_DATA" | "HOST_EMAIL_SEND_FAILED" }>> {
+): ResultAsync<null, { reason: "INVALID_BOOKING_DATA" | "HOST_EMAIL_SEND_FAILED" }> {
 	const artifactsResult = createBookingInvoiceArtifactsForBooking(
 		booking,
 		booking.paymentCompletedAt ?? booking.bookingConfirmedAt ?? booking.pendingPaymentCreatedAt,
@@ -73,12 +64,12 @@ export async function sendSessionHostRescheduleEmailForBooking(
 	);
 
 	if (artifactsResult.isErr()) {
-		return err(artifactsResult.error);
+		return errAsync(artifactsResult.error);
 	}
 
 	const { artifacts, booking: parsedBooking } = artifactsResult.value;
 
-	const hostEmailResult = await sendSessionHostDetailsEmail({
+	return sendSessionHostDetailsEmail({
 		invoiceNumber: artifacts.data.invoice.number,
 		name: parsedBooking.name,
 		email: parsedBooking.email,
@@ -93,18 +84,14 @@ export async function sendSessionHostRescheduleEmailForBooking(
 		notes: parsedBooking.notes,
 		reschedule: { originalDate: options.originalDate, originalTime: options.originalTime },
 		...pickBookingAddonQuantities(parsedBooking)
-	});
-
-	if (hostEmailResult.isErr()) {
+	}).orElse((error) => {
 		console.error("Session reschedule host email send failed", {
 			bookingId: booking._id,
-			reason: hostEmailResult.error.reason
+			reason: error.reason
 		});
 
-		return err({ reason: "HOST_EMAIL_SEND_FAILED" });
-	}
-
-	return ok(null);
+		return errAsync({ reason: "HOST_EMAIL_SEND_FAILED" as const });
+	});
 }
 
 export function notifyHostOfAdminSessionReschedule(
@@ -118,14 +105,11 @@ export function notifyHostOfAdminSessionReschedule(
 	}
 ): ResultAsync<AdminSessionUpdateResult, { reason: "BOOKING_NOT_FOUND" }> {
 	return getSessionFromQuery(ctx, args.bookingId).andThen((updatedSession) =>
-		okOrThrow(
-			sendSessionHostRescheduleEmailForBooking(updatedSession, {
-				leadTimeMinutes: args.leadTimeMinutes,
-				originalDate: args.originalDate,
-				originalTime: args.originalTime
-			})
-		)
-			.andThen((emailResult) => emailResult)
+		sendSessionHostRescheduleEmailForBooking(updatedSession, {
+			leadTimeMinutes: args.leadTimeMinutes,
+			originalDate: args.originalDate,
+			originalTime: args.originalTime
+		})
 			.orElse((error) => {
 				console.error("Admin session reschedule host email send failed", {
 					bookingId: updatedSession._id,

@@ -1,12 +1,14 @@
-import { okAsync } from "neverthrow";
+import { ok, okAsync } from "neverthrow";
 import type { Id } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
-import { requirePermission } from "#convex/lib/auth";
-import { okOrThrow } from "#convex/lib/result";
+import { requirePermission } from "#convex/services/auth";
 import {
 	archivePackageWhenFullyDone,
 	unarchivePackageForNewUnpaidInvoice
 } from "#convex/lib/packages/packageArchive";
+import { getPackageFromDb } from "#convex/lib/packages/packageLookup";
+import { okOrThrow } from "#convex/lib/result";
+import { getSessionFromDb } from "#convex/lib/sessions/sessionLookup";
 import {
 	archiveSessionWhenFullyDone,
 	unarchiveSessionForNewUnpaidInvoice
@@ -18,8 +20,39 @@ import {
 	markStripeInvoicePaid,
 	recordBookingStripeInvoice,
 	recordPackageAdjustmentStripeInvoice,
-	recordPackageStripeInvoice
+	recordPackageStripeInvoice,
+	type StripeInvoiceInsertResult
 } from "#convex/lib/stripe/stripeInvoices";
+
+function unarchiveAfterNewBookingInvoice(
+	ctx: MutationCtx,
+	bookingId: Id<"bookings">,
+	insertResult: StripeInvoiceInsertResult
+) {
+	if (!insertResult.created) {
+		return okAsync(insertResult);
+	}
+
+	return getSessionFromDb(ctx, bookingId)
+		.andThen((session) => unarchiveSessionForNewUnpaidInvoice(ctx, session).map(() => insertResult))
+		.orElse(() => ok(insertResult));
+}
+
+function unarchiveAfterNewPackageInvoice(
+	ctx: MutationCtx,
+	packageId: Id<"packages">,
+	insertResult: StripeInvoiceInsertResult
+) {
+	if (!insertResult.created) {
+		return okAsync(insertResult);
+	}
+
+	return getPackageFromDb(ctx, packageId)
+		.andThen((packageRecord) =>
+			unarchivePackageForNewUnpaidInvoice(ctx, packageRecord).map(() => insertResult)
+		)
+		.orElse(() => ok(insertResult));
+}
 
 export function listStripeInvoicesForBookingService(
 	ctx: QueryCtx,
@@ -49,19 +82,9 @@ export function recordBookingStripeInvoiceService(
 		createdBy?: string;
 	}
 ) {
-	return recordBookingStripeInvoice(ctx, args).andThen((insertResult) => {
-		if (!insertResult.created) {
-			return okAsync(insertResult);
-		}
-
-		return okOrThrow(ctx.db.get("bookings", args.bookingId)).andThen((booking) => {
-			if (booking === null) {
-				return okAsync(insertResult);
-			}
-
-			return unarchiveSessionForNewUnpaidInvoice(ctx, booking).map(() => insertResult);
-		});
-	});
+	return recordBookingStripeInvoice(ctx, args).andThen((insertResult) =>
+		unarchiveAfterNewBookingInvoice(ctx, args.bookingId, insertResult)
+	);
 }
 
 export function recordPackageStripeInvoiceService(
@@ -74,19 +97,9 @@ export function recordPackageStripeInvoiceService(
 		createdBy?: string;
 	}
 ) {
-	return recordPackageStripeInvoice(ctx, args).andThen((insertResult) => {
-		if (!insertResult.created) {
-			return okAsync(insertResult);
-		}
-
-		return okOrThrow(ctx.db.get("packages", args.packageId)).andThen((packageRecord) => {
-			if (packageRecord === null) {
-				return okAsync(insertResult);
-			}
-
-			return unarchivePackageForNewUnpaidInvoice(ctx, packageRecord).map(() => insertResult);
-		});
-	});
+	return recordPackageStripeInvoice(ctx, args).andThen((insertResult) =>
+		unarchiveAfterNewPackageInvoice(ctx, args.packageId, insertResult)
+	);
 }
 
 export function recordPackageAdjustmentStripeInvoiceService(
@@ -99,19 +112,9 @@ export function recordPackageAdjustmentStripeInvoiceService(
 		totalAmount: number;
 	}
 ) {
-	return recordPackageAdjustmentStripeInvoice(ctx, args).andThen((insertResult) => {
-		if (!insertResult.created) {
-			return okAsync(insertResult);
-		}
-
-		return okOrThrow(ctx.db.get("packages", args.packageId)).andThen((packageRecord) => {
-			if (packageRecord === null) {
-				return okAsync(insertResult);
-			}
-
-			return unarchivePackageForNewUnpaidInvoice(ctx, packageRecord).map(() => insertResult);
-		});
-	});
+	return recordPackageAdjustmentStripeInvoice(ctx, args).andThen((insertResult) =>
+		unarchiveAfterNewPackageInvoice(ctx, args.packageId, insertResult)
+	);
 }
 
 export function markStripeInvoicePaidService(

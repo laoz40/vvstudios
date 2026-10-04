@@ -1,7 +1,5 @@
 import { v } from "convex/values";
 import { tupleErr, tupleOk } from "#/lib/result";
-import { internal } from "#convex/_generated/api";
-import type { Id } from "#convex/_generated/dataModel";
 import { internalMutation } from "#convex/_generated/server";
 import {
 	sessionReservationValidator,
@@ -13,9 +11,12 @@ import {
 	bookingAddonsValidator
 } from "#convex/lib/booking/bookingAddonQuantities";
 import {
-	saveAdminSessionUpdateService,
-	saveClientSessionRescheduleService
-} from "#convex/services/sessions/sessionScheduling";
+	persistAdminSessionUpdate,
+	patchClientSessionReschedule,
+	resolveAdminSessionUpdate,
+	schedulePackageAdjustmentAfterReschedule,
+	validateClientSessionReschedule
+} from "#convex/services/sessions/sessionSchedulingSave";
 
 // Reserve a target before any Calendar write. The shared helper checks confirmed
 // bookings and reservations from every session workflow in the same transaction.
@@ -56,7 +57,10 @@ export const saveAdminSessionUpdate = internalMutation({
 		confirmBooking: v.optional(v.boolean()),
 		reservation: v.optional(sessionReservationValidator)
 	},
-	handler: (ctx, args) => saveAdminSessionUpdateService(ctx, args).match(tupleOk, tupleErr)
+	handler: (ctx, args) =>
+		resolveAdminSessionUpdate(ctx, args)
+			.andThen((resolved) => persistAdminSessionUpdate(ctx, args, resolved))
+			.match(tupleOk, tupleErr)
 });
 
 export const saveClientSessionReschedule = internalMutation({
@@ -75,14 +79,8 @@ export const saveClientSessionReschedule = internalMutation({
 		reservation: sessionReservationValidator
 	},
 	handler: (ctx, args) =>
-		saveClientSessionRescheduleService(
-			ctx,
-			args,
-			(packageId): Promise<Id<"_scheduled_functions">> =>
-				ctx.scheduler.runAfter(
-					0,
-					internal.packageScheduling.processPackageAdjustmentWhenSessionsComplete,
-					{ packageId }
-				)
-		).match(tupleOk, tupleErr)
+		validateClientSessionReschedule(ctx, args)
+			.andThen((validated) => patchClientSessionReschedule(ctx, args, validated))
+			.andThen(() => schedulePackageAdjustmentAfterReschedule(ctx, args))
+			.match(tupleOk, tupleErr)
 });

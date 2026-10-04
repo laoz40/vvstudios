@@ -1,4 +1,4 @@
-import { err, errAsync, ok, type ResultAsync } from "neverthrow";
+import { err, errAsync, ok, ResultAsync } from "neverthrow";
 import { exhaustiveCheck } from "#/lib/result";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
@@ -70,30 +70,32 @@ function hasOtherClientAssignment(assignedBookings: Doc<"bookings">[], bookingId
 	return assignedBookings.some((booking) => booking._id !== bookingId);
 }
 
-async function loadEditorClientDriveData(
+function loadEditorClientDriveData(
 	ctx: QueryCtx,
 	driveSession: Doc<"driveSessions">,
 	editorTokenIdentifier: string
 ) {
-	return await Promise.all([
-		ctx.db.get("driveClients", driveSession.driveClientId),
-		ctx.db
-			.query("driveClientEditorPermissions")
-			.withIndex("by_driveClientId_and_editorTokenIdentifier", (query) =>
-				query
-					.eq("driveClientId", driveSession.driveClientId)
-					.eq("editorTokenIdentifier", editorTokenIdentifier)
-			)
-			.unique(),
-		ctx.db
-			.query("bookings")
-			.withIndex("by_assignedEditorTokenIdentifier_and_driveClientId", (query) =>
-				query
-					.eq("assignedEditorTokenIdentifier", editorTokenIdentifier)
-					.eq("driveClientId", driveSession.driveClientId)
-			)
-			.collect()
-	]);
+	return okOrThrow(
+		Promise.all([
+			ctx.db.get("driveClients", driveSession.driveClientId),
+			ctx.db
+				.query("driveClientEditorPermissions")
+				.withIndex("by_driveClientId_and_editorTokenIdentifier", (query) =>
+					query
+						.eq("driveClientId", driveSession.driveClientId)
+						.eq("editorTokenIdentifier", editorTokenIdentifier)
+				)
+				.unique(),
+			ctx.db
+				.query("bookings")
+				.withIndex("by_assignedEditorTokenIdentifier_and_driveClientId", (query) =>
+					query
+						.eq("assignedEditorTokenIdentifier", editorTokenIdentifier)
+						.eq("driveClientId", driveSession.driveClientId)
+				)
+				.collect()
+		])
+	);
 }
 
 export function getEditorDriveAccessToRemove(
@@ -113,7 +115,7 @@ export function getEditorDriveAccessToRemove(
 			return ok(null);
 		}
 
-		return okOrThrow(loadEditorClientDriveData(ctx, driveSession, args.editorTokenIdentifier)).map(
+		return loadEditorClientDriveData(ctx, driveSession, args.editorTokenIdentifier).map(
 			([driveClient, assetsPermissionRecord, assignedBookings]) => {
 				return buildEditorDriveAccessToRemove({
 					assetsPermissionRecord,
@@ -171,17 +173,17 @@ export function getFailedEditorRemoval(ctx: QueryCtx, bookingId: Id<"bookings">)
 
 		if (driveSession === null || editorTokenIdentifier === undefined) return ok(null);
 
-		return okOrThrow(
-			Promise.all([
-				loadEditorClientDriveData(ctx, driveSession, editorTokenIdentifier),
+		return ResultAsync.combine([
+			loadEditorClientDriveData(ctx, driveSession, editorTokenIdentifier),
+			okOrThrow(
 				ctx.db
 					.query("editorProfiles")
 					.withIndex("by_tokenIdentifier", (query) =>
 						query.eq("tokenIdentifier", editorTokenIdentifier)
 					)
 					.unique()
-			])
-		).andThen(([clientData, editor]) => {
+			)
+		]).andThen(([clientData, editor]) => {
 			if (editor === null) return ok(null);
 			const [driveClient, assetsPermissionRecord, assignedBookings] = clientData;
 

@@ -1,7 +1,6 @@
 "use node";
 
 import { getGoogleCalendarClient } from "#convex/lib/googleCalendar/googleCalendarClient";
-import { okOrThrow } from "#convex/lib/result";
 import {
 	createSessionCalendarEvent,
 	updateSessionCalendarEventTiming,
@@ -40,24 +39,21 @@ export function updatePackageCalendarEvent(
 	session: SessionCalendarEventRecord,
 	details: PackageCalendarDetails
 ) {
-	return okOrThrow(
-		updateSessionCalendarEventTiming({
-			session,
-			client,
-			createMissingEvent: true,
-			date: details.date,
-			details: {
-				addons: details.addons,
-				duration: details.duration,
-				email: details.email,
-				name: details.name,
-				service: details.service,
-				...pickBookingAddonQuantities(details)
-			},
-			time: details.time
-		})
-	)
-		.andThen((result) => result)
+	return updateSessionCalendarEventTiming({
+		session,
+		client,
+		createMissingEvent: true,
+		date: details.date,
+		details: {
+			addons: details.addons,
+			duration: details.duration,
+			email: details.email,
+			name: details.name,
+			service: details.service,
+			...pickBookingAddonQuantities(details)
+		},
+		time: details.time
+	})
 		.mapErr(
 			(error): PackageCalendarWriteError => ({
 				reason: getPackageCalendarSyncErrorReason(error.reason)
@@ -84,22 +80,19 @@ export function createPackageCalendarEvent(
 	client: PackageCalendarClient,
 	details: PackageCalendarDetails
 ) {
-	return okOrThrow(
-		createSessionCalendarEvent({
-			client,
-			date: details.date,
-			details: {
-				addons: details.addons,
-				duration: details.duration,
-				email: details.email,
-				name: details.name,
-				service: details.service,
-				...pickBookingAddonQuantities(details)
-			},
-			time: details.time
-		})
-	)
-		.andThen((result) => result)
+	return createSessionCalendarEvent({
+		client,
+		date: details.date,
+		details: {
+			addons: details.addons,
+			duration: details.duration,
+			email: details.email,
+			name: details.name,
+			service: details.service,
+			...pickBookingAddonQuantities(details)
+		},
+		time: details.time
+	})
 		.mapErr(
 			(error): PackageCalendarWriteError => ({
 				reason: getPackageCalendarSyncErrorReason(error.reason)

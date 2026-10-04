@@ -1,6 +1,8 @@
+import { okAsync } from "neverthrow";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
 import { normalizeAbn, normalizePhone } from "#convex/lib/contactNormalization";
+import { okOrThrow } from "#convex/lib/result";
 
 type BookingSearchBlobFields = Pick<
 	Doc<"bookings">,
@@ -48,52 +50,75 @@ export function buildPackageSearchBlob(fields: PackageSearchBlobFields): string 
 	return joinSearchStrings(contactSearchStrings(fields));
 }
 
-async function getAssignedEditorDisplayName(ctx: QueryCtx, tokenIdentifier: string) {
-	const editor = await ctx.db
-		.query("editorProfiles")
-		.withIndex("by_tokenIdentifier", (indexQuery) =>
-			indexQuery.eq("tokenIdentifier", tokenIdentifier)
-		)
-		.unique();
+function loadAssignedEditorDisplayName(ctx: QueryCtx, tokenIdentifier: string) {
+	return okOrThrow(
+		ctx.db
+			.query("editorProfiles")
+			.withIndex("by_tokenIdentifier", (indexQuery) =>
+				indexQuery.eq("tokenIdentifier", tokenIdentifier)
+			)
+			.unique()
+			.then((editor) => {
+				if (editor === null) {
+					return undefined;
+				}
 
-	if (editor === null) {
-		return undefined;
-	}
-
-	return editor.displayName || editor.email;
+				return editor.displayName || editor.email;
+			})
+	);
 }
 
-type BookingSearchPatchOverrides = Partial<BookingSearchBlobFields> &
+export type BookingSearchPatchOverrides = Partial<BookingSearchBlobFields> &
 	Pick<Partial<Doc<"bookings">>, "assignedEditorTokenIdentifier" | "assignedEditorDisplayName">;
 
-export async function searchBlobPatchForBooking(
+export type BookingSearchBlobPatch = { searchBlob: string; assignedEditorDisplayName?: string };
+
+export function searchBlobPatchForBookingAsync(
 	ctx: QueryCtx,
 	booking: Doc<"bookings">,
 	overrides: BookingSearchPatchOverrides = {}
 ) {
 	const merged = { ...booking, ...overrides };
-	let assignedEditorDisplayName: string | undefined;
 
 	if (!merged.assignedEditorTokenIdentifier) {
-		return { searchBlob: buildBookingSearchBlob(merged), assignedEditorDisplayName: undefined };
+		return okAsync<BookingSearchBlobPatch>({
+			searchBlob: buildBookingSearchBlob(merged),
+			assignedEditorDisplayName: undefined
+		});
 	}
 
 	if (
 		merged.assignedEditorDisplayName !== undefined &&
 		merged.assignedEditorDisplayName.length > 0
 	) {
-		assignedEditorDisplayName = merged.assignedEditorDisplayName;
-	} else {
-		assignedEditorDisplayName = await getAssignedEditorDisplayName(
-			ctx,
-			merged.assignedEditorTokenIdentifier
-		);
+		return okAsync({
+			searchBlob: buildBookingSearchBlob(merged, {
+				assignedEditorDisplayName: merged.assignedEditorDisplayName
+			}),
+			assignedEditorDisplayName: merged.assignedEditorDisplayName
+		});
 	}
 
-	return {
-		searchBlob: buildBookingSearchBlob(merged, { assignedEditorDisplayName }),
-		assignedEditorDisplayName
-	};
+	return loadAssignedEditorDisplayName(ctx, merged.assignedEditorTokenIdentifier).map(
+		(assignedEditorDisplayName) => ({
+			searchBlob: buildBookingSearchBlob(merged, { assignedEditorDisplayName }),
+			assignedEditorDisplayName
+		})
+	);
+}
+
+export async function searchBlobPatchForBooking(
+	ctx: QueryCtx,
+	booking: Doc<"bookings">,
+	overrides: BookingSearchPatchOverrides = {}
+) {
+	const result = await searchBlobPatchForBookingAsync(ctx, booking, overrides);
+
+	if (result.isErr()) {
+		throw new Error("Booking search blob patch failed");
+	}
+
+	return result.value;
 }
 
 export function searchBlobPatchForPackage(

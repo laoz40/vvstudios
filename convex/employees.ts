@@ -2,10 +2,10 @@ import { v } from "convex/values";
 import { tupleErr, tupleOk } from "#/lib/result";
 import { mutation, query } from "#convex/_generated/server";
 import {
-	listEmployeesService,
-	updateEmployeeAccessService,
-	updateEmployeeNotesService
-} from "#convex/services/employees/employees";
+	listEmployees as listEmployeesService,
+	updateEmployeeAccessForAdmin,
+	updateEmployeeNotesForAdmin
+} from "#convex/services/employees/employeeManagement";
 
 export const listEmployees = query({
 	args: {},
@@ -14,10 +14,10 @@ export const listEmployees = query({
 
 export const updateEmployeeNotes = mutation({
 	args: { tokenIdentifier: v.string(), notes: v.string() },
-	handler: (ctx, args) => updateEmployeeNotesService(ctx, args).match(tupleOk, tupleErr)
+	handler: (ctx, args) => updateEmployeeNotesForAdmin(ctx, args).match(tupleOk, tupleErr)
 });
 
 export const updateEmployeeAccess = mutation({
 	args: { tokenIdentifier: v.string(), isActive: v.boolean() },
-	handler: (ctx, args) => updateEmployeeAccessService(ctx, args).match(tupleOk, tupleErr)
+	handler: (ctx, args) => updateEmployeeAccessForAdmin(ctx, args).match(tupleOk, tupleErr)
 });

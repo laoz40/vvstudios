@@ -2,7 +2,7 @@
 
 import type { ResultAsync } from "neverthrow";
 import type { ActionCtx } from "#convex/_generated/server";
-import { requirePermissionActions } from "#convex/lib/auth";
+import { requirePermissionActions } from "#convex/services/auth";
 import {
 	getStripeInvoiceBillingUrls,
 	type StripeInvoiceBillingUrls

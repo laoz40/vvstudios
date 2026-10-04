@@ -25,7 +25,7 @@ import { makeFunctionReference } from "convex/server";
 import { describe, expect, test } from "vitest";
 import { api } from "#convex/_generated/api";
 import type { Id } from "#convex/_generated/dataModel";
-import { requirePermission } from "#convex/lib/auth";
+import { requirePermission } from "#convex/services/auth";
 import { createConvexTest } from "#convex/test.setup";
 import { PERMISSIONS, ROLE_PERMISSIONS } from "#/lib/permissions";
 import { tupleErr, tupleOk } from "#/lib/result";

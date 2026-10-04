@@ -4,7 +4,7 @@ import type { ResultAsync } from "neverthrow";
 import { internal } from "#convex/_generated/api";
 import type { Id } from "#convex/_generated/dataModel";
 import type { ActionCtx } from "#convex/_generated/server";
-import { requirePermissionActions } from "#convex/lib/auth";
+import { requirePermissionActions } from "#convex/services/auth";
 import {
 	loadReadyBookingDriveFolders,
 	recordClientDrivePermissionsFailure,

@@ -1,4 +1,4 @@
-import { okAsync, type ResultAsync } from "neverthrow";
+import { okAsync, ResultAsync } from "neverthrow";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
 import {
@@ -124,35 +124,39 @@ export function isPackageEligibleForAutoArchive(
 	return true;
 }
 
-async function loadPackageAutoArchiveContext(
+function loadPackageAutoArchiveContext(
 	ctx: QueryCtx | MutationCtx,
 	packageId: Id<"packages">
-) {
-	const packageRecord = await ctx.db.get("packages", packageId);
+): ResultAsync<
+	{
+		packageRecord: Doc<"packages">;
+		sessions: Doc<"bookings">[];
+		adjustment: ReturnType<typeof toPackageAdjustmentArchiveState>;
+		customStripeSummary: StripeInvoiceAmountSummary | null;
+	} | null,
+	never
+> {
+	return okOrThrow(ctx.db.get("packages", packageId)).andThen((packageRecord) => {
+		if (!packageRecord) {
+			return okAsync(null);
+		}
 
-	if (!packageRecord) {
-		return null;
-	}
-
-	const [sessions, adjustment, stripeInvoices] = await Promise.all([
-		getCapacityConsumingPackageSessions(ctx, packageId, packageRecord.packageSize),
-		ctx.db
-			.query("packageAdjustments")
-			.withIndex("by_packageId", (indexQuery) => indexQuery.eq("packageId", packageId))
-			.unique(),
-		listStripeInvoicesForPackage(ctx, packageId)
-	]);
-
-	const customStripeSummary = stripeInvoices.isOk()
-		? summarizeCustomPackageStripeInvoices(stripeInvoices.value)
-		: null;
-
-	return {
-		packageRecord,
-		sessions,
-		adjustment: toPackageAdjustmentArchiveState(adjustment),
-		customStripeSummary
-	};
+		return ResultAsync.combine([
+			getCapacityConsumingPackageSessions(ctx, packageId, packageRecord.packageSize),
+			okOrThrow(
+				ctx.db
+					.query("packageAdjustments")
+					.withIndex("by_packageId", (indexQuery) => indexQuery.eq("packageId", packageId))
+					.unique()
+			),
+			listStripeInvoicesForPackage(ctx, packageId)
+		]).map(([sessions, adjustment, stripeInvoices]) => ({
+			packageRecord,
+			sessions,
+			adjustment: toPackageAdjustmentArchiveState(adjustment),
+			customStripeSummary: summarizeCustomPackageStripeInvoices(stripeInvoices)
+		}));
+	});
 }
 
 export function archivePackageWhenFullyDone(
@@ -160,7 +164,7 @@ export function archivePackageWhenFullyDone(
 	packageId: Id<"packages">,
 	now = Date.now()
 ): ResultAsync<null, never> {
-	return okOrThrow(loadPackageAutoArchiveContext(ctx, packageId)).andThen((context) => {
+	return loadPackageAutoArchiveContext(ctx, packageId).andThen((context) => {
 		if (!context) {
 			return okAsync(null);
 		}
@@ -183,7 +187,7 @@ export function archivePackageWhenFullyDone(
 			return okAsync(null);
 		}
 
-		return okOrThrow(setPackageArchived(ctx, packageId, true).then(() => null));
+		return setPackageArchived(ctx, packageId, true);
 	});
 }
 
@@ -200,5 +204,5 @@ export function unarchivePackageForNewUnpaidInvoice(
 		return okAsync(null);
 	}
 
-	return okOrThrow(setPackageArchived(ctx, packageRecord._id, false).then(() => null));
+	return setPackageArchived(ctx, packageRecord._id, false);
 }

@@ -1,4 +1,4 @@
-import { err, ok } from "neverthrow";
+import { err, ok, ResultAsync } from "neverthrow";
 import type { Doc } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
 import { okOrThrow } from "#convex/lib/result";
@@ -21,36 +21,34 @@ function isCurrentAssignedSession(booking: Doc<"bookings">) {
 	return booking.status === "confirmed" || booking.status === "email_failed";
 }
 
-export async function getEditorWorkStatus(
+export function getEditorWorkStatus(
 	ctx: QueryCtx,
 	tokenIdentifier: string
-): Promise<EditorWorkStatus> {
-	const assignedBookings = await ctx.db
-		.query("bookings")
-		.withIndex("by_assignedEditorTokenIdentifier_and_driveClientId", (query) =>
-			query.eq("assignedEditorTokenIdentifier", tokenIdentifier)
-		)
-		.take(ASSIGNED_SESSION_LIMIT);
+): ResultAsync<EditorWorkStatus, never> {
+	return okOrThrow(
+		ctx.db
+			.query("bookings")
+			.withIndex("by_assignedEditorTokenIdentifier_and_driveClientId", (query) =>
+				query.eq("assignedEditorTokenIdentifier", tokenIdentifier)
+			)
+			.take(ASSIGNED_SESSION_LIMIT)
+	).map((assignedBookings) => {
+		let hasAssignedSession = false;
 
-	let hasAssignedSession = false;
+		for (const booking of assignedBookings) {
+			if (!isCurrentAssignedSession(booking)) continue;
+			hasAssignedSession = true;
 
-	for (const booking of assignedBookings) {
-		if (!isCurrentAssignedSession(booking)) continue;
-		hasAssignedSession = true;
+			if (booking.editStatus === "editing") return "editing";
+		}
 
-		if (booking.editStatus === "editing") return "editing";
-	}
-
-	return hasAssignedSession ? "assigned" : "unassigned";
+		return hasAssignedSession ? "assigned" : "unassigned";
+	});
 }
 
-export async function buildEditorManagementProjection(
-	ctx: QueryCtx,
-	editor: Doc<"editorProfiles">
-) {
-	const workStatus = await getEditorWorkStatus(ctx, editor.tokenIdentifier);
-
-	return {
+/** Profile fields for the admin employees table, plus current session workload. */
+function loadEditorWithWorkStatus(ctx: QueryCtx, editor: Doc<"editorProfiles">) {
+	return getEditorWorkStatus(ctx, editor.tokenIdentifier).map((workStatus) => ({
 		tokenIdentifier: editor.tokenIdentifier,
 		displayName: editor.displayName,
 		email: editor.email,
@@ -59,7 +57,13 @@ export async function buildEditorManagementProjection(
 		notes: editor.notes,
 		totalEdits: editor.totalEdits,
 		workStatus
-	};
+	}));
+}
+
+export function listEmployeesForManagement(ctx: QueryCtx) {
+	return listEditorProfiles(ctx).andThen((editors) =>
+		ResultAsync.combine(editors.map((editor) => loadEditorWithWorkStatus(ctx, editor)))
+	);
 }
 
 function getEditorProfile(ctx: MutationCtx, tokenIdentifier: string) {

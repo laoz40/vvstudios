@@ -1,9 +1,10 @@
 import { ConvexError } from "convex/values";
-import { err, errAsync, ok, type ResultAsync } from "neverthrow";
+import { err, errAsync, ok, ResultAsync } from "neverthrow";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
 import { setBookingArchived } from "#convex/lib/archiveState";
-import { getEditorByToken, requirePermission } from "#convex/lib/auth";
+import { getEditorByToken } from "#convex/lib/auth";
+import { requirePermission } from "#convex/services/auth";
 import {
 	scheduleDeliverablesReviewHostEmail,
 	shouldNotifyHostOfDeliverablesReview
@@ -23,6 +24,7 @@ import {
 	saveSessionEditorNotes,
 	saveSessionEditStatus
 } from "#convex/lib/editor/editorSessions";
+import { loadSessionForDeliverables } from "#convex/services/editor/loadSessionForDeliverables";
 import { getDriveStatus, getEditorSessionDriveFolders } from "#convex/lib/drive/driveStatus";
 import { okOrThrow } from "#convex/lib/result";
 import { searchBlobPatchForBooking } from "#convex/lib/adminSearch/adminSearchBlob";
@@ -97,20 +99,16 @@ export function getDeliverablesCustomerTypeService(
 	ctx: QueryCtx,
 	args: GetDeliverablesCustomerTypeArgs
 ) {
-	return requirePermission(ctx, "send:deliverables-email")
-		.andThen((identity) =>
-			getSessionFromDb(ctx, args.bookingId).map((session) => ({ identity, session }))
-		)
-		.andThen(requireDeliverablesOwnership)
-		.andThen(requireDeliverablesEligibility)
-		.andThen((session) => detectDeliverablesCustomerType(ctx, session));
+	return loadSessionForDeliverables(ctx, args.bookingId).andThen((session) =>
+		detectDeliverablesCustomerType(ctx, session)
+	);
 }
 
 export function listActiveEditorsService(ctx: QueryCtx) {
 	return requirePermission(ctx, "assign:session-editor")
 		.andThen(() => listActiveEditorProfiles(ctx))
 		.andThen((editors) =>
-			okOrThrow(Promise.all(editors.map((editor) => buildActiveEditorProjection(ctx, editor))))
+			ResultAsync.combine(editors.map((editor) => buildActiveEditorProjection(ctx, editor)))
 		);
 }
 
@@ -230,9 +228,7 @@ export function assignSessionEditorService(ctx: MutationCtx, args: AssignSession
 export function archiveSessionService(ctx: MutationCtx, args: ArchiveSessionArgs) {
 	return requirePermission(ctx, "archive:sessions")
 		.andThen(() => getSessionFromDb(ctx, args.bookingId))
-		.andThen(() =>
-			okOrThrow(setBookingArchived(ctx, args.bookingId, args.archived).then(() => null))
-		);
+		.andThen(() => setBookingArchived(ctx, args.bookingId, args.archived));
 }
 
 export function archivePastDeadCheckoutSessionsService(
