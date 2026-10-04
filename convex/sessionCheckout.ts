@@ -1,20 +1,11 @@
 import { v } from "convex/values";
-import { ADDON_OPTIONS } from "#studio/features/booking-form/lib/booking-form-model";
+import {
+	bookingAddonQuantitiesValidator,
+	bookingAddonsValidator
+} from "#convex/lib/booking/bookingAddonQuantities";
 import { tupleErr, tupleOk } from "#/lib/result";
 import { internalMutation, internalQuery } from "#convex/_generated/server";
 import { checkBookingSubmitRateLimit } from "#convex/lib/rateLimits";
-
-const bookingAddonValidator = v.union(...ADDON_OPTIONS.map((addon) => v.literal(addon)));
-
-const bookingAddonsValidator = v.array(bookingAddonValidator);
-
-const bookingAddonQuantitiesValidator = {
-	essentialEditQuantity: v.optional(v.string()),
-	completeEditQuantity: v.optional(v.string()),
-	clipsPackageQuantity: v.optional(v.string()),
-	handcraftedClipsQuantity: v.optional(v.string())
-};
-
 import {
 	createPendingSessionService,
 	deletePendingSessionService,
