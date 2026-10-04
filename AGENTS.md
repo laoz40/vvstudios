@@ -77,6 +77,8 @@ Rules:
   - `okOrThrow` — only the **single** Convex I/O expression at that step: `ctx.db.*`, `ctx.scheduler.*`, `ctx.auth.getUserIdentity()`, or `ctx.runQuery` / `ctx.runMutation` returning a raw value. Infra failure throws; expected domain errors belong in `.andThen` as `err(...)`.
   - `fromConvexTuple` — `runQuery` / `runMutation` whose handler uses `.match(tupleOk, tupleErr)`.
   - `tryPromise` — external APIs (Stripe, Resend, Google, render). Failure becomes domain `err` in `catch`.
+- Do not use `tryPromise` with a `catch` that rethrows; use `okOrThrow` on Convex I/O (or `fromSafePromise` via `okOrThrow`) and reserve `tryPromise` for when `catch` maps to a domain `err({ reason })`.
+- Lib exports that return `ResultAsync` should build it from their steps; do not wrap an internal async helper in `tryPromise` or `okOrThrow` at the export boundary.
 
 ## Tests
 

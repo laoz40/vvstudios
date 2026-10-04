@@ -1,4 +1,4 @@
-import { tryPromise } from "#convex/lib/result";
+import { okOrThrow } from "#convex/lib/result";
 import type { Doc } from "#convex/_generated/dataModel";
 import type { QueryCtx } from "#convex/_generated/server";
 import { exhaustiveCheck } from "#/lib/result";
@@ -395,24 +395,21 @@ async function fetchAdminPackagesListPage(
 		: paginateAdminPackagesWithoutSearch(ctx, searchContext);
 }
 
-async function fetchListAdminPackages(ctx: QueryCtx, args: ListAdminPackagesArgs) {
+export function listAdminPackages(ctx: QueryCtx, args: ListAdminPackagesArgs) {
 	const view = args.view ?? "inbox";
 	const includeStale = args.includeStale ?? false;
 
-	const packagesPage = await fetchAdminPackagesListPage(ctx, args);
+	return okOrThrow(
+		fetchAdminPackagesListPage(ctx, args).then(async (packagesPage) => {
+			const visiblePackages = applyAdminPackageListVisibility(
+				packagesPage.page,
+				view,
+				includeStale
+			);
 
-	const visiblePackages = applyAdminPackageListVisibility(packagesPage.page, view, includeStale);
+			const page = await loadAdminPackageListRows(ctx, visiblePackages);
 
-	const page = await loadAdminPackageListRows(ctx, visiblePackages);
-
-	return { ...packagesPage, page };
-}
-
-export function listAdminPackages(ctx: QueryCtx, args: ListAdminPackagesArgs) {
-	return tryPromise({
-		try: () => fetchListAdminPackages(ctx, args),
-		catch: (cause): never => {
-			throw cause;
-		}
-	});
+			return { ...packagesPage, page };
+		})
+	);
 }

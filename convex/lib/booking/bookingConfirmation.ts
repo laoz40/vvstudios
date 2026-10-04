@@ -15,7 +15,7 @@ import {
 	type SessionAvailabilitySettings
 } from "#convex/lib/sessions/sessionCalendarTime";
 import type { SessionReservation } from "#convex/lib/sessions/sessionReservations";
-import { fromConvexTuple, tryPromise } from "#convex/lib/result";
+import { fromConvexTuple, okOrThrow } from "#convex/lib/result";
 import { exhaustiveCheck } from "#/lib/result";
 
 function getReminderRescheduleUrl(ctx: ActionCtx, session: Doc<"bookings">) {
@@ -95,18 +95,14 @@ export function saveConfirmedBooking(
 				return okAsync(false);
 			}
 
-			return tryPromise({
-				try: () =>
-					removeOrphanedSessionCalendarEvent({
-						bookingId: session._id,
-						calendar: calendarClient.calendar,
-						calendarId: calendarClient.calendarId,
-						googleEventId
-					}),
-				catch: (cause): never => {
-					throw cause;
-				}
-			}).map(() => false);
+			return okOrThrow(
+				removeOrphanedSessionCalendarEvent({
+					bookingId: session._id,
+					calendar: calendarClient.calendar,
+					calendarId: calendarClient.calendarId,
+					googleEventId
+				})
+			).map(() => false);
 		});
 }
 

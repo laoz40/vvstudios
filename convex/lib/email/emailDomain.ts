@@ -2,7 +2,7 @@
 
 import { okAsync, type ResultAsync } from "neverthrow";
 import { resolveMx } from "node:dns/promises";
-import { tryPromise } from "#convex/lib/result";
+import { okOrThrow } from "#convex/lib/result";
 
 export function emailDomainCanReceiveMailAsync(email: string): ResultAsync<boolean, never> {
 	const domain = email.trim().toLowerCase().split("@").at(-1);
@@ -11,20 +11,11 @@ export function emailDomainCanReceiveMailAsync(email: string): ResultAsync<boole
 		return okAsync(false);
 	}
 
-	return tryPromise({
-		try: async () => {
-			try {
-				const mxRecords = await resolveMx(domain);
-
-				return mxRecords.length > 0;
-			} catch {
-				return false;
-			}
-		},
-		catch: (cause): never => {
-			throw cause;
-		}
-	});
+	return okOrThrow(
+		resolveMx(domain)
+			.then((mxRecords) => mxRecords.length > 0)
+			.catch(() => false)
+	);
 }
 
 export async function emailDomainCanReceiveMail(email: string) {

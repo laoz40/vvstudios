@@ -3,7 +3,7 @@ import { internal } from "#convex/_generated/api";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { ActionCtx, MutationCtx } from "#convex/_generated/server";
 import { env } from "#convex/env";
-import { fromConvexTuple, okOrThrow, tryPromise } from "#convex/lib/result";
+import { fromConvexTuple, okOrThrow } from "#convex/lib/result";
 
 const rescheduleLinkInvalidationBatchSize = 100;
 
@@ -51,16 +51,11 @@ export function generateRescheduleToken() {
 export function hashRescheduleTokenAsync(token: string): ResultAsync<string, never> {
 	const encodedToken = new TextEncoder().encode(token);
 
-	return tryPromise({
-		try: async () => {
-			const hashBuffer = await crypto.subtle.digest("SHA-256", encodedToken);
-
-			return bytesToHex(new Uint8Array(hashBuffer));
-		},
-		catch: (cause): never => {
-			throw cause;
-		}
-	});
+	return okOrThrow(
+		crypto.subtle
+			.digest("SHA-256", encodedToken)
+			.then((hashBuffer) => bytesToHex(new Uint8Array(hashBuffer)))
+	);
 }
 
 export async function hashRescheduleToken(token: string) {
