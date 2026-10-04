@@ -4,13 +4,10 @@
  * See `README.md`.
  */
 export const ROOT_HANDLER_LIB_IMPORT_ALLOWLIST = new Set([
-	"convex/bookingConfirmation.ts",
-	"convex/customInvoices.ts",
 	"convex/devSeed.ts",
 	"convex/googleCalendar.ts",
 	"convex/http.ts",
 	"convex/packageAdjustments.ts",
-	"convex/packagePayment.ts",
 	"convex/packageScheduling.ts",
 	"convex/packageSchedulingCalendar.ts",
 	"convex/packages.ts",
@@ -18,6 +15,5 @@ export const ROOT_HANDLER_LIB_IMPORT_ALLOWLIST = new Set([
 	"convex/sessionCheckout.ts",
 	"convex/sessionReminders.ts",
 	"convex/sessionScheduling.ts",
-	"convex/sessions.ts",
-	"convex/stripe.ts"
+	"convex/sessions.ts"
 ]);

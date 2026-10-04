@@ -6,7 +6,7 @@ import { tupleErr, tupleOk } from "#/lib/result";
 import {
 	bookingAddonQuantitiesValidator,
 	bookingAddonsValidator
-} from "#convex/lib/booking/bookingAddonQuantities";
+} from "#convex/validators/bookingAddonQuantities";
 import {
 	closeEmbeddedPackageCheckoutSessionService,
 	createPackageCheckoutSessionService
