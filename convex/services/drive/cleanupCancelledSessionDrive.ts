@@ -16,7 +16,7 @@ export function cleanupCancelledSessionDriveService(
 	args: { bookingId: Id<"bookings"> }
 ): ResultAsync<null, never> {
 	return fromConvexTuple(
-		ctx.runQuery(internal.sessions.getDriveSetup, { bookingId: args.bookingId })
+		ctx.runQuery(internal.internal.sessionsDrive.getDriveSetup, { bookingId: args.bookingId })
 	)
 		.andThen((setupInfo) => {
 			const sessionFolderId = setupInfo?.driveSession?.sessionFolder?.id;

@@ -23,6 +23,7 @@ import type * as env from "../env.js";
 import type * as feedback from "../feedback.js";
 import type * as googleCalendar from "../googleCalendar.js";
 import type * as http from "../http.js";
+import type * as internal_sessionsDrive from "../internal/sessionsDrive.js";
 import type * as invoices from "../invoices.js";
 import type * as lib_adminSearch_adminListSearchPage from "../lib/adminSearch/adminListSearchPage.js";
 import type * as lib_adminSearch_adminSearchBlob from "../lib/adminSearch/adminSearchBlob.js";
@@ -187,6 +188,7 @@ declare const fullApi: ApiFromModules<{
   feedback: typeof feedback;
   googleCalendar: typeof googleCalendar;
   http: typeof http;
+  "internal/sessionsDrive": typeof internal_sessionsDrive;
   invoices: typeof invoices;
   "lib/adminSearch/adminListSearchPage": typeof lib_adminSearch_adminListSearchPage;
   "lib/adminSearch/adminSearchBlob": typeof lib_adminSearch_adminSearchBlob;

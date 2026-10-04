@@ -1,6 +1,6 @@
 # AGENTS.md
 
-Instructions for agents **implementing** work in this repository. Post-implementation standards for a review subagent live in [CODING_STANDARDS.md](./CODING_STANDARDS.md); do not load that file during normal feature work
+Instructions for agents **implementing** work in this repository. Post-implementation standards for a review subagent live in [CODING_STANDARDS.md](./docs/CODING_STANDARDS.md); do not load that file during normal feature work
 
 ## Project
 

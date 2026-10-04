@@ -41,28 +41,36 @@ export function loadEditorDriveAccessToRemove(
 	ctx: ActionCtx,
 	args: { bookingId: Id<"bookings">; editorTokenIdentifier: string }
 ): ResultAsync<EditorDriveAccessToRemove | null, DriveEditorPermissionsError> {
-	return fromConvexTuple(ctx.runQuery(internal.sessions.getEditorDriveAccessToRemove, args));
+	return fromConvexTuple(
+		ctx.runQuery(internal.internal.sessionsDrive.getEditorDriveAccessToRemove, args)
+	);
 }
 
 export function markPreviousEditorRemovalFailed(
 	ctx: ActionCtx,
 	args: { bookingId: Id<"bookings">; editorTokenIdentifier: string }
 ): ResultAsync<null, DriveEditorPermissionsError> {
-	return fromConvexTuple(ctx.runMutation(internal.sessions.markPreviousEditorRemovalFailed, args));
+	return fromConvexTuple(
+		ctx.runMutation(internal.internal.sessionsDrive.markPreviousEditorRemovalFailed, args)
+	);
 }
 
 export function loadFailedEditorRemoval(
 	ctx: ActionCtx,
 	args: { bookingId: Id<"bookings"> }
 ): ResultAsync<FailedEditorRemoval | null, DriveEditorPermissionsError> {
-	return fromConvexTuple(ctx.runQuery(internal.sessions.getFailedEditorRemoval, args));
+	return fromConvexTuple(
+		ctx.runQuery(internal.internal.sessionsDrive.getFailedEditorRemoval, args)
+	);
 }
 
 function loadEditorDriveSetup(
 	ctx: ActionCtx,
 	bookingId: Id<"bookings">
 ): ResultAsync<EditorDriveSetupRecord, DriveEditorPermissionsError> {
-	return fromConvexTuple(ctx.runQuery(internal.sessions.getEditorDriveSetup, { bookingId }));
+	return fromConvexTuple(
+		ctx.runQuery(internal.internal.sessionsDrive.getEditorDriveSetup, { bookingId })
+	);
 }
 
 function requireEditorPermission(
@@ -93,7 +101,7 @@ function saveEditorPermission(
 	permission: SavedDrivePermission
 ) {
 	return fromConvexTuple(
-		ctx.runMutation(internal.sessions.saveEditorDrivePermission, {
+		ctx.runMutation(internal.internal.sessionsDrive.saveEditorDrivePermission, {
 			bookingId: setup.booking._id,
 			editorTokenIdentifier: setup.editor.tokenIdentifier,
 			name,
@@ -108,7 +116,7 @@ function saveEditorPermissionsStatus(
 	status: "failed" | "ready"
 ) {
 	return fromConvexTuple(
-		ctx.runMutation(internal.sessions.saveEditorDrivePermissionsStatus, {
+		ctx.runMutation(internal.internal.sessionsDrive.saveEditorDrivePermissionsStatus, {
 			bookingId: setup.booking._id,
 			editorTokenIdentifier: setup.editor.tokenIdentifier,
 			status
@@ -169,7 +177,7 @@ export function sendEditorAssignmentEmailForReadyAccess(
 	return loadEditorDriveSetup(ctx, args.bookingId).andThen((setup) =>
 		// Claiming first prevents two actions from sending the same email at once.
 		fromConvexTuple(
-			ctx.runMutation(internal.sessions.claimEditorAssignmentEmail, {
+			ctx.runMutation(internal.internal.sessionsDrive.claimEditorAssignmentEmail, {
 				bookingId: setup.booking._id,
 				editorTokenIdentifier: setup.editor.tokenIdentifier,
 				now: Date.now()
@@ -185,7 +193,7 @@ export function sendEditorAssignmentEmailForReadyAccess(
 				})
 					.andThen(() =>
 						fromConvexTuple(
-							ctx.runMutation(internal.sessions.saveEditorAssignmentEmailResult, {
+							ctx.runMutation(internal.internal.sessionsDrive.saveEditorAssignmentEmailResult, {
 								bookingId: claim.bookingId,
 								claimedAt: claim.claimedAt,
 								editorTokenIdentifier: claim.editorTokenIdentifier,
@@ -195,7 +203,7 @@ export function sendEditorAssignmentEmailForReadyAccess(
 					)
 					.orElse((emailError) =>
 						fromConvexTuple(
-							ctx.runMutation(internal.sessions.saveEditorAssignmentEmailResult, {
+							ctx.runMutation(internal.internal.sessionsDrive.saveEditorAssignmentEmailResult, {
 								bookingId: claim.bookingId,
 								claimedAt: claim.claimedAt,
 								editorTokenIdentifier: claim.editorTokenIdentifier,
@@ -237,7 +245,7 @@ export function setupEditorAccessIfAssigned(
 	args: { bookingId: Id<"bookings"> }
 ): ResultAsync<null, DriveEditorPermissionsError> {
 	return fromConvexTuple(
-		ctx.runQuery(internal.sessions.getDriveSetup, { bookingId: args.bookingId })
+		ctx.runQuery(internal.internal.sessionsDrive.getDriveSetup, { bookingId: args.bookingId })
 	).andThen((setup) => {
 		if (setup === null) return errAsync({ reason: "BOOKING_NOT_FOUND" as const });
 
@@ -275,7 +283,7 @@ export function removePreviousEditorDriveAccess(
 		)
 		.andThen(() =>
 			fromConvexTuple(
-				ctx.runMutation(internal.sessions.clearPreviousEditorDriveAccess, {
+				ctx.runMutation(internal.internal.sessionsDrive.clearPreviousEditorDriveAccess, {
 					driveClientEditorPermissionId: access.driveClientEditorPermissionId,
 					driveSessionId: access.driveSessionId,
 					editorTokenIdentifier: args.previousEditorTokenIdentifier
@@ -313,7 +321,7 @@ export function removeFailedEditorDriveAccess(
 		)
 		.andThen(() =>
 			fromConvexTuple(
-				ctx.runMutation(internal.sessions.clearPreviousEditorDriveAccess, {
+				ctx.runMutation(internal.internal.sessionsDrive.clearPreviousEditorDriveAccess, {
 					driveClientEditorPermissionId: removal.driveClientEditorPermissionId,
 					driveSessionId: removal.driveSessionId,
 					editorTokenIdentifier: removal.editorTokenIdentifier

@@ -24,7 +24,7 @@ function loadValidatedSetup(
 	args: { bookingId: Id<"bookings">; sessionStartAt?: number; duration?: string }
 ): ResultAsync<DriveSetupInfo, SetupError> {
 	return fromConvexTuple(
-		ctx.runQuery(internal.sessions.getDriveSetup, { bookingId: args.bookingId })
+		ctx.runQuery(internal.internal.sessionsDrive.getDriveSetup, { bookingId: args.bookingId })
 	).andThen((setupInfo) =>
 		validateDriveSetup(
 			setupInfo,
@@ -37,7 +37,10 @@ function loadValidatedSetup(
 
 function saveSetupFailure(ctx: ActionCtx, bookingId: Id<"bookings">, failureCode: string) {
 	return fromConvexTuple(
-		ctx.runMutation(internal.sessions.saveDriveSetupResult, { bookingId, failureCode })
+		ctx.runMutation(internal.internal.sessionsDrive.saveDriveSetupResult, {
+			bookingId,
+			failureCode
+		})
 	);
 }
 
@@ -62,7 +65,9 @@ function setupFoldersAndRecordResult(
 			)
 			.andThen(() =>
 				fromConvexTuple(
-					ctx.runMutation(internal.sessions.saveDriveSetupResult, { bookingId: args.bookingId })
+					ctx.runMutation(internal.internal.sessionsDrive.saveDriveSetupResult, {
+						bookingId: args.bookingId
+					})
 				)
 			)
 			// Client access and its email fail independently from folder setup.
