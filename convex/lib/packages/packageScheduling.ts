@@ -43,24 +43,30 @@ export type { ValidPackage, ValidPackageByTokenError } from "#convex/lib/package
 
 type PackageAdminUpdateValues = { expiresAt?: number };
 
-export async function createPackageScheduleToken() {
-	const token = generateRescheduleToken();
-	const scheduleTokenHash = await hashRescheduleToken(token);
+export type PackageScheduleToken = { scheduleTokenHash: string; token: string };
 
-	return { scheduleTokenHash, token };
+export type PackageSchedulingDetails = PackageScheduleToken & {
+	expiresAt: number;
+	packageFromDb: Doc<"packages">;
+};
+
+export function createPackageScheduleToken(): ResultAsync<PackageScheduleToken, never> {
+	const token = generateRescheduleToken();
+
+	return okOrThrow(
+		hashRescheduleToken(token).then((scheduleTokenHash) => ({ scheduleTokenHash, token }))
+	);
 }
 
-export async function createPackageSchedulingDetails(
+export function createPackageSchedulingDetails(
 	packageFromDb: Doc<"packages">,
 	paidAt: number
-) {
-	const scheduleToken = await createPackageScheduleToken();
-
-	return {
+): ResultAsync<PackageSchedulingDetails, never> {
+	return createPackageScheduleToken().map((scheduleToken) => ({
 		...scheduleToken,
 		expiresAt: getPackageExpiresAt(paidAt, packageFromDb.packageSize),
 		packageFromDb
-	};
+	}));
 }
 
 export function validatePackageScheduleTokenRefresh(packageFromDb: Doc<"packages">) {

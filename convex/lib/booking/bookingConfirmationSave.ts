@@ -1,4 +1,4 @@
-import { err, ok, type Result, type ResultAsync } from "neverthrow";
+import { err, ok, okAsync, type Result, type ResultAsync } from "neverthrow";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { MutationCtx } from "#convex/_generated/server";
 import { searchBlobPatchForBooking } from "#convex/lib/adminSearch/adminSearchBlob";
@@ -33,14 +33,28 @@ export function requireBookingConfirmationReservation(
 	return ok(session);
 }
 
-export async function buildConfirmedBookingPatch(
+export type ConfirmedBookingDatabasePatch = {
+	status: "confirmed";
+	googleEventId?: string;
+	googleCalendarId?: string;
+	bookingConfirmedAt: number;
+	bookingFailureCode: undefined;
+	reservationCreatedAt?: undefined;
+	reservationSessionStartAt?: undefined;
+	reservationDuration?: undefined;
+	receiptNumber?: string;
+	searchBlob?: string;
+	assignedEditorDisplayName?: string;
+};
+
+export function buildConfirmedBookingPatch(
 	ctx: MutationCtx,
 	session: Doc<"bookings">,
 	args: Pick<MarkBookingConfirmedArgs, "googleEventId" | "googleCalendarId">,
 	confirmedAt: number
-) {
-	const confirmedPatch = {
-		status: "confirmed" as const,
+): ResultAsync<ConfirmedBookingDatabasePatch, never> {
+	const confirmedPatch: ConfirmedBookingDatabasePatch = {
+		status: "confirmed",
 		googleEventId: args.googleEventId,
 		googleCalendarId: args.googleCalendarId,
 		bookingConfirmedAt: confirmedAt,
@@ -49,7 +63,7 @@ export async function buildConfirmedBookingPatch(
 	};
 
 	if (session.packageId !== undefined || session.receiptNumber) {
-		return confirmedPatch;
+		return okAsync(confirmedPatch);
 	}
 
 	const receiptNumber = resolveBookingReceiptNumber(
@@ -57,16 +71,20 @@ export async function buildConfirmedBookingPatch(
 		bookingReceiptPaidAt(session, confirmedAt)
 	);
 
-	const searchBlobPatch = await searchBlobPatchForBooking(ctx, session, { receiptNumber });
-
-	return { ...confirmedPatch, receiptNumber, ...searchBlobPatch };
+	return okOrThrow(
+		searchBlobPatchForBooking(ctx, session, { receiptNumber }).then((searchBlobPatch) => ({
+			...confirmedPatch,
+			receiptNumber,
+			...searchBlobPatch
+		}))
+	);
 }
 
 export function patchConfirmedBooking(
 	ctx: MutationCtx,
 	bookingId: Id<"bookings">,
 	session: Doc<"bookings">,
-	patch: Awaited<ReturnType<typeof buildConfirmedBookingPatch>>
+	patch: ConfirmedBookingDatabasePatch
 ): ResultAsync<Doc<"bookings">, never> {
 	return okOrThrow(ctx.db.patch("bookings", bookingId, patch).then(() => session));
 }

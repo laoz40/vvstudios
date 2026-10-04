@@ -176,10 +176,7 @@ export function refreshPackageScheduleTokenService(ctx: MutationCtx, args: Packa
 	return getPackageFromDb(ctx, args.packageId)
 		.andThen(validatePackageScheduleTokenRefresh)
 		.andThen((packageFromDb) =>
-			okOrThrow(createPackageScheduleToken()).map((scheduleToken) => ({
-				packageFromDb,
-				...scheduleToken
-			}))
+			createPackageScheduleToken().map((scheduleToken) => ({ packageFromDb, ...scheduleToken }))
 		)
 		.andThen(({ packageFromDb, scheduleTokenHash, token }) =>
 			okOrThrow(

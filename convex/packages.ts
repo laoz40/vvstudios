@@ -7,17 +7,11 @@ import {
 	bookingAddonQuantitiesValidator,
 	bookingAddonsValidator
 } from "#convex/lib/booking/bookingAddonQuantities";
-import { getPackageFromDb, type PackageLookupError } from "#convex/lib/packages/packageLookup";
 import type { PaidPackageResult } from "#convex/lib/packages/packagePayment";
-import { createPackageSchedulingDetails } from "#convex/lib/packages/packageScheduling";
-import { okOrThrow } from "#convex/lib/result";
 import {
-	buildPackagePaidLifecyclePatch,
-	buildPaidPackageResult,
-	patchPackagePaidLifecycle,
-	rejectAlreadyPaidPackage,
-	schedulePackageAdjustmentAtExpiry
-} from "#convex/lib/packages/packagePaidLifecycle";
+	recordPackagePaidAndIssueScheduleToken,
+	type RecordPackagePaidError
+} from "#convex/services/packages/recordPackagePaid";
 import {
 	archivePackageService,
 	createPendingPackageService,
@@ -106,37 +100,8 @@ export const archivePackage = mutation({
 
 export const markPackagePaidAndCreateScheduleToken = internalMutation({
 	args: { packageId: v.id("packages"), paidAt: v.number() },
-	handler: (
-		ctx,
-		args
-	): Promise<Result<PaidPackageResult, PackageLookupError | { reason: "PACKAGE_ALREADY_PAID" }>> =>
-		getPackageFromDb(ctx, args.packageId)
-			.andThen(rejectAlreadyPaidPackage)
-			.andThen((packageFromDb) =>
-				okOrThrow(createPackageSchedulingDetails(packageFromDb, args.paidAt))
-			)
-			.andThen((packageSchedulingDetails) => {
-				const patch = buildPackagePaidLifecyclePatch(
-					packageSchedulingDetails.packageFromDb,
-					args.paidAt,
-					packageSchedulingDetails
-				);
-
-				return patchPackagePaidLifecycle(ctx, args.packageId, patch).map(
-					() => packageSchedulingDetails
-				);
-			})
-			.andThen((packageSchedulingDetails) =>
-				schedulePackageAdjustmentAtExpiry(
-					ctx,
-					args.packageId,
-					packageSchedulingDetails.expiresAt
-				).map(() => packageSchedulingDetails)
-			)
-			.map((packageSchedulingDetails) =>
-				buildPaidPackageResult(packageSchedulingDetails, args.paidAt)
-			)
-			.match(tupleOk, tupleErr)
+	handler: (ctx, args): Promise<Result<PaidPackageResult, RecordPackagePaidError>> =>
+		recordPackagePaidAndIssueScheduleToken(ctx, args).match(tupleOk, tupleErr)
 });
 
 export const refreshPackageScheduleToken = internalMutation({
