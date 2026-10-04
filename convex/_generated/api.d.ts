@@ -146,7 +146,6 @@ import type * as services_packages_packageScheduling from "../services/packages/
 import type * as services_packages_packages from "../services/packages/packages.js";
 import type * as services_sessions_sessionReminders from "../services/sessions/sessionReminders.js";
 import type * as services_sessions_sessionReschedule from "../services/sessions/sessionReschedule.js";
-import type * as services_sessions_sessionScheduling from "../services/sessions/sessionScheduling.js";
 import type * as services_sessions_sessions from "../services/sessions/sessions.js";
 import type * as services_stripe_customInvoices from "../services/stripe/customInvoices.js";
 import type * as services_stripe_invoices from "../services/stripe/invoices.js";
@@ -310,7 +309,6 @@ declare const fullApi: ApiFromModules<{
   "services/packages/packages": typeof services_packages_packages;
   "services/sessions/sessionReminders": typeof services_sessions_sessionReminders;
   "services/sessions/sessionReschedule": typeof services_sessions_sessionReschedule;
-  "services/sessions/sessionScheduling": typeof services_sessions_sessionScheduling;
   "services/sessions/sessions": typeof services_sessions_sessions;
   "services/stripe/customInvoices": typeof services_stripe_customInvoices;
   "services/stripe/invoices": typeof services_stripe_invoices;
