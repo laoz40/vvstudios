@@ -131,7 +131,6 @@ import type * as services_drive_driveEditorPermissions from "../services/drive/d
 import type * as services_editor_deliverablesEmail from "../services/editor/deliverablesEmail.js";
 import type * as services_editor_deliverablesReviewEmail from "../services/editor/deliverablesReviewEmail.js";
 import type * as services_employees_employeeInvitations from "../services/employees/employeeInvitations.js";
-import type * as services_employees_employees from "../services/employees/employees.js";
 import type * as services_googleCalendar_packageSchedulingCalendar from "../services/googleCalendar/packageSchedulingCalendar.js";
 import type * as services_googleCalendar_sessionCalendar from "../services/googleCalendar/sessionCalendar.js";
 import type * as services_packages_packageAdjustmentInvoicePayment from "../services/packages/packageAdjustmentInvoicePayment.js";
@@ -296,7 +295,6 @@ declare const fullApi: ApiFromModules<{
   "services/editor/deliverablesEmail": typeof services_editor_deliverablesEmail;
   "services/editor/deliverablesReviewEmail": typeof services_editor_deliverablesReviewEmail;
   "services/employees/employeeInvitations": typeof services_employees_employeeInvitations;
-  "services/employees/employees": typeof services_employees_employees;
   "services/googleCalendar/packageSchedulingCalendar": typeof services_googleCalendar_packageSchedulingCalendar;
   "services/googleCalendar/sessionCalendar": typeof services_googleCalendar_sessionCalendar;
   "services/packages/packageAdjustmentInvoicePayment": typeof services_packages_packageAdjustmentInvoicePayment;
