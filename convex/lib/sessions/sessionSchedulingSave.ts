@@ -249,7 +249,7 @@ export function patchClientSessionReschedule(
 export function schedulePackageAdjustmentAfterReschedule(
 	ctx: MutationCtx,
 	args: SaveClientSessionRescheduleArgs
-) {
+): ResultAsync<null, never> {
 	if (args.packageId === undefined) {
 		return okAsync(null);
 	}
