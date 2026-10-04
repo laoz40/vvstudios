@@ -76,12 +76,11 @@ export function getBookingReceiptPdfByStripeSessionIdService(
 	| { reason: "BOOKING_NOT_CONFIRMED" }
 	| { reason: "INVOICE_DOWNLOAD_EXPIRED" }
 > {
-	const bookingPromise: Promise<Doc<"bookings"> | null> = ctx.runQuery(
-		internal.sessionCheckout.getSessionByStripeSessionId,
-		{ stripeSessionId: args.stripeSessionId }
-	);
-
-	return okOrThrow(bookingPromise)
+	return okOrThrow(
+		ctx.runQuery(internal.sessionCheckout.getSessionByStripeSessionId, {
+			stripeSessionId: args.stripeSessionId
+		})
+	)
 		.andThen((booking) =>
 			booking
 				? validateBookingInvoiceDownload(booking, Date.now())
@@ -116,12 +115,11 @@ export function getBookingInvoicePdfByStripeSessionIdService(
 	| { reason: "BOOKING_NOT_CONFIRMED" }
 	| { reason: "INVOICE_DOWNLOAD_EXPIRED" }
 > {
-	const bookingPromise: Promise<Doc<"bookings"> | null> = ctx.runQuery(
-		internal.sessionCheckout.getSessionByStripeSessionId,
-		{ stripeSessionId: args.stripeSessionId }
-	);
-
-	return okOrThrow(bookingPromise)
+	return okOrThrow(
+		ctx.runQuery(internal.sessionCheckout.getSessionByStripeSessionId, {
+			stripeSessionId: args.stripeSessionId
+		})
+	)
 		.andThen((booking) =>
 			booking
 				? validateBookingInvoiceDownload(booking, Date.now())

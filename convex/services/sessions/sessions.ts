@@ -1,5 +1,6 @@
 import { ConvexError } from "convex/values";
 import { err, errAsync, ok, ResultAsync } from "neverthrow";
+import { searchBlobPatchForBookingAsync } from "#convex/lib/adminSearch/adminSearchBlob";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
 import { setBookingArchived } from "#convex/lib/archiveState";
@@ -27,7 +28,6 @@ import {
 import { loadSessionForDeliverables } from "#convex/services/editor/loadSessionForDeliverables";
 import { getDriveStatus, getEditorSessionDriveFolders } from "#convex/lib/drive/driveStatus";
 import { okOrThrow } from "#convex/lib/result";
-import { searchBlobPatchForBooking } from "#convex/lib/adminSearch/adminSearchBlob";
 import { getSessionByStripeSessionId, getSessionFromDb } from "#convex/lib/sessions/sessionLookup";
 import { listAdminSessions, type AdminSessionsView } from "#convex/lib/listAdminSessions";
 import {
@@ -128,10 +128,10 @@ export function listEditorSessionsService(ctx: QueryCtx, args: ListEditorSession
 		.andThen((bookingsPage) => {
 			const visibleSessions = bookingsPage.page.filter(isEditorVisibleSession);
 
-			return okOrThrow(
-				Promise.all(
-					visibleSessions.map(async (session) =>
-						buildEditorSessionProjection(session, await getEditorSessionDriveFolders(ctx, session))
+			return ResultAsync.combine(
+				visibleSessions.map((session) =>
+					ResultAsync.fromPromise(getEditorSessionDriveFolders(ctx, session), () => null).map(
+						(driveFolders) => buildEditorSessionProjection(session, driveFolders)
 					)
 				)
 			).map((page) => ({ ...bookingsPage, page }));
@@ -203,15 +203,16 @@ export function saveSessionInstagramHandleService(
 			return ok(session);
 		})
 		.andThen((session) =>
-			okOrThrow(
-				searchBlobPatchForBooking(ctx, session, { instagramHandle: args.instagramHandle }).then(
-					(searchBlobPatch) =>
-						ctx.db
-							.patch("bookings", session._id, {
-								instagramHandle: args.instagramHandle,
-								...searchBlobPatch
-							})
-							.then(() => null)
+			searchBlobPatchForBookingAsync(ctx, session, {
+				instagramHandle: args.instagramHandle
+			}).andThen((searchBlobPatch) =>
+				okOrThrow(
+					ctx.db
+						.patch("bookings", session._id, {
+							instagramHandle: args.instagramHandle,
+							...searchBlobPatch
+						})
+						.then(() => null)
 				)
 			)
 		);
@@ -236,8 +237,9 @@ export function archivePastDeadCheckoutSessionsService(
 	args: ArchivePastDeadCheckoutSessionsArgs
 ) {
 	return requirePermission(ctx, "archive:sessions").andThen(() =>
-		okOrThrow(
-			archivePastDeadCheckoutSessionsBatch(ctx, args.cursor, args.numItems).then((batch) => batch)
+		ResultAsync.fromPromise(
+			archivePastDeadCheckoutSessionsBatch(ctx, args.cursor, args.numItems),
+			() => ({ reason: "SESSION_ARCHIVE_FAILED" as const })
 		)
 	);
 }
