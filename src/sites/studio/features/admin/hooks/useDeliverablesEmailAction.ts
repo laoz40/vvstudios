@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useAction, useMutation, useQuery } from "convex/react";
 import { toast } from "sonner";
 import { api } from "#convex/_generated/api";
-import { exhaustiveCheck, tryCatch } from "#/lib/result";
+import { tryCatch } from "#/lib/result";
 import type { SessionRecord } from "#studio/features/admin/lib/admin-sessions";
 import {
 	formatDriveSessionMediaFolderName,
@@ -20,67 +20,11 @@ const deliverablesEmailErrorMessage = {
 	DELIVERABLES_FOLDER_EMPTY: "Deliverables is empty. Add the finished files before sending.",
 	DELIVERABLES_FOLDER_LIST_FAILED: "Couldn't check the Deliverables folder. Try again.",
 	DELIVERABLES_LINK_SHARE_FAILED: "Couldn't create a viewable Deliverables link. Try again.",
+	EMAIL_RENDER_FAILED: "Unable to send deliverables email.",
+	EMAIL_REQUEST_FAILED: "Unable to send deliverables email.",
+	EMAIL_RESPONSE_FAILED: "Unable to send deliverables email.",
 	UNEXPECTED_ERROR: "Something went wrong while sending the deliverables email."
 } as const;
-
-type DeliverablesEmailErrorReason =
-	| keyof typeof deliverablesEmailErrorMessage
-	| "EMAIL_RENDER_FAILED"
-	| "EMAIL_REQUEST_FAILED"
-	| "EMAIL_RESPONSE_FAILED"
-	| "SESSION_NOT_CONFIRMED"
-	| "SESSION_NOT_IN_PAST";
-
-function showDeliverablesEmailError(reason: DeliverablesEmailErrorReason) {
-	switch (reason) {
-		case "NOT_AUTHENTICATED":
-			toast.error(deliverablesEmailErrorMessage.NOT_AUTHENTICATED);
-
-			return;
-		case "NOT_AUTHORIZED":
-			toast.error(deliverablesEmailErrorMessage.NOT_AUTHORIZED);
-
-			return;
-		case "BOOKING_NOT_FOUND":
-			toast.error(deliverablesEmailErrorMessage.BOOKING_NOT_FOUND);
-
-			return;
-		case "SESSION_NOT_ASSIGNED_TO_EDITOR":
-		case "SESSION_NOT_CONFIRMED":
-		case "SESSION_NOT_IN_PAST":
-			toast.error(deliverablesEmailErrorMessage.SESSION_NOT_ASSIGNED_TO_EDITOR);
-
-			return;
-		case "DELIVERABLES_FOLDER_MISSING":
-			toast.error(deliverablesEmailErrorMessage.DELIVERABLES_FOLDER_MISSING);
-
-			return;
-		case "DELIVERABLES_FOLDER_EMPTY":
-			toast.error(deliverablesEmailErrorMessage.DELIVERABLES_FOLDER_EMPTY);
-
-			return;
-		case "DELIVERABLES_FOLDER_LIST_FAILED":
-			toast.error(deliverablesEmailErrorMessage.DELIVERABLES_FOLDER_LIST_FAILED);
-
-			return;
-		case "DELIVERABLES_LINK_SHARE_FAILED":
-			toast.error(deliverablesEmailErrorMessage.DELIVERABLES_LINK_SHARE_FAILED);
-
-			return;
-		case "EMAIL_RENDER_FAILED":
-		case "EMAIL_REQUEST_FAILED":
-		case "EMAIL_RESPONSE_FAILED":
-			toast.error("Unable to send deliverables email.");
-
-			return;
-		case "UNEXPECTED_ERROR":
-			toast.error(deliverablesEmailErrorMessage.UNEXPECTED_ERROR);
-
-			return;
-		default:
-			exhaustiveCheck(reason);
-	}
-}
 
 type DeliverablesEmailSendState = { status: "ready-to-send" } | { status: "status-repair" };
 
@@ -139,7 +83,7 @@ export function useDeliverablesEmailAction(session: SessionRecord) {
 		);
 
 		if (emailError !== null) {
-			showDeliverablesEmailError(emailError.reason);
+			toast.error(deliverablesEmailErrorMessage[emailError.reason]);
 			setIsEmailingDeliverables(false);
 
 			return;
