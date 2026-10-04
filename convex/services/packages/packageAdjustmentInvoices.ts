@@ -21,19 +21,24 @@ type PackageAdjustmentClaimError =
 	| { reason: "PACKAGE_ADJUSTMENT_EMAIL_NOT_SENDABLE" }
 	| { reason: "PACKAGE_NOT_FOUND" };
 
+type PackageAdjustmentInvoiceSendFailure =
+	| { reason: "STRIPE_CUSTOMER_NOT_FOUND" }
+	| { reason: "STRIPE_ADJUSTMENT_INVOICE_FAILED" };
+
 type SendPackageAdjustmentInvoiceError =
 	| PackageAdjustmentClaimError
-	| { reason: "PACKAGE_ADJUSTMENT_INVOICE_EMAIL_FAILED" };
+	| PackageAdjustmentInvoiceSendFailure;
 
-function markPackageAdjustmentInvoiceEmailFailed(
+function markPackageAdjustmentInvoiceEmailFailed<T extends PackageAdjustmentInvoiceSendFailure>(
 	ctx: ActionCtx,
-	args: { adjustmentId: Id<"packageAdjustments">; claimedAt: number }
-): NeverthrowResultAsync<never, { reason: "PACKAGE_ADJUSTMENT_INVOICE_EMAIL_FAILED" }> {
+	args: { adjustmentId: Id<"packageAdjustments">; claimedAt: number },
+	failure: T
+): NeverthrowResultAsync<never, T> {
 	return fromConvexTuple<Promise<ConvexResult<{ updated: boolean }, { reason: string }>>>(
 		ctx.runMutation(internal.packageAdjustments.markPackageAdjustmentInvoiceEmailFailed, args)
 	)
 		.orElse(() => ok(null))
-		.andThen(() => err({ reason: "PACKAGE_ADJUSTMENT_INVOICE_EMAIL_FAILED" as const }));
+		.andThen(() => err(failure));
 }
 
 export function sendPackageAdjustmentInvoiceService(
@@ -58,10 +63,11 @@ export function sendPackageAdjustmentInvoiceService(
 				const { adjustment, packageRecord } = invoiceInput;
 
 				if (!packageRecord.stripeCustomerId) {
-					return markPackageAdjustmentInvoiceEmailFailed(ctx, {
-						adjustmentId: args.adjustmentId,
-						claimedAt
-					});
+					return markPackageAdjustmentInvoiceEmailFailed(
+						ctx,
+						{ adjustmentId: args.adjustmentId, claimedAt },
+						{ reason: "STRIPE_CUSTOMER_NOT_FOUND" }
+					);
 				}
 
 				return createAndSendPackageAdjustmentStripeInvoice(stripe, {
@@ -70,11 +76,12 @@ export function sendPackageAdjustmentInvoiceService(
 					stripeCustomerId: packageRecord.stripeCustomerId,
 					quantity: adjustment.quantity
 				})
-					.orElse(() =>
-						markPackageAdjustmentInvoiceEmailFailed(ctx, {
-							adjustmentId: args.adjustmentId,
-							claimedAt
-						})
+					.orElse((stripeFailure) =>
+						markPackageAdjustmentInvoiceEmailFailed(
+							ctx,
+							{ adjustmentId: args.adjustmentId, claimedAt },
+							stripeFailure
+						)
 					)
 					.andThen(({ stripeInvoiceId }) =>
 						fromConvexTuple<

@@ -46,7 +46,10 @@ export function usePackageAdjustmentActions(
 				case "PACKAGE_ADJUSTMENT_EMAIL_NOT_SENDABLE":
 					toast.error("Only failed adjustment emails can be retried.");
 					break;
-				case "PACKAGE_ADJUSTMENT_INVOICE_EMAIL_FAILED":
+				case "STRIPE_CUSTOMER_NOT_FOUND":
+					toast.error("This package has no Stripe customer ID.");
+					break;
+				case "STRIPE_ADJUSTMENT_INVOICE_FAILED":
 					toast.error("The adjustment invoice email failed again.");
 					break;
 				case "UNEXPECTED_ERROR":

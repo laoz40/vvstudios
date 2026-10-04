@@ -32,7 +32,9 @@ type SendDeliverablesError =
 	| { reason: "DELIVERABLES_FOLDER_EMPTY" }
 	| { reason: "DELIVERABLES_FOLDER_LIST_FAILED" }
 	| { reason: "DELIVERABLES_LINK_SHARE_FAILED" }
-	| { reason: "DELIVERABLES_SEND_FAILED" };
+	| { reason: "EMAIL_RENDER_FAILED" }
+	| { reason: "EMAIL_REQUEST_FAILED" }
+	| { reason: "EMAIL_RESPONSE_FAILED" };
 
 function mapFolderListError(error: DriveError): SendDeliverablesError {
 	if (error.reason === "GOOGLE_DRIVE_FOLDER_MISSING") {
@@ -110,7 +112,7 @@ function sendDeliverablesEmailForSession(
 				reason: emailError.reason
 			});
 
-			return { reason: "DELIVERABLES_SEND_FAILED" as const };
+			return emailError;
 		});
 }
 
