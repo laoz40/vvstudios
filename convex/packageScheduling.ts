@@ -14,10 +14,14 @@ import {
 	query
 } from "#convex/_generated/server";
 import { SERVICES } from "#studio/features/booking-form/lib/booking-form-model";
+import { getCapacityConsumingPackageSessions } from "#convex/lib/packages/packageScheduling";
 import { getValidPackageByToken as findValidPackageByToken } from "#convex/lib/packages/packageLookup";
+import { buildPackageTokenCustomerView } from "#convex/lib/packages/packageTokenView";
 import {
-	cancelPackageSessionService,
-	getPackageByTokenService,
+	cancelPackageSessionBooking,
+	loadPackageSessionOwnedByToken
+} from "#convex/services/packages/packageSessionCancelWorkflow";
+import {
 	processPackageAdjustmentAtExpiryService,
 	processPackageAdjustmentWhenSessionsCompleteService,
 	setPackageDefaultSpaceService
@@ -51,7 +55,14 @@ import {
 
 export const getPackageByToken = query({
 	args: { token: v.string() },
-	handler: (ctx, args) => getPackageByTokenService(ctx, args.token).match(tupleOk, tupleErr)
+	handler: (ctx, args) =>
+		findValidPackageByToken(ctx, args.token, Date.now())
+			.andThen((packageRecord) =>
+				getCapacityConsumingPackageSessions(ctx, packageRecord._id, packageRecord.packageSize).map(
+					(sessions) => buildPackageTokenCustomerView(packageRecord, sessions)
+				)
+			)
+			.match(tupleOk, tupleErr)
 });
 
 const recordingSpaceValidator = v.union(...SERVICES.map((service) => v.literal(service)));
@@ -201,5 +212,11 @@ export const saveCreatedPackageSession = internalMutation({
 
 export const cancelPackageSession = internalMutation({
 	args: { bookingId: v.id("bookings"), token: v.string(), now: v.number() },
-	handler: (ctx, args) => cancelPackageSessionService(ctx, args).match(tupleOk, tupleErr)
+	handler: (ctx, args) =>
+		findValidPackageByToken(ctx, args.token, args.now)
+			.andThen((packageFromDb) =>
+				loadPackageSessionOwnedByToken(ctx, packageFromDb, args.bookingId)
+			)
+			.andThen(() => cancelPackageSessionBooking(ctx, args.bookingId))
+			.match(tupleOk, tupleErr)
 });

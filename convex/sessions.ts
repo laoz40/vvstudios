@@ -9,21 +9,25 @@ import { loadSessionForDeliverables } from "#convex/services/editor/loadSessionF
 import { internalMutation, internalQuery, mutation, query } from "#convex/_generated/server";
 import { setBookingArchived } from "#convex/lib/archiveState";
 import { updateSessionEditorAssignment } from "#convex/lib/editor/editorAssignments";
+import {
+	requireDeliverablesEligibility,
+	requireDeliverablesOwnership,
+	saveSessionAdminNotes,
+	saveSessionEditorNotes
+} from "#convex/lib/editor/editorSessions";
+import { getDriveStatus as loadDriveStatusForBooking } from "#convex/lib/drive/driveStatus";
+import { archiveDeadCheckoutBooking } from "#convex/lib/sessions/sessionArchive";
 import { getSessionByStripeSessionId, getSessionFromDb } from "#convex/lib/sessions/sessionLookup";
 import { requirePermission } from "#convex/services/auth";
+import { runArchivePastDeadCheckoutBatch } from "#convex/services/sessions/sessionArchiveWorkflow";
+import { writeSessionEditStatusWithHostNotification } from "#convex/services/sessions/sessionDeliverablesWorkflow";
 import {
-	archivePastDeadCheckoutSessionsService,
 	buildPublicSessionStatusResponse,
-	getDriveStatusService,
 	getPublicRescheduleCompleteSessionService,
 	listActiveEditorsService,
 	listEditorSessionsService,
 	listSessionsService,
-	markSessionCalendarEventDeletedService,
 	requireConfirmedBookingSession,
-	updateSessionAdminNotesService,
-	updateSessionNotesService,
-	updateSessionEditStatusService,
 	writeSessionInstagramHandle
 } from "#convex/services/sessions/sessions";
 
@@ -49,7 +53,10 @@ export const getSessionById = internalQuery({
 
 export const getDriveStatus = query({
 	args: { bookingId: v.id("bookings") },
-	handler: (ctx, args) => getDriveStatusService(ctx, args).match(tupleOk, tupleErr)
+	handler: (ctx, args) =>
+		requirePermission(ctx, "view:sensitive-booking-data")
+			.andThen(() => loadDriveStatusForBooking(ctx, args.bookingId))
+			.match(tupleOk, tupleErr)
 });
 
 export const getDeliverablesCustomerType = query({
@@ -152,17 +159,31 @@ export const archiveSession = mutation({
 
 export const archivePastDeadCheckoutSessions = mutation({
 	args: { cursor: v.union(v.string(), v.null()), numItems: v.optional(v.number()) },
-	handler: (ctx, args) => archivePastDeadCheckoutSessionsService(ctx, args).match(tupleOk, tupleErr)
+	handler: (ctx, args) =>
+		requirePermission(ctx, "archive:sessions")
+			.andThen(() => runArchivePastDeadCheckoutBatch(ctx, args.cursor, args.numItems))
+			.match(tupleOk, tupleErr)
 });
 
 export const updateSessionAdminNotes = mutation({
 	args: { bookingId: v.id("bookings"), adminNotes: v.string() },
-	handler: (ctx, args) => updateSessionAdminNotesService(ctx, args).match(tupleOk, tupleErr)
+	handler: (ctx, args) =>
+		requirePermission(ctx, "assign:session-editor")
+			.andThen(() => getSessionFromDb(ctx, args.bookingId))
+			.andThen((session) => saveSessionAdminNotes(ctx, session, args.adminNotes))
+			.match(tupleOk, tupleErr)
 });
 
 export const updateSessionNotes = mutation({
 	args: { bookingId: v.id("bookings"), editorNotes: v.string() },
-	handler: (ctx, args) => updateSessionNotesService(ctx, args).match(tupleOk, tupleErr)
+	handler: (ctx, args) =>
+		requirePermission(ctx, "update:deliverables")
+			.andThen((identity) =>
+				getSessionFromDb(ctx, args.bookingId).map((session) => ({ identity, session }))
+			)
+			.andThen(requireDeliverablesOwnership)
+			.andThen(({ session }) => saveSessionEditorNotes(ctx, session, args.editorNotes))
+			.match(tupleOk, tupleErr)
 });
 
 export const updateSessionEditStatus = mutation({
@@ -175,10 +196,28 @@ export const updateSessionEditStatus = mutation({
 			v.literal("completed")
 		)
 	},
-	handler: (ctx, args) => updateSessionEditStatusService(ctx, args).match(tupleOk, tupleErr)
+	handler: (ctx, args) =>
+		requirePermission(ctx, "update:deliverables")
+			.andThen((identity) =>
+				getSessionFromDb(ctx, args.bookingId).map((session) => ({ identity, session }))
+			)
+			.andThen(requireDeliverablesOwnership)
+			.andThen((access) => requireDeliverablesEligibility(access).map(() => access))
+			.andThen((access) => writeSessionEditStatusWithHostNotification(ctx, access, args.editStatus))
+			.match(tupleOk, tupleErr)
 });
 
 export const markSessionCalendarEventDeleted = internalMutation({
 	args: { bookingId: v.id("bookings") },
-	handler: (ctx, args) => markSessionCalendarEventDeletedService(ctx, args).match(tupleOk, tupleErr)
+	handler: (ctx, args) =>
+		getSessionFromDb(ctx, args.bookingId)
+			.andThen(() =>
+				archiveDeadCheckoutBooking(ctx, args.bookingId, {
+					bookingFailureCode: undefined,
+					googleCalendarId: undefined,
+					googleEventId: undefined,
+					status: "cancelled"
+				})
+			)
+			.match(tupleOk, tupleErr)
 });

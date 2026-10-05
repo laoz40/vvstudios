@@ -1,38 +1,20 @@
 import { ConvexError } from "convex/values";
 import { err, errAsync, ok, ResultAsync } from "neverthrow";
 import { searchBlobPatchForBookingAsync } from "#convex/lib/adminSearch/adminSearchBlob";
-import type { Doc, Id } from "#convex/_generated/dataModel";
+import type { Doc } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
-import { setBookingArchived } from "#convex/lib/archiveState";
-import { getEditorByToken } from "#convex/lib/auth";
 import { requirePermission } from "#convex/services/auth";
 import {
-	scheduleDeliverablesReviewHostEmail,
-	shouldNotifyHostOfDeliverablesReview
-} from "#convex/lib/editor/deliverablesReviewNotification";
-import {
 	buildActiveEditorProjection,
-	listActiveEditorProfiles,
-	updateSessionEditorAssignment
+	listActiveEditorProfiles
 } from "#convex/lib/editor/editorAssignments";
 import {
 	buildEditorSessionProjection,
-	isEditorVisibleSession,
-	requireDeliverablesEligibility,
-	requireDeliverablesOwnership,
-	saveSessionAdminNotes,
-	saveSessionEditorNotes,
-	saveSessionEditStatus
+	isEditorVisibleSession
 } from "#convex/lib/editor/editorSessions";
-import { getDriveStatus, getEditorSessionDriveFolders } from "#convex/lib/drive/driveStatus";
+import { getEditorSessionDriveFolders } from "#convex/lib/drive/driveStatus";
 import { okOrThrow } from "#convex/lib/result";
-import { getSessionByStripeSessionId, getSessionFromDb } from "#convex/lib/sessions/sessionLookup";
 import { listAdminSessions, type AdminSessionsView } from "#convex/lib/listAdminSessions";
-import {
-	archiveDeadCheckoutBooking,
-	archivePastDeadCheckoutSessionsBatch,
-	archiveSessionWhenFullyDone
-} from "#convex/lib/sessions/sessionArchive";
 
 type PaginationArgs = { paginationOpts: { numItems: number; cursor: string | null } };
 
@@ -51,35 +33,6 @@ type ListSessionsArgs = PaginationArgs & {
 type ListEditorSessionsArgs = PaginationArgs;
 
 type GetPublicRescheduleCompleteSessionArgs = { bookingId: string };
-
-type ArchivePastDeadCheckoutSessionsArgs = { cursor: string | null; numItems?: number };
-
-type UpdateSessionEditStatusArgs = {
-	bookingId: Id<"bookings">;
-	editStatus: "to_edit" | "editing" | "review" | "completed";
-};
-
-type UpdateSessionEditStatusError =
-	| { reason: "NOT_AUTHENTICATED" }
-	| { reason: "NOT_AUTHORIZED" }
-	| { reason: "BOOKING_NOT_FOUND" }
-	| { reason: "SESSION_NOT_ASSIGNED_TO_EDITOR" }
-	| { reason: "SESSION_NOT_CONFIRMED" }
-	| { reason: "SESSION_NOT_IN_PAST" };
-
-type UpdateSessionNotesArgs = { bookingId: Id<"bookings">; editorNotes: string };
-
-type UpdateSessionAdminNotesArgs = { bookingId: Id<"bookings">; adminNotes: string };
-
-type MarkSessionCalendarEventDeletedArgs = { bookingId: Id<"bookings"> };
-
-type GetDriveStatusArgs = { bookingId: Id<"bookings"> };
-
-export function getDriveStatusService(ctx: QueryCtx, args: GetDriveStatusArgs) {
-	return requirePermission(ctx, "view:sensitive-booking-data").andThen(() =>
-		getDriveStatus(ctx, args.bookingId)
-	);
-}
 
 export function listActiveEditorsService(ctx: QueryCtx) {
 	return requirePermission(ctx, "assign:session-editor")
@@ -187,88 +140,5 @@ export function writeSessionInstagramHandle(
 					.patch("bookings", session._id, { instagramHandle, ...searchBlobPatch })
 					.then(() => null)
 			)
-	);
-}
-
-export function archivePastDeadCheckoutSessionsService(
-	ctx: MutationCtx,
-	args: ArchivePastDeadCheckoutSessionsArgs
-) {
-	return requirePermission(ctx, "archive:sessions").andThen(() =>
-		ResultAsync.fromPromise(
-			archivePastDeadCheckoutSessionsBatch(ctx, args.cursor, args.numItems),
-			() => ({ reason: "SESSION_ARCHIVE_FAILED" as const })
-		)
-	);
-}
-
-export function updateSessionAdminNotesService(
-	ctx: MutationCtx,
-	args: UpdateSessionAdminNotesArgs
-) {
-	return requirePermission(ctx, "assign:session-editor")
-		.andThen(() => getSessionFromDb(ctx, args.bookingId))
-		.andThen((session) => saveSessionAdminNotes(ctx, session, args.adminNotes));
-}
-
-export function updateSessionNotesService(ctx: MutationCtx, args: UpdateSessionNotesArgs) {
-	return requirePermission(ctx, "update:deliverables")
-		.andThen((identity) =>
-			getSessionFromDb(ctx, args.bookingId).map((session) => ({ identity, session }))
-		)
-		.andThen(requireDeliverablesOwnership)
-		.andThen(({ session }) => saveSessionEditorNotes(ctx, session, args.editorNotes));
-}
-
-export function updateSessionEditStatusService(
-	ctx: MutationCtx,
-	args: UpdateSessionEditStatusArgs
-): ResultAsync<null, UpdateSessionEditStatusError> {
-	return requirePermission(ctx, "update:deliverables")
-		.andThen((identity) =>
-			getSessionFromDb(ctx, args.bookingId).map((session) => ({ identity, session }))
-		)
-		.andThen(requireDeliverablesOwnership)
-		.andThen((access) => requireDeliverablesEligibility(access).map(() => access))
-		.andThen(({ identity, session }) => {
-			const shouldNotifyHost = shouldNotifyHostOfDeliverablesReview({
-				identity,
-				previousEditStatus: session.editStatus,
-				nextEditStatus: args.editStatus
-			});
-
-			return saveSessionEditStatus(ctx, session, args.editStatus).andThen(() => {
-				if (!shouldNotifyHost) {
-					return archiveSessionWhenFullyDone(ctx, args.bookingId);
-				}
-
-				return getEditorByToken(ctx, identity.tokenIdentifier)
-					.andThen((editor) => {
-						const editorName = editor?.displayName ?? identity.name ?? "An editor";
-
-						return scheduleDeliverablesReviewHostEmail(ctx, {
-							bookingId: args.bookingId,
-							clientName: session.name,
-							editorName,
-							sessionDate: session.date,
-							idempotencyKey: `deliverables-review:${args.bookingId}:${Date.now()}`
-						});
-					})
-					.andThen(() => archiveSessionWhenFullyDone(ctx, args.bookingId));
-			});
-		});
-}
-
-export function markSessionCalendarEventDeletedService(
-	ctx: MutationCtx,
-	args: MarkSessionCalendarEventDeletedArgs
-) {
-	return getSessionFromDb(ctx, args.bookingId).andThen(() =>
-		archiveDeadCheckoutBooking(ctx, args.bookingId, {
-			bookingFailureCode: undefined,
-			googleCalendarId: undefined,
-			googleEventId: undefined,
-			status: "cancelled"
-		})
 	);
 }
