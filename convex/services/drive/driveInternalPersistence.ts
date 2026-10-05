@@ -1,3 +1,6 @@
+import { errAsync, okAsync, type ResultAsync } from "neverthrow";
+import type { Id } from "#convex/_generated/dataModel";
+import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
 import {
 	claimClientAssetsEmail as claimClientAssetsEmailLib,
 	saveClientAssetsEmailResult as saveClientAssetsEmailResultLib,
@@ -5,8 +8,10 @@ import {
 	saveClientDrivePermissionsStatus as saveClientDrivePermissionsStatusLib
 } from "#convex/lib/drive/driveClientAccess";
 import {
-	ensureBookingDriveClientId as ensureBookingDriveClientIdLib,
-	syncBookingDriveClientIdFromSession as syncBookingDriveClientIdFromSessionLib
+	loadBookingRowForDriveClientSync,
+	loadDriveSessionRowByBookingId,
+	patchBookingDriveClientId,
+	type SyncBookingDriveClientIdFromSessionError
 } from "#convex/lib/drive/driveBookingDriveClient";
 import {
 	clearSavedDriveFolder as clearSavedDriveFolderLib,
@@ -22,7 +27,7 @@ import {
 	allocatePackageSessionNumber as allocatePackageSessionNumberLib
 } from "#convex/lib/drive/sessionFolders/allocateNumbers";
 import { clearSessionDriveDb as clearSessionDriveDbLib } from "#convex/lib/drive/sessionFolders/clearSessionRecords";
-import { getDriveSetup as getDriveSetupLib } from "#convex/lib/drive/driveLookup";
+import { getDriveSetup as loadDriveSetupFromLib } from "#convex/lib/drive/driveLookup";
 import {
 	claimEditorAssignmentEmail as claimEditorAssignmentEmailLib,
 	clearPreviousEditorDriveAccess as clearPreviousEditorDriveAccessLib,
@@ -35,54 +40,202 @@ import {
 	saveEditorDrivePermissionsStatus as saveEditorDrivePermissionsStatusLib
 } from "#convex/lib/drive/driveEditor";
 
-export const getDriveSetup = getDriveSetupLib;
+export function getDriveSetup(ctx: QueryCtx, bookingId: Id<"bookings">) {
+	return loadDriveSetupFromLib(ctx, bookingId);
+}
 
-export const saveDriveClientFolder = saveDriveClientFolderLib;
+export function saveDriveClientFolder(
+	ctx: MutationCtx,
+	args: Parameters<typeof saveDriveClientFolderLib>[1]
+) {
+	return saveDriveClientFolderLib(ctx, args);
+}
 
-export const saveDriveSessionFolder = saveDriveSessionFolderLib;
+export function saveDriveSessionFolder(
+	ctx: MutationCtx,
+	args: Parameters<typeof saveDriveSessionFolderLib>[1]
+) {
+	return saveDriveSessionFolderLib(ctx, args);
+}
 
-export const syncBookingDriveClientIdFromSession = syncBookingDriveClientIdFromSessionLib;
+export function syncBookingDriveClientIdFromSession(
+	ctx: MutationCtx,
+	bookingId: Id<"bookings">
+): ResultAsync<null, SyncBookingDriveClientIdFromSessionError> {
+	return loadBookingRowForDriveClientSync(ctx, bookingId).andThen((booking) => {
+		if (booking === null) {
+			return errAsync({ reason: "BOOKING_NOT_FOUND" as const });
+		}
 
-export const saveDrivePackageFolder = saveDrivePackageFolderLib;
+		return loadDriveSessionRowByBookingId(ctx, bookingId).andThen((driveSession) => {
+			if (driveSession === null) {
+				return errAsync({ reason: "DRIVE_RECORD_NOT_FOUND" as const });
+			}
 
-export const allocatePackageSessionNumber = allocatePackageSessionNumberLib;
+			if (booking.driveClientId === driveSession.driveClientId) {
+				return okAsync(null);
+			}
 
-export const allocateClientSessionNumber = allocateClientSessionNumberLib;
+			return patchBookingDriveClientId(ctx, bookingId, driveSession.driveClientId);
+		});
+	});
+}
 
-export const linkBookingDriveClient = ensureBookingDriveClientIdLib;
+export function saveDrivePackageFolder(
+	ctx: MutationCtx,
+	args: Parameters<typeof saveDrivePackageFolderLib>[1]
+) {
+	return saveDrivePackageFolderLib(ctx, args);
+}
 
-export const saveDriveClientAssetsFolder = saveDriveClientAssetsFolderLib;
+export function allocatePackageSessionNumber(
+	ctx: MutationCtx,
+	args: Parameters<typeof allocatePackageSessionNumberLib>[1]
+) {
+	return allocatePackageSessionNumberLib(ctx, args);
+}
 
-export const saveDriveSetupResult = saveDriveSetupResultLib;
+export function allocateClientSessionNumber(
+	ctx: MutationCtx,
+	args: Parameters<typeof allocateClientSessionNumberLib>[1]
+) {
+	return allocateClientSessionNumberLib(ctx, args);
+}
 
-export const clearSavedDriveFolder = clearSavedDriveFolderLib;
+export function linkBookingDriveClient(
+	ctx: MutationCtx,
+	bookingId: Id<"bookings">,
+	driveClientId: Id<"driveClients">
+): ResultAsync<null, SyncBookingDriveClientIdFromSessionError> {
+	return loadBookingRowForDriveClientSync(ctx, bookingId).andThen((booking) => {
+		if (booking === null) {
+			return errAsync({ reason: "BOOKING_NOT_FOUND" as const });
+		}
 
-export const saveDriveChildFolder = saveDriveChildFolderLib;
+		if (booking.driveClientId === driveClientId) {
+			return okAsync(null);
+		}
 
-export const saveClientDrivePermission = saveClientDrivePermissionLib;
+		return patchBookingDriveClientId(ctx, bookingId, driveClientId);
+	});
+}
 
-export const saveClientDrivePermissionsStatus = saveClientDrivePermissionsStatusLib;
+export function saveDriveClientAssetsFolder(
+	ctx: MutationCtx,
+	args: Parameters<typeof saveDriveClientAssetsFolderLib>[1]
+) {
+	return saveDriveClientAssetsFolderLib(ctx, args);
+}
 
-export const claimClientAssetsEmail = claimClientAssetsEmailLib;
+export function saveDriveSetupResult(
+	ctx: MutationCtx,
+	args: Parameters<typeof saveDriveSetupResultLib>[1]
+) {
+	return saveDriveSetupResultLib(ctx, args);
+}
 
-export const saveClientAssetsEmailResult = saveClientAssetsEmailResultLib;
+export function clearSavedDriveFolder(
+	ctx: MutationCtx,
+	args: Parameters<typeof clearSavedDriveFolderLib>[1]
+) {
+	return clearSavedDriveFolderLib(ctx, args);
+}
 
-export const getEditorDriveSetup = getEditorDriveSetupLib;
+export function saveDriveChildFolder(
+	ctx: MutationCtx,
+	args: Parameters<typeof saveDriveChildFolderLib>[1]
+) {
+	return saveDriveChildFolderLib(ctx, args);
+}
 
-export const getEditorDriveAccessToRemove = getEditorDriveAccessToRemoveLib;
+export function saveClientDrivePermission(
+	ctx: MutationCtx,
+	args: Parameters<typeof saveClientDrivePermissionLib>[1]
+) {
+	return saveClientDrivePermissionLib(ctx, args);
+}
 
-export const clearPreviousEditorDriveAccess = clearPreviousEditorDriveAccessLib;
+export function saveClientDrivePermissionsStatus(
+	ctx: MutationCtx,
+	args: Parameters<typeof saveClientDrivePermissionsStatusLib>[1]
+) {
+	return saveClientDrivePermissionsStatusLib(ctx, args);
+}
 
-export const markPreviousEditorRemovalFailed = markPreviousEditorRemovalFailedLib;
+export function claimClientAssetsEmail(
+	ctx: MutationCtx,
+	args: Parameters<typeof claimClientAssetsEmailLib>[1]
+) {
+	return claimClientAssetsEmailLib(ctx, args);
+}
 
-export const getFailedEditorRemoval = getFailedEditorRemovalLib;
+export function saveClientAssetsEmailResult(
+	ctx: MutationCtx,
+	args: Parameters<typeof saveClientAssetsEmailResultLib>[1]
+) {
+	return saveClientAssetsEmailResultLib(ctx, args);
+}
 
-export const saveEditorDrivePermission = saveEditorDrivePermissionLib;
+export function getEditorDriveSetup(ctx: QueryCtx, bookingId: Id<"bookings">) {
+	return getEditorDriveSetupLib(ctx, bookingId);
+}
 
-export const saveEditorDrivePermissionsStatus = saveEditorDrivePermissionsStatusLib;
+export function getEditorDriveAccessToRemove(
+	ctx: QueryCtx,
+	args: Parameters<typeof getEditorDriveAccessToRemoveLib>[1]
+) {
+	return getEditorDriveAccessToRemoveLib(ctx, args);
+}
 
-export const claimEditorAssignmentEmail = claimEditorAssignmentEmailLib;
+export function clearPreviousEditorDriveAccess(
+	ctx: MutationCtx,
+	args: Parameters<typeof clearPreviousEditorDriveAccessLib>[1]
+) {
+	return clearPreviousEditorDriveAccessLib(ctx, args);
+}
 
-export const saveEditorAssignmentEmailResult = saveEditorAssignmentEmailResultLib;
+export function markPreviousEditorRemovalFailed(
+	ctx: MutationCtx,
+	args: Parameters<typeof markPreviousEditorRemovalFailedLib>[1]
+) {
+	return markPreviousEditorRemovalFailedLib(ctx, args);
+}
 
-export const clearSessionDriveDb = clearSessionDriveDbLib;
+export function getFailedEditorRemoval(ctx: QueryCtx, bookingId: Id<"bookings">) {
+	return getFailedEditorRemovalLib(ctx, bookingId);
+}
+
+export function saveEditorDrivePermission(
+	ctx: MutationCtx,
+	args: Parameters<typeof saveEditorDrivePermissionLib>[1]
+) {
+	return saveEditorDrivePermissionLib(ctx, args);
+}
+
+export function saveEditorDrivePermissionsStatus(
+	ctx: MutationCtx,
+	args: Parameters<typeof saveEditorDrivePermissionsStatusLib>[1]
+) {
+	return saveEditorDrivePermissionsStatusLib(ctx, args);
+}
+
+export function claimEditorAssignmentEmail(
+	ctx: MutationCtx,
+	args: Parameters<typeof claimEditorAssignmentEmailLib>[1]
+) {
+	return claimEditorAssignmentEmailLib(ctx, args);
+}
+
+export function saveEditorAssignmentEmailResult(
+	ctx: MutationCtx,
+	args: Parameters<typeof saveEditorAssignmentEmailResultLib>[1]
+) {
+	return saveEditorAssignmentEmailResultLib(ctx, args);
+}
+
+export function clearSessionDriveDb(
+	ctx: MutationCtx,
+	args: Parameters<typeof clearSessionDriveDbLib>[1]
+) {
+	return clearSessionDriveDbLib(ctx, args);
+}

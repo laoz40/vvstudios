@@ -37,14 +37,8 @@ export function lookupPackageByStripeSessionId(
 	);
 }
 
-export function getPackageFromDb(ctx: QueryCtx | MutationCtx, packageId: Id<"packages">) {
-	return okOrThrow(ctx.db.get("packages", packageId)).andThen((packageFromDb) => {
-		if (!packageFromDb) {
-			return err({ reason: "PACKAGE_NOT_FOUND" as const });
-		}
-
-		return ok(packageFromDb);
-	});
+export function lookupPackageRow(ctx: QueryCtx | MutationCtx, packageId: Id<"packages">) {
+	return okOrThrow(ctx.db.get("packages", packageId));
 }
 
 export function getPackageForAction(ctx: ActionCtx, packageId: Id<"packages">) {

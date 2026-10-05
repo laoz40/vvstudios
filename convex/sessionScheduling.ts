@@ -3,9 +3,9 @@ import { tupleErr, tupleOk } from "#/lib/result";
 import { internalMutation } from "#convex/_generated/server";
 import { sessionReservationValidator } from "#convex/services/sessions/sessionReservationValidators";
 import {
-	reserveSessionReservation as reserveSessionReservationService,
-	unreserveSessionReservation as unreserveSessionReservationService
-} from "#convex/services/sessions/sessionSchedulingSave";
+	reserveSessionTime,
+	unreserveSessionTime
+} from "#convex/services/sessions/sessionReservations";
 import {
 	bookingAddonQuantitiesValidator,
 	bookingAddonsValidator
@@ -28,17 +28,13 @@ export const reserveSessionReservation = internalMutation({
 		eventBufferMinutes: v.number(),
 		now: v.number()
 	},
-	handler: async (ctx, args) =>
-		(await reserveSessionReservationService(ctx, args)).match(tupleOk, tupleErr)
+	handler: async (ctx, args) => (await reserveSessionTime(ctx, args)).match(tupleOk, tupleErr)
 });
 
 export const clearSessionReservation = internalMutation({
 	args: { bookingId: v.id("bookings"), reservation: sessionReservationValidator },
 	handler: async (ctx, args) =>
-		(await unreserveSessionReservationService(ctx, args.bookingId, args.reservation)).match(
-			tupleOk,
-			tupleErr
-		)
+		(await unreserveSessionTime(ctx, args.bookingId, args.reservation)).match(tupleOk, tupleErr)
 });
 
 export const saveAdminSessionUpdate = internalMutation({

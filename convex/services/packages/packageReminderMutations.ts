@@ -1,6 +1,6 @@
 import type { Doc } from "#convex/_generated/dataModel";
 import type { MutationCtx } from "#convex/_generated/server";
-import { getPackageFromDb } from "#convex/lib/packages/packageLookup";
+import { getPackageFromDb } from "#convex/services/packages/packageLookup";
 import {
 	patchPackageReminderEmailClaimed,
 	patchPackageReminderEmailFailed,

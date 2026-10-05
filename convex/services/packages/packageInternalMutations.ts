@@ -7,7 +7,8 @@ import {
 } from "#convex/lib/adminSearch/adminSearchBlob";
 import { checkBookingSubmitRateLimit } from "#convex/lib/rateLimits";
 import { patchPackageBookingsReceiptNumber } from "#convex/lib/packages/packageBookingsReceiptSync";
-import { getPackageFromDb, type PackageLookupError } from "#convex/lib/packages/packageLookup";
+import type { PackageLookupError } from "#convex/lib/packages/packageLookup";
+import { getPackageFromDb } from "#convex/services/packages/packageLookup";
 import type { PaidPackageResult } from "#convex/lib/packages/packagePayment";
 import {
 	buildPaidPackageResult,

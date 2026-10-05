@@ -5,10 +5,12 @@ import type { BookingAddon } from "#studio/features/booking-form/lib/booking-for
 import { requirePermission } from "#convex/services/auth";
 import {
 	getCustomInvoiceRow,
+	insertPendingCustomInvoice,
 	listCustomInvoicesByBookingId,
-	saveNumberedCustomInvoice,
+	patchCustomInvoiceNumber,
 	validateCustomTotalDueAmount
 } from "#convex/lib/stripe/customInvoices";
+import { formatBookingInvoiceNumber } from "#studio/features/booking-invoice/lib/build-booking-invoice-data";
 import { getSessionFromDb } from "#convex/lib/sessions/sessionLookup";
 
 type CustomInvoiceDetails = {
@@ -49,7 +51,7 @@ export function createBookingCustomInvoiceFromAdmin(
 		)
 		.andThen((identity) => getSessionFromDb(ctx, args.bookingId).map(() => identity))
 		.andThen((identity) =>
-			saveNumberedCustomInvoice(ctx, {
+			insertPendingCustomInvoice(ctx, {
 				bookingId: args.bookingId,
 				dueDate: args.dueDate,
 				service: args.service,
@@ -62,6 +64,14 @@ export function createBookingCustomInvoiceFromAdmin(
 				includeDepositLineItem: args.includeDepositLineItem,
 				customTotalDueAmount: args.customTotalDueAmount,
 				createdBy: identity.email
+			}).andThen(({ customInvoiceId, createdAt }) => {
+				const invoiceNumber = formatBookingInvoiceNumber(customInvoiceId, createdAt);
+
+				return patchCustomInvoiceNumber(ctx, customInvoiceId, invoiceNumber).map(() => ({
+					customInvoiceId,
+					invoiceNumber,
+					createdAt
+				}));
 			})
 		);
 }

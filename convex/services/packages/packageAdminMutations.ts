@@ -3,7 +3,7 @@ import type { Id } from "#convex/_generated/dataModel";
 import type { MutationCtx } from "#convex/_generated/server";
 import { setPackageArchived } from "#convex/lib/archiveState";
 import { requirePermission } from "#convex/services/auth";
-import { getPackageFromDb } from "#convex/lib/packages/packageLookup";
+import { getPackageFromDb } from "#convex/services/packages/packageLookup";
 import { getCapacityConsumingPackageSessions } from "#convex/lib/packages/packageScheduling";
 import {
 	buildPackageUpdatePatch,

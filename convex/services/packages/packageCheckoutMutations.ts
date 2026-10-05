@@ -13,10 +13,10 @@ import {
 	validatePackageClaimStripeSession
 } from "#convex/lib/packages/packageCheckoutClaim";
 import {
-	getPackageFromDb,
 	lookupPackageByStripeSessionId,
 	normalizePackageId
 } from "#convex/lib/packages/packageLookup";
+import { getPackageFromDb } from "#convex/services/packages/packageLookup";
 import {
 	patchPackageCheckoutClaimed,
 	patchPackageStripeCheckoutIds

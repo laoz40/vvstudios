@@ -19,20 +19,14 @@ import {
 	getPackageExpiresAt,
 	type PackageSize
 } from "#studio/features/booking-form/lib/booking-pricing";
-import { isPackageSessionLocked } from "#studio/features/booking-form/lib/package-scheduling-rules";
-import { api } from "#convex/_generated/api";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { QueryCtx, MutationCtx } from "#convex/_generated/server";
 import { env } from "#convex/env";
 import {
-	getValidPackageByToken as getValidPackageByTokenResult,
 	type ValidPackage,
 	type ValidPackageByTokenError
 } from "#convex/lib/packages/packageLookup";
-import {
-	capacityConsumingSessionStatuses,
-	sessionConsumesPackageCapacity
-} from "#convex/lib/packages/packageSessionCapacity";
+import { capacityConsumingSessionStatuses } from "#convex/lib/packages/packageSessionCapacity";
 import { generateRescheduleToken } from "#convex/lib/sessions/sessionRescheduleLinks";
 
 export { sessionConsumesPackageCapacity } from "#convex/lib/packages/packageSessionCapacity";
@@ -221,50 +215,4 @@ export function toPackageCalendarDetails(
 		time: args.time,
 		...pickBookingAddonQuantities(packageRecord)
 	};
-}
-
-type EditablePackageSessionDetails = {
-	packageRecord: ValidPackage;
-	session: Doc<"bookings">;
-	settings: SessionAvailabilitySettings;
-};
-
-export function getEditablePackageSession(
-	ctx: QueryCtx,
-	args: { token: string; bookingId: Id<"bookings">; now: number }
-): ResultAsync<EditablePackageSessionDetails, ValidPackageByTokenError | PackageSessionEditError> {
-	return (
-		getValidPackageByTokenResult(ctx, args.token, args.now)
-			// Load the requested session through the package to enforce ownership.
-			.andThen((packageRecord) =>
-				getPackageSessionForToken(ctx, packageRecord._id, args.bookingId).map((session) => ({
-					packageRecord,
-					session
-				}))
-			)
-			// Reject missing, foreign, and inactive sessions before loading scheduling settings.
-			.andThen(({ packageRecord, session }) => {
-				if (!session || !sessionConsumesPackageCapacity(session)) {
-					return err({ reason: "PACKAGE_BOOKING_NOT_FOUND" as const });
-				}
-
-				return okOrThrow<SessionAvailabilitySettings>(
-					ctx.runQuery(api.bookingSettings.get, {})
-				).map((settings) => ({ packageRecord, session, settings }));
-			})
-			// Enforce the edit cutoff after the session and settings are available.
-			.andThen((details) => {
-				if (
-					isPackageSessionLocked(
-						details.session.sessionStartAt,
-						details.settings.leadTimeMinutes,
-						args.now
-					)
-				) {
-					return err({ reason: "PACKAGE_BOOKING_LOCKED" as const });
-				}
-
-				return ok(details);
-			})
-	);
 }

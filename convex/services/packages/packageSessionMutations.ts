@@ -1,4 +1,5 @@
 import { err, errAsync, ok, okAsync, type ResultAsync as ResultAsyncType } from "neverthrow";
+import { api } from "#convex/_generated/api";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
 import { getBookingAvailabilitySettings } from "#convex/lib/booking/bookingSettings";
@@ -11,7 +12,8 @@ import { schedulePackageAdjustmentWhenSessionsComplete } from "#convex/lib/packa
 import {
 	checkPackageSessionAvailability,
 	getCapacityConsumingPackageSessions,
-	getEditablePackageSession,
+	getPackageSessionForToken,
+	type PackageSessionEditError,
 	type UnschedulePackageSessionError
 } from "#convex/lib/packages/packageScheduling";
 import {
@@ -19,13 +21,61 @@ import {
 	type ValidPackage,
 	type ValidPackageByTokenError
 } from "#convex/lib/packages/packageLookup";
+import { sessionConsumesPackageCapacity } from "#convex/lib/packages/packageSessionCapacity";
+import type { SessionAvailabilitySettings } from "#convex/lib/sessions/sessionCalendarTime";
+import { okOrThrow } from "#convex/lib/result";
 import { getSessionStartAt } from "#convex/lib/sessions/sessionAdminEdit";
 import { env } from "#convex/env";
 import { getPackageSessionAddons } from "#studio/features/booking-form/lib/booking-form-model";
 import type { BookingFormValues } from "#studio/features/booking-form/lib/booking-form-model";
 import type { BookingAvailabilitySettings } from "#studio/lib/bookingAvailabilitySettings";
+import { isPackageSessionLocked } from "#studio/features/booking-form/lib/package-scheduling-rules";
 
 type RecordingSpace = Exclude<BookingFormValues["service"], "">;
+
+type EditablePackageSessionDetails = {
+	packageRecord: ValidPackage;
+	session: Doc<"bookings">;
+	settings: SessionAvailabilitySettings;
+};
+
+function getEditablePackageSession(
+	ctx: QueryCtx,
+	args: { token: string; bookingId: Id<"bookings">; now: number }
+): ResultAsyncType<
+	EditablePackageSessionDetails,
+	ValidPackageByTokenError | PackageSessionEditError
+> {
+	return getValidPackageByToken(ctx, args.token, args.now)
+		.andThen((packageRecord) =>
+			getPackageSessionForToken(ctx, packageRecord._id, args.bookingId).map((session) => ({
+				packageRecord,
+				session
+			}))
+		)
+		.andThen(({ packageRecord, session }) => {
+			if (!session || !sessionConsumesPackageCapacity(session)) {
+				return err({ reason: "PACKAGE_BOOKING_NOT_FOUND" as const });
+			}
+
+			return okOrThrow<SessionAvailabilitySettings>(ctx.runQuery(api.bookingSettings.get, {})).map(
+				(settings) => ({ packageRecord, session, settings })
+			);
+		})
+		.andThen((details) => {
+			if (
+				isPackageSessionLocked(
+					details.session.sessionStartAt,
+					details.settings.leadTimeMinutes,
+					args.now
+				)
+			) {
+				return err({ reason: "PACKAGE_BOOKING_LOCKED" as const });
+			}
+
+			return ok(details);
+		});
+}
 
 type PackageSessionRequestArgs = { token: string; date: string; time: string; now: number };
 

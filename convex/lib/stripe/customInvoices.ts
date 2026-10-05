@@ -3,7 +3,6 @@ import { internal } from "#convex/_generated/api";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { ActionCtx, MutationCtx, QueryCtx } from "#convex/_generated/server";
 import { okOrThrow } from "#convex/lib/result";
-import { formatBookingInvoiceNumber } from "#studio/features/booking-invoice/lib/build-booking-invoice-data";
 
 type CustomInvoiceInsert = Omit<
 	Doc<"customInvoices">,
@@ -52,18 +51,20 @@ export function validateCustomTotalDueAmount(amount: number | undefined) {
 	return ok(null);
 }
 
-export function saveNumberedCustomInvoice(ctx: MutationCtx, invoice: CustomInvoiceInsert) {
+export function insertPendingCustomInvoice(ctx: MutationCtx, invoice: CustomInvoiceInsert) {
 	const createdAt = Date.now();
 
 	return okOrThrow(
 		ctx.db.insert("customInvoices", { ...invoice, invoiceNumber: "pending", createdAt })
-	).andThen((customInvoiceId) => {
-		const invoiceNumber = formatBookingInvoiceNumber(customInvoiceId, createdAt);
+	).map((customInvoiceId) => ({ customInvoiceId, createdAt }));
+}
 
-		return okOrThrow(
-			ctx.db
-				.patch("customInvoices", customInvoiceId, { invoiceNumber })
-				.then(() => ({ customInvoiceId, invoiceNumber, createdAt }))
-		);
-	});
+export function patchCustomInvoiceNumber(
+	ctx: MutationCtx,
+	customInvoiceId: Id<"customInvoices">,
+	invoiceNumber: string
+) {
+	return okOrThrow(
+		ctx.db.patch("customInvoices", customInvoiceId, { invoiceNumber }).then(() => null)
+	);
 }

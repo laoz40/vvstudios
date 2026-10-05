@@ -23,33 +23,6 @@ import {
 	requireSessionReservation
 } from "#convex/lib/sessions/sessionSchedulingSave";
 import { getSessionFromDb } from "#convex/lib/sessions/sessionLookup";
-import {
-	reserveSessionTime,
-	unreserveSessionTime,
-	type SessionReservation
-} from "#convex/lib/sessions/sessionReservations";
-import type { Id } from "#convex/_generated/dataModel";
-
-export function reserveSessionReservation(
-	ctx: MutationCtx,
-	args: {
-		bookingId: Id<"bookings">;
-		duration: string;
-		eventBufferMinutes: number;
-		now: number;
-		sessionStartAt: number;
-	}
-): ReturnType<typeof reserveSessionTime> {
-	return reserveSessionTime(ctx, args);
-}
-
-export function unreserveSessionReservation(
-	ctx: MutationCtx,
-	bookingId: Id<"bookings">,
-	reservation: SessionReservation
-): ReturnType<typeof unreserveSessionTime> {
-	return unreserveSessionTime(ctx, bookingId, reservation);
-}
 
 /** Loaded booking + computed patch + flags, before any write. */
 export type ResolvedAdminSessionUpdate = {

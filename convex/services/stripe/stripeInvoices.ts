@@ -5,7 +5,7 @@ import {
 	archivePackageWhenFullyDone,
 	unarchivePackageForNewUnpaidInvoice
 } from "#convex/lib/packages/packageArchive";
-import { getPackageFromDb } from "#convex/lib/packages/packageLookup";
+import { getPackageFromDb } from "#convex/services/packages/packageLookup";
 import { getStripeInvoiceByStripeInvoiceId } from "#convex/lib/stripe/stripeInvoices";
 import { getSessionFromDb } from "#convex/lib/sessions/sessionLookup";
 import {

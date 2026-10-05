@@ -37,7 +37,10 @@ export const detectDeliverablesCustomerType = internalQuery({
 export const getSessionById = internalQuery({
 	args: { bookingId: v.id("bookings") },
 	handler: async (ctx, args) =>
-		(await loadBookingRowOrNull(ctx, args.bookingId)).match((session) => session, () => null)
+		(await loadBookingRowOrNull(ctx, args.bookingId)).match(
+			(session) => session,
+			() => null
+		)
 });
 
 export const getDriveStatus = query({

@@ -16,7 +16,7 @@ import {
 } from "#convex/lib/packages/packageAdjustments";
 import { claimPackageAdjustmentInvoicePayment } from "#convex/lib/packages/packageAdjustmentInvoicePayment";
 import { archivePackageWhenFullyDone } from "#convex/lib/packages/packageArchive";
-import { getPackageFromDb } from "#convex/lib/packages/packageLookup";
+import { getPackageFromDb } from "#convex/services/packages/packageLookup";
 import { okOrThrow } from "#convex/lib/result";
 import { recordPackageAdjustmentStripeInvoice } from "#convex/lib/stripe/stripeInvoices";
 import { requirePermission } from "#convex/services/auth";

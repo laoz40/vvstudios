@@ -1,7 +1,7 @@
 import type { Id } from "#convex/_generated/dataModel";
 import type { MutationCtx } from "#convex/_generated/server";
 import { setBookingArchived } from "#convex/lib/archiveState";
-import { updateSessionEditorAssignment } from "#convex/lib/editor/editorAssignments";
+import { updateSessionEditorAssignment } from "#convex/services/sessions/sessionEditorAssignment";
 import {
 	requireDeliverablesEligibility,
 	requireDeliverablesOwnership,

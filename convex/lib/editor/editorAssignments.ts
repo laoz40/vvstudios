@@ -1,12 +1,11 @@
-import { err, ok, okAsync, type Result, type ResultAsync } from "neverthrow";
 import { internal } from "#convex/_generated/api";
-import type { Doc } from "#convex/_generated/dataModel";
+import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
 import { getEditorWorkStatus } from "#convex/lib/editor/editorAccess";
 import { okOrThrow } from "#convex/lib/result";
 import {
-	searchBlobPatchForBooking,
-	searchBlobPatchForBookingAsync
+	type BookingSearchBlobPatch,
+	searchBlobPatchForBooking
 } from "#convex/lib/adminSearch/adminSearchBlob";
 
 const ACTIVE_EDITOR_LIMIT = 200;
@@ -81,7 +80,7 @@ export function buildActiveEditorProjection(ctx: QueryCtx, editor: Doc<"editorPr
 	}));
 }
 
-export function getActiveEditor(ctx: MutationCtx, editorTokenIdentifier: string) {
+export function lookupEditorProfileByToken(ctx: MutationCtx, editorTokenIdentifier: string) {
 	return okOrThrow(
 		ctx.db
 			.query("editorProfiles")
@@ -89,113 +88,55 @@ export function getActiveEditor(ctx: MutationCtx, editorTokenIdentifier: string)
 				query.eq("tokenIdentifier", editorTokenIdentifier)
 			)
 			.unique()
-	).andThen((editor) => {
-		if (editor === null || !editor.isActive) {
-			return err({ reason: "EDITOR_NOT_ACTIVE" as const });
-		}
-
-		return ok(editor);
-	});
+	);
 }
 
-function isEditorAssignableSession(session: Doc<"bookings">): boolean {
-	return session.status === "confirmed" || session.status === "email_failed";
-}
-
-function requireEditorAssignableSession(
-	session: Doc<"bookings">
-): Result<Doc<"bookings">, { reason: "SESSION_NOT_ASSIGNABLE" }> {
-	if (!isEditorAssignableSession(session)) {
-		return err({ reason: "SESSION_NOT_ASSIGNABLE" as const });
+export function patchBookingEditorAssignment(
+	ctx: MutationCtx,
+	bookingId: Id<"bookings">,
+	patch: {
+		adminNotes?: string;
+		assignedEditorTokenIdentifier?: string;
+		searchBlobPatch: BookingSearchBlobPatch;
 	}
-
-	return ok(session);
-}
-
-function saveSessionEditorAssignment(
-	ctx: MutationCtx,
-	session: Doc<"bookings">,
-	editor: Doc<"editorProfiles"> | undefined,
-	adminNotes: string
-): ResultAsync<null, never> {
-	const previousEditorTokenIdentifier = session.assignedEditorTokenIdentifier;
-
-	const assignedEditorDisplayName =
-		editor !== undefined ? editorProfileDisplayName(editor) : undefined;
-
-	const editorChanged = previousEditorTokenIdentifier !== editor?.tokenIdentifier;
-
-	const previousEditorNeedsAccessRemoved =
-		previousEditorTokenIdentifier !== undefined && editorChanged;
-
-	const isFirstAssignment = previousEditorTokenIdentifier === undefined && editor !== undefined;
-
-	return searchBlobPatchForBookingAsync(ctx, {
-		...session,
-		assignedEditorTokenIdentifier: editor?.tokenIdentifier,
-		assignedEditorDisplayName
-	})
-		.andThen((searchBlobPatch) =>
-			okOrThrow(
-				ctx.db
-					.patch("bookings", session._id, {
-						adminNotes: adminNotes.trim() || undefined,
-						assignedEditorTokenIdentifier: editor?.tokenIdentifier,
-						...searchBlobPatch
-					})
-					.then(() => null)
-			)
-		)
-		.andThen(() => {
-			if (editor === undefined) {
-				return okAsync(null);
-			}
-
-			// Assignment and the editor's latest-assignment timestamp are saved in one transaction.
-			return okOrThrow(
-				ctx.db.patch("editorProfiles", editor._id, { lastAssignedAt: Date.now() }).then(() => null)
-			);
-		})
-		.andThen(() => {
-			if (!previousEditorNeedsAccessRemoved) {
-				return okAsync(null);
-			}
-
-			// Reassignment and unassignment must remove the previous editor before adding new access.
-			return okOrThrow(
-				ctx.scheduler
-					.runAfter(0, internal.drive.updateEditorDriveAccess, {
-						bookingId: session._id,
-						previousEditorTokenIdentifier
-					})
-					.then(() => null)
-			);
-		})
-		.andThen(() => {
-			if (!isFirstAssignment) {
-				return okAsync(null);
-			}
-
-			// A first assignment has no old Drive access to remove.
-			return okOrThrow(
-				ctx.scheduler
-					.runAfter(0, internal.drive.setupEditorAccess, { bookingId: session._id })
-					.then(() => null)
-			);
-		});
-}
-
-export function updateSessionEditorAssignment(
-	ctx: MutationCtx,
-	session: Doc<"bookings">,
-	editorTokenIdentifier: string | null,
-	adminNotes: string
 ) {
-	if (editorTokenIdentifier === null) {
-		return saveSessionEditorAssignment(ctx, session, undefined, adminNotes);
-	}
+	return okOrThrow(
+		ctx.db
+			.patch("bookings", bookingId, {
+				adminNotes: patch.adminNotes,
+				assignedEditorTokenIdentifier: patch.assignedEditorTokenIdentifier,
+				...patch.searchBlobPatch
+			})
+			.then(() => null)
+	);
+}
 
-	return requireEditorAssignableSession(session)
-		.asyncAndThen(() => getActiveEditor(ctx, editorTokenIdentifier))
-		.andThen((editor) => saveSessionEditorAssignment(ctx, session, editor, adminNotes));
+export function patchEditorProfileLastAssignedAt(
+	ctx: MutationCtx,
+	editorProfileId: Id<"editorProfiles">
+) {
+	return okOrThrow(
+		ctx.db.patch("editorProfiles", editorProfileId, { lastAssignedAt: Date.now() }).then(() => null)
+	);
+}
+
+export function scheduleEditorDriveAccessUpdate(
+	ctx: MutationCtx,
+	bookingId: Id<"bookings">,
+	previousEditorTokenIdentifier: string
+) {
+	return okOrThrow(
+		ctx.scheduler
+			.runAfter(0, internal.drive.updateEditorDriveAccess, {
+				bookingId,
+				previousEditorTokenIdentifier
+			})
+			.then(() => null)
+	);
+}
+
+export function scheduleEditorDriveAccessSetup(ctx: MutationCtx, bookingId: Id<"bookings">) {
+	return okOrThrow(
+		ctx.scheduler.runAfter(0, internal.drive.setupEditorAccess, { bookingId }).then(() => null)
+	);
 }

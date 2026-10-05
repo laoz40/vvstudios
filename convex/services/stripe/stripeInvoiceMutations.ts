@@ -3,12 +3,14 @@ import type { Id } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
 import type { StripeInvoiceLineItem } from "#convex/lib/stripe/stripeInvoice";
 import {
+	getStripeInvoiceByStripeInvoiceId,
 	listStripeInvoicesForBooking,
 	listStripeInvoicesForPackage,
-	markStripeInvoicePaid,
+	patchStripeInvoicePaymentStatus,
 	recordBookingStripeInvoice,
 	recordPackageAdjustmentStripeInvoice,
-	recordPackageStripeInvoice
+	recordPackageStripeInvoice,
+	type StripeInvoicePaymentClaim
 } from "#convex/lib/stripe/stripeInvoices";
 import { requirePermission } from "#convex/services/auth";
 import {
@@ -40,6 +42,23 @@ type RecordPackageAdjustmentStripeInvoiceArgs = {
 	lineItems: StripeInvoiceLineItem[];
 	totalAmount: number;
 };
+
+export function markStripeInvoicePaid(
+	ctx: MutationCtx,
+	args: { stripeInvoiceId: string; paidAt: number }
+) {
+	return getStripeInvoiceByStripeInvoiceId(ctx, args.stripeInvoiceId).andThen((stripeInvoice) => {
+		if (!stripeInvoice) {
+			return okAsync({ outcome: "not_found" as const } satisfies StripeInvoicePaymentClaim);
+		}
+
+		if (stripeInvoice.paymentStatus === "paid") {
+			return okAsync({ outcome: "already_completed" as const } satisfies StripeInvoicePaymentClaim);
+		}
+
+		return patchStripeInvoicePaymentStatus(ctx, stripeInvoice._id, args.paidAt);
+	});
+}
 
 export function recordBookingStripeInvoiceWithUnarchive(
 	ctx: MutationCtx,

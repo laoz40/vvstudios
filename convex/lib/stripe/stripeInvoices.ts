@@ -221,25 +221,16 @@ export function recordPackageAdjustmentStripeInvoice(
 	});
 }
 
-export function markStripeInvoicePaid(
+export function patchStripeInvoicePaymentStatus(
 	ctx: MutationCtx,
-	args: { stripeInvoiceId: string; paidAt: number }
-): ResultAsync<StripeInvoicePaymentClaim, never> {
-	return getStripeInvoiceByStripeInvoiceId(ctx, args.stripeInvoiceId).andThen((stripeInvoice) => {
-		if (!stripeInvoice) {
-			return okAsync({ outcome: "not_found" as const });
-		}
-
-		if (stripeInvoice.paymentStatus === "paid") {
-			return okAsync({ outcome: "already_completed" as const });
-		}
-
-		return okOrThrow(
-			ctx.db
-				.patch("stripeInvoices", stripeInvoice._id, { paymentStatus: "paid", paidAt: args.paidAt })
-				.then(() => ({ outcome: "completed" as const }))
-		);
-	});
+	stripeInvoiceRecordId: Id<"stripeInvoices">,
+	paidAt: number
+) {
+	return okOrThrow(
+		ctx.db
+			.patch("stripeInvoices", stripeInvoiceRecordId, { paymentStatus: "paid", paidAt })
+			.then(() => ({ outcome: "completed" as const }) satisfies StripeInvoicePaymentClaim)
+	);
 }
 
 export function listStripeInvoicesForBooking(ctx: QueryCtx, bookingId: Id<"bookings">) {
