@@ -224,7 +224,13 @@
 			"files": ["convex/services/**", "convex/*.ts"],
 			"rules": { "neverthrow/no-export-okorthrow-on-call": "error" }
 		},
-		{ "files": ["convex/lib/**"], "rules": { "neverthrow/no-export-okorthrow-on-call": "warn" } },
+		{
+			"files": ["convex/lib/**"],
+			"rules": {
+				"convex-layers/no-lib-loader-orchestration": "error",
+				"neverthrow/no-export-okorthrow-on-call": "warn"
+			}
+		},
 		{
 			"files": ["convex/services/**", "convex/*.ts"],
 			"rules": {

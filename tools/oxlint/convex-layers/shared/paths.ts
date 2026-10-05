@@ -8,6 +8,10 @@ export function isConvexServiceFile(filename: string): boolean {
 	return /\/convex\/services\//u.test(filename.replaceAll("\\", "/"));
 }
 
+export function isConvexLibFile(filename: string): boolean {
+	return /\/convex\/lib\//u.test(filename.replaceAll("\\", "/"));
+}
+
 const HANDLER_LIB_IMPORT_ALLOWLIST = new Set([
 	"convex/sessionsDriveInternal.ts",
 	"convex/http.ts",

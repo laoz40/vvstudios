@@ -46,12 +46,13 @@ Implementation rules live in [AGENTS.md](../AGENTS.md) under Convex → Neverthr
 
 ## Lint enforcement (`bun run lint`)
 
-The `convex-layers` oxlint plugin (`tools/oxlint/convex-layers/`) runs on `convex/*.ts` and `convex/services/**`:
+The `convex-layers` oxlint plugin (`tools/oxlint/convex-layers/`) runs on `convex/*.ts`, `convex/services/**`, and `convex/lib/**`:
 
 | Rule | What it blocks |
 | --- | --- |
 | `convex-layers/no-handler-lib-import` | Top-level handler modules importing `#convex/lib/**`. Handlers call services only. Allowlisted entrypoints: `http.ts`, `devSeed.ts`, `schema.ts`. |
 | `convex-layers/no-db-in-services` | `ctx.db` reads/writes inside `convex/services/**`. DB I/O stays in lib; services compose lib functions. |
 | `convex-layers/no-lib-reexport` | `export { … } from "#convex/lib/…"` or re-exporting a lib import unchanged from a service file. Use a real service function, or `export type Foo = LibFoo` for public types. |
+| `convex-layers/no-lib-loader-orchestration` | Exported `convex/lib/**` functions that call a loader (`get*` / `load*` / `list*` or `okOrThrow` on a db read / `runQuery`) and chain domain work with `.andThen`. Split into a loader-only lib helper plus a service that wires `loader.andThen(work)`. |
 
 Rule unit tests live next to each rule under `tools/oxlint/convex-layers/rules/*.test.ts` (same layout as `tools/oxlint/neverthrow/`).
