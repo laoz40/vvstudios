@@ -1,6 +1,6 @@
 "use node";
 
-import { err, ok, type ResultAsync } from "neverthrow";
+import { type ResultAsync } from "neverthrow";
 import { api } from "#convex/_generated/api";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { ActionCtx } from "#convex/_generated/server";
@@ -9,7 +9,8 @@ import { requirePermissionActions } from "#convex/services/requirePermissionActi
 import {
 	buildPackagePaidEmailContext,
 	type PaidPackageResult,
-	refreshPackageScheduleToken
+	refreshPackageScheduleToken,
+	validatePaidPackageForEmailResend
 } from "#convex/lib/packages/packagePayment";
 import { sendAndRecordPackagePaidEmail } from "#convex/services/packages/packagePaidEmailSend";
 import { getPackageForAction } from "#convex/services/packages/packageLookup";
@@ -29,20 +30,6 @@ export type ResendPackageEmailError =
 	| { reason: "PACKAGE_SCHEDULE_LINK_NOT_READY" }
 	| PackagePaidEmailError;
 
-function isPaidPackageStatus(status: string) {
-	return status === "paid" || status === "schedule_email_failed";
-}
-
-function paidPackageForEmailResend(packageRecord: Doc<"packages">) {
-	const paidAt = packageRecord.paidAt;
-
-	if (!isPaidPackageStatus(packageRecord.status) || paidAt === undefined) {
-		return err({ reason: "PACKAGE_NOT_PAID" as const });
-	}
-
-	return ok({ packageRecord, paidAt });
-}
-
 function loadPackageForEmailResend(ctx: ActionCtx, packageId: Id<"packages">) {
 	return getPackageForAction(ctx, packageId);
 }
@@ -53,7 +40,7 @@ export function loadPaidPackageForEmailResend(
 ): ResultAsync<{ paidAt: number; packageRecord: Doc<"packages"> }, ResendPackageEmailError> {
 	return requirePermissionActions(ctx, "send:receipt-emails")
 		.andThen(() => loadPackageForEmailResend(ctx, args.packageId))
-		.andThen(paidPackageForEmailResend);
+		.andThen(validatePaidPackageForEmailResend);
 }
 
 export function refreshPackageScheduleLinkForResend(

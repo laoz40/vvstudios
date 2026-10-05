@@ -1,4 +1,4 @@
-import { err, ok, ResultAsync } from "neverthrow";
+import { err, ok, type Result, ResultAsync } from "neverthrow";
 import { internal } from "#convex/_generated/api";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { ActionCtx, MutationCtx, QueryCtx } from "#convex/_generated/server";
@@ -78,6 +78,29 @@ export function buildRescheduleUrl(baseUrl: string, token: string) {
 
 export function getRescheduleUrlForToken(token: string) {
 	return buildRescheduleUrl(new URL(env.STRIPE_CHECKOUT_RETURN_URL).origin, token);
+}
+
+export function rescheduleUrlFromLinkRow(link: { token: string }) {
+	return { rescheduleUrl: getRescheduleUrlForToken(link.token) };
+}
+
+export function validateRescheduleLinkSession(
+	args: { now: number },
+	{ link, session }: { link: Doc<"bookingRescheduleLinks">; session: Doc<"bookings"> | null }
+): Result<ValidRescheduleLinkAndSession, RescheduleLinkLookupError> {
+	if (session === null) {
+		return err({ reason: "BOOKING_NOT_FOUND" });
+	}
+
+	if (isRescheduleLinkExpired(link, session, args.now)) {
+		return err({ reason: "RESCHEDULE_LINK_EXPIRED" });
+	}
+
+	if (!isSessionReschedulable(session)) {
+		return err({ reason: "BOOKING_NOT_RESCHEDULABLE" });
+	}
+
+	return ok({ session, link });
 }
 
 export function isSessionReschedulable(session: Doc<"bookings">) {

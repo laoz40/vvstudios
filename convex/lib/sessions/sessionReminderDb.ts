@@ -1,9 +1,27 @@
-import type { Id } from "#convex/_generated/dataModel";
+import { err, ok, type Result } from "neverthrow";
+import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
 import { REMINDER_BATCH_SIZE } from "#convex/lib/reminderScheduleTime";
 import { okOrThrow } from "#convex/lib/result";
 
 type ReminderBookingArgs = { bookingId: Id<"bookings"> };
+
+export function validateSendableUnclaimedReminder(
+	session: Doc<"bookings">
+): Result<
+	Doc<"bookings">,
+	{ reason: "BOOKING_NOT_SENDABLE" } | { reason: "BOOKING_ALREADY_CLAIMED_OR_SENT" }
+> {
+	if (session.status !== "confirmed" && session.status !== "email_failed") {
+		return err({ reason: "BOOKING_NOT_SENDABLE" });
+	}
+
+	if (session.reminderEmailSentAt || session.reminderEmailClaimedAt) {
+		return err({ reason: "BOOKING_ALREADY_CLAIMED_OR_SENT" });
+	}
+
+	return ok(session);
+}
 
 export function takeConfirmedBookingsInReminderWindow(
 	ctx: QueryCtx,

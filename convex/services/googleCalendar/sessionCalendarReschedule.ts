@@ -28,7 +28,7 @@ import { getRescheduleUrlForToken } from "#convex/lib/sessions/sessionReschedule
 import { sendBookingRescheduledEmailsForBooking } from "#convex/services/sessions/sessionRescheduleEmails";
 import { pickBookingAddonQuantities } from "#studio/features/booking-form/lib/booking-form-model";
 import type { AdminSessionUpdateError } from "#convex/lib/sessions/sessionAdminEdit";
-import type { RescheduleLinkLookupError } from "#convex/services/sessions/sessionReschedule";
+import type { RescheduleLinkLookupError } from "#convex/lib/sessions/sessionRescheduleLinks";
 
 export type RescheduleSessionError =
 	| RescheduleLinkLookupError

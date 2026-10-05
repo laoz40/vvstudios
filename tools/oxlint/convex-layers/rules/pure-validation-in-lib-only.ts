@@ -4,7 +4,7 @@ import type { ESTree } from "@oxlint/plugins";
 
 import { isConvexServiceFile } from "../shared/paths.ts";
 
-const CHAIN_METHOD_NAMES = new Set(["andThen", "asyncAndThen", "map"]);
+const CHAIN_METHOD_NAMES = new Set(["andThen", "asyncAndThen"]);
 
 type IdentifierNode = ESTree.Node & { type: "Identifier"; name: string };
 
@@ -133,6 +133,46 @@ function resolveCalleeToLocal(
 	return locals.get(node.callee.name) ?? null;
 }
 
+function resolvePassThroughLocalCall(
+	node: ESTree.ArrowFunctionExpression,
+	locals: Map<string, FunctionLikeNode>
+): FunctionLikeNode | null {
+	if (node.body.type === "BlockStatement") {
+		return null;
+	}
+
+	const body = node.body;
+
+	if (body.type !== "CallExpression" || body.callee.type !== "Identifier") {
+		return null;
+	}
+
+	return locals.get(body.callee.name) ?? null;
+}
+
+function resolveChainStepToLocal(
+	node: ESTree.Expression | ESTree.SpreadElement,
+	locals: Map<string, FunctionLikeNode>
+): FunctionLikeNode | null {
+	const direct = resolveCalleeToLocal(node, locals);
+
+	if (direct !== null) {
+		return direct;
+	}
+
+	if (node.type === "ArrowFunctionExpression") {
+		return resolvePassThroughLocalCall(node, locals);
+	}
+
+	return null;
+}
+
+function paramsIncludeCtx(params: ESTree.Node[]): boolean {
+	return params.some(
+		(parameter) => parameter.type === "Identifier" && parameter.name === "ctx"
+	);
+}
+
 function usesForbiddenIo(node: ESTree.Node, visited = new WeakSet<ESTree.Node>()): boolean {
 	if (visited.has(node)) {
 		return false;
@@ -191,7 +231,15 @@ function usesForbiddenIo(node: ESTree.Node, visited = new WeakSet<ESTree.Node>()
 	return false;
 }
 
-function hasDomainGateReturns(body: ESTree.BlockStatement | ESTree.Expression): boolean {
+function isOkErrCall(node: ESTree.Expression): boolean {
+	return (
+		node.type === "CallExpression" &&
+		node.callee.type === "Identifier" &&
+		(node.callee.name === "err" || node.callee.name === "ok")
+	);
+}
+
+function hasReturnOutsideOkErr(body: ESTree.BlockStatement | ESTree.Expression): boolean {
 	let found = false;
 	const visited = new WeakSet<ESTree.Node>();
 
@@ -202,19 +250,53 @@ function hasDomainGateReturns(body: ESTree.BlockStatement | ESTree.Expression): 
 
 		visited.add(node);
 
-		if (node.type === "ReturnStatement" && node.argument !== null) {
-			if (
-				node.argument.type === "CallExpression" &&
-				node.argument.callee.type === "Identifier" &&
-				(node.argument.callee.name === "err" || node.argument.callee.name === "ok")
-			) {
-				found = true;
+		if (node.type === "ReturnStatement" && node.argument !== null && !isOkErrCall(node.argument)) {
+			found = true;
 
-				return;
-			}
+			return;
 		}
 
-		if (node.type === "IfStatement" || node.type === "SwitchStatement") {
+		for (const key of Object.keys(node) as (keyof ESTree.Node)[]) {
+			const child = node[key];
+
+			if (child === null || child === undefined || typeof child !== "object") {
+				continue;
+			}
+
+			if (Array.isArray(child)) {
+				for (const item of child) {
+					if (item !== null && typeof item === "object" && "type" in item) {
+						visit(item as ESTree.Node);
+					}
+				}
+
+				continue;
+			}
+
+			if ("type" in child) {
+				visit(child as ESTree.Node);
+			}
+		}
+	}
+
+	visit(body);
+
+	return found;
+}
+
+/** Pure validation steps return domain outcomes via ok/err (sync), not I/O. */
+function hasOkErrReturns(body: ESTree.BlockStatement | ESTree.Expression): boolean {
+	let found = false;
+	const visited = new WeakSet<ESTree.Node>();
+
+	function visit(node: ESTree.Node) {
+		if (found || visited.has(node)) {
+			return;
+		}
+
+		visited.add(node);
+
+		if (node.type === "ReturnStatement" && node.argument !== null && isOkErrCall(node.argument)) {
 			found = true;
 
 			return;
@@ -286,14 +368,32 @@ function unaryValidationFunction(
 	return null;
 }
 
-function isPureValidationFunction(fn: FunctionLikeNode): boolean {
-	const target = unaryValidationFunction(fn) ?? (fn.params.length === 1 ? fn : null);
+function validationTarget(fn: FunctionLikeNode): ESTree.ArrowFunctionExpression | ESTree.Function | null {
+	const curriedInner = unaryValidationFunction(fn);
 
-	if (target === null) {
-		return false;
+	if (curriedInner !== null) {
+		return curriedInner;
 	}
 
-	if (target.params[0]?.type === "Identifier" && target.params[0].name === "ctx") {
+	if (fn.type === "ArrowFunctionExpression" || fn.type === "FunctionExpression") {
+		if (fn.params.length === 0 || paramsIncludeCtx(fn.params)) {
+			return null;
+		}
+
+		return fn;
+	}
+
+	if (fn.params.length === 0 || paramsIncludeCtx(fn.params)) {
+		return null;
+	}
+
+	return fn;
+}
+
+function isPureValidationFunction(fn: FunctionLikeNode): boolean {
+	const target = validationTarget(fn);
+
+	if (target === null) {
 		return false;
 	}
 
@@ -307,11 +407,31 @@ function isPureValidationFunction(fn: FunctionLikeNode): boolean {
 		return false;
 	}
 
-	if (validationBody.type === "BlockStatement") {
-		return hasDomainGateReturns(validationBody);
+	if (hasReturnOutsideOkErr(validationBody)) {
+		return false;
 	}
 
-	return hasDomainGateReturns(validationBody);
+	return hasOkErrReturns(validationBody);
+}
+
+function bindingNameForChainArg(node: ESTree.Expression): string | null {
+	if (node.type === "Identifier") {
+		return node.name;
+	}
+
+	if (node.type === "CallExpression" && node.callee.type === "Identifier") {
+		return node.callee.name;
+	}
+
+	if (node.type === "ArrowFunctionExpression" && node.body.type !== "BlockStatement") {
+		const body = node.body;
+
+		if (body.type === "CallExpression" && body.callee.type === "Identifier") {
+			return body.callee.name;
+		}
+	}
+
+	return null;
 }
 
 /** Pure validation steps in services belong in convex/lib. */
@@ -349,21 +469,17 @@ export const pureValidationInLibOnlyRule = defineRule({
 					return;
 				}
 
-				const localFn = resolveCalleeToLocal(firstArg, locals);
+				const localFn = resolveChainStepToLocal(firstArg, locals);
 
 				if (localFn === null) {
 					return;
 				}
 
-				let bindingName: string | null = null;
-
-				if (firstArg.type === "Identifier") {
-					bindingName = firstArg.name;
+				if (firstArg.type === "SpreadElement") {
+					return;
 				}
 
-				if (firstArg.type === "CallExpression" && firstArg.callee.type === "Identifier") {
-					bindingName = firstArg.callee.name;
-				}
+				const bindingName = bindingNameForChainArg(firstArg);
 
 				if (bindingName !== null && imported.has(bindingName)) {
 					return;

@@ -1,4 +1,4 @@
-import { ResultAsync } from "neverthrow";
+import { err, ok, ResultAsync, type Result } from "neverthrow";
 import { internal } from "#convex/_generated/api";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { ActionCtx } from "#convex/_generated/server";
@@ -28,6 +28,22 @@ export function buildPackageScheduleUrl(baseUrl: string, token: string) {
 	const url = new URL(`/package-schedule/${encodeURIComponent(token)}`, baseUrl);
 
 	return url.toString();
+}
+
+function isPaidPackageStatus(status: string) {
+	return status === "paid" || status === "schedule_email_failed";
+}
+
+export function validatePaidPackageForEmailResend(
+	packageRecord: Doc<"packages">
+): Result<{ packageRecord: Doc<"packages">; paidAt: number }, { reason: "PACKAGE_NOT_PAID" }> {
+	const paidAt = packageRecord.paidAt;
+
+	if (!isPaidPackageStatus(packageRecord.status) || paidAt === undefined) {
+		return err({ reason: "PACKAGE_NOT_PAID" });
+	}
+
+	return ok({ packageRecord, paidAt });
 }
 
 export function createPendingPackage(

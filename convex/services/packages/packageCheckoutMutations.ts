@@ -1,14 +1,13 @@
-import { errAsync, ok, okAsync } from "neverthrow";
+import { okAsync } from "neverthrow";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
-import { archiveDeadPackage } from "#convex/lib/packages/packageArchive";
 import {
+	abandonPackageAfterValidate,
 	buildPublicPackageStatusResponse,
+	expirePackageAfterValidate,
+	mapPackageNotFoundToAbandonOutcome,
 	validatePackageExpiry,
-	validatePendingPackageAbandonment,
-	type AbandonPendingPackageDecision,
-	type AbandonPendingPackageSuccess,
-	type ExpirePackageDecision
+	validatePendingPackageAbandonment
 } from "#convex/lib/packages/packageCheckout";
 import {
 	getPackageCheckoutClaimStatus,
@@ -30,23 +29,6 @@ type ClaimPackageCheckoutPaymentArgs = {
 	stripeSessionId: string;
 	stripePaymentIntentId?: string;
 };
-
-function loadPackageForNormalizedId(ctx: MutationCtx, normalizedPackageId: Id<"packages">) {
-	return getPackageFromDb(ctx, normalizedPackageId);
-}
-
-function validateClaimStripeSessionForArgs(
-	args: ClaimPackageCheckoutPaymentArgs,
-	packageFromDb: Doc<"packages">
-) {
-	return validatePackageClaimStripeSession(packageFromDb, args.stripeSessionId).map(() =>
-		keepValue(packageFromDb)
-	);
-}
-
-function keepValue<T>(value: T) {
-	return value;
-}
 
 function attachCheckoutClaimStatus(
 	packageFromDb: Doc<"packages">,
@@ -85,11 +67,7 @@ function finalizePackageCheckoutClaim(
 	return patchPackageCheckoutClaimed(ctx, packageFromDb._id, {
 		packageCheckoutClaimedAt: now,
 		stripePaymentIntentId: args.stripePaymentIntentId
-	}).map(() => toClaimedPackageCheckoutOutcome(packageId));
-}
-
-function toClaimedPackageCheckoutOutcome(packageId: Id<"packages">) {
-	return { outcome: "claimed" as const, packageId };
+	}).map(() => ({ outcome: "claimed" as const, packageId }));
 }
 
 export function writePackageStripeCheckoutIds(
@@ -105,48 +83,15 @@ export function claimPackageCheckoutPayment(
 ) {
 	return normalizePackageId(ctx, args.packageId)
 		.asyncAndThen((normalizedPackageId: Id<"packages">) =>
-			loadPackageForNormalizedId(ctx, normalizedPackageId)
+			getPackageFromDb(ctx, normalizedPackageId)
 		)
 		.andThen((packageFromDb: Doc<"packages">) =>
-			validateClaimStripeSessionForArgs(args, packageFromDb)
+			validatePackageClaimStripeSession(packageFromDb, args.stripeSessionId).map(
+				() => packageFromDb
+			)
 		)
 		.andThen(attachClaimStatusToPackage)
-		.andThen((_value) => finalizePackageCheckoutClaim(ctx, args, _value));
-}
-
-function validatePendingPackageAbandonmentForSession(
-	stripeSessionId: string,
-	packageFromDb: Doc<"packages">
-) {
-	return validatePendingPackageAbandonment(packageFromDb, stripeSessionId);
-}
-
-function toAbandonedPackageOutcome(_archived: null): AbandonPendingPackageSuccess {
-	return { outcome: "abandoned" };
-}
-
-function archiveAbandonedPendingPackage(ctx: MutationCtx, packageId: Id<"packages">) {
-	return archiveDeadPackage(ctx, packageId, { status: "abandoned" }).map(toAbandonedPackageOutcome);
-}
-
-function resolvePendingPackageAbandonment(
-	ctx: MutationCtx,
-	packageId: Id<"packages">,
-	abandonDecision: AbandonPendingPackageDecision
-) {
-	if (abandonDecision.kind === "complete") {
-		return ok(abandonDecision.value);
-	}
-
-	return archiveAbandonedPendingPackage(ctx, packageId);
-}
-
-function mapPackageNotFoundToAbandonOutcome(
-	error: { reason: "PACKAGE_NOT_FOUND" } | { reason: string }
-) {
-	return error.reason === "PACKAGE_NOT_FOUND"
-		? ok({ outcome: "not_found" as const })
-		: errAsync(error);
+		.andThen((value) => finalizePackageCheckoutClaim(ctx, args, value));
 }
 
 export function abandonPendingPackageCheckout(
@@ -155,36 +100,16 @@ export function abandonPendingPackageCheckout(
 ) {
 	return getPackageFromDb(ctx, args.packageId)
 		.andThen((packageFromDb: Doc<"packages">) =>
-			validatePendingPackageAbandonmentForSession(args.stripeSessionId, packageFromDb)
+			validatePendingPackageAbandonment(packageFromDb, args.stripeSessionId)
 		)
-		.andThen((abandonDecision: AbandonPendingPackageDecision) =>
-			resolvePendingPackageAbandonment(ctx, args.packageId, abandonDecision)
-		)
+		.andThen((decision) => abandonPackageAfterValidate(ctx, args.packageId, decision))
 		.orElse(mapPackageNotFoundToAbandonOutcome);
-}
-
-function toFreshlyExpiredPackage(_archived: null) {
-	return { alreadyExpired: false };
-}
-
-function expirePendingPackageRecord(ctx: MutationCtx, packageId: Id<"packages">) {
-	return archiveDeadPackage(ctx, packageId, { status: "expired" }).map(toFreshlyExpiredPackage);
-}
-
-function resolvePendingPackageExpiry(ctx: MutationCtx, expireDecision: ExpirePackageDecision) {
-	if (expireDecision.kind === "complete") {
-		return ok({ alreadyExpired: expireDecision.alreadyExpired });
-	}
-
-	return expirePendingPackageRecord(ctx, expireDecision.packageId);
 }
 
 export function expirePendingPackageByStripeSessionId(ctx: MutationCtx, stripeSessionId: string) {
 	return lookupPackageByStripeSessionId(ctx, stripeSessionId)
 		.andThen(validatePackageExpiry)
-		.andThen((expireDecision: ExpirePackageDecision) =>
-			resolvePendingPackageExpiry(ctx, expireDecision)
-		);
+		.andThen((decision) => expirePackageAfterValidate(ctx, decision));
 }
 
 export function loadPackageRowByStripeSessionId(ctx: QueryCtx, stripeSessionId: string) {

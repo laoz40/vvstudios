@@ -1,4 +1,3 @@
-import { err, ok } from "neverthrow";
 import type { Id } from "#convex/_generated/dataModel";
 import type { Doc } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
@@ -8,22 +7,11 @@ import {
 	patchSessionReminderEmailClaimed,
 	patchSessionReminderEmailFailed,
 	patchSessionReminderEmailSent,
-	takeConfirmedBookingsInReminderWindow
+	takeConfirmedBookingsInReminderWindow,
+	validateSendableUnclaimedReminder
 } from "#convex/lib/sessions/sessionReminderDb";
 
 type ReminderBookingArgs = { bookingId: Id<"bookings"> };
-
-function requireSendableUnclaimedReminder(session: Doc<"bookings">) {
-	if (session.status !== "confirmed" && session.status !== "email_failed") {
-		return err({ reason: "BOOKING_NOT_SENDABLE" as const });
-	}
-
-	if (session.reminderEmailSentAt || session.reminderEmailClaimedAt) {
-		return err({ reason: "BOOKING_ALREADY_CLAIMED_OR_SENT" as const });
-	}
-
-	return ok(session);
-}
 
 function pairClaimedSessionStep(session: Doc<"bookings">) {
 	return { session };
@@ -65,7 +53,7 @@ export function claimSessionReminderEmail(
 	args: ReminderBookingArgs & { now: number }
 ) {
 	return getSessionFromDb(ctx, args.bookingId)
-		.andThen(requireSendableUnclaimedReminder)
+		.andThen(validateSendableUnclaimedReminder)
 		.andThen((session: Doc<"bookings">) => claimReminderAfterSessionStep(ctx, args, session));
 }
 

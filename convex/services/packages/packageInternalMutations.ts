@@ -1,4 +1,4 @@
-import { err, ok, ResultAsync, type ResultAsync as ResultAsyncType } from "neverthrow";
+import { ok, ResultAsync, type ResultAsync as ResultAsyncType } from "neverthrow";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
 import {
@@ -7,6 +7,7 @@ import {
 } from "#convex/lib/adminSearch/adminSearchBlob";
 import { checkBookingSubmitRateLimit } from "#convex/lib/rateLimits";
 import { patchPackageBookingsReceiptNumber } from "#convex/lib/packages/packageBookingsReceiptSync";
+import { validateActivePackageForInstagramUpdate } from "#convex/lib/packages/packageCheckout";
 import type { PackageLookupError } from "#convex/lib/packages/packageLookup";
 import { getPackageFromDb } from "#convex/services/packages/packageLookup";
 import type { PaidPackageResult } from "#convex/lib/packages/packagePayment";
@@ -229,16 +230,8 @@ export function writePackageReceiptEmailAttempt(
 	);
 }
 
-function requireActivePackageForInstagramUpdate(packageFromDb: Doc<"packages">) {
-	if (packageFromDb.status !== "pending_payment" && packageFromDb.status !== "paid") {
-		return err({ reason: "PACKAGE_NOT_ACTIVE" as const });
-	}
-
-	return ok(packageFromDb);
-}
-
 export function loadPackageEligibleForInstagramUpdate(ctx: MutationCtx, packageId: Id<"packages">) {
-	return getPackageFromDb(ctx, packageId).andThen(requireActivePackageForInstagramUpdate);
+	return getPackageFromDb(ctx, packageId).andThen(validateActivePackageForInstagramUpdate);
 }
 
 function syncInstagramContactSearch(

@@ -12,7 +12,7 @@ import type {
 import type { SessionReservation } from "#convex/lib/sessions/sessionReservations";
 import type { AdminSessionUpdateError } from "#convex/lib/sessions/sessionAdminEdit";
 import type { LockRescheduleLinkError } from "#convex/lib/sessions/sessionRescheduleLinks";
-import type { RescheduleLinkLookupError } from "#convex/services/sessions/sessionReschedule";
+import type { RescheduleLinkLookupError } from "#convex/lib/sessions/sessionRescheduleLinks";
 
 type UnlockRescheduleLinkError =
 	| { reason: "RESCHEDULE_LINK_NOT_FOUND" }

@@ -12,7 +12,7 @@ import {
 	writeAdminRescheduleLink
 } from "#convex/services/sessions/sessionReschedule";
 
-export type { RescheduleLinkLookupError } from "#convex/services/sessions/sessionReschedule";
+export type { RescheduleLinkLookupError } from "#convex/lib/sessions/sessionRescheduleLinks";
 
 export const createPublicFailedSessionRescheduleLink = mutation({
 	args: { stripeSessionId: v.string() },
