@@ -7,10 +7,16 @@ import { action, internalAction } from "#convex/_generated/server";
 import type { SessionCalendarEventRecord } from "#convex/lib/sessions/sessionCalendarEventPayload";
 import {
 	deletePackageSessionCalendarEventService,
-	getPackageBusyWindowsService,
 	savePackageSessionCalendarEventService,
 	type PackageCalendarWriteError
 } from "#convex/services/googleCalendar/packageSchedulingCalendar";
+import {
+	groupPackageBusyWindowsByMonth,
+	loadPackageBookableRangeBusyWindows,
+	loadValidPackageForCalendarAvailability,
+	type PackageAvailabilityError
+} from "#convex/services/googleCalendar/packageCalendarAvailabilityWorkflow";
+import type { BusyDayWindow } from "#convex/lib/sessions/sessionCalendarTime";
 import { bookingAddonsValidator } from "#convex/lib/booking/bookingAddonQuantities";
 
 const packageCalendarBookingValidator = v.object({
@@ -36,7 +42,23 @@ const packageCalendarDetailsValidator = v.object({
 
 export const getPackageBusyWindows = action({
 	args: { token: v.string(), rateLimitKey: v.string() },
-	handler: (ctx, args) => getPackageBusyWindowsService(ctx, args).match(tupleOk, tupleErr)
+	handler: async (
+		ctx,
+		args
+	): Promise<
+		Result<
+			{
+				busyWindowsByMonth: Record<string, BusyDayWindow[]>;
+				packageExpiresAt: number;
+				timeZone: string;
+			},
+			PackageAvailabilityError
+		>
+	> =>
+		await loadValidPackageForCalendarAvailability(ctx, args)
+			.andThen(loadPackageBookableRangeBusyWindows)
+			.andThen(groupPackageBusyWindowsByMonth)
+			.match(tupleOk, tupleErr)
 });
 
 export const createPackageSessionCalendarEvent = internalAction({

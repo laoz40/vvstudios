@@ -1,6 +1,6 @@
 "use node";
 
-import { errAsync, okAsync, ResultAsync } from "neverthrow";
+import { errAsync, okAsync, type ResultAsync } from "neverthrow";
 import { internal } from "#convex/_generated/api";
 import type { Id } from "#convex/_generated/dataModel";
 import type { ActionCtx } from "#convex/_generated/server";
@@ -19,7 +19,10 @@ import {
 	requireValidBookingEmailDomain
 } from "#convex/lib/stripe/stripeCheckoutSession";
 import type { SessionAvailabilityValidationError } from "#convex/lib/sessions/sessionCalendarTime";
-import { publicBookingSchema } from "#studio/features/booking-form/lib/booking-form-model";
+import {
+	publicBookingSchema,
+	type BookingFormValues
+} from "#studio/features/booking-form/lib/booking-form-model";
 
 export type CreateEmbeddedCheckoutSessionArgs = {
 	name: string;
@@ -51,14 +54,9 @@ type CloseEmbeddedCheckoutSessionSuccess = {
 	outcome: "already_complete" | "abandoned" | "not_found" | "not_pending";
 };
 
-export function createEmbeddedCheckoutSessionService(
-	ctx: ActionCtx,
-	args: CreateEmbeddedCheckoutSessionArgs,
-	stripe: StripeClient = getStripeClient()
-): ResultAsync<
-	{ bookingId: Id<"bookings">; clientSecret: string; stripeSessionId: string },
-	CreateEmbeddedCheckoutSessionError
-> {
+export function parsePublicBookingForCheckout(
+	args: CreateEmbeddedCheckoutSessionArgs
+): ResultAsync<BookingFormValues, { reason: "BOOKING_INVALID_INPUT" }> {
 	const parsedBooking = publicBookingSchema.safeParse({
 		...args,
 		bookingMode: "single",
@@ -69,27 +67,62 @@ export function createEmbeddedCheckoutSessionService(
 		return errAsync({ reason: "BOOKING_INVALID_INPUT" as const });
 	}
 
-	const booking = parsedBooking.data;
-
-	return getBookingSubmitRateLimitKey(booking.email)
-		.andThen((submitRateLimitKey) =>
-			fromConvexTuple(
-				ctx.runMutation(internal.sessionCheckout.checkSessionSubmitRateLimit, {
-					submitRateLimitKey
-				})
-			)
-		)
-		.andThen(() => requireValidBookingEmailDomain(booking.email))
-		.andThen(() => createPendingSessionForCheckout(ctx, booking))
-		.andThen(({ bookingId }) =>
-			buildSessionCheckoutLineItems(booking).map((lineItems) => ({ bookingId, lineItems }))
-		)
-		.andThen((checkoutDraft) => createStripeCheckoutCustomer(stripe, booking, checkoutDraft))
-		.andThen((checkoutDraft) => createEmbeddedStripeCheckoutSession(stripe, checkoutDraft))
-		.andThen((checkoutDraft) => linkStripeCheckoutToPendingBooking(ctx, checkoutDraft));
+	return okAsync(parsedBooking.data);
 }
 
-export function closeEmbeddedCheckoutSessionService(
+export function runSessionCheckoutSubmitRateLimit(
+	ctx: ActionCtx,
+	booking: BookingFormValues
+): ResultAsync<
+	BookingFormValues,
+	{ reason: "BOOKING_RATE_LIMITED"; retryAfter?: number } | CreateEmbeddedCheckoutSessionError
+> {
+	return getBookingSubmitRateLimitKey(booking.email).andThen((submitRateLimitKey) =>
+		fromConvexTuple(
+			ctx.runMutation(internal.sessionCheckout.checkSessionSubmitRateLimit, { submitRateLimitKey })
+		).map(() => booking)
+	);
+}
+
+export function createPendingBookingForStripeCheckout(
+	ctx: ActionCtx,
+	booking: BookingFormValues
+): ResultAsync<
+	{
+		booking: BookingFormValues;
+		bookingId: Id<"bookings">;
+		lineItems: Parameters<typeof createStripeCheckoutCustomer>[2]["lineItems"];
+	},
+	CreateEmbeddedCheckoutSessionError
+> {
+	return requireValidBookingEmailDomain(booking.email)
+		.andThen(() => createPendingSessionForCheckout(ctx, booking))
+		.andThen(({ bookingId }) =>
+			buildSessionCheckoutLineItems(booking).map((lineItems) => ({ booking, bookingId, lineItems }))
+		);
+}
+
+export function openEmbeddedBookingStripeCheckout(
+	ctx: ActionCtx,
+	stripe: StripeClient,
+	checkoutDraft: {
+		booking: BookingFormValues;
+		bookingId: Id<"bookings">;
+		lineItems: Parameters<typeof createStripeCheckoutCustomer>[2]["lineItems"];
+	}
+): ResultAsync<
+	{ bookingId: Id<"bookings">; clientSecret: string; stripeSessionId: string },
+	CreateEmbeddedCheckoutSessionError
+> {
+	return createStripeCheckoutCustomer(stripe, checkoutDraft.booking, {
+		bookingId: checkoutDraft.bookingId,
+		lineItems: checkoutDraft.lineItems
+	})
+		.andThen((draft) => createEmbeddedStripeCheckoutSession(stripe, draft))
+		.andThen((draft) => linkStripeCheckoutToPendingBooking(ctx, draft));
+}
+
+export function closeAbandonedBookingStripeCheckout(
 	ctx: ActionCtx,
 	args: { bookingId: Id<"bookings">; stripeSessionId: string },
 	stripe: StripeClient = getStripeClient()

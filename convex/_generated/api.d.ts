@@ -122,7 +122,6 @@ import type * as services_auth from "../services/auth.js";
 import type * as services_booking_bookingConfirmation from "../services/booking/bookingConfirmation.js";
 import type * as services_booking_bookingConfirmationActions from "../services/booking/bookingConfirmationActions.js";
 import type * as services_booking_bookingSettings from "../services/booking/bookingSettings.js";
-import type * as services_booking_receiptEmails from "../services/booking/receiptEmails.js";
 import type * as services_booking_sessionCheckout from "../services/booking/sessionCheckout.js";
 import type * as services_drive_cleanupCancelledSessionDrive from "../services/drive/cleanupCancelledSessionDrive.js";
 import type * as services_drive_drive from "../services/drive/drive.js";
@@ -140,7 +139,6 @@ import type * as services_packages_packageCheckout from "../services/packages/pa
 import type * as services_packages_packageCheckoutActions from "../services/packages/packageCheckoutActions.js";
 import type * as services_packages_packageCheckoutCompletion from "../services/packages/packageCheckoutCompletion.js";
 import type * as services_packages_packageCheckoutCompletionActions from "../services/packages/packageCheckoutCompletionActions.js";
-import type * as services_packages_packagePayment from "../services/packages/packagePayment.js";
 import type * as services_packages_packageReminders from "../services/packages/packageReminders.js";
 import type * as services_packages_packageScheduling from "../services/packages/packageScheduling.js";
 import type * as services_packages_packages from "../services/packages/packages.js";
@@ -149,7 +147,6 @@ import type * as services_sessions_sessionReschedule from "../services/sessions/
 import type * as services_sessions_sessions from "../services/sessions/sessions.js";
 import type * as services_stripe_customInvoices from "../services/stripe/customInvoices.js";
 import type * as services_stripe_invoices from "../services/stripe/invoices.js";
-import type * as services_stripe_stripe from "../services/stripe/stripe.js";
 import type * as services_stripe_stripeInvoiceBillingUrls from "../services/stripe/stripeInvoiceBillingUrls.js";
 import type * as services_stripe_stripeInvoicePayment from "../services/stripe/stripeInvoicePayment.js";
 import type * as services_stripe_stripeInvoices from "../services/stripe/stripeInvoices.js";
@@ -285,7 +282,6 @@ declare const fullApi: ApiFromModules<{
   "services/booking/bookingConfirmation": typeof services_booking_bookingConfirmation;
   "services/booking/bookingConfirmationActions": typeof services_booking_bookingConfirmationActions;
   "services/booking/bookingSettings": typeof services_booking_bookingSettings;
-  "services/booking/receiptEmails": typeof services_booking_receiptEmails;
   "services/booking/sessionCheckout": typeof services_booking_sessionCheckout;
   "services/drive/cleanupCancelledSessionDrive": typeof services_drive_cleanupCancelledSessionDrive;
   "services/drive/drive": typeof services_drive_drive;
@@ -303,7 +299,6 @@ declare const fullApi: ApiFromModules<{
   "services/packages/packageCheckoutActions": typeof services_packages_packageCheckoutActions;
   "services/packages/packageCheckoutCompletion": typeof services_packages_packageCheckoutCompletion;
   "services/packages/packageCheckoutCompletionActions": typeof services_packages_packageCheckoutCompletionActions;
-  "services/packages/packagePayment": typeof services_packages_packagePayment;
   "services/packages/packageReminders": typeof services_packages_packageReminders;
   "services/packages/packageScheduling": typeof services_packages_packageScheduling;
   "services/packages/packages": typeof services_packages_packages;
@@ -312,7 +307,6 @@ declare const fullApi: ApiFromModules<{
   "services/sessions/sessions": typeof services_sessions_sessions;
   "services/stripe/customInvoices": typeof services_stripe_customInvoices;
   "services/stripe/invoices": typeof services_stripe_invoices;
-  "services/stripe/stripe": typeof services_stripe_stripe;
   "services/stripe/stripeInvoiceBillingUrls": typeof services_stripe_stripeInvoiceBillingUrls;
   "services/stripe/stripeInvoicePayment": typeof services_stripe_stripeInvoicePayment;
   "services/stripe/stripeInvoices": typeof services_stripe_stripeInvoices;

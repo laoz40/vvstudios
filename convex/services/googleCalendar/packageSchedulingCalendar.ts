@@ -1,28 +1,14 @@
 "use node";
 
 import { err, ok, ResultAsync } from "neverthrow";
-import { internal } from "#convex/_generated/api";
-import type { ActionCtx } from "#convex/_generated/server";
-import {
-	getBusyWindows,
-	getBusyWindowsInRange
-} from "#convex/lib/googleCalendar/googleCalendarAvailability";
+import { getBusyWindows } from "#convex/lib/googleCalendar/googleCalendarAvailability";
 import { loadGoogleCalendarClient } from "#convex/lib/googleCalendar/googleCalendarClient";
 import {
 	calendarErrorSchema,
 	mapCalendarErrorCode
 } from "#convex/lib/googleCalendar/googleCalendarErrors";
 import { tryPromise } from "#convex/lib/result";
-import type { ValidPackageByTokenError } from "#convex/lib/packages/packageScheduling";
-import { fromConvexTuple } from "#convex/lib/result";
-import { checkGoogleCalendarAvailabilityRateLimit } from "#convex/lib/rateLimits";
-import {
-	getDateAvailabilityRange,
-	groupBusyDaysByMonth,
-	groupBusyWindowsByDay,
-	isTimeSlotAvailable,
-	type BusyDayWindow
-} from "#convex/lib/sessions/sessionCalendarTime";
+import { isTimeSlotAvailable } from "#convex/lib/sessions/sessionCalendarTime";
 import { getGoogleCalendarClient } from "#convex/lib/googleCalendar/googleCalendarClient";
 import type {
 	SessionCalendarEventDetails,
@@ -34,7 +20,6 @@ import {
 	updateSessionCalendarEventTiming
 } from "#convex/services/googleCalendar/sessionCalendarEventWorkflow";
 import { pickBookingAddonQuantities } from "#studio/features/booking-form/lib/booking-form-model";
-import { formatDateValue, startOfToday } from "#studio/lib/bookingdatetime";
 
 export type PackageCalendarDetails = SessionCalendarEventDetails & {
 	date: string;
@@ -148,104 +133,7 @@ function createPackageCalendarEvent(
 		});
 }
 
-type PackageAvailabilityError =
-	| ValidPackageByTokenError
-	| {
-			reason:
-				| "BOOKING_INVALID_DATE"
-				| "BOOKING_INVALID_TIME"
-				| "GOOGLE_CALENDAR_AVAILABILITY_FAILED"
-				| "GOOGLE_CALENDAR_AUTH_FAILED"
-				| "GOOGLE_CALENDAR_RATE_LIMITED"
-				| "INVALID_ZONED_TIME";
-	  };
-
-function loadPackageAvailabilityContext(
-	ctx: ActionCtx,
-	args: { rateLimitKey: string; token: string }
-) {
-	return fromConvexTuple(
-		ctx.runQuery(internal.packageScheduling.getValidPackageByToken, {
-			now: Date.now(),
-			token: args.token
-		})
-	)
-		.andThen((packageFromDb) =>
-			checkGoogleCalendarAvailabilityRateLimit(ctx, args.rateLimitKey).map(() => packageFromDb)
-		)
-		.andThen((packageFromDb) =>
-			loadGoogleCalendarClient("GOOGLE_CALENDAR_AVAILABILITY_FAILED").map((client) => ({
-				client,
-				packageFromDb
-			}))
-		)
-		.andThen(({ client, packageFromDb }) => {
-			const startDate = formatDateValue(startOfToday());
-			const endDate = formatDateValue(new Date(packageFromDb.expiresAt));
-
-			return getDateAvailabilityRange(startDate, endDate, client.timeZone).map(
-				(availabilityRange) => ({ availabilityRange, client, packageFromDb })
-			);
-		});
-}
-
-function fetchPackageBusyWindows(context: {
-	availabilityRange: { timeMax: string; timeMin: string };
-	client: {
-		calendar: Parameters<typeof getBusyWindowsInRange>[0]["calendar"];
-		calendarIds: string[];
-		timeZone: string;
-	};
-	packageFromDb: { expiresAt: number };
-}) {
-	return tryPromise({
-		try: () =>
-			getBusyWindowsInRange({
-				calendar: context.client.calendar,
-				calendarIds: context.client.calendarIds,
-				timeMax: context.availabilityRange.timeMax,
-				timeMin: context.availabilityRange.timeMin,
-				timeZone: context.client.timeZone
-			}),
-		catch: (error) => {
-			const parsedError = calendarErrorSchema.safeParse(error);
-
-			return {
-				reason: parsedError.success
-					? mapCalendarErrorCode(parsedError.data, "GOOGLE_CALENDAR_AVAILABILITY_FAILED")
-					: "GOOGLE_CALENDAR_AVAILABILITY_FAILED"
-			};
-		}
-	}).map((busyWindows) => ({
-		busyWindows,
-		client: context.client,
-		packageFromDb: context.packageFromDb
-	}));
-}
-
-export function getPackageBusyWindowsService(
-	ctx: ActionCtx,
-	args: { rateLimitKey: string; token: string }
-): ResultAsync<
-	{
-		busyWindowsByMonth: Record<string, BusyDayWindow[]>;
-		packageExpiresAt: number;
-		timeZone: string;
-	},
-	PackageAvailabilityError
-> {
-	return loadPackageAvailabilityContext(ctx, args)
-		.andThen((context) => fetchPackageBusyWindows(context))
-		.andThen(({ busyWindows, client, packageFromDb }) =>
-			groupBusyWindowsByDay(busyWindows, client.timeZone).map((busyDays) => ({
-				busyWindowsByMonth: groupBusyDaysByMonth(busyDays),
-				packageExpiresAt: packageFromDb.expiresAt,
-				timeZone: client.timeZone
-			}))
-		);
-}
-
-function ensurePackageSlotAvailable(args: {
+function checkPackageSlotAvailable(args: {
 	session: SessionCalendarEventRecord | null;
 	details: PackageCalendarDetails;
 }) {
@@ -291,7 +179,7 @@ export function savePackageSessionCalendarEventService(args: {
 	session: SessionCalendarEventRecord | null;
 	details: PackageCalendarDetails;
 }): ResultAsync<{ googleCalendarId?: string; googleEventId?: string }, PackageCalendarWriteError> {
-	return ensurePackageSlotAvailable(args).andThen((client) =>
+	return checkPackageSlotAvailable(args).andThen((client) =>
 		args.session
 			? updatePackageCalendarEvent(client, args.session, args.details)
 			: createPackageCalendarEvent(client, args.details)

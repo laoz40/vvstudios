@@ -1,0 +1,211 @@
+import { err, ok } from "neverthrow";
+import type { Doc, Id } from "#convex/_generated/dataModel";
+import type { MutationCtx } from "#convex/_generated/server";
+import { searchBlobPatchForBookingAsync } from "#convex/lib/adminSearch/adminSearchBlob";
+import { okOrThrow } from "#convex/lib/result";
+import {
+	bookingReceiptPaidAt,
+	resolveBookingReceiptNumber
+} from "#studio/features/booking-invoice/lib/receipt-number";
+import { getSessionFromDb } from "#convex/lib/sessions/sessionLookup";
+import {
+	getBookingClaimStatus,
+	type BookingClaimStatus,
+	validateClaimStripeSession
+} from "#convex/lib/booking/bookingConfirmationClaim";
+import {
+	clearedSessionReservationPatch,
+	sessionHasReservation,
+	type SessionReservation
+} from "#convex/lib/sessions/sessionReservations";
+
+export type ClaimBookingConfirmationArgs = {
+	bookingId: string;
+	stripeSessionId: string;
+	stripePaymentIntentId?: string;
+	stripeEventId: string;
+};
+
+type BookingClaimOutcome =
+	| { outcome: "already_confirmed" }
+	| { outcome: "already_claimed" }
+	| { outcome: "claimed"; session: ReturnType<typeof buildClaimedBookingSession> };
+
+function normalizeBookingId(ctx: MutationCtx, bookingId: string) {
+	const normalizedBookingId = ctx.db.normalizeId("bookings", bookingId);
+
+	return normalizedBookingId
+		? ok(normalizedBookingId)
+		: err({ reason: "BOOKING_NOT_FOUND" as const });
+}
+
+function buildClaimedBookingSession(session: Doc<"bookings">) {
+	return {
+		_id: session._id,
+		name: session.name,
+		phone: session.phone,
+		accountName: session.accountName,
+		abn: session.abn,
+		email: session.email,
+		date: session.date,
+		time: session.time,
+		duration: session.duration,
+		service: session.service,
+		addons: session.addons,
+		notes: session.notes
+	};
+}
+
+export function loadBookingStripeConfirmationClaimStatus(
+	ctx: MutationCtx,
+	args: ClaimBookingConfirmationArgs
+) {
+	return normalizeBookingId(ctx, args.bookingId)
+		.asyncAndThen((bookingId) => getSessionFromDb(ctx, bookingId))
+		.andThen((session) => validateClaimStripeSession(session, args.stripeSessionId))
+		.andThen(getBookingClaimStatus);
+}
+
+export function writeBookingStripeConfirmationClaim(
+	ctx: MutationCtx,
+	args: ClaimBookingConfirmationArgs,
+	claimStatus: BookingClaimStatus<Doc<"bookings">>
+) {
+	if (claimStatus.kind !== "pending") {
+		return ok<BookingClaimOutcome>({ outcome: claimStatus.kind });
+	}
+
+	const { session } = claimStatus;
+	const now = Date.now();
+
+	return okOrThrow<BookingClaimOutcome>(
+		ctx.db
+			.patch("bookings", session._id, {
+				paymentCompletedAt: now,
+				bookingConfirmationClaimedAt: now,
+				bookingConfirmationEventId: args.stripeEventId,
+				stripeSessionId: args.stripeSessionId,
+				stripePaymentIntentId: args.stripePaymentIntentId
+			})
+			.then(() => ({ outcome: "claimed", session: buildClaimedBookingSession(session) }))
+	);
+}
+
+export function writeStandaloneBookingReceiptNumberIfMissing(
+	ctx: MutationCtx,
+	args: { bookingId: Id<"bookings"> }
+) {
+	return getSessionFromDb(ctx, args.bookingId).andThen((session) => {
+		if (session.packageId !== undefined || session.receiptNumber) {
+			return ok(null);
+		}
+
+		if (session.status !== "confirmed" && session.status !== "email_failed") {
+			return ok(null);
+		}
+
+		const receiptNumber = resolveBookingReceiptNumber(
+			session,
+			bookingReceiptPaidAt(session, session.bookingConfirmedAt ?? Date.now())
+		);
+
+		return writeBookingReceiptNumberOnSession(ctx, { bookingId: args.bookingId, receiptNumber });
+	});
+}
+
+export function writeBookingReceiptNumberOnSession(
+	ctx: MutationCtx,
+	args: { bookingId: Id<"bookings">; receiptNumber: string }
+) {
+	return getSessionFromDb(ctx, args.bookingId).andThen((session) => {
+		if (session.receiptNumber === args.receiptNumber) {
+			return ok(null);
+		}
+
+		return searchBlobPatchForBookingAsync(ctx, session, {
+			receiptNumber: args.receiptNumber
+		}).andThen((searchBlobPatch) =>
+			okOrThrow(
+				ctx.db
+					.patch("bookings", args.bookingId, {
+						receiptNumber: args.receiptNumber,
+						...searchBlobPatch
+					})
+					.then(() => null)
+			)
+		);
+	});
+}
+
+export function markBookingInvoiceEmailFailedOnSession(
+	ctx: MutationCtx,
+	args: { bookingId: Id<"bookings"> }
+) {
+	return getSessionFromDb(ctx, args.bookingId).andThen((session) => {
+		if (session.status !== "confirmed" && session.status !== "email_failed") {
+			return ok(null);
+		}
+
+		return writeStandaloneBookingReceiptNumberIfMissing(ctx, { bookingId: session._id }).andThen(
+			() =>
+				okOrThrow(
+					ctx.db
+						.patch("bookings", args.bookingId, {
+							status: "email_failed",
+							bookingFailureCode: "BOOKING_INVOICE_EMAIL_FAILED"
+						})
+						.then(() => null)
+				)
+		);
+	});
+}
+
+export function clearBookingInvoiceEmailFailureOnSession(
+	ctx: MutationCtx,
+	args: { bookingId: Id<"bookings"> }
+) {
+	return getSessionFromDb(ctx, args.bookingId).andThen((session) => {
+		if (session.status !== "email_failed") {
+			return ok(null);
+		}
+
+		return okOrThrow(
+			ctx.db
+				.patch("bookings", args.bookingId, { status: "confirmed", bookingFailureCode: undefined })
+				.then(() => null)
+		);
+	});
+}
+
+export function markPendingBookingConfirmationFailed(
+	ctx: MutationCtx,
+	args: { bookingId: Id<"bookings">; failureCode: string; reservation?: SessionReservation }
+) {
+	return getSessionFromDb(ctx, args.bookingId).andThen((session) => {
+		if (session.status !== "pending_payment") {
+			return ok(null);
+		}
+
+		if (args.reservation && !sessionHasReservation(session, args.reservation)) {
+			return err({ reason: "BOOKING_RESERVATION_MISMATCH" as const });
+		}
+
+		return okOrThrow(
+			ctx.db
+				.patch(
+					"bookings",
+					args.bookingId,
+					(() => {
+						const patch = { status: "failed" as const, bookingFailureCode: args.failureCode };
+
+						if (args.reservation) {
+							return { ...patch, ...clearedSessionReservationPatch };
+						}
+
+						return patch;
+					})()
+				)
+				.then(() => null)
+		);
+	});
+}

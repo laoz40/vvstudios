@@ -17,14 +17,17 @@ import {
 } from "#convex/lib/packages/packagePaidLifecycle";
 import { createPackageSchedulingDetails } from "#convex/lib/packages/packageScheduling";
 import {
-	archivePackageService,
+	archivePackageFromAdmin,
+	loadAdminPackageUpdateValidation,
+	writeAdminPackageFields
+} from "#convex/services/packages/packageAdminMutationWorkflow";
+import {
 	createPendingPackageService,
 	listPackagesService,
 	markPackageReceiptEmailAttemptService,
 	markPackageScheduleEmailAttemptService,
 	refreshPackageScheduleTokenService,
-	savePackageInstagramHandleService,
-	updatePackageService
+	savePackageInstagramHandleService
 } from "#convex/services/packages/packages";
 
 const bookingInvoiceLineItemValidator = v.object({
@@ -94,12 +97,15 @@ export const updatePackageFromAdmin = mutation({
 		packageSize: v.union(v.literal(4), v.literal(8), v.literal(12)),
 		expiresAt: v.optional(v.number())
 	},
-	handler: (ctx, args) => updatePackageService(ctx, args).match(tupleOk, tupleErr)
+	handler: (ctx, args) =>
+		loadAdminPackageUpdateValidation(ctx, args)
+			.andThen((validated) => writeAdminPackageFields(ctx, args, validated))
+			.match(tupleOk, tupleErr)
 });
 
 export const archivePackage = mutation({
 	args: { packageId: v.id("packages"), archived: v.boolean() },
-	handler: (ctx, args) => archivePackageService(ctx, args).match(tupleOk, tupleErr)
+	handler: (ctx, args) => archivePackageFromAdmin(ctx, args).match(tupleOk, tupleErr)
 });
 
 export const markPackagePaidAndCreateScheduleToken = internalMutation({

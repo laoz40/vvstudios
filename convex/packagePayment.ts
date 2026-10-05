@@ -11,7 +11,11 @@ import {
 	closeEmbeddedPackageCheckoutSessionService,
 	createPackageCheckoutSessionService
 } from "#convex/services/packages/packageCheckoutActions";
-import { resendPackageEmailService } from "#convex/services/packages/packagePayment";
+import {
+	loadPaidPackageForEmailResend,
+	refreshPackageScheduleLinkForResend,
+	sendPackagePaidScheduleEmail
+} from "#convex/services/packages/packagePaidEmailResendWorkflow";
 
 export const createPackageCheckoutSession = action({
 	args: {
@@ -37,5 +41,11 @@ export const closeEmbeddedPackageCheckoutSession = action({
 
 export const resendPackageEmail = action({
 	args: { packageId: v.id("packages") },
-	handler: (ctx, args) => resendPackageEmailService(ctx, args).match(tupleOk, tupleErr)
+	handler: async (ctx, args) =>
+		await loadPaidPackageForEmailResend(ctx, args)
+			.andThen(() => refreshPackageScheduleLinkForResend(ctx, args.packageId))
+			.andThen((tokenResult) =>
+				sendPackagePaidScheduleEmail(ctx, { packageId: args.packageId, tokenResult })
+			)
+			.match(tupleOk, tupleErr)
 });
