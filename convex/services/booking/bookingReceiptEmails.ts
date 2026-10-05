@@ -5,14 +5,19 @@ import {
 	createPackageReceiptEmailArtifacts,
 	type PackageInvoiceInput
 } from "#studio/features/booking-invoice/lib/booking-artifacts";
-import type { BookingFormValues } from "#studio/features/booking-form/lib/booking-form-model";
-import { renderBookingReceiptPdfInNode } from "#convex/lib/booking/bookingInvoicePdfRender";
 import {
-	formatTimestampDateLong,
-	formatTimestampDateShort,
-	sendEmail
-} from "#convex/lib/email/emailSend";
-import { formatSessionDateShort } from "#convex/lib/sessions/sessionCalendarTime";
+	attachPdfToBookingReceiptArtifacts,
+	attachPdfToPackageReceiptArtifacts,
+	bookingReceiptNumberFromArtifacts,
+	mapReceiptNumberResult,
+	type BookingReceiptCustomerSentStep,
+	type PackageReceiptArtifactsStep
+} from "#convex/lib/booking/bookingReceiptEmailPipeline";
+import {
+	sendBookingReceiptCustomerEmail,
+	sendPackageReceiptCustomerEmail
+} from "#convex/lib/booking/bookingReceiptEmailPipeline";
+import { formatTimestampDateLong } from "#convex/lib/email/emailSend";
 import { pickBookingAddonQuantities } from "#studio/features/booking-form/lib/booking-form-model";
 import {
 	sendPackageHostDetailsEmail,
@@ -42,68 +47,10 @@ type PackageReceiptEmailError = {
 		| "RECEIPT_PDF_RENDER_FAILED";
 };
 
-type ReceiptEmailArtifacts = {
-	data: Parameters<typeof renderBookingReceiptPdfInNode>[0];
-	emailHtml: string;
-	pdf: { contentType: string; filename: string };
-};
-
-type BookingReceiptArtifactsStep = { artifacts: ReceiptEmailArtifacts; booking: BookingFormValues };
-
-type BookingReceiptRenderedStep = {
-	artifacts: ReceiptEmailArtifacts;
-	parsedBooking: BookingFormValues;
-	pdfContent: Uint8Array;
-};
-
-type BookingReceiptCustomerSentStep = {
-	artifacts: ReceiptEmailArtifacts;
-	parsedBooking: BookingFormValues;
-};
-
-type PackageReceiptArtifactsStep = { artifacts: ReceiptEmailArtifacts };
-
-type PackageReceiptRenderedStep = { artifacts: ReceiptEmailArtifacts; pdfContent: Uint8Array };
-
 function bookingPaidAt(booking: Doc<"bookings">) {
 	return (
 		booking.paymentCompletedAt ?? booking.bookingConfirmedAt ?? booking.pendingPaymentCreatedAt
 	);
-}
-
-function withRenderedBookingPdf({
-	artifacts,
-	booking: parsedBooking
-}: BookingReceiptArtifactsStep) {
-	return (pdfContent: Uint8Array) => ({ artifacts, parsedBooking, pdfContent });
-}
-
-function attachPdfToBookingReceiptArtifacts(step: BookingReceiptArtifactsStep) {
-	return renderBookingReceiptPdfInNode(step.artifacts.data).map(withRenderedBookingPdf(step));
-}
-
-function sendBookingReceiptCustomerEmail(booking: Doc<"bookings">) {
-	return ({ artifacts, parsedBooking, pdfContent }: BookingReceiptRenderedStep) =>
-		sendEmail({
-			to: [booking.email],
-			subject: `Studio booking confirmed - ${formatSessionDateShort(booking.date)}`,
-			html: artifacts.emailHtml,
-			attachments: [{ ...artifacts.pdf, content: pdfContent }]
-		}).map(customerEmailSentArtifacts(artifacts, parsedBooking));
-}
-
-function customerEmailSentArtifacts(
-	artifacts: BookingReceiptArtifactsStep["artifacts"],
-	parsedBooking: BookingReceiptArtifactsStep["booking"]
-) {
-	return () => ({ artifacts, parsedBooking });
-}
-
-function bookingReceiptNumberFromArtifacts({
-	artifacts,
-	parsedBooking
-}: BookingReceiptCustomerSentStep) {
-	return { receiptNumber: artifacts.data.receipt.number, parsedBooking };
 }
 
 function logBookingReceiptHostEmailFailure(bookingId: Doc<"bookings">["_id"]) {
@@ -112,10 +59,6 @@ function logBookingReceiptHostEmailFailure(bookingId: Doc<"bookings">["_id"]) {
 
 		return ok(null);
 	};
-}
-
-function receiptNumberResult(receiptNumber: string) {
-	return () => ({ receiptNumber });
 }
 
 function maybeSendBookingReceiptHostEmail(
@@ -149,30 +92,8 @@ function maybeSendBookingReceiptHostEmail(
 			...pickBookingAddonQuantities(bookingForHost)
 		})
 			.orElse(logBookingReceiptHostEmailFailure(booking._id))
-			.map(receiptNumberResult(receiptNumber));
+			.map(mapReceiptNumberResult(receiptNumber));
 	};
-}
-
-function withRenderedPackagePdf({ artifacts }: PackageReceiptArtifactsStep) {
-	return (pdfContent: Uint8Array) => ({ artifacts, pdfContent });
-}
-
-function attachPdfToPackageReceiptArtifacts(step: PackageReceiptArtifactsStep) {
-	return renderBookingReceiptPdfInNode(step.artifacts.data).map(withRenderedPackagePdf(step));
-}
-
-function sendPackageReceiptCustomerEmail(packageRecord: PackageInvoiceInput, paidAt: number) {
-	return ({ artifacts, pdfContent }: PackageReceiptRenderedStep) =>
-		sendEmail({
-			to: [packageRecord.email],
-			subject: `Your ${packageRecord.packageSize}-Session Package confirmed — schedule your sessions (${formatTimestampDateShort(paidAt)})`,
-			html: artifacts.emailHtml,
-			attachments: [{ ...artifacts.pdf, content: pdfContent }]
-		}).map(packageCustomerEmailSentArtifacts(artifacts));
-}
-
-function packageCustomerEmailSentArtifacts(artifacts: PackageReceiptArtifactsStep["artifacts"]) {
-	return () => ({ artifacts });
 }
 
 function logPackageReceiptHostEmailFailure(packageId: PackageInvoiceInput["_id"]) {
@@ -213,7 +134,7 @@ function maybeSendPackageReceiptHostEmail(
 			invoiceDueAt: paidAt
 		})
 			.orElse(logPackageReceiptHostEmailFailure(packageRecord._id))
-			.map(receiptNumberResult(receiptNumber));
+			.map(mapReceiptNumberResult(receiptNumber));
 	};
 }
 

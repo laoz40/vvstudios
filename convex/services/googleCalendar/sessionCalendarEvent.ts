@@ -14,12 +14,18 @@ import {
 } from "#convex/lib/googleCalendar/googleCalendarEventCalls";
 import {
 	buildSessionCalendarEventPayload,
-	isMatchingSessionCalendarEvent,
+	mapInsertedSessionCalendarEventStep,
+	matchingSessionCalendarEventStep,
 	type GoogleCalendarEventClient,
 	type SessionCalendarEventDetails,
 	type SessionCalendarEventRecord
 } from "#convex/lib/sessions/sessionCalendarEventPayload";
 import { buildEventWindow } from "#convex/lib/sessions/sessionCalendarTime";
+import {
+	deleteSessionEventAfterLookupStep,
+	deleteSavedEventOrLookupStep,
+	updateExistingGoogleEventStep
+} from "#convex/services/googleCalendar/sessionCalendarEventOrchestrationSteps";
 
 export type { GoogleCalendarDeleteError as DeleteSessionCalendarEventError };
 
@@ -35,11 +41,6 @@ function isMissingGoogleCalendarEvent(
 	value: GoogleCalendarEventMissing | SessionCalendarTimingUpdateError
 ): value is GoogleCalendarEventMissing {
 	return "kind" in value;
-}
-
-function matchingSessionCalendarEventStep(session: SessionCalendarEventRecord) {
-	return (events: calendar_v3.Schema$Event[]) =>
-		events.find((event) => isMatchingSessionCalendarEvent(event, session)) ?? null;
 }
 
 function findDeclinedSessionCalendarEvent({
@@ -74,36 +75,6 @@ function findDeclinedSessionCalendarEvent({
 	}).map(matchingSessionCalendarEventStep(session));
 }
 
-function calendarEventDeletedStep(wasFoundEventDeleted: boolean) {
-	return { calendarEventDeleted: wasFoundEventDeleted };
-}
-
-function deleteFoundSessionEventStep(
-	client: GoogleCalendarEventClient,
-	calendarId: string,
-	foundEventId: string
-) {
-	return deleteGoogleCalendarEventIfFound(client.calendar, calendarId, foundEventId).map(
-		calendarEventDeletedStep
-	);
-}
-
-function deleteSessionEventAfterLookupStep(args: {
-	session: SessionCalendarEventRecord;
-	client: GoogleCalendarEventClient;
-	calendarId: string;
-}) {
-	return (foundEvent: calendar_v3.Schema$Event | null) => {
-		const foundEventId = foundEvent?.id ?? null;
-
-		if (!foundEventId) {
-			return okAsync({ calendarEventDeleted: false });
-		}
-
-		return deleteFoundSessionEventStep(args.client, args.calendarId, foundEventId);
-	};
-}
-
 function deleteSessionEventAfterLookup({
 	session,
 	client,
@@ -118,16 +89,7 @@ function deleteSessionEventAfterLookup({
 		calendar: client.calendar,
 		calendarId,
 		timeZone: client.timeZone
-	}).andThen(deleteSessionEventAfterLookupStep({ session, client, calendarId }));
-}
-
-function deleteSavedEventOrLookupStep(args: {
-	session: SessionCalendarEventRecord;
-	client: GoogleCalendarEventClient;
-	calendarId: string;
-}) {
-	return (wasDeleted: boolean) =>
-		wasDeleted ? okAsync({ calendarEventDeleted: true }) : deleteSessionEventAfterLookup(args);
+	}).andThen(deleteSessionEventAfterLookupStep({ client, calendarId }));
 }
 
 export function deleteSessionCalendarEvent({
@@ -145,16 +107,8 @@ export function deleteSessionCalendarEvent({
 	}
 
 	return deleteGoogleCalendarEventIfFound(client.calendar, calendarId, savedEventId).andThen(
-		deleteSavedEventOrLookupStep({ session, client, calendarId })
+		deleteSavedEventOrLookupStep({ session, client, calendarId, deleteSessionEventAfterLookup })
 	);
-}
-
-function insertedSessionCalendarEventStep(client: GoogleCalendarEventClient) {
-	return (replacementEvent: { data: { id?: string | null } }) => ({
-		googleCalendarId: client.calendarId,
-		googleEventId: replacementEvent.data.id ?? undefined,
-		outcome: "replacementCreated" as const
-	});
 }
 
 function insertSessionCalendarEvent({
@@ -183,7 +137,7 @@ function insertSessionCalendarEvent({
 		calendar: client.calendar,
 		calendarId: client.calendarId,
 		requestBody: payloadResult.value
-	}).map(insertedSessionCalendarEventStep(client));
+	}).map(mapInsertedSessionCalendarEventStep(client));
 }
 
 export function createSessionCalendarEvent({
@@ -252,20 +206,6 @@ function patchExistingSessionCalendarEvent({
 		.orElse(recoverMissingEventOnPatchStep({ client, date, details, time }));
 }
 
-function updateExistingGoogleEventStep(args: {
-	client: GoogleCalendarEventClient;
-	date: string;
-	details: SessionCalendarEventDetails;
-	googleCalendarId: string;
-	googleEventId: string;
-	time: string;
-}) {
-	return (existingGoogleEvent: { data: { status?: string | null } }) =>
-		existingGoogleEvent.data.status === "cancelled"
-			? insertSessionCalendarEvent(args)
-			: patchExistingSessionCalendarEvent(args);
-}
-
 function recoverMissingEventOnLookupStep(args: {
 	client: GoogleCalendarEventClient;
 	date: string;
@@ -313,6 +253,12 @@ export function updateSessionCalendarEventTiming({
 		calendarId: googleCalendarId,
 		eventId: googleEventId
 	})
-		.andThen(updateExistingGoogleEventStep(eventUpdateArgs))
+		.andThen(
+			updateExistingGoogleEventStep({
+				eventUpdateArgs,
+				insertSessionCalendarEvent,
+				patchExistingSessionCalendarEvent
+			})
+		)
 		.orElse(recoverMissingEventOnLookupStep({ client, date, details, time }));
 }

@@ -95,6 +95,23 @@ export function buildSessionCalendarEventPayload({
 	);
 }
 
+export function matchingSessionCalendarEventStep(session: SessionCalendarEventRecord) {
+	return (events: calendar_v3.Schema$Event[]) =>
+		events.find((event) => isMatchingSessionCalendarEvent(event, session)) ?? null;
+}
+
+export function mapCalendarEventDeletedStep(wasFoundEventDeleted: boolean) {
+	return { calendarEventDeleted: wasFoundEventDeleted };
+}
+
+export function mapInsertedSessionCalendarEventStep(client: GoogleCalendarEventClient) {
+	return (replacementEvent: { data: { id?: string | null } }) => ({
+		googleCalendarId: client.calendarId,
+		googleEventId: replacementEvent.data.id ?? undefined,
+		outcome: "replacementCreated" as const
+	});
+}
+
 export function isMatchingSessionCalendarEvent(
 	event: calendar_v3.Schema$Event,
 	session: SessionCalendarEventRecord

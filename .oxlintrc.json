@@ -237,7 +237,8 @@
 				"convex-layers/no-db-in-services": "error",
 				"convex-layers/no-lib-reexport": "error",
 				"convex-layers/no-handler-lib-import": "error",
-				"convex-layers/no-inline-callback-in-service-chains": "error"
+				"convex-layers/no-inline-callback-in-service-chains": "error",
+				"convex-layers/pure-validation-in-lib-only": "error"
 			}
 		},
 		{

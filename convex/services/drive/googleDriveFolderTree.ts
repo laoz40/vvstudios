@@ -1,6 +1,7 @@
 "use node";
 
 import { okAsync, type ResultAsync } from "neverthrow";
+import { validateListedDriveFolderTreeEmpty } from "#convex/lib/drive/driveFolderTreeValidation";
 import {
 	deleteDriveItem,
 	GOOGLE_DRIVE_FOLDER_MIME_TYPE,
@@ -42,13 +43,10 @@ function areListedDriveChildrenEmpty(
 	return checkListedChildEmptiness(drive, child, remainingChildren);
 }
 
-function checkDriveFolderTreeEmptiness(drive: DriveClient) {
-	return (children: ListedDriveChild[]) =>
-		children.length === 0 ? okAsync(true) : areListedDriveChildrenEmpty(drive, children);
-}
-
 export function isDriveFolderTreeEmpty(drive: DriveClient, folderId: string) {
-	return listDriveFolderChildren(drive, folderId).andThen(checkDriveFolderTreeEmptiness(drive));
+	return listDriveFolderChildren(drive, folderId).andThen(
+		validateListedDriveFolderTreeEmpty(drive, areListedDriveChildrenEmpty)
+	);
 }
 
 function deleteDriveChildFromTree(drive: DriveClient, child: ListedDriveChild) {
