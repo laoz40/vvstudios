@@ -5,11 +5,8 @@ import { internal } from "#convex/_generated/api";
 import type { ActionCtx } from "#convex/_generated/server";
 import { getBusyWindowsInRange } from "#convex/lib/googleCalendar/googleCalendarAvailability";
 import { loadGoogleCalendarClient } from "#convex/lib/googleCalendar/googleCalendarClient";
-import {
-	calendarErrorSchema,
-	mapCalendarErrorCode
-} from "#convex/lib/googleCalendar/googleCalendarErrors";
-import { tryPromise, fromConvexTuple } from "#convex/lib/result";
+import { tryGoogleCalendarAvailability } from "#convex/lib/googleCalendar/googleCalendarErrors";
+import { fromConvexTuple } from "#convex/lib/result";
 import type { ValidPackageByTokenError } from "#convex/lib/packages/packageScheduling";
 import { checkGoogleCalendarAvailabilityRateLimit } from "#convex/lib/rateLimits";
 import {
@@ -128,25 +125,15 @@ export function loadPackageBookableRangeBusyWindows(
 	PackageAvailabilityContext & { busyWindows: Awaited<ReturnType<typeof getBusyWindowsInRange>> },
 	PackageAvailabilityError
 > {
-	return tryPromise({
-		try: () =>
-			getBusyWindowsInRange({
-				calendar: context.client.calendar,
-				calendarIds: context.client.calendarIds,
-				timeMax: context.availabilityRange.timeMax,
-				timeMin: context.availabilityRange.timeMin,
-				timeZone: context.client.timeZone
-			}),
-		catch: (error) => {
-			const parsedError = calendarErrorSchema.safeParse(error);
-
-			return {
-				reason: parsedError.success
-					? mapCalendarErrorCode(parsedError.data, "GOOGLE_CALENDAR_AVAILABILITY_FAILED")
-					: "GOOGLE_CALENDAR_AVAILABILITY_FAILED"
-			};
-		}
-	}).map((busyWindows: Awaited<ReturnType<typeof getBusyWindowsInRange>>) =>
+	return tryGoogleCalendarAvailability(() =>
+		getBusyWindowsInRange({
+			calendar: context.client.calendar,
+			calendarIds: context.client.calendarIds,
+			timeMax: context.availabilityRange.timeMax,
+			timeMin: context.availabilityRange.timeMin,
+			timeZone: context.client.timeZone
+		})
+	).map((busyWindows: Awaited<ReturnType<typeof getBusyWindowsInRange>>) =>
 		packageBusyWindowsContextStep(context, busyWindows)
 	);
 }

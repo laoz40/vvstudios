@@ -1,10 +1,11 @@
 "use node";
 
-import { okAsync } from "neverthrow";
-import { api, internal } from "#convex/_generated/api";
+import { api } from "#convex/_generated/api";
 import type { Id } from "#convex/_generated/dataModel";
 import type { ActionCtx } from "#convex/_generated/server";
-import { fromConvexTuple, okOrThrow } from "#convex/lib/result";
+import { okAsync } from "neverthrow";
+import { okOrThrow } from "#convex/lib/result";
+import { runReserveSessionReservation } from "#convex/lib/sessions/sessionSlotReservationAction";
 import type { SessionReservation } from "#convex/lib/sessions/sessionReservations";
 import type { SessionAvailabilitySettings } from "#convex/lib/sessions/sessionCalendarTime";
 
@@ -27,15 +28,7 @@ export function reserveClaimedBookingSession(
 		sessionStartAt: number;
 	}
 ) {
-	return fromConvexTuple(
-		ctx.runMutation(internal.sessionScheduling.reserveSessionReservation, {
-			bookingId: args.bookingId,
-			duration: args.duration,
-			eventBufferMinutes: args.eventBufferMinutes,
-			now: Date.now(),
-			sessionStartAt: args.sessionStartAt
-		})
-	)
+	return runReserveSessionReservation(ctx, args)
 		.orElse(() => okAsync({ outcome: "unavailable" as const }))
 		.andThen((reservationResult) => {
 			if (reservationResult.outcome === "unavailable") {

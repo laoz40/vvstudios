@@ -3,15 +3,12 @@ import { internal } from "#convex/_generated/api";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { ActionCtx, MutationCtx, QueryCtx } from "#convex/_generated/server";
 import { env } from "#convex/env";
+import { bytesToHex } from "#convex/lib/crypto/bytesToHex";
 import { fromConvexTuple, okOrThrow } from "#convex/lib/result";
 
 const rescheduleLinkInvalidationBatchSize = 100;
 
 const rescheduleTokenByteLength = 32;
-
-const hexRadix = 16;
-
-const hexByteLength = 2;
 
 export type SessionRescheduleLinkStatus = "active" | "used" | "expired";
 
@@ -37,9 +34,15 @@ export type LockRescheduleLinkError =
 	| { reason: "RESCHEDULE_LINK_USED" }
 	| { reason: "RESCHEDULE_LINK_EXPIRED" };
 
-function bytesToHex(bytes: Uint8Array) {
-	return Array.from(bytes, (byte) => byte.toString(hexRadix).padStart(hexByteLength, "0")).join("");
-}
+export type RescheduleLinkLookupError =
+	| LockRescheduleLinkError
+	| { reason: "BOOKING_NOT_FOUND" }
+	| { reason: "BOOKING_NOT_RESCHEDULABLE" };
+
+export type ValidRescheduleLinkAndSession = {
+	session: Doc<"bookings">;
+	link: Doc<"bookingRescheduleLinks">;
+};
 
 export function generateRescheduleToken() {
 	const bytes = new Uint8Array(rescheduleTokenByteLength);

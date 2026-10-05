@@ -4,6 +4,7 @@ import type { Id } from "#convex/_generated/dataModel";
 import type { ActionCtx } from "#convex/_generated/server";
 import type { SessionCalendarEventRecord } from "#convex/lib/sessions/sessionCalendarEventPayload";
 import { fromConvexTuple } from "#convex/lib/result";
+import { runReserveSessionReservation } from "#convex/lib/sessions/sessionSlotReservationAction";
 import type { SaveClientSessionRescheduleArgs } from "#convex/lib/sessions/sessionSchedulingArgs";
 import type { SessionReservation } from "#convex/lib/sessions/sessionReservations";
 import type {
@@ -89,15 +90,7 @@ export function reservePackageSessionSlot(
 		sessionStartAt: number;
 	}
 ) {
-	return fromConvexTuple(
-		ctx.runMutation(internal.sessionScheduling.reserveSessionReservation, {
-			bookingId: args.bookingId,
-			duration: args.duration,
-			eventBufferMinutes: args.eventBufferMinutes,
-			now: Date.now(),
-			sessionStartAt: args.sessionStartAt
-		})
-	);
+	return runReserveSessionReservation(ctx, args);
 }
 
 export function clearPackageSessionReservation(

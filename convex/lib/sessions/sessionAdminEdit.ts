@@ -16,11 +16,7 @@ import {
 } from "#convex/lib/sessions/sessionCalendarTime";
 import { normalizePhone } from "#convex/lib/contactNormalization";
 import { getBusyWindows } from "#convex/lib/googleCalendar/googleCalendarAvailability";
-import {
-	calendarErrorSchema,
-	mapCalendarErrorCode
-} from "#convex/lib/googleCalendar/googleCalendarErrors";
-import { tryPromise } from "#convex/lib/result";
+import { tryGoogleCalendarAvailability } from "#convex/lib/googleCalendar/googleCalendarErrors";
 
 type SessionEditValues = {
 	name: string;
@@ -289,18 +285,9 @@ export function verifySessionCanBeScheduled({
 		return okAsync(false);
 	}
 
-	return tryPromise({
-		try: () => getBusyWindows({ calendar, calendarIds, date: session.date, timeZone }),
-		catch: (error) => {
-			const parsedError = calendarErrorSchema.safeParse(error);
-
-			return {
-				reason: parsedError.success
-					? mapCalendarErrorCode(parsedError.data, "GOOGLE_CALENDAR_AVAILABILITY_FAILED")
-					: "GOOGLE_CALENDAR_AVAILABILITY_FAILED"
-			};
-		}
-	}).map((busyWindows) =>
+	return tryGoogleCalendarAvailability(() =>
+		getBusyWindows({ calendar, calendarIds, date: session.date, timeZone })
+	).map((busyWindows) =>
 		isTimeSlotAvailable({
 			busyWindows,
 			date: session.date,
@@ -353,34 +340,24 @@ export function validateSessionTimingEdit({
 			});
 
 	return settingsResult.asyncAndThen(() =>
-		tryPromise({
-			try: () =>
-				getBusyWindows({
-					calendar,
-					calendarIds,
+		tryGoogleCalendarAvailability(() =>
+			getBusyWindows({
+				calendar,
+				calendarIds,
+				date: next.date,
+				ignoredEvent: { calendarId: existing.googleCalendarId, eventId: existing.googleEventId },
+				timeZone
+			}).then((busyWindows) =>
+				isTimeSlotAvailable({
+					busyWindows,
 					date: next.date,
-					ignoredEvent: { calendarId: existing.googleCalendarId, eventId: existing.googleEventId },
+					duration: next.duration,
+					eventBufferMinutes: settings.eventBufferMinutes,
+					time: next.time,
 					timeZone
-				}).then((busyWindows) =>
-					isTimeSlotAvailable({
-						busyWindows,
-						date: next.date,
-						duration: next.duration,
-						eventBufferMinutes: settings.eventBufferMinutes,
-						time: next.time,
-						timeZone
-					})
-				),
-			catch: (error) => {
-				const parsedError = calendarErrorSchema.safeParse(error);
-
-				return {
-					reason: parsedError.success
-						? mapCalendarErrorCode(parsedError.data, "GOOGLE_CALENDAR_AVAILABILITY_FAILED")
-						: "GOOGLE_CALENDAR_AVAILABILITY_FAILED"
-				};
-			}
-		}).andThen((isAvailable) =>
+				})
+			)
+		).andThen((isAvailable) =>
 			isAvailable ? ok(null) : err({ reason: "BOOKING_TIME_UNAVAILABLE" as const })
 		)
 	);
