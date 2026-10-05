@@ -13,7 +13,7 @@ import {
 	setupEditorAccess,
 	setupEditorAccessIfAssigned,
 	type DriveEditorPermissionsError
-} from "#convex/lib/drive/driveEditorPermissions";
+} from "#convex/services/drive/editorDrivePermissions";
 
 export type { DriveEditorPermissionsError };
 

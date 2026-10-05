@@ -1,7 +1,7 @@
-import type { FunctionReturnType } from "convex/server";
 import { toast } from "sonner";
-import { api } from "#convex/_generated/api";
-import { tryCatch, type UnexpectedError } from "#/lib/result";
+import type { AdminSessionUpdateResult } from "#convex/lib/sessions/sessionAdminEdit";
+import type { UpdateSessionFromAdminError } from "#convex/services/googleCalendar/sessionCalendar";
+import { tryCatch, type Result, type UnexpectedError } from "#/lib/result";
 import type { SessionEditDraft } from "#studio/features/admin/components/SessionEditDialog";
 import type { SessionRecord } from "#studio/features/admin/lib/admin-sessions";
 import {
@@ -9,11 +9,7 @@ import {
 	pickBookingAddonQuantities
 } from "#studio/features/booking-form/lib/booking-form-model";
 
-type UpdateSessionFromAdminResult = FunctionReturnType<
-	typeof api.googleCalendar.updateSessionFromAdmin
->;
-
-type SessionUpdateError = NonNullable<UpdateSessionFromAdminResult[0]> | UnexpectedError;
+type SessionUpdateError = UpdateSessionFromAdminError | UnexpectedError;
 
 type ParsedSessionValues = ReturnType<typeof bookingSchema.parse>;
 
@@ -127,17 +123,19 @@ export async function performSessionEditSave(
 	parsedDraft: Extract<ParsedSessionEditDraft, { status: "ok" }>,
 	updateSession: (
 		input: ReturnType<typeof buildSessionUpdateInput>
-	) => Promise<UpdateSessionFromAdminResult>
+	) => Promise<Result<AdminSessionUpdateResult, UpdateSessionFromAdminError>>
 ): Promise<SessionEditSaveOutcome> {
 	const updateInput = buildSessionUpdateInput(session, parsedDraft.parsedValues);
 
-	const [error, result] = await tryCatch(updateSession(updateInput));
+	const updateOutcome = await tryCatch(updateSession(updateInput));
 
-	if (error !== null) {
-		showSessionUpdateError(error);
+	if (updateOutcome[0] !== null) {
+		showSessionUpdateError(updateOutcome[0]);
 
 		return "error";
 	}
+
+	const result = updateOutcome[1];
 
 	if (result.googleOutcome === "replacementCreated") {
 		return "replacement-created";

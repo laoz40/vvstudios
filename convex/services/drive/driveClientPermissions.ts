@@ -10,7 +10,7 @@ import {
 	requireClientDrivePermissions as requireClientDrivePermissionsLib,
 	sendClientAssetsFolderEmail as sendClientAssetsFolderEmailLib,
 	type DriveClientPermissionsError
-} from "#convex/lib/drive/driveClientPermissions";
+} from "#convex/services/drive/clientDrivePermissions";
 import { fromConvexTuple } from "#convex/lib/result";
 
 export type { DriveClientPermissionsError };

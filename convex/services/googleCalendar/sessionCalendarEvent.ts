@@ -21,8 +21,6 @@ import {
 } from "#convex/lib/sessions/sessionCalendarEventPayload";
 import { buildEventWindow } from "#convex/lib/sessions/sessionCalendarTime";
 
-export type { OrphanedSessionCalendarEventCleanupError } from "#convex/lib/googleCalendar/googleCalendarEventCalls";
-
 export type { GoogleCalendarDeleteError as DeleteSessionCalendarEventError };
 
 export type SessionCalendarTimingUpdateError = GoogleCalendarTimingMutationError;

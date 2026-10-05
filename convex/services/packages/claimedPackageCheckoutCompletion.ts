@@ -4,10 +4,8 @@ import { api } from "#convex/_generated/api";
 import type { Id } from "#convex/_generated/dataModel";
 import type { ActionCtx } from "#convex/_generated/server";
 import { env } from "#convex/env";
-import {
-	markPackagePaid,
-	sendPackageCheckoutPaidEmails
-} from "#convex/lib/packages/packagePayment";
+import { markPackagePaid } from "#convex/lib/packages/packagePayment";
+import { sendPackageCheckoutPaidEmails } from "#convex/services/packages/packagePaidEmailSend";
 import { okOrThrow } from "#convex/lib/result";
 import type { BookingAvailabilitySettings } from "#studio/lib/bookingAvailabilitySettings";
 

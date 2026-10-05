@@ -1,14 +1,12 @@
-import { errAsync, okAsync, ResultAsync } from "neverthrow";
+import { errAsync, okAsync, type ResultAsync } from "neverthrow";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { ActionCtx } from "#convex/_generated/server";
 import { createBookingInvoiceArtifactsForBooking } from "#studio/features/booking-invoice/lib/booking-artifacts";
-import {
-	sendBookingRescheduledCustomerEmail,
-	sendSessionHostDetailsEmail
-} from "#convex/lib/email/email";
 import type { AdminSessionUpdateResult } from "#convex/lib/sessions/sessionAdminEdit";
 import { getSessionFromQuery } from "#convex/lib/sessions/sessionLookup";
 import { pickBookingAddonQuantities } from "#studio/features/booking-form/lib/booking-form-model";
+import { sendBookingRescheduledCustomerEmail } from "#convex/services/email/bookingCustomerEmails";
+import { sendSessionHostDetailsEmail } from "#convex/services/email/hostBookingEmails";
 
 type BookingRescheduleEmailError =
 	| { reason: "EMAIL_RENDER_FAILED" }

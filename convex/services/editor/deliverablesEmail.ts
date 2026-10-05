@@ -4,7 +4,7 @@ import { errAsync, okAsync, type ResultAsync } from "neverthrow";
 import { internal } from "#convex/_generated/api";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { ActionCtx } from "#convex/_generated/server";
-import { sendSessionDeliverablesEmail as sendDeliverablesEmail } from "#convex/lib/email/emailTemplateSenders";
+import { sendSessionDeliverablesEmail as sendDeliverablesEmail } from "#convex/services/email/templateEmails";
 import {
 	ensureAnyoneReaderPermission,
 	listDriveFolderChildren,

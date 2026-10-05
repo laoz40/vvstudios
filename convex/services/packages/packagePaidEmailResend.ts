@@ -9,9 +9,9 @@ import { requirePermissionActions } from "#convex/services/requirePermissionActi
 import {
 	buildPackagePaidEmailContext,
 	type PaidPackageResult,
-	refreshPackageScheduleToken,
-	sendAndRecordPackagePaidEmail
+	refreshPackageScheduleToken
 } from "#convex/lib/packages/packagePayment";
+import { sendAndRecordPackagePaidEmail } from "#convex/services/packages/packagePaidEmailSend";
 import { getPackageForAction } from "#convex/lib/packages/packageLookup";
 import { okOrThrow } from "#convex/lib/result";
 import type { BookingAvailabilitySettings } from "#studio/lib/bookingAvailabilitySettings";

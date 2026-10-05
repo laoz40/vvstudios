@@ -8,7 +8,7 @@ import { checkPackageSubmitRateLimit } from "#convex/lib/booking/bookingSubmissi
 import { createPendingPackage } from "#convex/lib/packages/packagePayment";
 import {
 	parsePackageRequest,
-	type CreatePackageRequestArgs,
+	type CreatePackageRequestArgs as LibCreatePackageRequestArgs,
 	type ParsedPackageRequest
 } from "#convex/lib/packages/packageUpdates";
 import { fromConvexTuple } from "#convex/lib/result";
@@ -112,4 +112,4 @@ export function closeAbandonedPackageStripeCheckout(
 	});
 }
 
-export type { CreatePackageRequestArgs };
+export type CreatePackageRequestArgs = LibCreatePackageRequestArgs;

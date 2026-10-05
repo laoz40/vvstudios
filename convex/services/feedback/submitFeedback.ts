@@ -1,7 +1,7 @@
 "use node";
 
 import type { ActionCtx } from "#convex/_generated/server";
-import { sendFeedbackEmailForMessage } from "#convex/lib/email/email";
+import { sendFeedbackEmailForMessage } from "#convex/services/feedback/feedbackEmail";
 import { parseFeedbackMessage } from "#convex/lib/feedback";
 import { checkFeedbackSubmitRateLimit } from "#convex/lib/rateLimits";
 

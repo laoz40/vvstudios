@@ -157,7 +157,7 @@ function saveSessionEditorAssignment(
 			);
 		})
 		.andThen(() => {
-			if (!previousEditorNeedsAccessRemoved || previousEditorTokenIdentifier === undefined) {
+			if (!previousEditorNeedsAccessRemoved) {
 				return okAsync(null);
 			}
 

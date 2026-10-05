@@ -23,7 +23,11 @@ import {
 	formatSessionDateWithoutYear,
 	formatCalendarEventDate
 } from "#convex/lib/sessions/sessionCalendarTime";
-import { formatAddonsLine, formatTimestampDateLong } from "#convex/lib/email/emailSend";
+import {
+	formatAddonsLine,
+	formatTimestampDateLong,
+	formatTimestampDateShort
+} from "#convex/lib/email/emailSend";
 import { tryPromise } from "#convex/lib/result";
 
 type SendBookingReminderEmailForBookingArgs = {
@@ -273,7 +277,7 @@ export function renderPackageExpiryReminderEmailHtml(args: SendPackageExpiryRemi
 export function renderSessionReminderEmailHtml({
 	name,
 	email,
-	date,
+	date: _date,
 	startDateTime,
 	time,
 	timeZone,
@@ -321,7 +325,7 @@ export function renderClientAssetsEmailHtml(args: SendClientAssetsEmailArgs) {
 					signoffName: signoffName()
 				})
 			),
-		catch: (cause) => ({ reason: "EMAIL_RENDER_FAILED" as const })
+		catch: (_cause) => ({ reason: "EMAIL_RENDER_FAILED" as const })
 	});
 }
 
@@ -345,7 +349,7 @@ export function renderEditorAssignmentEmailHtml(args: SendEditorAssignmentEmailA
 					signoffName: signoffName()
 				})
 			),
-		catch: (cause) => ({ reason: "EMAIL_RENDER_FAILED" as const })
+		catch: (_cause) => ({ reason: "EMAIL_RENDER_FAILED" as const })
 	});
 }
 
@@ -362,7 +366,7 @@ export function renderSessionDeliverablesEmailHtml(args: SendSessionDeliverables
 					signoffName: signoffName()
 				})
 			),
-		catch: (cause) => ({ reason: "EMAIL_RENDER_FAILED" as const })
+		catch: (_cause) => ({ reason: "EMAIL_RENDER_FAILED" as const })
 	});
 }
 
@@ -387,7 +391,7 @@ export function bookingRescheduledCustomerEmailSubject(args: { date: string }) {
 }
 
 export function packageExpiryReminderEmailSubject(args: { expiresAt: number }) {
-	return `Reminder: Schedule Your Remaining Package Sessions — Expires ${formatTimestampDateLong(args.expiresAt).split(",")[0] ?? ""}`;
+	return `Reminder: Schedule Your Remaining Package Sessions — Expires ${formatTimestampDateShort(args.expiresAt)}`;
 }
 
 export function sessionReminderEmailSubject(args: { date: string }) {

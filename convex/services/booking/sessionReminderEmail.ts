@@ -4,7 +4,7 @@ import { okAsync, type ResultAsync } from "neverthrow";
 import { internal } from "#convex/_generated/api";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { ActionCtx } from "#convex/_generated/server";
-import { sendBookingReminderEmailForSession } from "#convex/lib/booking/bookingConfirmation";
+import { sendBookingReminderEmailForSession } from "#convex/services/booking/bookingConfirmationWorkflow";
 import { fromConvexTuple } from "#convex/lib/result";
 
 type ReminderClaim = { session: Doc<"bookings"> };

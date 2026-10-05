@@ -9,19 +9,19 @@ import {
 	shouldRecordDriveSetupFailure,
 	validateDriveSetup,
 	type DriveSetupInfo,
-	type SetupError
+	type SetupError as LibSetupError
 } from "#convex/lib/drive/sessionFolders/driveSetupInfo";
 import { ensureSessionDriveFolders } from "#convex/lib/drive/sessionFolders/ensureFolders";
 import { fromConvexTuple } from "#convex/lib/result";
 import { requireClientDrivePermissionsAndSendAssetsEmail } from "#convex/services/drive/driveClientPermissions";
-import { setupEditorAccess } from "#convex/lib/drive/driveEditorPermissions";
+import { setupEditorAccess } from "#convex/services/drive/editorDrivePermissions";
 
-export type { SetupError } from "#convex/lib/drive/sessionFolders/driveSetupInfo";
+export type SetupError = LibSetupError;
 
 function loadValidatedSetup(
 	ctx: ActionCtx,
 	args: { bookingId: Id<"bookings">; sessionStartAt?: number; duration?: string }
-): ResultAsync<DriveSetupInfo, SetupError> {
+): ResultAsync<DriveSetupInfo, LibSetupError> {
 	return fromConvexTuple(
 		ctx.runQuery(internal.sessionsDriveInternal.getDriveSetup, { bookingId: args.bookingId })
 	).andThen((setupInfo) =>

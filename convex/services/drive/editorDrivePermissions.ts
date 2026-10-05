@@ -9,7 +9,7 @@ import type {
 	EditorDriveSetupRecord,
 	FailedEditorRemoval
 } from "#convex/lib/drive/driveEditor";
-import { sendEditorAssignmentEmail } from "#convex/lib/email/emailTemplateSenders";
+import { sendEditorAssignmentEmail } from "#convex/services/email/templateEmails";
 import {
 	createDrivePermission,
 	deleteDrivePermission,

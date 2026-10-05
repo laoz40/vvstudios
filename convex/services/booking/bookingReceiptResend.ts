@@ -5,7 +5,7 @@ import { api, internal } from "#convex/_generated/api";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { ActionCtx } from "#convex/_generated/server";
 import { requirePermissionActions } from "#convex/services/requirePermissionActions";
-import { sendBookingReceiptEmailsForBooking } from "#convex/lib/booking/bookingDocumentEmails";
+import { sendBookingReceiptEmailsForBooking } from "#convex/services/booking/bookingReceiptEmails";
 import { fromConvexTuple, okOrThrow } from "#convex/lib/result";
 import { createRescheduleUrlForSession } from "#convex/lib/sessions/sessionRescheduleLinks";
 import { getSessionFromQuery } from "#convex/lib/sessions/sessionLookup";

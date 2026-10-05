@@ -13,12 +13,14 @@ async function loadSavedPackageSessionNumbers(
 	packageId: Id<"packages">
 ) {
 	const savedNumbers = new Set<number>();
+
 	const packageBookings = await loadPackageBookings(ctx, packageId).match(
 		(bookings) => bookings,
 		() => {
 			throw new Error("loadPackageBookings failed");
 		}
 	);
+
 	await Promise.all(
 		packageBookings.map(async (packageBooking) => {
 			const driveSession = await ctx.db

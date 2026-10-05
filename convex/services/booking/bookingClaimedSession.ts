@@ -8,7 +8,7 @@ import { reserveClaimedBookingSession } from "#convex/lib/booking/bookingConfirm
 import {
 	saveConfirmedBooking,
 	sendConfirmedBookingInvoice
-} from "#convex/lib/booking/bookingConfirmation";
+} from "#convex/services/booking/bookingConfirmationWorkflow";
 import { getGoogleCalendarClient } from "#convex/lib/googleCalendar/googleCalendarClient";
 import {
 	calendarErrorSchema,

@@ -1,7 +1,7 @@
 import { internal } from "#convex/_generated/api";
 import type { Doc } from "#convex/_generated/dataModel";
 import type { ActionCtx, QueryCtx } from "#convex/_generated/server";
-import { sendPackageExpiryReminderEmail } from "#convex/lib/email/email";
+import { sendPackageExpiryReminderEmail } from "#convex/services/email/packageReminderEmails";
 import { getCapacityConsumingPackageSessions } from "#convex/lib/packages/packageScheduling";
 import {
 	hasSentPackageReminder,

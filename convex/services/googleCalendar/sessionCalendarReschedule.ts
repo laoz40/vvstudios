@@ -15,7 +15,7 @@ import {
 	reserveSessionSlot,
 	saveClientSessionReschedule,
 	unlockRescheduleLink,
-	type ValidRescheduleDetails
+	type ValidRescheduleDetails as LibValidRescheduleDetails
 } from "#convex/lib/sessions/sessionCalendarActionBoundaries";
 import { updateSessionTimingWithGoogleCalendar } from "#convex/services/googleCalendar/sessionCalendarTimingSync";
 import {
@@ -25,7 +25,7 @@ import {
 import type { SessionAvailabilitySettings } from "#convex/lib/sessions/sessionCalendarTime";
 import type { SaveClientSessionRescheduleArgs } from "#convex/lib/sessions/sessionSchedulingArgs";
 import { getRescheduleUrlForToken } from "#convex/lib/sessions/sessionRescheduleLinks";
-import { sendBookingRescheduledEmailsForBooking } from "#convex/lib/sessions/sessionHostEmails";
+import { sendBookingRescheduledEmailsForBooking } from "#convex/services/sessions/sessionRescheduleEmails";
 import { pickBookingAddonQuantities } from "#studio/features/booking-form/lib/booking-form-model";
 import type { AdminSessionUpdateError } from "#convex/lib/sessions/sessionAdminEdit";
 import type { RescheduleLinkLookupError } from "#convex/services/sessions/sessionReschedule";
@@ -35,7 +35,7 @@ export type RescheduleSessionError =
 	| AdminSessionUpdateError
 	| { reason: "BOOKING_RATE_LIMITED"; retryAfter?: number };
 
-export type { ValidRescheduleDetails };
+export type ValidRescheduleDetails = LibValidRescheduleDetails;
 
 export type RescheduleSessionArgs = { date: string; time: string; token: string };
 

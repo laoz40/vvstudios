@@ -12,7 +12,7 @@ import { isTimeSlotAvailable } from "#convex/lib/sessions/sessionCalendarTime";
 import { getGoogleCalendarClient } from "#convex/lib/googleCalendar/googleCalendarClient";
 import type {
 	SessionCalendarEventDetails,
-	SessionCalendarEventRecord
+	SessionCalendarEventRecord as PackageSessionCalendarEventRecord
 } from "#convex/lib/sessions/sessionCalendarEventPayload";
 import {
 	createSessionCalendarEvent,
@@ -20,6 +20,8 @@ import {
 	updateSessionCalendarEventTiming
 } from "#convex/services/googleCalendar/sessionCalendarEvent";
 import { pickBookingAddonQuantities } from "#studio/features/booking-form/lib/booking-form-model";
+
+export type SessionCalendarEventRecord = PackageSessionCalendarEventRecord;
 
 export type PackageCalendarDetails = SessionCalendarEventDetails & {
 	date: string;
@@ -183,8 +185,6 @@ export function writePackageSessionGoogleCalendarEvent(
 		? updatePackageCalendarEvent(client, args.session, args.details)
 		: createPackageCalendarEvent(client, args.details);
 }
-
-export type { SessionCalendarEventRecord } from "#convex/lib/sessions/sessionCalendarEventPayload";
 
 export function syncPackageSessionGoogleCalendarEvent(args: {
 	session: SessionCalendarEventRecord | null;

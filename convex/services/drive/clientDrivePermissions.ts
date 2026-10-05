@@ -21,7 +21,7 @@ import {
 	dismissedClientFolderPermission,
 	isClientFolderSharingDismissed
 } from "#convex/lib/drive/driveClientAccess";
-import { sendClientAssetsEmail } from "#convex/lib/email/emailTemplateSenders";
+import { sendClientAssetsEmail } from "#convex/services/email/templateEmails";
 import { fromConvexTuple } from "#convex/lib/result";
 
 export type DriveClientPermissionsError =

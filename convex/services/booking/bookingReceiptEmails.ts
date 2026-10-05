@@ -11,9 +11,12 @@ import {
 	formatTimestampDateShort,
 	sendEmail
 } from "#convex/lib/email/emailSend";
-import { sendPackageHostDetailsEmail, sendSessionHostDetailsEmail } from "#convex/lib/email/email";
 import { formatSessionDateShort } from "#convex/lib/sessions/sessionCalendarTime";
 import { pickBookingAddonQuantities } from "#studio/features/booking-form/lib/booking-form-model";
+import {
+	sendPackageHostDetailsEmail,
+	sendSessionHostDetailsEmail
+} from "#convex/services/email/hostBookingEmails";
 
 interface SessionHostRescheduleDetails {
 	originalDate: string;

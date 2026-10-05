@@ -33,11 +33,13 @@ import {
 	getSessionEditFieldChanges,
 	getSessionStartAt,
 	type AdminSessionUpdateArgs,
-	type AdminSessionUpdateResult,
+	type AdminSessionUpdateResult as LibAdminSessionUpdateResult,
 	validateSessionTimingEdit,
 	verifySessionCanBeScheduled
 } from "#convex/lib/sessions/sessionAdminEdit";
-import { notifyHostOfAdminSessionReschedule } from "#convex/lib/sessions/sessionHostEmails";
+import { notifyHostOfAdminSessionReschedule } from "#convex/services/sessions/sessionRescheduleEmails";
+
+export type AdminSessionUpdateResult = LibAdminSessionUpdateResult;
 
 function eventDetails(args: AdminSessionUpdateArgs) {
 	return {
@@ -431,5 +433,3 @@ export function notifyHostIfNeeded(
 		result
 	});
 }
-
-export type { AdminSessionUpdateResult } from "#convex/lib/sessions/sessionAdminEdit";

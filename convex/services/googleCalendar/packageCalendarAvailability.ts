@@ -16,11 +16,11 @@ import {
 	getDateAvailabilityRange,
 	groupBusyDaysByMonth,
 	groupBusyWindowsByDay,
-	type BusyDayWindow
+	type BusyDayWindow as LibBusyDayWindow
 } from "#convex/lib/sessions/sessionCalendarTime";
 import { formatDateValue, startOfToday } from "#studio/lib/bookingdatetime";
 
-export type { BusyDayWindow };
+export type BusyDayWindow = LibBusyDayWindow;
 
 export type PackageAvailabilityError =
 	| ValidPackageByTokenError
