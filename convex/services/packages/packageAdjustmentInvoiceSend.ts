@@ -22,6 +22,31 @@ type PackageAdjustmentInvoiceSendFailure =
 	| { reason: "STRIPE_CUSTOMER_NOT_FOUND" }
 	| { reason: string };
 
+function failAfterInvoiceEmailFailure<T extends PackageAdjustmentInvoiceSendFailure>(failure: T) {
+	return () => err(failure);
+}
+
+function toNullAfterInvoiceEmailSent(_sent: { updated: boolean }) {
+	return null;
+}
+
+function recordSentPackageAdjustmentInvoice(
+	ctx: ActionCtx,
+	args: SendPackageAdjustmentInvoiceArgs,
+	claimedAt: number
+) {
+	return ({ stripeInvoiceId }: { stripeInvoiceId: string }) =>
+		fromConvexTuple<
+			Promise<ConvexResult<{ updated: boolean }, { reason: "PACKAGE_ADJUSTMENT_NOT_FOUND" }>>
+		>(
+			ctx.runMutation(internal.packageAdjustments.markPackageAdjustmentInvoiceEmailSent, {
+				adjustmentId: args.adjustmentId,
+				claimedAt,
+				stripeInvoiceId
+			})
+		).map(toNullAfterInvoiceEmailSent);
+}
+
 export type SendPackageAdjustmentInvoiceError =
 	| PackageAdjustmentClaimError
 	| PackageAdjustmentInvoiceSendFailure;
@@ -36,8 +61,12 @@ function writePackageAdjustmentInvoiceEmailFailedOnSend<
 	return fromConvexTuple<Promise<ConvexResult<{ updated: boolean }, { reason: string }>>>(
 		ctx.runMutation(internal.packageAdjustments.markPackageAdjustmentInvoiceEmailFailed, args)
 	)
-		.orElse(() => ok(null))
-		.andThen(() => err(failure));
+		.orElse(okNullAsync)
+		.andThen(failAfterInvoiceEmailFailure(failure));
+}
+
+function okNullAsync() {
+	return ok(null);
 }
 
 export function claimPackageAdjustmentInvoiceEmailForSend(
@@ -86,15 +115,5 @@ export function createSendAndRecordPackageAdjustmentInvoice(
 				stripeFailure
 			)
 		)
-		.andThen(({ stripeInvoiceId }) =>
-			fromConvexTuple<
-				Promise<ConvexResult<{ updated: boolean }, { reason: "PACKAGE_ADJUSTMENT_NOT_FOUND" }>>
-			>(
-				ctx.runMutation(internal.packageAdjustments.markPackageAdjustmentInvoiceEmailSent, {
-					adjustmentId: args.adjustmentId,
-					claimedAt,
-					stripeInvoiceId
-				})
-			).map(() => null)
-		);
+		.andThen(recordSentPackageAdjustmentInvoice(ctx, args, claimedAt));
 }

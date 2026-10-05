@@ -45,17 +45,27 @@ export function sendClientAssetsFolderEmail(
 	return sendClientAssetsFolderEmailLib(ctx, bookingId, attempt);
 }
 
+function requireClientPermissionsOrRecordFailure(ctx: ActionCtx) {
+	return (setup: Parameters<typeof requireClientDrivePermissionsLib>[1]) =>
+		requireClientDrivePermissions(ctx, setup).orElse((error) =>
+			recordClientDrivePermissionsFailure(ctx, setup, error)
+		);
+}
+
+function sendClientAssetsEmailForBooking(
+	ctx: ActionCtx,
+	args: { bookingId: Id<"bookings">; attempt: "automatic" | "retry" }
+) {
+	return () => sendClientAssetsFolderEmail(ctx, args.bookingId, args.attempt);
+}
+
 export function requireClientDrivePermissionsAndSendAssetsEmail(
 	ctx: ActionCtx,
 	args: { bookingId: Id<"bookings">; attempt: "automatic" | "retry" }
 ): ResultAsync<null, DriveClientPermissionsError> {
 	return loadReadyBookingDriveFolders(ctx, args.bookingId)
-		.andThen((setup) =>
-			requireClientDrivePermissions(ctx, setup).orElse((error) =>
-				recordClientDrivePermissionsFailure(ctx, setup, error)
-			)
-		)
-		.andThen(() => sendClientAssetsFolderEmail(ctx, args.bookingId, args.attempt));
+		.andThen(requireClientPermissionsOrRecordFailure(ctx))
+		.andThen(sendClientAssetsEmailForBooking(ctx, args));
 }
 
 export function syncBookingDriveClientIdForRetry(

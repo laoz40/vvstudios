@@ -68,74 +68,75 @@ export type LoadedClaimedSession =
 	| { kind: "done"; outcome: CompleteClaimedSessionSuccess }
 	| { kind: "pending"; session: Doc<"bookings"> };
 
-export function loadClaimedSession(
-	ctx: ActionCtx,
-	bookingId: Id<"bookings">
-): ResultAsync<
-	LoadedClaimedSession,
-	CompleteClaimedSessionError | { reason: "BOOKING_NOT_FOUND" }
-> {
-	return getSessionFromQuery(ctx, bookingId)
-		.andThen(requireClaimed)
-		.andThen((session) => {
-			const completed = alreadyCompleted(session);
+function loadedClaimedSessionFromPending(session: Doc<"bookings">) {
+	const completed = alreadyCompleted(session);
 
-			return completed
-				? okAsync({ kind: "done" as const, outcome: completed })
-				: okAsync({ kind: "pending" as const, session });
-		});
+	return completed
+		? okAsync({ kind: "done" as const, outcome: completed })
+		: okAsync({ kind: "pending" as const, session });
 }
 
 function markClaimedBookingTimeUnavailable(ctx: ActionCtx, bookingId: Id<"bookings">) {
-	return failBookingConfirmation(ctx, bookingId, "BOOKING_TIME_UNAVAILABLE").map(() => ({
-		outcome: "booking_time_unavailable" as const
-	}));
+	return failBookingConfirmation(ctx, bookingId, "BOOKING_TIME_UNAVAILABLE").map(
+		bookingTimeUnavailableOutcome
+	);
 }
 
-export function verifyClaimedBookingSchedule(
+function bookingTimeUnavailableOutcome() {
+	return { outcome: "booking_time_unavailable" as const };
+}
+
+function claimedSessionDoneFromOutcome(outcome: ReturnType<typeof bookingTimeUnavailableOutcome>) {
+	return { kind: "done" as const, outcome };
+}
+
+function scheduleUnavailableDoneStep(ctx: ActionCtx, bookingId: Id<"bookings">) {
+	return markClaimedBookingTimeUnavailable(ctx, bookingId).map(claimedSessionDoneFromOutcome);
+}
+
+function verifyScheduleForClaimedBooking(
 	ctx: ActionCtx,
 	session: Doc<"bookings">,
 	settings: SessionAvailabilitySettings,
 	calendarClient: GoogleCalendarClient
-): ResultAsync<VerifyClaimedBookingScheduleResult, CompleteClaimedSessionError> {
+) {
 	return verifySessionCanBeScheduled({
 		session,
 		calendar: calendarClient.calendar,
 		calendarIds: calendarClient.calendarIds,
 		settings,
 		timeZone: calendarClient.timeZone
-	}).andThen((canBeScheduled) => {
+	}).andThen(finishVerifyClaimedBookingSchedule(ctx, session._id));
+}
+
+function finishVerifyClaimedBookingSchedule(ctx: ActionCtx, bookingId: Id<"bookings">) {
+	return (canBeScheduled: boolean) => {
 		if (!canBeScheduled) {
-			return markClaimedBookingTimeUnavailable(ctx, session._id).map((outcome) => ({
-				kind: "done" as const,
-				outcome
-			}));
+			return scheduleUnavailableDoneStep(ctx, bookingId);
 		}
 
 		return okAsync({ kind: "schedulable" as const });
-	});
+	};
 }
 
-export function reserveClaimedBookingSlot(
-	ctx: ActionCtx,
-	session: Doc<"bookings">,
-	settings: SessionAvailabilitySettings
-): ResultAsync<ReserveClaimedBookingSlotResult, CompleteClaimedSessionError> {
-	return reserveClaimedBookingSession(ctx, {
-		bookingId: session._id,
-		duration: session.duration,
-		eventBufferMinutes: settings.eventBufferMinutes,
-		sessionStartAt: session.sessionStartAt
-	}).andThen((reservationResult) => {
+function reserveUnavailableDoneStep(ctx: ActionCtx, bookingId: Id<"bookings">) {
+	return markClaimedBookingTimeUnavailable(ctx, bookingId).map(claimedSessionDoneFromOutcome);
+}
+
+function finishReserveClaimedBookingSlot(ctx: ActionCtx, bookingId: Id<"bookings">) {
+	return (reservationResult: {
+		outcome: "reserved" | "unavailable";
+		reservation?: SessionReservation;
+	}) => {
 		if (reservationResult.outcome === "unavailable") {
-			return markClaimedBookingTimeUnavailable(ctx, session._id).map((outcome) => ({
-				kind: "done" as const,
-				outcome
-			}));
+			return reserveUnavailableDoneStep(ctx, bookingId);
 		}
 
-		return okAsync({ kind: "reserved" as const, reservation: reservationResult.reservation });
-	});
+		// SAFETY: `outcome === "reserved"` guarantees `reservation` was set by the reserve step.
+		const reservation = reservationResult.reservation!;
+
+		return okAsync({ kind: "reserved" as const, reservation });
+	};
 }
 
 function buildClaimedBookingCalendarPayload(session: Doc<"bookings">, timeZone: string) {
@@ -154,6 +155,178 @@ function buildClaimedBookingCalendarPayload(session: Doc<"bookings">, timeZone: 
 	});
 }
 
+function invalidInputDoneStep() {
+	return { kind: "done" as const, outcome: { outcome: "booking_invalid_input" as const } };
+}
+
+function calendarCreateFailedDoneStep() {
+	return { kind: "done" as const, outcome: { outcome: "google_calendar_create_failed" as const } };
+}
+
+function createdCalendarEventFromInsert(createdEvent: { data: { id?: string | null } }) {
+	return { kind: "created" as const, googleEventId: createdEvent.data.id ?? undefined };
+}
+
+function failCalendarCreateForClaimedBooking(
+	ctx: ActionCtx,
+	session: Doc<"bookings">,
+	reservation: SessionReservation
+) {
+	return (_error: { reason: string }) =>
+		failBookingConfirmation(ctx, session._id, "GOOGLE_CALENDAR_CREATE_FAILED", reservation).map(
+			calendarCreateFailedDoneStep
+		);
+}
+
+function completeClaimedSessionWhenSaved(
+	ctx: ActionCtx,
+	session: Doc<"bookings">,
+	settings: SessionAvailabilitySettings
+) {
+	return (completionSaved: boolean) => {
+		if (!completionSaved) {
+			return okAsync({ outcome: "reservation_lost" as const });
+		}
+
+		return sendConfirmedBookingInvoice(ctx, session, settings).map(completedClaimedSessionOutcome);
+	};
+}
+
+function completedClaimedSessionOutcome() {
+	return { outcome: "completed" as const };
+}
+
+function runCompleteClaimedSessionWhenPending(ctx: ActionCtx, session: Doc<"bookings">) {
+	const calendarClient = getGoogleCalendarClient();
+
+	return loadBookingAvailabilitySettings(ctx).andThen(
+		runClaimedSessionWithSettings(ctx, session, calendarClient)
+	);
+}
+
+function runClaimedSessionWithSettings(
+	ctx: ActionCtx,
+	session: Doc<"bookings">,
+	calendarClient: GoogleCalendarClient
+) {
+	return (settings: SessionAvailabilitySettings) =>
+		verifyClaimedBookingSchedule(ctx, session, settings, calendarClient).andThen(
+			continueClaimedSessionAfterScheduleCheck(ctx, session, settings, calendarClient)
+		);
+}
+
+function continueClaimedSessionAfterScheduleCheck(
+	ctx: ActionCtx,
+	session: Doc<"bookings">,
+	settings: SessionAvailabilitySettings,
+	calendarClient: GoogleCalendarClient
+) {
+	return (schedule: VerifyClaimedBookingScheduleResult) => {
+		if (schedule.kind === "done") {
+			return okAsync(schedule.outcome);
+		}
+
+		return reserveClaimedBookingSlot(ctx, session, settings).andThen(
+			continueClaimedSessionAfterReservation(ctx, session, settings, calendarClient)
+		);
+	};
+}
+
+function continueClaimedSessionAfterReservation(
+	ctx: ActionCtx,
+	session: Doc<"bookings">,
+	settings: SessionAvailabilitySettings,
+	calendarClient: GoogleCalendarClient
+) {
+	return (hold: ReserveClaimedBookingSlotResult) => {
+		if (hold.kind === "done") {
+			return okAsync(hold.outcome);
+		}
+
+		return createClaimedBookingCalendarEvent(
+			ctx,
+			session,
+			calendarClient,
+			hold.reservation
+		).andThen(
+			finishClaimedSessionAfterCalendarEvent(
+				ctx,
+				session,
+				settings,
+				calendarClient,
+				hold.reservation
+			)
+		);
+	};
+}
+
+function finishClaimedSessionAfterCalendarEvent(
+	ctx: ActionCtx,
+	session: Doc<"bookings">,
+	settings: SessionAvailabilitySettings,
+	calendarClient: GoogleCalendarClient,
+	reservation: SessionReservation
+) {
+	return (calendar: InsertClaimedBookingCalendarEventResult) => {
+		if (calendar.kind === "done") {
+			return okAsync(calendar.outcome);
+		}
+
+		return saveConfirmedClaimedBookingAndSendInvoice(
+			ctx,
+			session,
+			settings,
+			calendarClient,
+			reservation,
+			calendar.googleEventId
+		);
+	};
+}
+
+function completeClaimedSessionFromLoaded(ctx: ActionCtx) {
+	return (loaded: LoadedClaimedSession) => {
+		if (loaded.kind === "done") {
+			return okAsync(loaded.outcome);
+		}
+
+		return runCompleteClaimedSessionWhenPending(ctx, loaded.session);
+	};
+}
+
+export function loadClaimedSession(
+	ctx: ActionCtx,
+	bookingId: Id<"bookings">
+): ResultAsync<
+	LoadedClaimedSession,
+	CompleteClaimedSessionError | { reason: "BOOKING_NOT_FOUND" }
+> {
+	return getSessionFromQuery(ctx, bookingId)
+		.andThen(requireClaimed)
+		.andThen(loadedClaimedSessionFromPending);
+}
+
+export function verifyClaimedBookingSchedule(
+	ctx: ActionCtx,
+	session: Doc<"bookings">,
+	settings: SessionAvailabilitySettings,
+	calendarClient: GoogleCalendarClient
+): ResultAsync<VerifyClaimedBookingScheduleResult, CompleteClaimedSessionError> {
+	return verifyScheduleForClaimedBooking(ctx, session, settings, calendarClient);
+}
+
+export function reserveClaimedBookingSlot(
+	ctx: ActionCtx,
+	session: Doc<"bookings">,
+	settings: SessionAvailabilitySettings
+): ResultAsync<ReserveClaimedBookingSlotResult, CompleteClaimedSessionError> {
+	return reserveClaimedBookingSession(ctx, {
+		bookingId: session._id,
+		duration: session.duration,
+		eventBufferMinutes: settings.eventBufferMinutes,
+		sessionStartAt: session.sessionStartAt
+	}).andThen(finishReserveClaimedBookingSlot(ctx, session._id));
+}
+
 export function createClaimedBookingCalendarEvent(
 	ctx: ActionCtx,
 	session: Doc<"bookings">,
@@ -164,7 +337,7 @@ export function createClaimedBookingCalendarEvent(
 
 	if (payloadResult.isErr()) {
 		return failBookingConfirmation(ctx, session._id, "BOOKING_INVALID_INPUT", reservation).map(
-			() => ({ kind: "done" as const, outcome: { outcome: "booking_invalid_input" as const } })
+			invalidInputDoneStep
 		);
 	}
 
@@ -185,18 +358,8 @@ export function createClaimedBookingCalendarEvent(
 			};
 		}
 	})
-		.map((createdEvent) => ({
-			kind: "created" as const,
-			googleEventId: createdEvent.data.id ?? undefined
-		}))
-		.orElse(() =>
-			failBookingConfirmation(ctx, session._id, "GOOGLE_CALENDAR_CREATE_FAILED", reservation).map(
-				() => ({
-					kind: "done" as const,
-					outcome: { outcome: "google_calendar_create_failed" as const }
-				})
-			)
-		);
+		.map(createdCalendarEventFromInsert)
+		.orElse(failCalendarCreateForClaimedBooking(ctx, session, reservation));
 }
 
 export function saveConfirmedClaimedBookingAndSendInvoice(
@@ -208,15 +371,7 @@ export function saveConfirmedClaimedBookingAndSendInvoice(
 	googleEventId: string | undefined
 ): ResultAsync<CompleteClaimedSessionSuccess, CompleteClaimedSessionError> {
 	return saveConfirmedBooking(ctx, session, calendarClient, reservation, googleEventId).andThen(
-		(completionSaved) => {
-			if (!completionSaved) {
-				return okAsync({ outcome: "reservation_lost" as const });
-			}
-
-			return sendConfirmedBookingInvoice(ctx, session, settings).map(() => ({
-				outcome: "completed" as const
-			}));
-		}
+		completeClaimedSessionWhenSaved(ctx, session, settings)
 	);
 }
 
@@ -224,46 +379,5 @@ export function runCompleteClaimedSession(
 	ctx: ActionCtx,
 	bookingId: Id<"bookings">
 ): ResultAsync<CompleteClaimedSessionSuccess, CompleteClaimedSessionError> {
-	return loadClaimedSession(ctx, bookingId).andThen((loaded) => {
-		if (loaded.kind === "done") {
-			return okAsync(loaded.outcome);
-		}
-
-		const session = loaded.session;
-		const calendarClient = getGoogleCalendarClient();
-
-		return loadBookingAvailabilitySettings(ctx).andThen((settings) =>
-			verifyClaimedBookingSchedule(ctx, session, settings, calendarClient).andThen((schedule) => {
-				if (schedule.kind === "done") {
-					return okAsync(schedule.outcome);
-				}
-
-				return reserveClaimedBookingSlot(ctx, session, settings).andThen((hold) => {
-					if (hold.kind === "done") {
-						return okAsync(hold.outcome);
-					}
-
-					return createClaimedBookingCalendarEvent(
-						ctx,
-						session,
-						calendarClient,
-						hold.reservation
-					).andThen((calendar) => {
-						if (calendar.kind === "done") {
-							return okAsync(calendar.outcome);
-						}
-
-						return saveConfirmedClaimedBookingAndSendInvoice(
-							ctx,
-							session,
-							settings,
-							calendarClient,
-							hold.reservation,
-							calendar.googleEventId
-						);
-					});
-				});
-			})
-		);
-	});
+	return loadClaimedSession(ctx, bookingId).andThen(completeClaimedSessionFromLoaded(ctx));
 }

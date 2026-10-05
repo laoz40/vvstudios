@@ -73,6 +73,87 @@ function getBookingReceiptCreatedAt(booking: Doc<"bookings">) {
 	);
 }
 
+function toPublicBookingDownload({
+	booking: validatedBooking,
+	invoiceCreatedAt
+}: {
+	booking: Doc<"bookings">;
+	invoiceCreatedAt: number;
+}) {
+	return { booking: validatedBooking, downloadCreatedAt: invoiceCreatedAt };
+}
+
+function loadValidatedPublicBookingInvoice(booking: Doc<"bookings">) {
+	return validateBookingInvoiceDownload(booking, Date.now()).map(toPublicBookingDownload);
+}
+
+function resolvePublicBookingInvoiceDownload(booking: Doc<"bookings"> | null) {
+	return booking
+		? loadValidatedPublicBookingInvoice(booking)
+		: err({ reason: "BOOKING_NOT_FOUND" as const });
+}
+
+type BookingReceiptArtifactsValue = {
+	artifacts: {
+		data: Parameters<typeof renderBookingReceiptPdfInNode>[0];
+		pdf: { contentType: string; filename: string };
+	};
+};
+
+type BookingInvoiceArtifactsValue = {
+	artifacts: {
+		data: Parameters<typeof renderBookingInvoicePdfInNode>[0];
+		pdf: { contentType: string; filename: string };
+	};
+};
+
+function renderReceiptPdfPayloadFromArtifacts(value: BookingReceiptArtifactsValue) {
+	return renderBookingReceiptPdfInNode(value.artifacts.data).map(
+		toInvoicePdfPayloadFromArtifacts(value)
+	);
+}
+
+function toInvoicePdfPayloadFromArtifacts(value: {
+	artifacts: { pdf: Parameters<typeof toInvoicePdfPayload>[1] };
+}) {
+	return (pdfContent: Parameters<typeof toInvoicePdfPayload>[0]) =>
+		toInvoicePdfPayload(pdfContent, value.artifacts.pdf);
+}
+
+function renderInvoicePdfPayloadFromArtifacts(value: BookingInvoiceArtifactsValue) {
+	return renderBookingInvoicePdfInNode(value.artifacts.data).map(
+		toInvoicePdfPayloadFromArtifacts(value)
+	);
+}
+
+function validatePublicPackageReceiptDownload(packageRecord: Doc<"packages">) {
+	return validatePackageReceiptDownload(packageRecord, Date.now());
+}
+
+function adminBookingReceiptContextFromSession(booking: Doc<"bookings">) {
+	if (!isConfirmedBookingStatus(booking.status)) {
+		return err({ reason: "BOOKING_NOT_CONFIRMED" as const });
+	}
+
+	const receiptCreatedAt = getBookingReceiptCreatedAt(booking);
+
+	if (!receiptCreatedAt) {
+		return err({ reason: "BOOKING_NOT_CONFIRMED" as const });
+	}
+
+	return ok({ booking, receiptCreatedAt });
+}
+
+function adminPackageReceiptContextFromRecord(packageRecord: Doc<"packages">) {
+	const receiptCreatedAt = packageRecord.paidAt;
+
+	if (!isPaidPackageStatus(packageRecord.status) || !receiptCreatedAt) {
+		return err({ reason: "PACKAGE_NOT_PAID" as const });
+	}
+
+	return ok({ packageRecord, receiptCreatedAt });
+}
+
 export function loadBookingByStripeCheckoutSession(
 	ctx: ActionCtx,
 	stripeSessionId: string
@@ -91,15 +172,8 @@ export function loadPublicBookingInvoiceDownload(
 	| { reason: "BOOKING_NOT_CONFIRMED" }
 	| { reason: "INVOICE_DOWNLOAD_EXPIRED" }
 > {
-	return loadBookingByStripeCheckoutSession(ctx, stripeSessionId).andThen((booking) =>
-		booking
-			? validateBookingInvoiceDownload(booking, Date.now()).map(
-					({ booking: validatedBooking, invoiceCreatedAt }) => ({
-						booking: validatedBooking,
-						downloadCreatedAt: invoiceCreatedAt
-					})
-				)
-			: err({ reason: "BOOKING_NOT_FOUND" as const })
+	return loadBookingByStripeCheckoutSession(ctx, stripeSessionId).andThen(
+		resolvePublicBookingInvoiceDownload
 	);
 }
 
@@ -122,11 +196,7 @@ export function renderBookingReceiptPdfPayload(
 		return errAsync(artifactsResult.error);
 	}
 
-	return artifactsResult.asyncAndThen((value) =>
-		renderBookingReceiptPdfInNode(value.artifacts.data).map((pdfContent) =>
-			toInvoicePdfPayload(pdfContent, value.artifacts.pdf)
-		)
-	);
+	return artifactsResult.asyncAndThen(renderReceiptPdfPayloadFromArtifacts);
 }
 
 export function renderBookingInvoicePdfPayload(
@@ -142,11 +212,7 @@ export function renderBookingInvoicePdfPayload(
 		return errAsync(artifactsResult.error);
 	}
 
-	return artifactsResult.asyncAndThen((value) =>
-		renderBookingInvoicePdfInNode(value.artifacts.data).map((pdfContent) =>
-			toInvoicePdfPayload(pdfContent, value.artifacts.pdf)
-		)
-	);
+	return artifactsResult.asyncAndThen(renderInvoicePdfPayloadFromArtifacts);
 }
 
 export function loadPublicPackageReceiptDownload(
@@ -156,9 +222,7 @@ export function loadPublicPackageReceiptDownload(
 	{ packageRecord: Doc<"packages">; receiptCreatedAt: number },
 	PublicPackageReceiptPdfError
 > {
-	return getPackageForAction(ctx, packageId).andThen((packageRecord) =>
-		validatePackageReceiptDownload(packageRecord, Date.now())
-	);
+	return getPackageForAction(ctx, packageId).andThen(validatePublicPackageReceiptDownload);
 }
 
 export function renderPackageReceiptPdfPayload(
@@ -174,43 +238,19 @@ export function renderPackageReceiptPdfPayload(
 		return errAsync(artifactsResult.error);
 	}
 
-	return artifactsResult.asyncAndThen((value) =>
-		renderBookingReceiptPdfInNode(value.artifacts.data).map((pdfContent) =>
-			toInvoicePdfPayload(pdfContent, value.artifacts.pdf)
-		)
-	);
+	return artifactsResult.asyncAndThen(renderReceiptPdfPayloadFromArtifacts);
 }
 
 export function loadAdminBookingForReceiptPdf(
 	ctx: ActionCtx,
 	bookingId: Id<"bookings">
 ): ResultAsync<AdminBookingReceiptContext, AdminBookingReceiptPdfError> {
-	return getSessionFromQuery(ctx, bookingId).andThen((booking) => {
-		if (!isConfirmedBookingStatus(booking.status)) {
-			return err({ reason: "BOOKING_NOT_CONFIRMED" as const });
-		}
-
-		const receiptCreatedAt = getBookingReceiptCreatedAt(booking);
-
-		if (!receiptCreatedAt) {
-			return err({ reason: "BOOKING_NOT_CONFIRMED" as const });
-		}
-
-		return ok({ booking, receiptCreatedAt });
-	});
+	return getSessionFromQuery(ctx, bookingId).andThen(adminBookingReceiptContextFromSession);
 }
 
 export function loadAdminPackageForReceiptPdf(
 	ctx: ActionCtx,
 	packageId: Id<"packages">
 ): ResultAsync<AdminPackageReceiptContext, AdminPackageReceiptPdfError> {
-	return getPackageForAction(ctx, packageId).andThen((packageRecord) => {
-		const receiptCreatedAt = packageRecord.paidAt;
-
-		if (!isPaidPackageStatus(packageRecord.status) || !receiptCreatedAt) {
-			return err({ reason: "PACKAGE_NOT_PAID" as const });
-		}
-
-		return ok({ packageRecord, receiptCreatedAt });
-	});
+	return getPackageForAction(ctx, packageId).andThen(adminPackageReceiptContextFromRecord);
 }

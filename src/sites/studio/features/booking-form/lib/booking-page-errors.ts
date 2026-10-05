@@ -39,6 +39,9 @@ type StartCheckoutToastError =
 
 type CloseCheckoutToastError =
 	| NonNullable<FunctionReturnType<typeof api.stripe.closeEmbeddedCheckoutSession>[0]>
+	| NonNullable<
+			FunctionReturnType<typeof api.packagePayment.closeEmbeddedPackageCheckoutSession>[0]
+	  >
 	| UnexpectedError;
 
 type AvailabilityToastError =
@@ -84,6 +87,7 @@ export const createPackageToastMessages = {
 } satisfies Record<CreatePackageToastError["reason"], string>;
 
 export const closeCheckoutToastMessages = {
+	PACKAGE_NOT_FOUND: bookingPageErrorMessages.CLOSE_CHECKOUT_FAILED,
 	STRIPE_CHECKOUT_CLOSE_FAILED: bookingPageErrorMessages.STRIPE_CHECKOUT_CLOSE_FAILED,
 	STRIPE_SESSION_MISMATCH: bookingPageErrorMessages.STRIPE_SESSION_MISMATCH,
 	UNEXPECTED_ERROR: bookingPageErrorMessages.CLOSE_CHECKOUT_FAILED

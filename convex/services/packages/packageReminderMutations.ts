@@ -13,29 +13,53 @@ import {
 
 type PackageReminderArgs = { packageId: Doc<"packages">["_id"]; reminderType: PackageReminderType };
 
+function validatePackageReminderClaimForArgs(args: PackageReminderArgs) {
+	return (packageFromDb: Doc<"packages">) =>
+		validatePackageReminderClaim(packageFromDb, args.reminderType);
+}
+
+function patchPackageReminderClaimedForArgs(
+	ctx: MutationCtx,
+	args: PackageReminderArgs & { now: number }
+) {
+	return () => patchPackageReminderEmailClaimed(ctx, args);
+}
+
+function patchPackageReminderSentForArgs(
+	ctx: MutationCtx,
+	args: PackageReminderArgs & { now: number }
+) {
+	return () => patchPackageReminderEmailSent(ctx, args);
+}
+
+function patchPackageReminderFailedForArgs(
+	ctx: MutationCtx,
+	args: PackageReminderArgs & { failureCode: string }
+) {
+	return () => patchPackageReminderEmailFailed(ctx, args);
+}
+
 export function claimPackageReminderEmail(
 	ctx: MutationCtx,
 	args: PackageReminderArgs & { now: number }
 ) {
 	return getPackageFromDb(ctx, args.packageId)
-		.andThen((packageFromDb) => validatePackageReminderClaim(packageFromDb, args.reminderType))
-		.andThen(() => patchPackageReminderEmailClaimed(ctx, args));
+		.andThen(validatePackageReminderClaimForArgs(args))
+		.andThen(patchPackageReminderClaimedForArgs(ctx, args));
 }
 
 export function writePackageReminderEmailSent(
 	ctx: MutationCtx,
 	args: PackageReminderArgs & { now: number }
 ) {
-	return getPackageFromDb(ctx, args.packageId).andThen(() =>
-		patchPackageReminderEmailSent(ctx, args)
-	);
+	return getPackageFromDb(ctx, args.packageId).andThen(patchPackageReminderSentForArgs(ctx, args));
 }
 
 export function writePackageReminderEmailFailed(
 	ctx: MutationCtx,
 	args: PackageReminderArgs & { failureCode: string }
 ) {
-	return getPackageFromDb(ctx, args.packageId).andThen(() =>
-		patchPackageReminderEmailFailed(ctx, args)
+	return getPackageFromDb(ctx, args.packageId).andThen(
+		patchPackageReminderFailedForArgs(ctx, args)
 	);
 }

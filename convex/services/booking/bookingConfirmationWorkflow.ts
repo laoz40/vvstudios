@@ -18,38 +18,119 @@ import { exhaustiveCheck } from "#/lib/result";
 import { sendBookingReceiptEmailsForBooking } from "#convex/services/booking/bookingReceiptEmails";
 import { sendSessionReminderEmail } from "#convex/services/email/bookingCustomerEmails";
 
-function getReminderRescheduleUrl(ctx: ActionCtx, session: Doc<"bookings">) {
+function sendReminderEmailForSessionWindow(
+	session: Doc<"bookings">,
+	timeZone: string,
+	startDateTime: string
+) {
+	return (rescheduleUrl: string | undefined) =>
+		sendSessionReminderEmail({
+			name: session.name,
+			email: session.email,
+			date: session.date,
+			startDateTime,
+			time: session.time,
+			timeZone,
+			service: session.service,
+			duration: session.duration,
+			addons: session.addons,
+			rescheduleUrl,
+			isPackageSession: session.packageId !== undefined,
+			...pickBookingAddonQuantities(session)
+		});
+}
+
+function sendReminderAfterEventWindow(
+	ctx: ActionCtx,
+	session: Doc<"bookings">,
+	timeZone: string,
+	startDateTime: string
+) {
 	if (session.packageId !== undefined) {
-		return okAsync<string | undefined>(undefined);
+		return sendReminderEmailForSessionWindow(session, timeZone, startDateTime)(undefined);
 	}
 
-	return createRescheduleUrlForSession(ctx, session).map(
-		(rescheduleUrl): string | undefined => rescheduleUrl
+	return createRescheduleUrlForSession(ctx, session).andThen(
+		sendReminderEmailForSessionWindow(session, timeZone, startDateTime)
 	);
+}
+
+function sendReminderAfterRescheduleUrl(
+	ctx: ActionCtx,
+	session: Doc<"bookings">,
+	timeZone: string
+) {
+	return ({ startDateTime }: { startDateTime: string }) =>
+		sendReminderAfterEventWindow(ctx, session, timeZone, startDateTime);
 }
 
 export function sendBookingReminderEmailForSession(ctx: ActionCtx, session: Doc<"bookings">) {
 	const { timeZone } = getGoogleCalendarClient();
 
 	return buildEventWindow(session.date, session.time, session.duration, timeZone).asyncAndThen(
-		({ startDateTime }) =>
-			getReminderRescheduleUrl(ctx, session).andThen((rescheduleUrl) =>
-				sendSessionReminderEmail({
-					name: session.name,
-					email: session.email,
-					date: session.date,
-					startDateTime,
-					time: session.time,
-					timeZone,
-					service: session.service,
-					duration: session.duration,
-					addons: session.addons,
-					rescheduleUrl,
-					isPackageSession: session.packageId !== undefined,
-					...pickBookingAddonQuantities(session)
-				})
-			)
+		sendReminderAfterRescheduleUrl(ctx, session, timeZone)
 	);
+}
+
+function confirmedBookingSaved() {
+	return true;
+}
+
+function handleSaveConfirmedBookingFailure(
+	_ctx: ActionCtx,
+	session: Doc<"bookings">,
+	googleEventId: string | undefined,
+	calendarClient: ReturnType<typeof getGoogleCalendarClient>
+) {
+	return (
+		error:
+			| { reason: "BOOKING_NOT_FOUND" }
+			| { reason: "BOOKING_RESERVATION_MISMATCH" }
+			| { reason: "BOOKING_INVALID_DURATION" }
+	) => {
+		const reason = error.reason;
+
+		switch (reason) {
+			case "BOOKING_NOT_FOUND":
+				console.error("Booking disappeared before confirmation completed", {
+					bookingId: session._id
+				});
+				break;
+			case "BOOKING_RESERVATION_MISMATCH":
+				console.error("Booking reservation changed before confirmation completed", {
+					bookingId: session._id
+				});
+				break;
+			case "BOOKING_INVALID_DURATION":
+				console.error("Booking duration was invalid before Drive setup could be scheduled", {
+					bookingId: session._id
+				});
+				break;
+			default:
+				exhaustiveCheck(reason);
+		}
+
+		if (!googleEventId) {
+			return okAsync(false);
+		}
+
+		return removeOrphanedSessionCalendarEvent({
+			bookingId: session._id,
+			calendar: calendarClient.calendar,
+			calendarId: calendarClient.calendarId,
+			googleEventId
+		})
+			.map(orphanedCalendarEventRemoved)
+			.orElse(saveConfirmedBookingOrphanCleanupFailed);
+	};
+}
+
+function orphanedCalendarEventRemoved() {
+	return false;
+}
+
+function saveConfirmedBookingOrphanCleanupFailed() {
+	return okAsync(false);
 }
 
 export function saveConfirmedBooking(
@@ -67,50 +148,23 @@ export function saveConfirmedBooking(
 			reservation
 		})
 	)
-		.map(() => true)
-		.orElse(
-			(
-				error:
-					| { reason: "BOOKING_NOT_FOUND" }
-					| { reason: "BOOKING_RESERVATION_MISMATCH" }
-					| { reason: "BOOKING_INVALID_DURATION" }
-			) => {
-				const reason = error.reason;
+		.map(confirmedBookingSaved)
+		.orElse(handleSaveConfirmedBookingFailure(ctx, session, googleEventId, calendarClient));
+}
 
-				switch (reason) {
-					case "BOOKING_NOT_FOUND":
-						console.error("Booking disappeared before confirmation completed", {
-							bookingId: session._id
-						});
-						break;
-					case "BOOKING_RESERVATION_MISMATCH":
-						console.error("Booking reservation changed before confirmation completed", {
-							bookingId: session._id
-						});
-						break;
-					case "BOOKING_INVALID_DURATION":
-						console.error("Booking duration was invalid before Drive setup could be scheduled", {
-							bookingId: session._id
-						});
-						break;
-					default:
-						exhaustiveCheck(reason);
-				}
+function invoiceEmailFailureRecorded() {
+	return null;
+}
 
-				if (!googleEventId) {
-					return okAsync(false);
-				}
+function logInvoiceEmailFailureMarkFailed(bookingId: Id<"bookings">) {
+	return (markFailedError: { reason: string }) => {
+		console.error("Failed to record booking invoice email failure", {
+			bookingId,
+			reason: markFailedError.reason
+		});
 
-				return removeOrphanedSessionCalendarEvent({
-					bookingId: session._id,
-					calendar: calendarClient.calendar,
-					calendarId: calendarClient.calendarId,
-					googleEventId
-				})
-					.map(() => false)
-					.orElse(() => okAsync(false));
-			}
-		);
+		return okAsync(null);
+	};
 }
 
 function recordInvoiceEmailFailure(
@@ -122,14 +176,62 @@ function recordInvoiceEmailFailure(
 	return fromConvexTuple(
 		ctx.runMutation(internal.bookingConfirmation.markSessionInvoiceEmailFailed, { bookingId })
 	)
-		.map(() => null)
-		.orElse((markFailedError) => {
-			console.error("Failed to record booking invoice email failure", {
-				bookingId,
-				reason: markFailedError.reason
-			});
+		.map(invoiceEmailFailureRecorded)
+		.orElse(logInvoiceEmailFailureMarkFailed(bookingId));
+}
 
-			return okAsync(null);
+function recordReceiptNumberAfterEmail(ctx: ActionCtx, bookingId: Id<"bookings">) {
+	return ({ receiptNumber }: { receiptNumber: string }) =>
+		fromConvexTuple(
+			ctx.runMutation(internal.bookingConfirmation.recordBookingReceiptNumber, {
+				bookingId,
+				receiptNumber
+			})
+		)
+			.map(invoiceEmailFailureRecorded)
+			.orElse(logReceiptNumberRecordFailure(bookingId));
+}
+
+function logReceiptNumberRecordFailure(bookingId: Id<"bookings">) {
+	return (recordReceiptError: { reason: string }) => {
+		console.error("Failed to store booking receipt number after email send", {
+			bookingId,
+			reason: recordReceiptError.reason
+		});
+
+		return okAsync(null);
+	};
+}
+
+function sendInvoiceEmailsWithRescheduleUrl(
+	ctx: ActionCtx,
+	session: Doc<"bookings">,
+	settings: SessionAvailabilitySettings
+) {
+	return (rescheduleUrl: string) =>
+		sendBookingReceiptEmailsForBooking(session, {
+			leadTimeMinutes: settings.leadTimeMinutes,
+			rescheduleUrl
+		})
+			.andThen(recordReceiptNumberAfterEmail(ctx, session._id))
+			.orElse(sendInvoiceEmailFailure(ctx, session));
+}
+
+function sendInvoiceEmailFailure(ctx: ActionCtx, session: Doc<"bookings">) {
+	return (error: { reason: string }) =>
+		recordInvoiceEmailFailure(ctx, {
+			bookingId: session._id,
+			message: "Booking invoice email failed during booking confirmation",
+			reason: error.reason
+		});
+}
+
+function sendInvoiceWithRescheduleLinkFailure(ctx: ActionCtx, session: Doc<"bookings">) {
+	return (error: { reason: string }) =>
+		recordInvoiceEmailFailure(ctx, {
+			bookingId: session._id,
+			message: "Booking invoice reschedule link create failed",
+			reason: error.reason
 		});
 }
 
@@ -139,41 +241,6 @@ export function sendConfirmedBookingInvoice(
 	settings: SessionAvailabilitySettings
 ): ResultAsync<null, never> {
 	return createRescheduleUrlForSession(ctx, session)
-		.andThen((rescheduleUrl) =>
-			sendBookingReceiptEmailsForBooking(session, {
-				leadTimeMinutes: settings.leadTimeMinutes,
-				rescheduleUrl
-			})
-				.andThen((emailResult) =>
-					fromConvexTuple(
-						ctx.runMutation(internal.bookingConfirmation.recordBookingReceiptNumber, {
-							bookingId: session._id,
-							receiptNumber: emailResult.receiptNumber
-						})
-					)
-						.map(() => null)
-						.orElse((recordReceiptError) => {
-							console.error("Failed to store booking receipt number after email send", {
-								bookingId: session._id,
-								reason: recordReceiptError.reason
-							});
-
-							return okAsync(null);
-						})
-				)
-				.orElse((error) =>
-					recordInvoiceEmailFailure(ctx, {
-						bookingId: session._id,
-						message: "Booking invoice email failed during booking confirmation",
-						reason: error.reason
-					})
-				)
-		)
-		.orElse((error) =>
-			recordInvoiceEmailFailure(ctx, {
-				bookingId: session._id,
-				message: "Booking invoice reschedule link create failed",
-				reason: error.reason
-			})
-		);
+		.andThen(sendInvoiceEmailsWithRescheduleUrl(ctx, session, settings))
+		.orElse(sendInvoiceWithRescheduleLinkFailure(ctx, session));
 }

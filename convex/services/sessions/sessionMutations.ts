@@ -1,4 +1,5 @@
-import type { Id } from "#convex/_generated/dataModel";
+import type { UserIdentity } from "convex/server";
+import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { MutationCtx } from "#convex/_generated/server";
 import { setBookingArchived } from "#convex/lib/archiveState";
 import { updateSessionEditorAssignment } from "#convex/services/sessions/sessionEditorAssignment";
@@ -20,13 +21,79 @@ import {
 	writeSessionInstagramHandle
 } from "#convex/services/sessions/sessions";
 
+type DeliverablesAccess = { identity: UserIdentity; session: Doc<"bookings"> };
+
+function writeInstagramHandleStep(ctx: MutationCtx, instagramHandle: string) {
+	return (session: Doc<"bookings">) => writeSessionInstagramHandle(ctx, session, instagramHandle);
+}
+
+function loadSessionAfterPermissionStep(ctx: MutationCtx, bookingId: Id<"bookings">) {
+	return () => getSessionFromDb(ctx, bookingId);
+}
+
+function assignEditorStep(
+	ctx: MutationCtx,
+	editorTokenIdentifier: string | null,
+	adminNotes: string
+) {
+	return (session: Doc<"bookings">) =>
+		updateSessionEditorAssignment(ctx, session, editorTokenIdentifier, adminNotes);
+}
+
+function setArchivedStep(ctx: MutationCtx, bookingId: Id<"bookings">, archived: boolean) {
+	return () => setBookingArchived(ctx, bookingId, archived);
+}
+
+function saveAdminNotesStep(ctx: MutationCtx, adminNotes: string) {
+	return (session: Doc<"bookings">) => saveSessionAdminNotes(ctx, session, adminNotes);
+}
+
+function pairIdentityWithSessionStep(identity: UserIdentity) {
+	return (session: Doc<"bookings">) => ({ identity, session });
+}
+
+function loadDeliverablesAccessStep(ctx: MutationCtx, bookingId: Id<"bookings">) {
+	return (identity: UserIdentity) =>
+		getSessionFromDb(ctx, bookingId).map(pairIdentityWithSessionStep(identity));
+}
+
+function retainValueStep<T>(value: T) {
+	return () => value;
+}
+
+function retainDeliverablesAccessStep(access: DeliverablesAccess) {
+	return requireDeliverablesEligibility(access).map(retainValueStep(access));
+}
+
+function saveEditorNotesFromAccessStep(ctx: MutationCtx, editorNotes: string) {
+	return ({ session }: DeliverablesAccess) => saveSessionEditorNotes(ctx, session, editorNotes);
+}
+
+function writeEditStatusFromAccessStep(
+	ctx: MutationCtx,
+	editStatus: "to_edit" | "editing" | "review" | "completed"
+) {
+	return (access: DeliverablesAccess) =>
+		writeSessionEditStatusWithHostNotification(ctx, access, editStatus);
+}
+
+function archiveCancelledSessionStep(ctx: MutationCtx, bookingId: Id<"bookings">) {
+	return () =>
+		archiveDeadCheckoutBooking(ctx, bookingId, {
+			bookingFailureCode: undefined,
+			googleCalendarId: undefined,
+			googleEventId: undefined,
+			status: "cancelled"
+		});
+}
+
 export function saveSessionInstagramHandleByStripeSessionId(
 	ctx: MutationCtx,
 	args: { stripeSessionId: string; instagramHandle: string }
 ) {
 	return getSessionByStripeSessionId(ctx, args.stripeSessionId)
 		.andThen(requireConfirmedBookingSession)
-		.andThen((session) => writeSessionInstagramHandle(ctx, session, args.instagramHandle));
+		.andThen(writeInstagramHandleStep(ctx, args.instagramHandle));
 }
 
 export function assignSessionEditorFromAdmin(
@@ -34,10 +101,8 @@ export function assignSessionEditorFromAdmin(
 	args: { bookingId: Id<"bookings">; editorTokenIdentifier: string | null; adminNotes: string }
 ) {
 	return requirePermission(ctx, "assign:session-editor")
-		.andThen(() => getSessionFromDb(ctx, args.bookingId))
-		.andThen((session) =>
-			updateSessionEditorAssignment(ctx, session, args.editorTokenIdentifier, args.adminNotes)
-		);
+		.andThen(loadSessionAfterPermissionStep(ctx, args.bookingId))
+		.andThen(assignEditorStep(ctx, args.editorTokenIdentifier, args.adminNotes));
 }
 
 export function archiveSessionFromAdmin(
@@ -45,8 +110,8 @@ export function archiveSessionFromAdmin(
 	args: { bookingId: Id<"bookings">; archived: boolean }
 ) {
 	return requirePermission(ctx, "archive:sessions")
-		.andThen(() => getSessionFromDb(ctx, args.bookingId))
-		.andThen(() => setBookingArchived(ctx, args.bookingId, args.archived));
+		.andThen(loadSessionAfterPermissionStep(ctx, args.bookingId))
+		.andThen(setArchivedStep(ctx, args.bookingId, args.archived));
 }
 
 export function writeSessionAdminNotesFromAdmin(
@@ -54,8 +119,8 @@ export function writeSessionAdminNotesFromAdmin(
 	args: { bookingId: Id<"bookings">; adminNotes: string }
 ) {
 	return requirePermission(ctx, "assign:session-editor")
-		.andThen(() => getSessionFromDb(ctx, args.bookingId))
-		.andThen((session) => saveSessionAdminNotes(ctx, session, args.adminNotes));
+		.andThen(loadSessionAfterPermissionStep(ctx, args.bookingId))
+		.andThen(saveAdminNotesStep(ctx, args.adminNotes));
 }
 
 export function writeSessionEditorNotesFromEditor(
@@ -63,11 +128,9 @@ export function writeSessionEditorNotesFromEditor(
 	args: { bookingId: Id<"bookings">; editorNotes: string }
 ) {
 	return requirePermission(ctx, "update:deliverables")
-		.andThen((identity) =>
-			getSessionFromDb(ctx, args.bookingId).map((session) => ({ identity, session }))
-		)
+		.andThen(loadDeliverablesAccessStep(ctx, args.bookingId))
 		.andThen(requireDeliverablesOwnership)
-		.andThen(({ session }) => saveSessionEditorNotes(ctx, session, args.editorNotes));
+		.andThen(saveEditorNotesFromAccessStep(ctx, args.editorNotes));
 }
 
 export function writeSessionEditStatusFromEditor(
@@ -75,24 +138,15 @@ export function writeSessionEditStatusFromEditor(
 	args: { bookingId: Id<"bookings">; editStatus: "to_edit" | "editing" | "review" | "completed" }
 ) {
 	return requirePermission(ctx, "update:deliverables")
-		.andThen((identity) =>
-			getSessionFromDb(ctx, args.bookingId).map((session) => ({ identity, session }))
-		)
+		.andThen(loadDeliverablesAccessStep(ctx, args.bookingId))
 		.andThen(requireDeliverablesOwnership)
-		.andThen((access) => requireDeliverablesEligibility(access).map(() => access))
-		.andThen((access) => writeSessionEditStatusWithHostNotification(ctx, access, args.editStatus));
+		.andThen(retainDeliverablesAccessStep)
+		.andThen(writeEditStatusFromAccessStep(ctx, args.editStatus));
 }
 
 export function cancelSessionAfterCalendarEventDeleted(
 	ctx: MutationCtx,
 	bookingId: Id<"bookings">
 ) {
-	return getSessionFromDb(ctx, bookingId).andThen(() =>
-		archiveDeadCheckoutBooking(ctx, bookingId, {
-			bookingFailureCode: undefined,
-			googleCalendarId: undefined,
-			googleEventId: undefined,
-			status: "cancelled"
-		})
-	);
+	return getSessionFromDb(ctx, bookingId).andThen(archiveCancelledSessionStep(ctx, bookingId));
 }

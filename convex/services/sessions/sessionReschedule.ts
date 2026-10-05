@@ -35,6 +35,10 @@ export interface ValidRescheduleLinkAndSession {
 	link: Doc<"bookingRescheduleLinks">;
 }
 
+function rescheduleUrlFromLinkStep(link: { token: string }) {
+	return { rescheduleUrl: getRescheduleUrlForToken(link.token) };
+}
+
 export function issueRescheduleLink(
 	ctx: MutationCtx,
 	session: Doc<"bookings">
@@ -44,7 +48,7 @@ export function issueRescheduleLink(
 		session,
 		expiresAt: session.sessionStartAt,
 		now: Date.now()
-	}).map((link) => ({ rescheduleUrl: getRescheduleUrlForToken(link.token) }));
+	}).map(rescheduleUrlFromLinkStep);
 }
 
 export function loadPublicFailedSessionByStripeId(ctx: MutationCtx, stripeSessionId: string) {
@@ -53,20 +57,33 @@ export function loadPublicFailedSessionByStripeId(ctx: MutationCtx, stripeSessio
 	);
 }
 
+function createRescheduleLinkForSessionStep(
+	ctx: MutationCtx,
+	args: { expiresAt: number; now: number }
+) {
+	return (session: Doc<"bookings">) =>
+		createActiveRescheduleLinkForSession({
+			session,
+			ctx,
+			expiresAt: args.expiresAt,
+			now: args.now
+		});
+}
+
 export function writeActiveRescheduleLinkForBooking(
 	ctx: MutationCtx,
 	args: { bookingId: Id<"bookings">; expiresAt: number; now: number }
 ) {
-	return getSessionFromDb(ctx, args.bookingId).andThen((session) =>
-		createActiveRescheduleLinkForSession({ session, ctx, expiresAt: args.expiresAt, now: args.now })
+	return getSessionFromDb(ctx, args.bookingId).andThen(
+		createRescheduleLinkForSessionStep(ctx, args)
 	);
 }
 
-export function markActiveRescheduleLinksUsedForBooking(
+function markActiveLinksUsedStep(
 	ctx: MutationCtx,
 	args: { bookingId: Id<"bookings">; now: number }
 ) {
-	return getSessionFromDb(ctx, args.bookingId).andThen(() =>
+	return () =>
 		tryPromise({
 			try: () =>
 				markExistingActiveSessionRescheduleLinksUsed({
@@ -75,8 +92,59 @@ export function markActiveRescheduleLinksUsedForBooking(
 					now: args.now
 				}).then(() => null),
 			catch: () => ({ reason: "RESCHEDULE_LINK_UPDATE_FAILED" as const })
-		})
-	);
+		});
+}
+
+export function markActiveRescheduleLinksUsedForBooking(
+	ctx: MutationCtx,
+	args: { bookingId: Id<"bookings">; now: number }
+) {
+	return getSessionFromDb(ctx, args.bookingId).andThen(markActiveLinksUsedStep(ctx, args));
+}
+
+function requireUsableRescheduleLink(link: Doc<"bookingRescheduleLinks"> | null) {
+	if (link === null) return err({ reason: "RESCHEDULE_LINK_NOT_FOUND" as const });
+
+	if (link.status === "used") return err({ reason: "RESCHEDULE_LINK_USED" as const });
+
+	if (link.status === "expired") return err({ reason: "RESCHEDULE_LINK_EXPIRED" as const });
+
+	return ok(link);
+}
+
+function pairLinkWithBookingRowStep(link: Doc<"bookingRescheduleLinks">) {
+	return (session: Doc<"bookings"> | null) => ({ link, session });
+}
+
+function pairLinkWithSessionFromRowStep(ctx: QueryCtx) {
+	return (link: Doc<"bookingRescheduleLinks">) =>
+		getBookingRow(ctx, link.bookingId).map(pairLinkWithBookingRowStep(link));
+}
+
+function lookupRescheduleLinkByTokenHashStep(ctx: QueryCtx) {
+	return (tokenHash: string) => lookupRescheduleLinkByTokenHash(ctx, tokenHash);
+}
+
+function validateRescheduleLinkSessionStep(args: { now: number }) {
+	return ({
+		link,
+		session
+	}: {
+		link: Doc<"bookingRescheduleLinks">;
+		session: Doc<"bookings"> | null;
+	}) => {
+		if (session === null) return err({ reason: "BOOKING_NOT_FOUND" as const });
+
+		if (isRescheduleLinkExpired(link, session, args.now)) {
+			return err({ reason: "RESCHEDULE_LINK_EXPIRED" as const });
+		}
+
+		if (!isSessionReschedulable(session)) {
+			return err({ reason: "BOOKING_NOT_RESCHEDULABLE" as const });
+		}
+
+		return ok({ session, link });
+	};
 }
 
 export function loadValidRescheduleLinkAndSession(
@@ -84,37 +152,32 @@ export function loadValidRescheduleLinkAndSession(
 	args: { now: number; token: string }
 ): NeverthrowResultAsync<ValidRescheduleLinkAndSession, RescheduleLinkLookupError> {
 	return hashRescheduleTokenAsync(args.token)
-		.andThen((tokenHash) => lookupRescheduleLinkByTokenHash(ctx, tokenHash))
-		.andThen((link) => {
-			if (link === null) return err({ reason: "RESCHEDULE_LINK_NOT_FOUND" as const });
+		.andThen(lookupRescheduleLinkByTokenHashStep(ctx))
+		.andThen(requireUsableRescheduleLink)
+		.andThen(pairLinkWithSessionFromRowStep(ctx))
+		.andThen(validateRescheduleLinkSessionStep(args));
+}
 
-			if (link.status === "used") return err({ reason: "RESCHEDULE_LINK_USED" as const });
+function loadSessionForAdminRescheduleStep(ctx: MutationCtx, bookingId: Id<"bookings">) {
+	return () => getSessionFromDb(ctx, bookingId);
+}
 
-			if (link.status === "expired") return err({ reason: "RESCHEDULE_LINK_EXPIRED" as const });
-
-			return ok(link);
-		})
-		.andThen((link) => getBookingRow(ctx, link.bookingId).map((session) => ({ link, session })))
-		.andThen(({ link, session }) => {
-			if (session === null) return err({ reason: "BOOKING_NOT_FOUND" as const });
-
-			if (isRescheduleLinkExpired(link, session, args.now)) {
-				return err({ reason: "RESCHEDULE_LINK_EXPIRED" as const });
-			}
-
-			if (!isSessionReschedulable(session)) {
-				return err({ reason: "BOOKING_NOT_RESCHEDULABLE" as const });
-			}
-
-			return ok({ session, link });
-		});
+function issueRescheduleLinkForSessionStep(ctx: MutationCtx) {
+	return (session: Doc<"bookings">) => issueRescheduleLink(ctx, session);
 }
 
 export function writeAdminRescheduleLink(ctx: MutationCtx, args: { bookingId: Id<"bookings"> }) {
 	return requirePermission(ctx, "create:reschedule-links")
-		.andThen(() => getSessionFromDb(ctx, args.bookingId))
+		.andThen(loadSessionForAdminRescheduleStep(ctx, args.bookingId))
 		.andThen(validateAdminSessionForReschedule)
-		.andThen((session) => issueRescheduleLink(ctx, session));
+		.andThen(issueRescheduleLinkForSessionStep(ctx));
+}
+
+function markRescheduleLinkUsedStep(
+	ctx: MutationCtx,
+	args: { linkId: Doc<"bookingRescheduleLinks">["_id"]; now: number }
+) {
+	return () => patchRescheduleLinkRow(ctx, args.linkId, { status: "used", usedAt: args.now });
 }
 
 export function lockRescheduleLinkAt(
@@ -123,7 +186,7 @@ export function lockRescheduleLinkAt(
 ) {
 	return getRescheduleLinkRow(ctx, args.linkId)
 		.andThen(validateActiveRescheduleLink)
-		.andThen(() => patchRescheduleLinkRow(ctx, args.linkId, { status: "used", usedAt: args.now }));
+		.andThen(markRescheduleLinkUsedStep(ctx, args));
 }
 
 type UnlockRescheduleLinkError =
@@ -132,11 +195,11 @@ type UnlockRescheduleLinkError =
 
 type UnlockRescheduleLinkPatch = { status: "active"; usedAt: undefined; expiresAt?: number };
 
-export function reopenRescheduleLink(
+function unlockRescheduleLinkIfLockedStep(
 	ctx: MutationCtx,
 	args: { linkId: Doc<"bookingRescheduleLinks">["_id"]; lockedAt: number; expiresAt?: number }
 ) {
-	return getRescheduleLinkRow(ctx, args.linkId).andThen((link) => {
+	return (link: Doc<"bookingRescheduleLinks"> | null) => {
 		if (link === null) {
 			return err<never, UnlockRescheduleLinkError>({ reason: "RESCHEDULE_LINK_NOT_FOUND" });
 		}
@@ -154,5 +217,14 @@ export function reopenRescheduleLink(
 		}
 
 		return patchRescheduleLinkRow(ctx, args.linkId, patch);
-	});
+	};
+}
+
+export function reopenRescheduleLink(
+	ctx: MutationCtx,
+	args: { linkId: Doc<"bookingRescheduleLinks">["_id"]; lockedAt: number; expiresAt?: number }
+) {
+	return getRescheduleLinkRow(ctx, args.linkId).andThen(
+		unlockRescheduleLinkIfLockedStep(ctx, args)
+	);
 }

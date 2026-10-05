@@ -1,4 +1,7 @@
+import type { ResultAsync } from "neverthrow";
 import { z } from "zod";
+
+import { tryPromise } from "#convex/lib/result";
 
 export type CalendarFallbackCode =
 	| "GOOGLE_CALENDAR_AVAILABILITY_FAILED"
@@ -23,6 +26,33 @@ export const calendarErrorSchema = z.object({
 });
 
 export type CalendarApiError = z.infer<typeof calendarErrorSchema>;
+
+export type GoogleCalendarAvailabilityError = {
+	reason: GoogleCalendarErrorCode<"GOOGLE_CALENDAR_AVAILABILITY_FAILED">;
+};
+
+export function googleCalendarAvailabilityErrorFromCause(
+	cause: CalendarApiError
+): GoogleCalendarAvailabilityError {
+	return {
+		reason: mapCalendarErrorCode(cause, "GOOGLE_CALENDAR_AVAILABILITY_FAILED")
+	} satisfies GoogleCalendarAvailabilityError;
+}
+
+export function tryGoogleCalendarAvailability<T>(
+	tryFn: () => Promise<T>
+): ResultAsync<T, GoogleCalendarAvailabilityError> {
+	return tryPromise({
+		try: tryFn,
+		catch: (cause) => {
+			const parsedError = calendarErrorSchema.safeParse(cause);
+
+			return parsedError.success
+				? googleCalendarAvailabilityErrorFromCause(parsedError.data)
+				: { reason: "GOOGLE_CALENDAR_AVAILABILITY_FAILED" };
+		}
+	});
+}
 
 export function mapCalendarErrorCode<T extends CalendarFallbackCode>(
 	error: CalendarApiError,

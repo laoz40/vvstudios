@@ -15,10 +15,7 @@ import {
 } from "#convex/services/googleCalendar/sessionCalendarAvailability";
 import { getBookingSettingsService } from "#convex/services/booking/bookingSettings";
 import {
-	type RescheduleSessionError,
-	type UpdateSessionFromAdminError
-} from "#convex/services/googleCalendar/sessionCalendar";
-import {
+	attachAdminUpdateContext,
 	requireEditSessionsPermissionAndLoadBooking,
 	loadAdminSessionEditDeps,
 	notifyHostIfNeeded,
@@ -32,6 +29,7 @@ import {
 	markBookingSessionCalendarDeleted
 } from "#convex/services/googleCalendar/cancelBookingFromAdmin";
 import {
+	attachCalendarClientToLockState,
 	finishReschedule,
 	loadRescheduleTargetAndValidate,
 	lockAndReserve,
@@ -43,7 +41,6 @@ import {
 	bookingAddonQuantitiesValidator,
 	bookingAddonsValidator
 } from "#convex/services/booking/bookingFormValidators";
-import type { AdminSessionUpdateResult } from "#convex/services/googleCalendar/sessionAdminUpdate";
 import {
 	createSessionDriveFoldersAndCompleteSetup,
 	runScheduledSessionDriveFolderSetup,
@@ -67,7 +64,6 @@ import {
 	type CompleteClaimedSessionError
 } from "#convex/services/booking/bookingClaimedSession";
 import type { CompleteClaimedSessionSuccess } from "#convex/services/booking/bookingConfirmation";
-import type { Id } from "#convex/_generated/dataModel";
 import { clearCancelledSessionDriveFields } from "#convex/services/drive/cleanupCancelledSessionDrive";
 
 export const setupDrive = action({
@@ -175,21 +171,12 @@ export const getAvailableRescheduleTimes = action({
 
 export const rescheduleSession = action({
 	args: { token: v.string(), date: v.string(), time: v.string() },
-	handler: (
-		ctx,
-		args
-	): Promise<
-		Result<
-			{ bookingId: Id<"bookings">; warning?: "RESCHEDULE_EMAIL_SEND_FAILED" },
-			RescheduleSessionError
-		>
-	> =>
+	handler: (ctx, args) =>
 		loadRescheduleTargetAndValidate(ctx, args)
 			.andThen(({ calendarClient, details, sessionStartAt, settings }) =>
-				lockAndReserve(ctx, details, sessionStartAt, settings).map((state) => ({
-					calendarClient,
-					state
-				}))
+				lockAndReserve(ctx, details, sessionStartAt, settings).map(
+					attachCalendarClientToLockState(calendarClient)
+				)
 			)
 			.andThen(({ calendarClient, state }) => syncCalendar(ctx, args, state, calendarClient))
 			.andThen((state) => saveClientRescheduleAndUnlockLink(ctx, args, state))
@@ -215,12 +202,12 @@ export const updateSessionFromAdmin = action({
 		...bookingAddonQuantitiesValidator,
 		notes: v.optional(v.string())
 	},
-	handler: (ctx, args): Promise<Result<AdminSessionUpdateResult, UpdateSessionFromAdminError>> =>
+	handler: (ctx, args) =>
 		requireEditSessionsPermissionAndLoadBooking(ctx, args.bookingId)
 			.andThen((session) => loadAdminSessionEditDeps(ctx).map((deps) => ({ session, ...deps })))
 			.andThen(({ client, session, settings }) =>
 				syncAdminBookingGoogleCalendarAndDb({ args, session, client, ctx, settings }).map(
-					(result) => ({ result, session, settings })
+					attachAdminUpdateContext(session, settings)
 				)
 			)
 			.andThen(({ result, session, settings }) =>

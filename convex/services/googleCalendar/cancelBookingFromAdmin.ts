@@ -17,10 +17,21 @@ export function requireCancelSessionsPermission(ctx: ActionCtx) {
 	return requirePermissionActions(ctx, "cancel:sessions");
 }
 
-export function loadAdminCancelSession(ctx: ActionCtx, bookingId: Id<"bookings">) {
-	return getSessionFromQuery(ctx, bookingId).andThen((session) =>
-		loadGoogleCalendarClient("GOOGLE_CALENDAR_DELETE_FAILED").map((client) => ({ client, session }))
+function adminCancelCalendarClientWithSessionStep(session: Doc<"bookings">) {
+	return (client: Parameters<typeof deleteSessionCalendarEvent>[0]["client"]) => ({
+		client,
+		session
+	});
+}
+
+function adminCancelCalendarClientWithSession(session: Doc<"bookings">) {
+	return loadGoogleCalendarClient("GOOGLE_CALENDAR_DELETE_FAILED").map(
+		adminCancelCalendarClientWithSessionStep(session)
 	);
+}
+
+export function loadAdminCancelSession(ctx: ActionCtx, bookingId: Id<"bookings">) {
+	return getSessionFromQuery(ctx, bookingId).andThen(adminCancelCalendarClientWithSession);
 }
 
 export function deleteAdminBookingCalendarEvent({
@@ -39,10 +50,12 @@ export function markBookingSessionCalendarDeleted(ctx: ActionCtx, bookingId: Id<
 	);
 }
 
+function adminCancelCleanupResult() {
+	return { cancelled: true as const };
+}
+
 export function cleanupAdminCancelledBookingDrive(ctx: ActionCtx, bookingId: Id<"bookings">) {
-	return clearCancelledSessionDriveFields(ctx, { bookingId }).map(() => ({
-		cancelled: true as const
-	}));
+	return clearCancelledSessionDriveFields(ctx, { bookingId }).map(adminCancelCleanupResult);
 }
 
 export type { CancelBookingFromAdminError };

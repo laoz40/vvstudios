@@ -19,7 +19,11 @@ import {
 	patchBookingStripeConfirmationClaim,
 	patchPendingBookingConfirmationFailed
 } from "#convex/lib/booking/bookingConfirmationSessionPatches";
-import { searchBlobPatchForBookingAsync } from "#convex/lib/adminSearch/adminSearchBlob";
+import {
+	searchBlobPatchForBookingAsync,
+	type BookingSearchBlobPatch
+} from "#convex/lib/adminSearch/adminSearchBlob";
+import type { ConfirmedBookingDatabasePatch } from "#convex/lib/booking/bookingConfirmationSave";
 import {
 	bookingReceiptPaidAt,
 	resolveBookingReceiptNumber
@@ -60,13 +64,147 @@ function buildClaimedBookingSession(session: Doc<"bookings">) {
 	};
 }
 
+function loadSessionForClaimBookingId(ctx: MutationCtx) {
+	return (bookingId: Id<"bookings">) => getSessionFromDb(ctx, bookingId);
+}
+
+function validateClaimForStripeSession(args: ClaimBookingConfirmationArgs) {
+	return (session: Doc<"bookings">) => validateClaimStripeSession(session, args.stripeSessionId);
+}
+
+function writeStandaloneReceiptIfEligible(ctx: MutationCtx, args: { bookingId: Id<"bookings"> }) {
+	return (session: Doc<"bookings">) => {
+		if (session.packageId !== undefined || session.receiptNumber) {
+			return ok(null);
+		}
+
+		if (session.status !== "confirmed" && session.status !== "email_failed") {
+			return ok(null);
+		}
+
+		const receiptNumber = resolveBookingReceiptNumber(
+			session,
+			bookingReceiptPaidAt(session, session.bookingConfirmedAt ?? Date.now())
+		);
+
+		return writeBookingReceiptNumberOnSession(ctx, { bookingId: args.bookingId, receiptNumber });
+	};
+}
+
+function patchReceiptWhenNumberChanged(
+	ctx: MutationCtx,
+	args: { bookingId: Id<"bookings">; receiptNumber: string }
+) {
+	return (session: Doc<"bookings">) => {
+		if (session.receiptNumber === args.receiptNumber) {
+			return ok(null);
+		}
+
+		return searchBlobPatchForBookingAsync(ctx, session, {
+			receiptNumber: args.receiptNumber
+		}).andThen(patchReceiptNumberWithSearchBlob(ctx, args));
+	};
+}
+
+function patchReceiptNumberWithSearchBlob(
+	ctx: MutationCtx,
+	args: { bookingId: Id<"bookings">; receiptNumber: string }
+) {
+	return (searchBlobPatch: BookingSearchBlobPatch) =>
+		patchBookingReceiptNumber(ctx, {
+			bookingId: args.bookingId,
+			receiptNumber: args.receiptNumber,
+			searchBlobPatch
+		});
+}
+
+function markInvoiceEmailFailedIfConfirmed(ctx: MutationCtx, args: { bookingId: Id<"bookings"> }) {
+	return (session: Doc<"bookings">) => {
+		if (session.status !== "confirmed" && session.status !== "email_failed") {
+			return ok(null);
+		}
+
+		return writeStandaloneBookingReceiptNumberIfMissing(ctx, { bookingId: session._id }).andThen(
+			markInvoiceEmailFailedAfterReceipt(ctx, args.bookingId)
+		);
+	};
+}
+
+function markInvoiceEmailFailedAfterReceipt(ctx: MutationCtx, bookingId: Id<"bookings">) {
+	return () => patchBookingInvoiceEmailFailed(ctx, bookingId);
+}
+
+function clearInvoiceEmailFailureIfNeeded(ctx: MutationCtx, args: { bookingId: Id<"bookings"> }) {
+	return (session: Doc<"bookings">) => {
+		if (session.status !== "email_failed") {
+			return ok(null);
+		}
+
+		return patchBookingInvoiceEmailFailureCleared(ctx, args.bookingId);
+	};
+}
+
+function markPendingConfirmationFailedIfReserved(
+	ctx: MutationCtx,
+	args: { bookingId: Id<"bookings">; failureCode: string; reservation?: SessionReservation }
+) {
+	return (session: Doc<"bookings">) => {
+		if (session.status !== "pending_payment") {
+			return ok(null);
+		}
+
+		if (args.reservation && !sessionHasReservation(session, args.reservation)) {
+			return err({ reason: "BOOKING_RESERVATION_MISMATCH" as const });
+		}
+
+		return patchPendingBookingConfirmationFailed(ctx, args);
+	};
+}
+
+function requireConfirmationReservation(args: {
+	reservation: SessionReservation;
+	confirmedAt: number;
+}) {
+	return (session: Doc<"bookings">) =>
+		requireBookingConfirmationReservation(session, args.reservation, args.confirmedAt);
+}
+
+function patchConfirmedBookingWithArgs(
+	ctx: MutationCtx,
+	args: {
+		bookingId: Id<"bookings">;
+		googleEventId?: string;
+		googleCalendarId?: string;
+		reservation: SessionReservation;
+	},
+	confirmedAt: number
+) {
+	return (session: Doc<"bookings">) =>
+		buildConfirmedBookingPatch(ctx, session, args, confirmedAt).andThen(
+			patchConfirmedBookingForSession(ctx, args.bookingId, session)
+		);
+}
+
+function patchConfirmedBookingForSession(
+	ctx: MutationCtx,
+	bookingId: Id<"bookings">,
+	session: Doc<"bookings">
+) {
+	return (patch: ConfirmedBookingDatabasePatch) =>
+		patchConfirmedBooking(ctx, bookingId, session, patch);
+}
+
+function scheduleDriveSetupAfterConfirm(ctx: MutationCtx) {
+	return (session: Doc<"bookings">) => scheduleDriveSetupForConfirmedBooking(ctx, session);
+}
+
 export function loadBookingStripeConfirmationClaimStatus(
 	ctx: MutationCtx,
 	args: ClaimBookingConfirmationArgs
 ) {
 	return normalizeBookingId(ctx, args.bookingId)
-		.asyncAndThen((bookingId) => getSessionFromDb(ctx, bookingId))
-		.andThen((session) => validateClaimStripeSession(session, args.stripeSessionId))
+		.asyncAndThen(loadSessionForClaimBookingId(ctx))
+		.andThen(validateClaimForStripeSession(args))
 		.andThen(getBookingClaimStatus);
 }
 
@@ -88,95 +226,50 @@ export function writeBookingStripeConfirmationClaim(
 		bookingConfirmationEventId: args.stripeEventId,
 		stripeSessionId: args.stripeSessionId,
 		stripePaymentIntentId: args.stripePaymentIntentId
-	}).map(() => ({ outcome: "claimed", session: buildClaimedBookingSession(session) }));
+	}).map(claimedBookingConfirmationOutcome(session));
+}
+
+function claimedBookingConfirmationOutcome(session: Doc<"bookings">) {
+	return () => ({ outcome: "claimed" as const, session: buildClaimedBookingSession(session) });
 }
 
 export function writeStandaloneBookingReceiptNumberIfMissing(
 	ctx: MutationCtx,
 	args: { bookingId: Id<"bookings"> }
 ) {
-	return getSessionFromDb(ctx, args.bookingId).andThen((session) => {
-		if (session.packageId !== undefined || session.receiptNumber) {
-			return ok(null);
-		}
-
-		if (session.status !== "confirmed" && session.status !== "email_failed") {
-			return ok(null);
-		}
-
-		const receiptNumber = resolveBookingReceiptNumber(
-			session,
-			bookingReceiptPaidAt(session, session.bookingConfirmedAt ?? Date.now())
-		);
-
-		return writeBookingReceiptNumberOnSession(ctx, { bookingId: args.bookingId, receiptNumber });
-	});
+	return getSessionFromDb(ctx, args.bookingId).andThen(writeStandaloneReceiptIfEligible(ctx, args));
 }
 
 export function writeBookingReceiptNumberOnSession(
 	ctx: MutationCtx,
 	args: { bookingId: Id<"bookings">; receiptNumber: string }
 ) {
-	return getSessionFromDb(ctx, args.bookingId).andThen((session) => {
-		if (session.receiptNumber === args.receiptNumber) {
-			return ok(null);
-		}
-
-		return searchBlobPatchForBookingAsync(ctx, session, {
-			receiptNumber: args.receiptNumber
-		}).andThen((searchBlobPatch) =>
-			patchBookingReceiptNumber(ctx, {
-				bookingId: args.bookingId,
-				receiptNumber: args.receiptNumber,
-				searchBlobPatch
-			})
-		);
-	});
+	return getSessionFromDb(ctx, args.bookingId).andThen(patchReceiptWhenNumberChanged(ctx, args));
 }
 
 export function markBookingInvoiceEmailFailedOnSession(
 	ctx: MutationCtx,
 	args: { bookingId: Id<"bookings"> }
 ) {
-	return getSessionFromDb(ctx, args.bookingId).andThen((session) => {
-		if (session.status !== "confirmed" && session.status !== "email_failed") {
-			return ok(null);
-		}
-
-		return writeStandaloneBookingReceiptNumberIfMissing(ctx, { bookingId: session._id }).andThen(
-			() => patchBookingInvoiceEmailFailed(ctx, args.bookingId)
-		);
-	});
+	return getSessionFromDb(ctx, args.bookingId).andThen(
+		markInvoiceEmailFailedIfConfirmed(ctx, args)
+	);
 }
 
 export function clearBookingInvoiceEmailFailureOnSession(
 	ctx: MutationCtx,
 	args: { bookingId: Id<"bookings"> }
 ) {
-	return getSessionFromDb(ctx, args.bookingId).andThen((session) => {
-		if (session.status !== "email_failed") {
-			return ok(null);
-		}
-
-		return patchBookingInvoiceEmailFailureCleared(ctx, args.bookingId);
-	});
+	return getSessionFromDb(ctx, args.bookingId).andThen(clearInvoiceEmailFailureIfNeeded(ctx, args));
 }
 
 export function markPendingBookingConfirmationFailed(
 	ctx: MutationCtx,
 	args: { bookingId: Id<"bookings">; failureCode: string; reservation?: SessionReservation }
 ) {
-	return getSessionFromDb(ctx, args.bookingId).andThen((session) => {
-		if (session.status !== "pending_payment") {
-			return ok(null);
-		}
-
-		if (args.reservation && !sessionHasReservation(session, args.reservation)) {
-			return err({ reason: "BOOKING_RESERVATION_MISMATCH" as const });
-		}
-
-		return patchPendingBookingConfirmationFailed(ctx, args);
-	});
+	return getSessionFromDb(ctx, args.bookingId).andThen(
+		markPendingConfirmationFailedIfReserved(ctx, args)
+	);
 }
 
 export function confirmBookingAfterPaymentClaim(
@@ -191,13 +284,7 @@ export function confirmBookingAfterPaymentClaim(
 	const confirmedAt = Date.now();
 
 	return getSessionFromDb(ctx, args.bookingId)
-		.andThen((session) =>
-			requireBookingConfirmationReservation(session, args.reservation, confirmedAt)
-		)
-		.andThen((session) =>
-			buildConfirmedBookingPatch(ctx, session, args, confirmedAt).andThen((patch) =>
-				patchConfirmedBooking(ctx, args.bookingId, session, patch)
-			)
-		)
-		.andThen((session) => scheduleDriveSetupForConfirmedBooking(ctx, session));
+		.andThen(requireConfirmationReservation({ reservation: args.reservation, confirmedAt }))
+		.andThen(patchConfirmedBookingWithArgs(ctx, args, confirmedAt))
+		.andThen(scheduleDriveSetupAfterConfirm(ctx));
 }

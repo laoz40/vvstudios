@@ -28,6 +28,36 @@ function toPackageAdjustmentArchiveState(
 	return { outcome: "invoice_required", paymentStatus: adjustment.paymentStatus };
 }
 
+function buildPackageAutoArchiveContext(packageRecord: Doc<"packages">) {
+	return ([sessions, adjustment, stripeInvoices]: [
+		Doc<"bookings">[],
+		Doc<"packageAdjustments"> | null,
+		Doc<"stripeInvoices">[]
+	]) => ({
+		packageRecord,
+		sessions,
+		adjustment: toPackageAdjustmentArchiveState(adjustment),
+		customStripeSummary: summarizeCustomPackageStripeInvoices(stripeInvoices)
+	});
+}
+
+function loadPackageAutoArchiveContextForRow(
+	ctx: QueryCtx | MutationCtx,
+	packageId: Id<"packages">
+) {
+	return (packageRecord: Doc<"packages"> | null) => {
+		if (!packageRecord) {
+			return okAsync(null);
+		}
+
+		return ResultAsync.combine([
+			getCapacityConsumingPackageSessions(ctx, packageId, packageRecord.packageSize),
+			lookupPackageAdjustmentByPackageId(ctx, packageId),
+			listStripeInvoicesForPackage(ctx, packageId)
+		]).map(buildPackageAutoArchiveContext(packageRecord));
+	};
+}
+
 function loadPackageAutoArchiveContext(
 	ctx: QueryCtx | MutationCtx,
 	packageId: Id<"packages">
@@ -40,30 +70,20 @@ function loadPackageAutoArchiveContext(
 	} | null,
 	never
 > {
-	return lookupPackageRow(ctx, packageId).andThen((packageRecord) => {
-		if (!packageRecord) {
-			return okAsync(null);
-		}
-
-		return ResultAsync.combine([
-			getCapacityConsumingPackageSessions(ctx, packageId, packageRecord.packageSize),
-			lookupPackageAdjustmentByPackageId(ctx, packageId),
-			listStripeInvoicesForPackage(ctx, packageId)
-		]).map(([sessions, adjustment, stripeInvoices]) => ({
-			packageRecord,
-			sessions,
-			adjustment: toPackageAdjustmentArchiveState(adjustment),
-			customStripeSummary: summarizeCustomPackageStripeInvoices(stripeInvoices)
-		}));
-	});
+	return lookupPackageRow(ctx, packageId).andThen(
+		loadPackageAutoArchiveContextForRow(ctx, packageId)
+	);
 }
 
-export function archivePackageWhenFullyDone(
-	ctx: MutationCtx,
-	packageId: Id<"packages">,
-	now = Date.now()
-) {
-	return loadPackageAutoArchiveContext(ctx, packageId).andThen((context) => {
+function archivePackageWhenEligible(ctx: MutationCtx, packageId: Id<"packages">, now: number) {
+	return (
+		context: {
+			packageRecord: Doc<"packages">;
+			sessions: Doc<"bookings">[];
+			adjustment: PackageAdjustmentArchiveState | null;
+			customStripeSummary: ReturnType<typeof summarizeCustomPackageStripeInvoices>;
+		} | null
+	) => {
 		if (!context) {
 			return okAsync(null);
 		}
@@ -87,5 +107,15 @@ export function archivePackageWhenFullyDone(
 		}
 
 		return setPackageArchived(ctx, packageId, true);
-	});
+	};
+}
+
+export function archivePackageWhenFullyDone(
+	ctx: MutationCtx,
+	packageId: Id<"packages">,
+	now = Date.now()
+) {
+	return loadPackageAutoArchiveContext(ctx, packageId).andThen(
+		archivePackageWhenEligible(ctx, packageId, now)
+	);
 }

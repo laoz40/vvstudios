@@ -19,6 +19,7 @@ import {
 import {
 	createPackageScheduleToken,
 	createPackageSchedulingDetails,
+	type PackageSchedulingDetails,
 	validatePackageScheduleTokenRefresh
 } from "#convex/lib/packages/packageScheduling";
 import {
@@ -46,63 +47,126 @@ export function insertPendingPackageRecord(ctx: MutationCtx, args: CreatePending
 	return insertPendingPackageRow(ctx, packageRecord);
 }
 
+function createSchedulingDetailsForPaidAt(paidAt: number) {
+	return (packageFromDb: Doc<"packages">) => createPackageSchedulingDetails(packageFromDb, paidAt);
+}
+
+function patchPaidPackageAfterSchedulingDetails(
+	ctx: MutationCtx,
+	args: { packageId: Id<"packages">; paidAt: number }
+) {
+	return (packageSchedulingDetails: PackageSchedulingDetails) =>
+		patchPackagePaidAfterSchedulingDetails(
+			ctx,
+			args.packageId,
+			args.paidAt,
+			packageSchedulingDetails
+		);
+}
+
+function scheduleAdjustmentAndKeepSchedulingDetails(ctx: MutationCtx, packageId: Id<"packages">) {
+	return (packageSchedulingDetails: PackageSchedulingDetails) =>
+		schedulePackageAdjustmentAtExpiry(ctx, packageId, packageSchedulingDetails.expiresAt).map(
+			keepValue(packageSchedulingDetails)
+		);
+}
+
+function keepValue<T>(value: T) {
+	return () => value;
+}
+
+function buildPaidPackageResultForPaidAt(paidAt: number) {
+	return (packageSchedulingDetails: Parameters<typeof buildPaidPackageResult>[0]) =>
+		buildPaidPackageResult(packageSchedulingDetails, paidAt);
+}
+
 export function markPackagePaidWithScheduleToken(
 	ctx: MutationCtx,
 	args: { packageId: Id<"packages">; paidAt: number }
 ): ResultAsyncType<PaidPackageResult, PackageLookupError | { reason: "PACKAGE_ALREADY_PAID" }> {
 	return getPackageFromDb(ctx, args.packageId)
 		.andThen(rejectAlreadyPaidPackage)
-		.andThen((packageFromDb) => createPackageSchedulingDetails(packageFromDb, args.paidAt))
-		.andThen((packageSchedulingDetails) =>
-			patchPackagePaidAfterSchedulingDetails(
-				ctx,
-				args.packageId,
-				args.paidAt,
-				packageSchedulingDetails
-			)
-		)
-		.andThen((packageSchedulingDetails) =>
-			schedulePackageAdjustmentAtExpiry(
-				ctx,
-				args.packageId,
-				packageSchedulingDetails.expiresAt
-			).map(() => packageSchedulingDetails)
-		)
-		.map((packageSchedulingDetails) =>
-			buildPaidPackageResult(packageSchedulingDetails, args.paidAt)
+		.andThen(createSchedulingDetailsForPaidAt(args.paidAt))
+		.andThen(patchPaidPackageAfterSchedulingDetails(ctx, args))
+		.andThen(scheduleAdjustmentAndKeepSchedulingDetails(ctx, args.packageId))
+		.map(buildPaidPackageResultForPaidAt(args.paidAt));
+}
+
+function attachScheduleTokenToPackage(packageFromDb: Doc<"packages">) {
+	return (scheduleToken: { scheduleTokenHash: string; token: string }) => ({
+		packageFromDb,
+		...scheduleToken
+	});
+}
+
+function createScheduleTokenForPackage(packageFromDb: Doc<"packages">) {
+	return createPackageScheduleToken().map(attachScheduleTokenToPackage(packageFromDb));
+}
+
+function refreshScheduleTokenForPackage(ctx: MutationCtx, packageId: Id<"packages">) {
+	return ({
+		packageFromDb,
+		scheduleTokenHash,
+		token
+	}: {
+		packageFromDb: Doc<"packages">;
+		scheduleTokenHash: string;
+		token: string;
+	}) =>
+		patchPackageScheduleTokenRefresh(ctx, packageId, scheduleTokenHash).map(
+			refreshedScheduleTokenResultForPackage(packageFromDb, scheduleTokenHash, token)
 		);
+}
+
+function refreshedScheduleTokenResultForPackage(
+	packageFromDb: Doc<"packages">,
+	scheduleTokenHash: string,
+	token: string
+) {
+	return () =>
+		({
+			expiresAt: packageFromDb.expiresAt!,
+			paidAt: packageFromDb.paidAt!,
+			packageRecord: { ...packageFromDb, scheduleLinkStatus: "active" as const, scheduleTokenHash },
+			token
+		}) satisfies PaidPackageResult;
 }
 
 export function refreshPaidPackageScheduleToken(ctx: MutationCtx, packageId: Id<"packages">) {
 	return getPackageFromDb(ctx, packageId)
 		.andThen(validatePackageScheduleTokenRefresh)
-		.andThen((packageFromDb) =>
-			createPackageScheduleToken().map((scheduleToken) => ({ packageFromDb, ...scheduleToken }))
-		)
-		.andThen(({ packageFromDb, scheduleTokenHash, token }) =>
-			patchPackageScheduleTokenRefresh(ctx, packageId, scheduleTokenHash).map(() => ({
-				expiresAt: packageFromDb.expiresAt,
-				paidAt: packageFromDb.paidAt,
-				packageRecord: {
-					...packageFromDb,
-					scheduleLinkStatus: "active" as const,
-					scheduleTokenHash
-				},
-				token
-			}))
-		);
+		.andThen(createScheduleTokenForPackage)
+		.andThen(refreshScheduleTokenForPackage(ctx, packageId));
+}
+
+function patchPackageScheduleEmailForArgs(
+	ctx: MutationCtx,
+	args: { packageId: Id<"packages">; status: "sent" | "failed" }
+) {
+	return () => patchPackageScheduleEmailStatus(ctx, args.packageId, args.status);
 }
 
 export function writePackageScheduleEmailAttempt(
 	ctx: MutationCtx,
 	args: { packageId: Id<"packages">; status: "sent" | "failed" }
 ) {
-	return getPackageFromDb(ctx, args.packageId).andThen(() =>
-		patchPackageScheduleEmailStatus(ctx, args.packageId, args.status)
-	);
+	return getPackageFromDb(ctx, args.packageId).andThen(patchPackageScheduleEmailForArgs(ctx, args));
 }
 
-export function writePackageReceiptEmailAttempt(
+function afterReceiptEmailPatch(
+	ctx: MutationCtx,
+	args: { packageId: Id<"packages">; status: "sent" | "failed"; receiptNumber?: string }
+) {
+	return () => {
+		if (args.status !== "sent" || !args.receiptNumber) {
+			return ok(null);
+		}
+
+		return patchPackageBookingsReceiptNumber(ctx, args.packageId, args.receiptNumber);
+	};
+}
+
+function patchReceiptEmailForPackage(
 	ctx: MutationCtx,
 	args: {
 		packageId: Id<"packages">;
@@ -111,7 +175,7 @@ export function writePackageReceiptEmailAttempt(
 		failureCode?: string;
 	}
 ) {
-	return getPackageFromDb(ctx, args.packageId).andThen((packageFromDb) => {
+	return (packageFromDb: Doc<"packages">) => {
 		const now = Date.now();
 
 		const sentPatch =
@@ -130,31 +194,72 @@ export function writePackageReceiptEmailAttempt(
 						lastReceiptEmailAttemptAt: now
 					};
 
-		return patchPackageReceiptEmailAttempt(ctx, args.packageId, sentPatch).andThen(() => {
-			if (args.status !== "sent" || !args.receiptNumber) {
-				return ok(null);
-			}
+		return patchPackageReceiptEmailAttempt(ctx, args.packageId, sentPatch).andThen(
+			afterReceiptEmailPatch(ctx, args)
+		);
+	};
+}
 
-			return patchPackageBookingsReceiptNumber(ctx, args.packageId, args.receiptNumber);
-		});
-	});
+export function writePackageReceiptEmailAttempt(
+	ctx: MutationCtx,
+	args: {
+		packageId: Id<"packages">;
+		status: "sent" | "failed";
+		receiptNumber?: string;
+		failureCode?: string;
+	}
+) {
+	return getPackageFromDb(ctx, args.packageId).andThen(patchReceiptEmailForPackage(ctx, args));
+}
+
+function requireActivePackageForInstagramUpdate(packageFromDb: Doc<"packages">) {
+	if (packageFromDb.status !== "pending_payment" && packageFromDb.status !== "paid") {
+		return err({ reason: "PACKAGE_NOT_ACTIVE" as const });
+	}
+
+	return ok(packageFromDb);
 }
 
 export function loadPackageEligibleForInstagramUpdate(ctx: MutationCtx, packageId: Id<"packages">) {
-	return getPackageFromDb(ctx, packageId).andThen((packageFromDb) => {
-		if (packageFromDb.status !== "pending_payment" && packageFromDb.status !== "paid") {
-			return err({ reason: "PACKAGE_NOT_ACTIVE" as const });
-		}
+	return getPackageFromDb(ctx, packageId).andThen(requireActivePackageForInstagramUpdate);
+}
 
-		return ok(packageFromDb);
-	});
+function toNull() {
+	return null;
+}
+
+function syncInstagramContactSearch(
+	ctx: MutationCtx,
+	packageId: Id<"packages">,
+	contactFields: PackageContactSearchFields
+) {
+	return ResultAsync.fromSafePromise(
+		patchPackageSessionBookingsContactSearch(ctx, packageId, contactFields)
+	).map(toNull);
+}
+
+type PackageContactSearchFields = {
+	name: string;
+	phone: string;
+	accountName: string;
+	abn?: string;
+	email: string;
+	instagramHandle: string;
+};
+
+function syncInstagramContactSearchAfterPatch(
+	ctx: MutationCtx,
+	packageId: Id<"packages">,
+	contactFields: PackageContactSearchFields
+) {
+	return () => syncInstagramContactSearch(ctx, packageId, contactFields);
 }
 
 export function savePackageInstagramHandle(
 	ctx: MutationCtx,
 	args: { packageFromDb: Doc<"packages">; instagramHandle: string }
 ) {
-	const contactFields = {
+	const contactFields: PackageContactSearchFields = {
 		name: args.packageFromDb.name,
 		phone: args.packageFromDb.phone,
 		accountName: args.packageFromDb.accountName,
@@ -163,10 +268,8 @@ export function savePackageInstagramHandle(
 		instagramHandle: args.instagramHandle
 	};
 
-	return patchPackageRowInstagramHandle(ctx, args).andThen(() =>
-		ResultAsync.fromSafePromise(
-			patchPackageSessionBookingsContactSearch(ctx, args.packageFromDb._id, contactFields)
-		).map(() => null)
+	return patchPackageRowInstagramHandle(ctx, args).andThen(
+		syncInstagramContactSearchAfterPatch(ctx, args.packageFromDb._id, contactFields)
 	);
 }
 

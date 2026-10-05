@@ -33,21 +33,27 @@ function isPaidPackageStatus(status: string) {
 	return status === "paid" || status === "schedule_email_failed";
 }
 
+function paidPackageForEmailResend(packageRecord: Doc<"packages">) {
+	const paidAt = packageRecord.paidAt;
+
+	if (!isPaidPackageStatus(packageRecord.status) || paidAt === undefined) {
+		return err({ reason: "PACKAGE_NOT_PAID" as const });
+	}
+
+	return ok({ packageRecord, paidAt });
+}
+
+function loadPackageForEmailResend(ctx: ActionCtx, packageId: Id<"packages">) {
+	return () => getPackageForAction(ctx, packageId);
+}
+
 export function loadPaidPackageForEmailResend(
 	ctx: ActionCtx,
 	args: { packageId: Id<"packages"> }
 ): ResultAsync<{ paidAt: number; packageRecord: Doc<"packages"> }, ResendPackageEmailError> {
 	return requirePermissionActions(ctx, "send:receipt-emails")
-		.andThen(() => getPackageForAction(ctx, args.packageId))
-		.andThen((packageRecord) => {
-			const paidAt = packageRecord.paidAt;
-
-			if (!isPaidPackageStatus(packageRecord.status) || paidAt === undefined) {
-				return err({ reason: "PACKAGE_NOT_PAID" as const });
-			}
-
-			return ok({ packageRecord, paidAt });
-		});
+		.andThen(loadPackageForEmailResend(ctx, args.packageId))
+		.andThen(paidPackageForEmailResend);
 }
 
 export function refreshPackageScheduleLinkForResend(
@@ -62,15 +68,22 @@ export function sendPackagePaidScheduleEmail(
 	args: { packageId: Id<"packages">; tokenResult: PaidPackageResult }
 ): ResultAsync<null, ResendPackageEmailError> {
 	return okOrThrow<BookingAvailabilitySettings>(ctx.runQuery(api.bookingSettings.get, {})).andThen(
-		(bookingSettings) =>
-			sendAndRecordPackagePaidEmail(
-				ctx,
-				args.packageId,
-				buildPackagePaidEmailContext(
-					args.tokenResult,
-					bookingSettings.leadTimeMinutes,
-					new URL(env.STRIPE_CHECKOUT_RETURN_URL).origin
-				)
-			)
+		sendPaidScheduleEmailWithSettings(ctx, args)
 	);
+}
+
+function sendPaidScheduleEmailWithSettings(
+	ctx: ActionCtx,
+	args: { packageId: Id<"packages">; tokenResult: PaidPackageResult }
+) {
+	return (bookingSettings: BookingAvailabilitySettings) =>
+		sendAndRecordPackagePaidEmail(
+			ctx,
+			args.packageId,
+			buildPackagePaidEmailContext(
+				args.tokenResult,
+				bookingSettings.leadTimeMinutes,
+				new URL(env.STRIPE_CHECKOUT_RETURN_URL).origin
+			)
+		);
 }

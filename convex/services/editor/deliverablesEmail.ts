@@ -9,8 +9,13 @@ import {
 	ensureAnyoneReaderPermission,
 	listDriveFolderChildren,
 	loadDriveClient,
-	type DriveError
+	type DriveClient,
+	type DriveError,
+	type ListedDriveChild
 } from "#convex/lib/drive/googleDrive";
+import type { DriveSetupInfo } from "#convex/lib/drive/sessionFolders/driveSetupInfo";
+import type { Result as ConvexResult } from "#/lib/result";
+import type { DeliverablesCustomerType } from "#convex/lib/editor/editorSessions";
 import { fromConvexTuple } from "#convex/lib/result";
 
 export type SendSessionDeliverablesEmailArgs = { bookingId: Id<"bookings">; editorNotes?: string };
@@ -28,36 +33,60 @@ export type SendDeliverablesError =
 	| { reason: "EMAIL_RESPONSE_FAILED" }
 	| DriveError;
 
-function grantGuestViewerLink(folder: { id: string; url: string }) {
+type DeliverablesFolder = { id: string; url: string };
+
+function returnNull(): null {
+	return null;
+}
+
+function mapFolderAfterGuestReadLink(folder: DeliverablesFolder) {
+	return () => folder;
+}
+
+function ensureAnyoneReaderPermissionForFolder(folderId: string) {
+	return (drive: DriveClient) => ensureAnyoneReaderPermission(drive, folderId);
+}
+
+function grantGuestViewerLink(folder: DeliverablesFolder) {
 	return loadDriveClient()
-		.andThen((drive) => ensureAnyoneReaderPermission(drive, folder.id))
-		.map(() => folder);
+		.andThen(ensureAnyoneReaderPermissionForFolder(folder.id))
+		.map(mapFolderAfterGuestReadLink(folder));
+}
+
+function parseSavedDeliverablesFolderFromSetup(setupInfo: DriveSetupInfo | null) {
+	const deliverablesFolder = setupInfo?.driveSession?.deliverablesFolder;
+
+	if (deliverablesFolder === undefined) {
+		return errAsync({ reason: "GOOGLE_DRIVE_FOLDER_MISSING" as const });
+	}
+
+	return okAsync(deliverablesFolder);
 }
 
 function requireSavedDeliverablesFolder(bookingId: Id<"bookings">, ctx: ActionCtx) {
 	return fromConvexTuple(
 		ctx.runQuery(internal.sessionsDriveInternal.getDriveSetup, { bookingId })
-	).andThen((setupInfo) => {
-		const deliverablesFolder = setupInfo?.driveSession?.deliverablesFolder;
-
-		if (deliverablesFolder === undefined) {
-			return errAsync({ reason: "GOOGLE_DRIVE_FOLDER_MISSING" as const });
-		}
-
-		return okAsync(deliverablesFolder);
-	});
+	).andThen(parseSavedDeliverablesFolderFromSetup);
 }
 
-function requireDeliverablesFolderContents(folder: { id: string; url: string }) {
-	return loadDriveClient()
-		.andThen((drive) => listDriveFolderChildren(drive, folder.id))
-		.andThen((children) => {
-			if (children.length === 0) {
-				return errAsync({ reason: "DELIVERABLES_FOLDER_EMPTY" as const });
-			}
+function requireNonEmptyDeliverablesFolder(folder: DeliverablesFolder) {
+	return (children: ListedDriveChild[]) => {
+		if (children.length === 0) {
+			return errAsync({ reason: "DELIVERABLES_FOLDER_EMPTY" as const });
+		}
 
-			return okAsync(folder);
-		});
+		return okAsync(folder);
+	};
+}
+
+function listDeliverablesFolderChildren(folder: DeliverablesFolder) {
+	return (drive: DriveClient) => listDriveFolderChildren(drive, folder.id);
+}
+
+function requireDeliverablesFolderContents(folder: DeliverablesFolder) {
+	return loadDriveClient()
+		.andThen(listDeliverablesFolderChildren(folder))
+		.andThen(requireNonEmptyDeliverablesFolder(folder));
 }
 
 export function skipWhenDeliverablesEditAlreadyCompleted(
@@ -73,10 +102,37 @@ export function skipWhenDeliverablesEditAlreadyCompleted(
 export function loadDeliverablesFolderGuestReadLink(
 	ctx: ActionCtx,
 	bookingId: Id<"bookings">
-): ResultAsync<{ id: string; url: string }, SendDeliverablesError> {
+): ResultAsync<DeliverablesFolder, SendDeliverablesError> {
 	return requireSavedDeliverablesFolder(bookingId, ctx)
 		.andThen(requireDeliverablesFolderContents)
-		.andThen((folder) => grantGuestViewerLink(folder));
+		.andThen(grantGuestViewerLink);
+}
+
+function logDeliverablesEmailFailure(bookingId: Id<"bookings">) {
+	return (emailError: SendDeliverablesError) => {
+		console.error("Manual session deliverables email send failed", {
+			bookingId,
+			reason: emailError.reason
+		});
+
+		return emailError;
+	};
+}
+
+function sendDeliverablesEmailForSessionVariant(
+	session: Doc<"bookings">,
+	folderUrl: string,
+	editorNotes: string | undefined
+) {
+	return (emailVariant: DeliverablesCustomerType) =>
+		sendDeliverablesEmail({
+			date: session.date,
+			driveLink: folderUrl,
+			editorNotes,
+			email: session.email,
+			emailVariant,
+			name: session.name
+		});
 }
 
 export function sendDeliverablesEmailForSession(
@@ -85,26 +141,10 @@ export function sendDeliverablesEmailForSession(
 	folderUrl: string,
 	editorNotes: string | undefined
 ): ResultAsync<null, SendDeliverablesError> {
-	return fromConvexTuple(
+	return fromConvexTuple<Promise<ConvexResult<DeliverablesCustomerType, SendDeliverablesError>>>(
 		ctx.runQuery(internal.sessions.detectDeliverablesCustomerType, { bookingId: session._id })
 	)
-		.andThen((emailVariant) =>
-			sendDeliverablesEmail({
-				date: session.date,
-				driveLink: folderUrl,
-				editorNotes,
-				email: session.email,
-				emailVariant,
-				name: session.name
-			})
-		)
-		.map(() => null)
-		.mapErr((emailError): SendDeliverablesError => {
-			console.error("Manual session deliverables email send failed", {
-				bookingId: session._id,
-				reason: emailError.reason
-			});
-
-			return emailError;
-		});
+		.andThen(sendDeliverablesEmailForSessionVariant(session, folderUrl, editorNotes))
+		.map(returnNull)
+		.mapErr(logDeliverablesEmailFailure(session._id));
 }

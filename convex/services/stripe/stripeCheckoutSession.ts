@@ -1,6 +1,7 @@
 "use node";
 
 import { errAsync, okAsync, type ResultAsync } from "neverthrow";
+import type Stripe from "stripe";
 import { internal } from "#convex/_generated/api";
 import type { Id } from "#convex/_generated/dataModel";
 import type { ActionCtx } from "#convex/_generated/server";
@@ -54,6 +55,17 @@ type CloseEmbeddedCheckoutSessionSuccess = {
 	outcome: "already_complete" | "abandoned" | "not_found" | "not_pending";
 };
 
+function keepBooking(booking: BookingFormValues) {
+	return () => booking;
+}
+
+function enforceSessionSubmitRateLimit(ctx: ActionCtx, booking: BookingFormValues) {
+	return (submitRateLimitKey: string) =>
+		fromConvexTuple(
+			ctx.runMutation(internal.sessionCheckout.checkSessionSubmitRateLimit, { submitRateLimitKey })
+		).map(keepBooking(booking));
+}
+
 export function parsePublicBookingForCheckout(
 	args: CreateEmbeddedCheckoutSessionArgs
 ): ResultAsync<BookingFormValues, { reason: "BOOKING_INVALID_INPUT" }> {
@@ -77,11 +89,26 @@ export function runSessionCheckoutSubmitRateLimit(
 	BookingFormValues,
 	{ reason: "BOOKING_RATE_LIMITED"; retryAfter?: number } | CreateEmbeddedCheckoutSessionError
 > {
-	return getBookingSubmitRateLimitKey(booking.email).andThen((submitRateLimitKey) =>
-		fromConvexTuple(
-			ctx.runMutation(internal.sessionCheckout.checkSessionSubmitRateLimit, { submitRateLimitKey })
-		).map(() => booking)
+	return getBookingSubmitRateLimitKey(booking.email).andThen(
+		enforceSessionSubmitRateLimit(ctx, booking)
 	);
+}
+
+function attachSessionCheckoutLineItems(booking: BookingFormValues, bookingId: Id<"bookings">) {
+	return (lineItems: Parameters<typeof createStripeCheckoutCustomer>[2]["lineItems"]) => ({
+		booking,
+		bookingId,
+		lineItems
+	});
+}
+
+function buildSessionCheckoutDraft(booking: BookingFormValues) {
+	return ({ bookingId }: { bookingId: Id<"bookings"> }) =>
+		buildSessionCheckoutLineItems(booking).map(attachSessionCheckoutLineItems(booking, bookingId));
+}
+
+function createPendingSessionForCheckoutDraft(ctx: ActionCtx, booking: BookingFormValues) {
+	return createPendingSessionForCheckout(ctx, booking).andThen(buildSessionCheckoutDraft(booking));
 }
 
 export function createPendingBookingForStripeCheckout(
@@ -95,11 +122,17 @@ export function createPendingBookingForStripeCheckout(
 	},
 	CreateEmbeddedCheckoutSessionError
 > {
-	return requireValidBookingEmailDomain(booking.email)
-		.andThen(() => createPendingSessionForCheckout(ctx, booking))
-		.andThen(({ bookingId }) =>
-			buildSessionCheckoutLineItems(booking).map((lineItems) => ({ booking, bookingId, lineItems }))
-		);
+	return requireValidBookingEmailDomain(booking.email).andThen(
+		createPendingSessionForCheckoutDraft.bind(null, ctx, booking)
+	);
+}
+
+function createEmbeddedBookingCheckout(stripe: ReturnType<typeof getStripeClient>) {
+	return createEmbeddedStripeCheckoutSession.bind(null, stripe);
+}
+
+function linkPendingBookingCheckout(ctx: ActionCtx) {
+	return linkStripeCheckoutToPendingBooking.bind(null, ctx);
 }
 
 export function openEmbeddedBookingStripeCheckout(
@@ -119,8 +152,36 @@ export function openEmbeddedBookingStripeCheckout(
 		bookingId: checkoutDraft.bookingId,
 		lineItems: checkoutDraft.lineItems
 	})
-		.andThen((draft) => createEmbeddedStripeCheckoutSession(stripe, draft))
-		.andThen((draft) => linkStripeCheckoutToPendingBooking(ctx, draft));
+		.andThen(createEmbeddedBookingCheckout(stripe))
+		.andThen(linkPendingBookingCheckout(ctx));
+}
+
+function deletePendingSessionAfterClose(
+	ctx: ActionCtx,
+	args: { bookingId: Id<"bookings">; stripeSessionId: string }
+) {
+	return fromConvexTuple(ctx.runMutation(internal.sessionCheckout.deletePendingSession, args)).map(
+		mapDeletePendingSessionOutcome
+	);
+}
+
+function mapDeletePendingSessionOutcome(result: {
+	outcome: CloseEmbeddedCheckoutSessionSuccess["outcome"];
+}) {
+	return { outcome: result.outcome };
+}
+
+function resolveClosedBookingCheckoutSession(
+	ctx: ActionCtx,
+	args: { bookingId: Id<"bookings">; stripeSessionId: string }
+) {
+	return (session: Stripe.Checkout.Session) => {
+		if (session.status === "complete") {
+			return okAsync({ outcome: "already_complete" as const });
+		}
+
+		return deletePendingSessionAfterClose(ctx, args);
+	};
 }
 
 export function closeAbandonedBookingStripeCheckout(
@@ -132,13 +193,5 @@ export function closeAbandonedBookingStripeCheckout(
 	return closeOpenStripeCheckoutSession(stripe, args.stripeSessionId, {
 		bookingId: args.bookingId,
 		stripeSessionId: args.stripeSessionId
-	}).andThen((session) => {
-		if (session.status === "complete") {
-			return okAsync({ outcome: "already_complete" as const });
-		}
-
-		return fromConvexTuple(
-			ctx.runMutation(internal.sessionCheckout.deletePendingSession, args)
-		).map(({ outcome }) => ({ outcome }));
-	});
+	}).andThen(resolveClosedBookingCheckoutSession(ctx, args));
 }

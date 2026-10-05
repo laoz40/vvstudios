@@ -15,6 +15,10 @@ export function rejectMissingCapacityConsumingPackageSession(session: Doc<"booki
 	return ok(session);
 }
 
+function cancelledPackageSessionBookingResult(bookingId: Id<"bookings">) {
+	return () => ({ cancelled: true as const, bookingId });
+}
+
 export function cancelPackageSessionBooking(ctx: MutationCtx, bookingId: Id<"bookings">) {
 	return archiveDeadCheckoutBooking(ctx, bookingId, {
 		bookingFailureCode: undefined,
@@ -24,7 +28,7 @@ export function cancelPackageSessionBooking(ctx: MutationCtx, bookingId: Id<"boo
 		reminderEmailSentAt: undefined,
 		reminderEmailFailureCode: undefined,
 		status: "cancelled"
-	}).map(() => ({ cancelled: true as const, bookingId }));
+	}).map(cancelledPackageSessionBookingResult(bookingId));
 }
 
 export function loadPackageSessionOwnedByToken(

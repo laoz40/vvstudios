@@ -7,6 +7,44 @@ import {
 	patchSessionEditStatus
 } from "#convex/lib/editor/editorSessions";
 
+function incrementEditorTotalEditsForProfile(
+	ctx: MutationCtx,
+	editor: Doc<"editorProfiles"> | null
+) {
+	if (editor === null) {
+		return okAsync(null);
+	}
+
+	return incrementEditorTotalEdits(ctx, editor._id, editor.totalEdits);
+}
+
+function incrementEditorTotalEditsAfterPatch(
+	ctx: MutationCtx,
+	editor: Doc<"editorProfiles"> | null
+) {
+	return () => incrementEditorTotalEditsForProfile(ctx, editor);
+}
+
+function patchEditStatusThenCreditEditor(
+	ctx: MutationCtx,
+	session: Doc<"bookings">,
+	editStatus: "to_edit" | "editing" | "review" | "completed",
+	editor: Doc<"editorProfiles"> | null
+) {
+	return patchSessionEditStatus(ctx, session._id, editStatus).andThen(
+		incrementEditorTotalEditsAfterPatch(ctx, editor)
+	);
+}
+
+function patchEditStatusAndCreditEditor(
+	ctx: MutationCtx,
+	session: Doc<"bookings">,
+	editStatus: "to_edit" | "editing" | "review" | "completed"
+) {
+	return (editor: Doc<"editorProfiles"> | null) =>
+		patchEditStatusThenCreditEditor(ctx, session, editStatus, editor);
+}
+
 export function saveSessionEditStatus(
 	ctx: MutationCtx,
 	session: Doc<"bookings">,
@@ -25,13 +63,7 @@ export function saveSessionEditStatus(
 		return patchSessionEditStatus(ctx, session._id, editStatus);
 	}
 
-	return lookupEditorProfileByToken(ctx, editorTokenIdentifier).andThen((editor) =>
-		patchSessionEditStatus(ctx, session._id, editStatus).andThen(() => {
-			if (editor === null) {
-				return okAsync(null);
-			}
-
-			return incrementEditorTotalEdits(ctx, editor._id, editor.totalEdits);
-		})
+	return lookupEditorProfileByToken(ctx, editorTokenIdentifier).andThen(
+		patchEditStatusAndCreditEditor(ctx, session, editStatus)
 	);
 }

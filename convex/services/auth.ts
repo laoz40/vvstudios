@@ -1,5 +1,6 @@
 import type { UserIdentity } from "convex/server";
 import { ok } from "neverthrow";
+import type { Doc } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
 import {
 	getEditorByToken as getEditorByTokenLib,
@@ -15,6 +16,10 @@ import {
 	requireUserPermission
 } from "#convex/services/authPermissions";
 
+function persistEditorForIdentity(ctx: MutationCtx, identity: UserIdentity) {
+	return (editor: Doc<"editorProfiles"> | null) => saveEditorDetails(ctx, identity, editor);
+}
+
 export function requirePermission(ctx: QueryCtx | MutationCtx, permission: Permission) {
 	return requireUserPermission(ctx.auth, (token) => getEditorByTokenLib(ctx, token), permission);
 }
@@ -24,15 +29,15 @@ export function saveSignedInEditorProfile(ctx: MutationCtx, identity: UserIdenti
 		return ok(null);
 	}
 
-	return getEditorByTokenLib(ctx, identity.tokenIdentifier).andThen((editor) =>
-		saveEditorDetails(ctx, identity, editor)
+	return getEditorByTokenLib(ctx, identity.tokenIdentifier).andThen(
+		persistEditorForIdentity(ctx, identity)
 	);
 }
 
 export function saveAdminEditorEnrollment(ctx: MutationCtx, identity: UserIdentity) {
 	return getEditorByTokenLib(ctx, identity.tokenIdentifier)
 		.andThen(requireEnrollableEditorProfile)
-		.andThen((editor) => saveEditorDetails(ctx, identity, editor));
+		.andThen(persistEditorForIdentity(ctx, identity));
 }
 
 export function getEditorByToken(ctx: QueryCtx | MutationCtx, token: string) {

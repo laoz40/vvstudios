@@ -5,6 +5,7 @@ import {
 	createPackageReceiptEmailArtifacts,
 	type PackageInvoiceInput
 } from "#studio/features/booking-invoice/lib/booking-artifacts";
+import type { BookingFormValues } from "#studio/features/booking-form/lib/booking-form-model";
 import { renderBookingReceiptPdfInNode } from "#convex/lib/booking/bookingInvoicePdfRender";
 import {
 	formatTimestampDateLong,
@@ -41,10 +42,179 @@ type PackageReceiptEmailError = {
 		| "RECEIPT_PDF_RENDER_FAILED";
 };
 
+type ReceiptEmailArtifacts = {
+	data: Parameters<typeof renderBookingReceiptPdfInNode>[0];
+	emailHtml: string;
+	pdf: { contentType: string; filename: string };
+};
+
+type BookingReceiptArtifactsStep = { artifacts: ReceiptEmailArtifacts; booking: BookingFormValues };
+
+type BookingReceiptRenderedStep = {
+	artifacts: ReceiptEmailArtifacts;
+	parsedBooking: BookingFormValues;
+	pdfContent: Uint8Array;
+};
+
+type BookingReceiptCustomerSentStep = {
+	artifacts: ReceiptEmailArtifacts;
+	parsedBooking: BookingFormValues;
+};
+
+type PackageReceiptArtifactsStep = { artifacts: ReceiptEmailArtifacts };
+
+type PackageReceiptRenderedStep = { artifacts: ReceiptEmailArtifacts; pdfContent: Uint8Array };
+
 function bookingPaidAt(booking: Doc<"bookings">) {
 	return (
 		booking.paymentCompletedAt ?? booking.bookingConfirmedAt ?? booking.pendingPaymentCreatedAt
 	);
+}
+
+function withRenderedBookingPdf({
+	artifacts,
+	booking: parsedBooking
+}: BookingReceiptArtifactsStep) {
+	return (pdfContent: Uint8Array) => ({ artifacts, parsedBooking, pdfContent });
+}
+
+function attachPdfToBookingReceiptArtifacts(step: BookingReceiptArtifactsStep) {
+	return renderBookingReceiptPdfInNode(step.artifacts.data).map(withRenderedBookingPdf(step));
+}
+
+function sendBookingReceiptCustomerEmail(booking: Doc<"bookings">) {
+	return ({ artifacts, parsedBooking, pdfContent }: BookingReceiptRenderedStep) =>
+		sendEmail({
+			to: [booking.email],
+			subject: `Studio booking confirmed - ${formatSessionDateShort(booking.date)}`,
+			html: artifacts.emailHtml,
+			attachments: [{ ...artifacts.pdf, content: pdfContent }]
+		}).map(customerEmailSentArtifacts(artifacts, parsedBooking));
+}
+
+function customerEmailSentArtifacts(
+	artifacts: BookingReceiptArtifactsStep["artifacts"],
+	parsedBooking: BookingReceiptArtifactsStep["booking"]
+) {
+	return () => ({ artifacts, parsedBooking });
+}
+
+function bookingReceiptNumberFromArtifacts({
+	artifacts,
+	parsedBooking
+}: BookingReceiptCustomerSentStep) {
+	return { receiptNumber: artifacts.data.receipt.number, parsedBooking };
+}
+
+function logBookingReceiptHostEmailFailure(bookingId: Doc<"bookings">["_id"]) {
+	return (error: { reason: string }) => {
+		console.error("Booking receipt host email send failed", { bookingId, reason: error.reason });
+
+		return ok(null);
+	};
+}
+
+function receiptNumberResult(receiptNumber: string) {
+	return () => ({ receiptNumber });
+}
+
+function maybeSendBookingReceiptHostEmail(
+	booking: Doc<"bookings">,
+	options: { reschedule?: SessionHostRescheduleDetails; skipHostEmail?: boolean }
+) {
+	return ({ artifacts, parsedBooking }: BookingReceiptCustomerSentStep) => {
+		const { receiptNumber, parsedBooking: bookingForHost } = bookingReceiptNumberFromArtifacts({
+			artifacts,
+			parsedBooking
+		});
+
+		if (options.skipHostEmail) {
+			return okAsync({ receiptNumber });
+		}
+
+		return sendSessionHostDetailsEmail({
+			invoiceNumber: receiptNumber,
+			name: bookingForHost.name,
+			email: bookingForHost.email,
+			phone: bookingForHost.phone,
+			accountName: bookingForHost.accountName,
+			abn: bookingForHost.abn,
+			date: bookingForHost.date,
+			time: bookingForHost.time,
+			service: bookingForHost.service,
+			duration: bookingForHost.duration,
+			addons: bookingForHost.addons,
+			notes: bookingForHost.notes,
+			reschedule: options.reschedule,
+			...pickBookingAddonQuantities(bookingForHost)
+		})
+			.orElse(logBookingReceiptHostEmailFailure(booking._id))
+			.map(receiptNumberResult(receiptNumber));
+	};
+}
+
+function withRenderedPackagePdf({ artifacts }: PackageReceiptArtifactsStep) {
+	return (pdfContent: Uint8Array) => ({ artifacts, pdfContent });
+}
+
+function attachPdfToPackageReceiptArtifacts(step: PackageReceiptArtifactsStep) {
+	return renderBookingReceiptPdfInNode(step.artifacts.data).map(withRenderedPackagePdf(step));
+}
+
+function sendPackageReceiptCustomerEmail(packageRecord: PackageInvoiceInput, paidAt: number) {
+	return ({ artifacts, pdfContent }: PackageReceiptRenderedStep) =>
+		sendEmail({
+			to: [packageRecord.email],
+			subject: `Your ${packageRecord.packageSize}-Session Package confirmed — schedule your sessions (${formatTimestampDateShort(paidAt)})`,
+			html: artifacts.emailHtml,
+			attachments: [{ ...artifacts.pdf, content: pdfContent }]
+		}).map(packageCustomerEmailSentArtifacts(artifacts));
+}
+
+function packageCustomerEmailSentArtifacts(artifacts: PackageReceiptArtifactsStep["artifacts"]) {
+	return () => ({ artifacts });
+}
+
+function logPackageReceiptHostEmailFailure(packageId: PackageInvoiceInput["_id"]) {
+	return (error: { reason: string }) => {
+		console.error("Package receipt host email send failed", { packageId, reason: error.reason });
+
+		return ok(null);
+	};
+}
+
+function maybeSendPackageReceiptHostEmail(
+	packageRecord: PackageInvoiceInput,
+	paidAt: number,
+	options: { skipHostEmail?: boolean }
+) {
+	return ({ artifacts }: { artifacts: PackageReceiptArtifactsStep["artifacts"] }) => {
+		const receiptNumber = artifacts.data.receipt.number;
+
+		if (options.skipHostEmail) {
+			return okAsync({ receiptNumber });
+		}
+
+		return sendPackageHostDetailsEmail({
+			invoiceNumber: receiptNumber,
+			name: packageRecord.name,
+			email: packageRecord.email,
+			phone: packageRecord.phone,
+			accountName: packageRecord.accountName,
+			abn: packageRecord.abn,
+			duration: packageRecord.duration,
+			addons: packageRecord.addons,
+			essentialEditQuantity: packageRecord.essentialEditQuantity,
+			completeEditQuantity: packageRecord.completeEditQuantity,
+			clipsPackageQuantity: packageRecord.clipsPackageQuantity,
+			handcraftedClipsQuantity: packageRecord.handcraftedClipsQuantity,
+			notes: packageRecord.notes,
+			packageSize: packageRecord.packageSize,
+			invoiceDueAt: paidAt
+		})
+			.orElse(logPackageReceiptHostEmailFailure(packageRecord._id))
+			.map(receiptNumberResult(receiptNumber));
+	};
 }
 
 export function sendBookingReceiptEmailsForBooking(
@@ -60,54 +230,9 @@ export function sendBookingReceiptEmailsForBooking(
 		leadTimeMinutes: options.leadTimeMinutes,
 		rescheduleUrl: options.rescheduleUrl
 	})
-		.andThen(({ artifacts, booking: parsedBooking }) =>
-			renderBookingReceiptPdfInNode(artifacts.data).map((pdfContent) => ({
-				artifacts,
-				parsedBooking,
-				pdfContent
-			}))
-		)
-		.andThen(({ artifacts, parsedBooking, pdfContent }) =>
-			sendEmail({
-				to: [booking.email],
-				subject: `Studio booking confirmed - ${formatSessionDateShort(booking.date)}`,
-				html: artifacts.emailHtml,
-				attachments: [{ ...artifacts.pdf, content: pdfContent }]
-			}).map(() => ({ artifacts, parsedBooking }))
-		)
-		.andThen(({ artifacts, parsedBooking }) => {
-			const receiptNumber = artifacts.data.receipt.number;
-
-			if (options.skipHostEmail) {
-				return okAsync({ receiptNumber });
-			}
-
-			return sendSessionHostDetailsEmail({
-				invoiceNumber: receiptNumber,
-				name: parsedBooking.name,
-				email: parsedBooking.email,
-				phone: parsedBooking.phone,
-				accountName: parsedBooking.accountName,
-				abn: parsedBooking.abn,
-				date: parsedBooking.date,
-				time: parsedBooking.time,
-				service: parsedBooking.service,
-				duration: parsedBooking.duration,
-				addons: parsedBooking.addons,
-				notes: parsedBooking.notes,
-				reschedule: options.reschedule,
-				...pickBookingAddonQuantities(parsedBooking)
-			})
-				.orElse((error) => {
-					console.error("Booking receipt host email send failed", {
-						bookingId: booking._id,
-						reason: error.reason
-					});
-
-					return ok(null);
-				})
-				.map(() => ({ receiptNumber }));
-		});
+		.andThen(attachPdfToBookingReceiptArtifacts)
+		.andThen(sendBookingReceiptCustomerEmail(booking))
+		.andThen(maybeSendBookingReceiptHostEmail(booking, options));
 }
 
 export function sendPackageReceiptEmailsForPackage(
@@ -126,49 +251,7 @@ export function sendPackageReceiptEmailsForPackage(
 		...artifactOptions,
 		scheduleExpiresAtLabel: expiresAt === undefined ? undefined : formatTimestampDateLong(expiresAt)
 	})
-		.andThen(({ artifacts }) =>
-			renderBookingReceiptPdfInNode(artifacts.data).map((pdfContent) => ({ artifacts, pdfContent }))
-		)
-		.andThen(({ artifacts, pdfContent }) =>
-			sendEmail({
-				to: [packageRecord.email],
-				subject: `Your ${packageRecord.packageSize}-Session Package confirmed — schedule your sessions (${formatTimestampDateShort(paidAt)})`,
-				html: artifacts.emailHtml,
-				attachments: [{ ...artifacts.pdf, content: pdfContent }]
-			}).map(() => ({ artifacts }))
-		)
-		.andThen(({ artifacts }) => {
-			const receiptNumber = artifacts.data.receipt.number;
-
-			if (options.skipHostEmail) {
-				return okAsync({ receiptNumber });
-			}
-
-			return sendPackageHostDetailsEmail({
-				invoiceNumber: receiptNumber,
-				name: packageRecord.name,
-				email: packageRecord.email,
-				phone: packageRecord.phone,
-				accountName: packageRecord.accountName,
-				abn: packageRecord.abn,
-				duration: packageRecord.duration,
-				addons: packageRecord.addons,
-				essentialEditQuantity: packageRecord.essentialEditQuantity,
-				completeEditQuantity: packageRecord.completeEditQuantity,
-				clipsPackageQuantity: packageRecord.clipsPackageQuantity,
-				handcraftedClipsQuantity: packageRecord.handcraftedClipsQuantity,
-				notes: packageRecord.notes,
-				packageSize: packageRecord.packageSize,
-				invoiceDueAt: paidAt
-			})
-				.orElse((error) => {
-					console.error("Package receipt host email send failed", {
-						packageId: packageRecord._id,
-						reason: error.reason
-					});
-
-					return ok(null);
-				})
-				.map(() => ({ receiptNumber }));
-		});
+		.andThen(attachPdfToPackageReceiptArtifacts)
+		.andThen(sendPackageReceiptCustomerEmail(packageRecord, paidAt))
+		.andThen(maybeSendPackageReceiptHostEmail(packageRecord, paidAt, options));
 }

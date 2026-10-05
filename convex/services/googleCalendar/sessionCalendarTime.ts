@@ -23,6 +23,21 @@ function nextCalendarDate(date: string) {
 	return `${nextYear}-${nextMonth}-${nextDay}`;
 }
 
+function dateAvailabilityRangeStep(timeMaxDate: Date, timeMinDate: Date) {
+	return { timeMax: timeMaxDate.toISOString(), timeMin: timeMinDate.toISOString() };
+}
+
+function dateAvailabilityRangeFromTimeMinStep(timeMaxDate: Date) {
+	return (timeMinDate: Date) => dateAvailabilityRangeStep(timeMaxDate, timeMinDate);
+}
+
+function dateAvailabilityRangeFromStartStep(startDate: string, timeZone: string) {
+	return (timeMaxDate: Date) =>
+		getUtcDateForZonedDateTime(startDate, "00:00", timeZone).map(
+			dateAvailabilityRangeFromTimeMinStep(timeMaxDate)
+		);
+}
+
 export function getDateAvailabilityRange(
 	startDate: string,
 	endDate: string,
@@ -32,10 +47,6 @@ export function getDateAvailabilityRange(
 	Exclude<SessionTimeParseError, { reason: "BOOKING_INVALID_DURATION" }>
 > {
 	return getUtcDateForZonedDateTime(nextCalendarDate(endDate), "00:00", timeZone).andThen(
-		(timeMaxDate) =>
-			getUtcDateForZonedDateTime(startDate, "00:00", timeZone).map((timeMinDate) => ({
-				timeMax: timeMaxDate.toISOString(),
-				timeMin: timeMinDate.toISOString()
-			}))
+		dateAvailabilityRangeFromStartStep(startDate, timeZone)
 	);
 }

@@ -18,26 +18,92 @@ import { setupEditorAccess } from "#convex/services/drive/editorDrivePermissions
 
 export type SetupError = LibSetupError;
 
-function loadValidatedSetup(
-	ctx: ActionCtx,
-	args: { bookingId: Id<"bookings">; sessionStartAt?: number; duration?: string }
-): ResultAsync<DriveSetupInfo, LibSetupError> {
-	return fromConvexTuple(
-		ctx.runQuery(internal.sessionsDriveInternal.getDriveSetup, { bookingId: args.bookingId })
-	).andThen((setupInfo) =>
+type DriveSetupLoadArgs = { bookingId: Id<"bookings">; sessionStartAt?: number; duration?: string };
+
+function validateLoadedDriveSetup(args: DriveSetupLoadArgs) {
+	return (setupInfo: DriveSetupInfo | null) =>
 		validateDriveSetup(
 			setupInfo,
 			args.sessionStartAt !== undefined && args.duration !== undefined
 				? { sessionStartAt: args.sessionStartAt, duration: args.duration }
 				: undefined
-		)
-	);
+		);
+}
+
+function loadValidatedSetup(
+	ctx: ActionCtx,
+	args: DriveSetupLoadArgs
+): ResultAsync<DriveSetupInfo, LibSetupError> {
+	return fromConvexTuple(
+		ctx.runQuery(internal.sessionsDriveInternal.getDriveSetup, { bookingId: args.bookingId })
+	).andThen(validateLoadedDriveSetup(args));
 }
 
 function saveSetupFailure(ctx: ActionCtx, bookingId: Id<"bookings">, failureCode: string) {
 	return fromConvexTuple(
 		ctx.runMutation(internal.sessionsDriveInternal.saveDriveSetupResult, { bookingId, failureCode })
 	);
+}
+
+function ensureDriveFoldersForSetup(
+	ctx: ActionCtx,
+	args: DriveSetupLoadArgs & { replaceMissingFolders: boolean }
+) {
+	return (setupInfo: DriveSetupInfo) =>
+		ensureSessionDriveFolders(ctx, setupInfo, args.replaceMissingFolders);
+}
+
+function requireSavedDriveFolders(setupInfo: DriveSetupInfo) {
+	return areDriveSetupFoldersSaved(setupInfo)
+		? okAsync(null)
+		: errAsync({ reason: "DRIVE_FOLDERS_INCOMPLETE" as const });
+}
+
+function saveSuccessfulDriveSetup(ctx: ActionCtx, bookingId: Id<"bookings">) {
+	return fromConvexTuple(
+		ctx.runMutation(internal.sessionsDriveInternal.saveDriveSetupResult, { bookingId })
+	);
+}
+
+function sendClientAssetsEmailAfterSetup(ctx: ActionCtx, bookingId: Id<"bookings">) {
+	return requireClientDrivePermissionsAndSendAssetsEmail(ctx, {
+		bookingId,
+		attempt: "automatic"
+	}).orElse(() => okAsync(null));
+}
+
+function setupEditorAccessAfterClientEmail(ctx: ActionCtx, bookingId: Id<"bookings">) {
+	return setupEditorAccess(ctx, { bookingId }).orElse(() => okAsync(null));
+}
+
+function recordSetupFailureThenRethrow(ctx: ActionCtx, bookingId: Id<"bookings">) {
+	return (setupError: LibSetupError) => {
+		if (!shouldRecordDriveSetupFailure(setupError)) return errAsync(setupError);
+
+		return saveSetupFailure(ctx, bookingId, setupError.reason).andThen(
+			rethrowSetupError(setupError)
+		);
+	};
+}
+
+function rethrowSetupError(setupError: LibSetupError) {
+	return () => errAsync(setupError);
+}
+
+function reloadValidatedSetup(ctx: ActionCtx, loadArgs: DriveSetupLoadArgs) {
+	return () => loadValidatedSetup(ctx, loadArgs);
+}
+
+function runAfterSavedDriveFolders(ctx: ActionCtx, bookingId: Id<"bookings">) {
+	return () => saveSuccessfulDriveSetup(ctx, bookingId);
+}
+
+function runClientAssetsEmailStep(ctx: ActionCtx, bookingId: Id<"bookings">) {
+	return () => sendClientAssetsEmailAfterSetup(ctx, bookingId);
+}
+
+function runEditorAccessStep(ctx: ActionCtx, bookingId: Id<"bookings">) {
+	return () => setupEditorAccessAfterClientEmail(ctx, bookingId);
 }
 
 export function createSessionDriveFoldersAndCompleteSetup(
@@ -49,42 +115,25 @@ export function createSessionDriveFoldersAndCompleteSetup(
 		replaceMissingFolders: boolean;
 	}
 ): ResultAsync<null, SetupError> {
+	const loadArgs: DriveSetupLoadArgs = {
+		bookingId: args.bookingId,
+		sessionStartAt: args.sessionStartAt,
+		duration: args.duration
+	};
+
 	return (
 		// Create or recover every folder, then mark the folder setup as complete.
-		loadValidatedSetup(ctx, args)
-			.andThen((setupInfo) => ensureSessionDriveFolders(ctx, setupInfo, args.replaceMissingFolders))
-			.andThen(() => loadValidatedSetup(ctx, args))
-			.andThen((setupInfo) =>
-				areDriveSetupFoldersSaved(setupInfo)
-					? okAsync(null)
-					: errAsync({ reason: "DRIVE_FOLDERS_INCOMPLETE" as const })
-			)
-			.andThen(() =>
-				fromConvexTuple(
-					ctx.runMutation(internal.sessionsDriveInternal.saveDriveSetupResult, {
-						bookingId: args.bookingId
-					})
-				)
-			)
+		loadValidatedSetup(ctx, loadArgs)
+			.andThen(ensureDriveFoldersForSetup(ctx, args))
+			.andThen(reloadValidatedSetup(ctx, loadArgs))
+			.andThen(requireSavedDriveFolders)
+			.andThen(runAfterSavedDriveFolders(ctx, args.bookingId))
 			// Client access and its email fail independently from folder setup.
-			.andThen(() =>
-				requireClientDrivePermissionsAndSendAssetsEmail(ctx, {
-					bookingId: args.bookingId,
-					attempt: "automatic"
-				}).orElse(() => okAsync(null))
-			)
+			.andThen(runClientAssetsEmailStep(ctx, args.bookingId))
 			// Editor access also fails independently and has its own admin retry.
-			.andThen(() =>
-				setupEditorAccess(ctx, { bookingId: args.bookingId }).orElse(() => okAsync(null))
-			)
+			.andThen(runEditorAccessStep(ctx, args.bookingId))
 			// Only folder setup errors are saved on the booking here.
-			.orElse((setupError) => {
-				if (!shouldRecordDriveSetupFailure(setupError)) return errAsync(setupError);
-
-				return saveSetupFailure(ctx, args.bookingId, setupError.reason).andThen(() =>
-					errAsync(setupError)
-				);
-			})
+			.orElse(recordSetupFailureThenRethrow(ctx, args.bookingId))
 	);
 }
 

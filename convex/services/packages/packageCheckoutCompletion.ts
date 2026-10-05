@@ -23,6 +23,47 @@ type CompletePackageCheckoutFailure =
 				| { reason: "SCHEDULE_EMAIL_RENDER_FAILED" };
 	  };
 
+function mapPackageCheckoutClaimFailed(error: {
+	reason: "PACKAGE_NOT_FOUND" | "STRIPE_SESSION_MISMATCH";
+}) {
+	return { kind: "claim_failed" as const, error };
+}
+
+function completePackageCheckoutFromClaim(ctx: ActionCtx) {
+	return (claim: PackageCheckoutClaim) => {
+		const claimOutcome = claim.outcome;
+
+		switch (claimOutcome) {
+			case "already_completed":
+			case "already_claimed":
+				return okAsync({ outcome: "already_completed" as const });
+			case "claimed":
+				return fromConvexTuple(
+					ctx.runAction(internal.packageCheckoutCompletionHandlers.completeClaimedPackageCheckout, {
+						packageId: claim.packageId
+					})
+				).mapErr(mapPackageCheckoutCompletionFailed);
+			default:
+				return exhaustiveCheck(claimOutcome);
+		}
+	};
+}
+
+function mapPackageCheckoutCompletionFailed(
+	error:
+		| { reason: "EMAIL_REQUEST_FAILED" }
+		| { reason: "EMAIL_RESPONSE_FAILED" }
+		| { reason: "INVALID_BOOKING_DATA" }
+		| { reason: "PACKAGE_ALREADY_PAID" }
+		| { reason: "PACKAGE_NOT_FOUND" }
+		| { reason: "PACKAGE_SCHEDULE_EMAIL_FAILED" }
+		| { reason: "RECEIPT_EMAIL_RENDER_FAILED" }
+		| { reason: "RECEIPT_PDF_RENDER_FAILED" }
+		| { reason: "SCHEDULE_EMAIL_RENDER_FAILED" }
+) {
+	return { kind: "completion_failed" as const, error };
+}
+
 export function completePackageCheckoutService(
 	ctx: ActionCtx,
 	args: { packageId: string; stripeSessionId: string; stripePaymentIntentId?: string }
@@ -30,23 +71,6 @@ export function completePackageCheckoutService(
 	return fromConvexTuple(
 		ctx.runMutation(internal.packageCheckout.claimPackageCheckoutPayment, args)
 	)
-		.mapErr((error) => ({ kind: "claim_failed" as const, error }))
-		.andThen((claim: PackageCheckoutClaim) => {
-			const claimOutcome = claim.outcome;
-
-			switch (claimOutcome) {
-				case "already_completed":
-				case "already_claimed":
-					return okAsync({ outcome: "already_completed" as const });
-				case "claimed":
-					return fromConvexTuple(
-						ctx.runAction(
-							internal.packageCheckoutCompletionHandlers.completeClaimedPackageCheckout,
-							{ packageId: claim.packageId }
-						)
-					).mapErr((error) => ({ kind: "completion_failed" as const, error }));
-				default:
-					return exhaustiveCheck(claimOutcome);
-			}
-		});
+		.mapErr(mapPackageCheckoutClaimFailed)
+		.andThen(completePackageCheckoutFromClaim(ctx));
 }

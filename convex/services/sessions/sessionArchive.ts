@@ -15,6 +15,16 @@ import {
 } from "#convex/lib/stripe/stripeInvoices";
 import { getSessionFromDb } from "#convex/services/sessions/sessionLookup";
 
+function patchDeadCheckoutBookingStep(
+	ctx: MutationCtx,
+	bookingId: Id<"bookings">,
+	updates: Partial<Doc<"bookings">>,
+	now: number
+) {
+	return (session: Doc<"bookings">) =>
+		patchBookingFields(ctx, bookingId, mergeDeadCheckoutBookingUpdates(session, updates, now));
+}
+
 export function archiveDeadCheckoutBooking(
 	ctx: MutationCtx,
 	bookingId: Id<"bookings">,
@@ -22,10 +32,48 @@ export function archiveDeadCheckoutBooking(
 	now = Date.now()
 ): ResultAsync<null, never> {
 	return getSessionFromDb(ctx, bookingId)
-		.andThen((session) =>
-			patchBookingFields(ctx, bookingId, mergeDeadCheckoutBookingUpdates(session, updates, now))
-		)
-		.orElse(() => okAsync(null));
+		.andThen(patchDeadCheckoutBookingStep(ctx, bookingId, updates, now))
+		.orElse(ignoreArchiveFailureStep);
+}
+
+function ignoreArchiveFailureStep() {
+	return okAsync(null);
+}
+
+function sessionStripeSummaryStep(session: Doc<"bookings">) {
+	return (invoices: Parameters<typeof summarizeStripeInvoices>[0]) => ({
+		session,
+		stripeSummary: summarizeStripeInvoices(invoices)
+	});
+}
+
+function stripeSummaryForAutoArchiveStep(ctx: MutationCtx, bookingId: Id<"bookings">) {
+	return (session: Doc<"bookings">) =>
+		listStripeInvoicesForBooking(ctx, bookingId).map(sessionStripeSummaryStep(session));
+}
+
+function archiveWhenFullyDoneEligibleStep(
+	ctx: MutationCtx,
+	bookingId: Id<"bookings">,
+	now: number
+) {
+	return ({
+		session,
+		stripeSummary
+	}: {
+		session: Doc<"bookings">;
+		stripeSummary: ReturnType<typeof summarizeStripeInvoices>;
+	}) => {
+		if (isBookingArchived(session)) {
+			return okAsync(null);
+		}
+
+		if (!isSessionEligibleForAutoArchive(session, stripeSummary, now)) {
+			return okAsync(null);
+		}
+
+		return setBookingArchived(ctx, bookingId, true);
+	};
 }
 
 export function archiveSessionWhenFullyDone(
@@ -34,24 +82,9 @@ export function archiveSessionWhenFullyDone(
 	now = Date.now()
 ): ResultAsync<null, never> {
 	return getSessionFromDb(ctx, bookingId)
-		.andThen((session) =>
-			listStripeInvoicesForBooking(ctx, bookingId).map((invoices) => ({
-				session,
-				stripeSummary: summarizeStripeInvoices(invoices)
-			}))
-		)
-		.andThen(({ session, stripeSummary }) => {
-			if (isBookingArchived(session)) {
-				return okAsync(null);
-			}
-
-			if (!isSessionEligibleForAutoArchive(session, stripeSummary, now)) {
-				return okAsync(null);
-			}
-
-			return setBookingArchived(ctx, bookingId, true);
-		})
-		.orElse(() => okAsync(null));
+		.andThen(stripeSummaryForAutoArchiveStep(ctx, bookingId))
+		.andThen(archiveWhenFullyDoneEligibleStep(ctx, bookingId, now))
+		.orElse(ignoreArchiveFailureStep);
 }
 
 export function runArchivePastDeadCheckoutBatch(

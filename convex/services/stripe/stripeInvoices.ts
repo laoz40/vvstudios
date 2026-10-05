@@ -1,5 +1,5 @@
 import { ok, okAsync } from "neverthrow";
-import type { Id } from "#convex/_generated/dataModel";
+import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { MutationCtx } from "#convex/_generated/server";
 import { unarchivePackageForNewUnpaidInvoice } from "#convex/lib/packages/packageArchive";
 import { archivePackageWhenFullyDone } from "#convex/services/packages/packageArchive";
@@ -9,6 +9,30 @@ import { getSessionFromDb } from "#convex/services/sessions/sessionLookup";
 import { unarchiveSessionForNewUnpaidInvoice } from "#convex/lib/sessions/sessionArchive";
 import { archiveSessionWhenFullyDone } from "#convex/services/sessions/sessionArchive";
 import { type StripeInvoiceInsertResult } from "#convex/lib/stripe/stripeInvoices";
+
+function keepInsertResult<T>(insertResult: T) {
+	return () => insertResult;
+}
+
+function recoverInsertResult<T>(insertResult: T) {
+	return () => ok(insertResult);
+}
+
+function unarchiveSessionAndKeepInsertResult(
+	ctx: MutationCtx,
+	insertResult: StripeInvoiceInsertResult
+) {
+	return (session: Doc<"bookings">) =>
+		unarchiveSessionForNewUnpaidInvoice(ctx, session).map(keepInsertResult(insertResult));
+}
+
+function unarchivePackageAndKeepInsertResult(
+	ctx: MutationCtx,
+	insertResult: StripeInvoiceInsertResult
+) {
+	return (packageRecord: Doc<"packages">) =>
+		unarchivePackageForNewUnpaidInvoice(ctx, packageRecord).map(keepInsertResult(insertResult));
+}
 
 export function unarchiveAfterNewBookingInvoice(
 	ctx: MutationCtx,
@@ -20,8 +44,8 @@ export function unarchiveAfterNewBookingInvoice(
 	}
 
 	return getSessionFromDb(ctx, bookingId)
-		.andThen((session) => unarchiveSessionForNewUnpaidInvoice(ctx, session).map(() => insertResult))
-		.orElse(() => ok(insertResult));
+		.andThen(unarchiveSessionAndKeepInsertResult(ctx, insertResult))
+		.orElse(recoverInsertResult(insertResult));
 }
 
 export function unarchiveAfterNewPackageInvoice(
@@ -34,10 +58,26 @@ export function unarchiveAfterNewPackageInvoice(
 	}
 
 	return getPackageFromDb(ctx, packageId)
-		.andThen((packageRecord) =>
-			unarchivePackageForNewUnpaidInvoice(ctx, packageRecord).map(() => insertResult)
-		)
-		.orElse(() => ok(insertResult));
+		.andThen(unarchivePackageAndKeepInsertResult(ctx, insertResult))
+		.orElse(recoverInsertResult(insertResult));
+}
+
+function archiveBookingForPaidStripeInvoice(ctx: MutationCtx, paidAt: number) {
+	return (stripeInvoice: Doc<"stripeInvoices"> | null) => {
+		if (stripeInvoice?.bookingId !== undefined) {
+			return archiveSessionWhenFullyDone(ctx, stripeInvoice.bookingId, paidAt).map(toNull);
+		}
+
+		if (stripeInvoice?.packageId !== undefined) {
+			return archivePackageWhenFullyDone(ctx, stripeInvoice.packageId, paidAt).map(toNull);
+		}
+
+		return okAsync(null);
+	};
+}
+
+function toNull() {
+	return null;
 }
 
 export function archiveBookingWhenStripeInvoicePaid(
@@ -45,15 +85,7 @@ export function archiveBookingWhenStripeInvoicePaid(
 	stripeInvoiceId: string,
 	paidAt: number
 ) {
-	return getStripeInvoiceByStripeInvoiceId(ctx, stripeInvoiceId).andThen((stripeInvoice) => {
-		if (stripeInvoice?.bookingId !== undefined) {
-			return archiveSessionWhenFullyDone(ctx, stripeInvoice.bookingId, paidAt).map(() => null);
-		}
-
-		if (stripeInvoice?.packageId !== undefined) {
-			return archivePackageWhenFullyDone(ctx, stripeInvoice.packageId, paidAt).map(() => null);
-		}
-
-		return okAsync(null);
-	});
+	return getStripeInvoiceByStripeInvoiceId(ctx, stripeInvoiceId).andThen(
+		archiveBookingForPaidStripeInvoice(ctx, paidAt)
+	);
 }

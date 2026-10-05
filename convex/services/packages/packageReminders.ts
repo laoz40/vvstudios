@@ -21,6 +21,25 @@ const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
 export type PackageExpiryReminderCandidate = Doc<"packages"> & { remainingSessions: number };
 
+function enrichPackageExpiryReminderCandidate(ctx: QueryCtx) {
+	return async (packageFromDb: Doc<"packages">): Promise<PackageExpiryReminderCandidate> => {
+		const sessionsResult = await getCapacityConsumingPackageSessions(
+			ctx,
+			packageFromDb._id,
+			packageFromDb.packageSize
+		);
+
+		if (sessionsResult.isErr()) {
+			throw new Error("getCapacityConsumingPackageSessions failed");
+		}
+
+		return {
+			...packageFromDb,
+			remainingSessions: packageFromDb.packageSize - sessionsResult.value.length
+		};
+	};
+}
+
 export async function listPackagesPotentiallyDueForExpiryReminderService(
 	ctx: QueryCtx,
 	args: { expiresAfter: number; expiresBefore: number; limit?: number }
@@ -35,24 +54,7 @@ export async function listPackagesPotentiallyDueForExpiryReminderService(
 		)
 		.slice(0, limit);
 
-	return await Promise.all(
-		eligiblePackages.map(async (packageFromDb) => {
-			const sessionsResult = await getCapacityConsumingPackageSessions(
-				ctx,
-				packageFromDb._id,
-				packageFromDb.packageSize
-			);
-
-			if (sessionsResult.isErr()) {
-				throw new Error("getCapacityConsumingPackageSessions failed");
-			}
-
-			return {
-				...packageFromDb,
-				remainingSessions: packageFromDb.packageSize - sessionsResult.value.length
-			};
-		})
-	);
+	return await Promise.all(eligiblePackages.map(enrichPackageExpiryReminderCandidate(ctx)));
 }
 
 const getSydneyCalendarDayNumber = (timestamp: number) => {
@@ -60,6 +62,62 @@ const getSydneyCalendarDayNumber = (timestamp: number) => {
 
 	return Date.UTC(year, month - 1, day) / MS_PER_DAY;
 };
+
+function processPackageExpiryReminder(ctx: ActionCtx, now: number) {
+	return async (packageRecord: PackageExpiryReminderCandidate) => {
+		try {
+			const { expiresAt, remainingSessions } = packageRecord;
+
+			if (
+				expiresAt === undefined ||
+				remainingSessions === 0 ||
+				getSydneyCalendarDayNumber(expiresAt) - getSydneyCalendarDayNumber(now) >
+					remainingSessions * 7
+			) {
+				return;
+			}
+
+			const claimResult = await fromConvexTuple(
+				ctx.runMutation(internal.packageReminders.claimPackageReminder, {
+					packageId: packageRecord._id,
+					now,
+					reminderType: "expiry"
+				})
+			);
+
+			if (claimResult.isErr()) return;
+
+			const sendResult = await sendPackageExpiryReminderEmail({
+				email: packageRecord.email,
+				expiresAt,
+				name: packageRecord.name,
+				remainingSessions
+			});
+
+			if (sendResult.isOk()) {
+				await fromConvexTuple(
+					ctx.runMutation(internal.packageReminders.markPackageReminderSent, {
+						packageId: packageRecord._id,
+						now,
+						reminderType: "expiry"
+					})
+				);
+
+				return;
+			}
+
+			await fromConvexTuple(
+				ctx.runMutation(internal.packageReminders.markPackageReminderFailed, {
+					failureCode: sendResult.error.reason,
+					packageId: packageRecord._id,
+					reminderType: "expiry"
+				})
+			);
+		} catch (error) {
+			console.error(`Failed to process expiry reminder for package ${packageRecord._id}`, error);
+		}
+	};
+}
 
 async function sendPackageExpiryRemindersDueToday(ctx: ActionCtx, nowDate: Date) {
 	const now = nowDate.getTime();
@@ -72,61 +130,7 @@ async function sendPackageExpiryRemindersDueToday(ctx: ActionCtx, nowDate: Date)
 	);
 
 	// Reminders are non-critical, so isolate each package to ensure one failure does not block the rest.
-	await Promise.all(
-		expiryPackages.map(async (packageRecord: PackageExpiryReminderCandidate) => {
-			try {
-				const { expiresAt, remainingSessions } = packageRecord;
-
-				if (
-					expiresAt === undefined ||
-					remainingSessions === 0 ||
-					getSydneyCalendarDayNumber(expiresAt) - getSydneyCalendarDayNumber(now) >
-						remainingSessions * 7
-				) {
-					return;
-				}
-
-				const claimResult = await fromConvexTuple(
-					ctx.runMutation(internal.packageReminders.claimPackageReminder, {
-						packageId: packageRecord._id,
-						now,
-						reminderType: "expiry"
-					})
-				);
-
-				if (claimResult.isErr()) return;
-
-				const sendResult = await sendPackageExpiryReminderEmail({
-					email: packageRecord.email,
-					expiresAt,
-					name: packageRecord.name,
-					remainingSessions
-				});
-
-				if (sendResult.isOk()) {
-					await fromConvexTuple(
-						ctx.runMutation(internal.packageReminders.markPackageReminderSent, {
-							packageId: packageRecord._id,
-							now,
-							reminderType: "expiry"
-						})
-					);
-
-					return;
-				}
-
-				await fromConvexTuple(
-					ctx.runMutation(internal.packageReminders.markPackageReminderFailed, {
-						failureCode: sendResult.error.reason,
-						packageId: packageRecord._id,
-						reminderType: "expiry"
-					})
-				);
-			} catch (error) {
-				console.error(`Failed to process expiry reminder for package ${packageRecord._id}`, error);
-			}
-		})
-	);
+	await Promise.all(expiryPackages.map(processPackageExpiryReminder(ctx, now)));
 }
 
 // If processing throws after claiming a reminder, that reminder stays claimed and will not retry.

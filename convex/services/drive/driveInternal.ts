@@ -1,52 +1,23 @@
-import { err, errAsync, ok, okAsync } from "neverthrow";
+import { errAsync, okAsync } from "neverthrow";
 import type { Doc, Id } from "#convex/_generated/dataModel";
-import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
-import { bookingRequiresClientAssetsEmail } from "#convex/lib/booking/bookingAddonQuantities";
-import {
-	claimClientAssetsEmailRecord,
-	saveClientAssetsEmailResultForSession,
-	writeClientDrivePermission,
-	writeClientDrivePermissionsStatusForSession
-} from "#convex/lib/drive/driveClientAccess";
+import type { MutationCtx } from "#convex/_generated/server";
 import {
 	linkBookingDriveClientFromRow,
 	loadBookingRow,
-	loadClientAssetsEmailRows,
 	loadDriveClientRow,
-	loadDriveSessionRow,
 	loadDriveSessionRowByBookingId,
 	syncBookingDriveClientIdFromSessionRows
 } from "#convex/lib/drive/driveBookingDriveClient";
-import {
-	loadPackageBookings,
-	resolveDriveClientForBooking,
-	type DriveSetupInfo
-} from "#convex/lib/drive/driveLookup";
-import {
-	loadDriveSetupPackageRecord,
-	packageFolderFromOtherPackageBookings
-} from "#convex/lib/drive/driveSetupLoad";
 import {
 	clientSessionNumberFromExistingSession,
 	packageSessionNumberFromExistingSession,
 	saveClientSessionNumber,
 	savePackageSessionNumber,
 	type PackageBooking,
+	type PackageSessionNumberAllocation,
+	type ClientSessionNumberAllocation,
 	type StandaloneBooking
 } from "#convex/lib/drive/sessionFolders/allocateNumbers";
-import {
-	claimEditorAssignmentEmailForEditor,
-	clearPreviousEditorDriveAccessForSession,
-	editorDriveAccessToRemoveForSession,
-	editorDriveSetupFromLoaded,
-	failedEditorRemovalForSession,
-	loadEditorClientDriveData,
-	loadEditorProfileByToken,
-	markPreviousEditorRemovalFailedForSession,
-	saveEditorAssignmentEmailResultForSession,
-	writeEditorDrivePermission,
-	writeEditorDrivePermissionsStatus
-} from "#convex/lib/drive/driveEditor";
 import {
 	clearSavedDriveFolder as clearSavedDriveFolderLib,
 	getOrCreateDriveClientIdForRow,
@@ -60,60 +31,26 @@ import {
 } from "#convex/lib/drive/driveFolders";
 import { clearSessionDriveDbForSession } from "#convex/lib/drive/sessionFolders/clearSessionRecords";
 
-function loadSharedPackageFolder(
-	ctx: QueryCtx,
-	packageId: Id<"packages">,
-	currentBookingId: Id<"bookings">
-) {
-	return loadPackageBookings(ctx, packageId).andThen((packageBookings) =>
-		packageFolderFromOtherPackageBookings(ctx, packageBookings, currentBookingId)
-	);
-}
+export { getDriveSetup } from "#convex/services/drive/driveSetupQuery";
 
-export function getDriveSetup(ctx: QueryCtx, bookingId: Id<"bookings">) {
-	return loadBookingRow(ctx, bookingId).andThen((booking) => {
-		if (booking === null) return ok(null);
+export {
+	claimEditorAssignmentEmail,
+	clearPreviousEditorDriveAccess,
+	getEditorDriveAccessToRemove,
+	getEditorDriveSetup,
+	getFailedEditorRemoval,
+	markPreviousEditorRemovalFailed,
+	saveEditorAssignmentEmailResult,
+	saveEditorDrivePermission,
+	saveEditorDrivePermissionsStatus
+} from "#convex/services/drive/driveInternalEditor";
 
-		const driveClientFromBookingResult =
-			booking.driveClientId !== undefined
-				? loadDriveClientRow(ctx, booking.driveClientId)
-				: okAsync<Doc<"driveClients"> | null>(null);
-
-		const driveSessionResult = loadDriveSessionRowByBookingId(ctx, bookingId);
-		const packageRecordResult = loadDriveSetupPackageRecord(ctx, booking.packageId);
-
-		return driveClientFromBookingResult.andThen((driveClientFromBooking) =>
-			driveSessionResult.andThen((driveSession) =>
-				packageRecordResult.andThen((packageRecord) =>
-					resolveDriveClientForBooking(ctx, driveSession, driveClientFromBooking).andThen(
-						(driveClient) => {
-							if (driveSession?.packageFolder !== undefined || booking.packageId === undefined) {
-								return ok({
-									booking,
-									driveClient,
-									driveSession,
-									packageRecord,
-									sharedPackageFolder: undefined
-								} satisfies DriveSetupInfo);
-							}
-
-							return loadSharedPackageFolder(ctx, booking.packageId, booking._id).map(
-								(sharedPackageFolder) =>
-									({
-										booking,
-										driveClient,
-										driveSession,
-										packageRecord,
-										sharedPackageFolder
-									}) satisfies DriveSetupInfo
-							);
-						}
-					)
-				)
-			)
-		);
-	});
-}
+export {
+	claimClientAssetsEmail,
+	saveClientAssetsEmailResult,
+	saveClientDrivePermission,
+	saveClientDrivePermissionsStatus
+} from "#convex/services/drive/driveInternalClientAccess";
 
 function standaloneBookingFromRow(ctx: MutationCtx, booking: Doc<"bookings"> | null) {
 	if (booking === null) return errAsync({ reason: "BOOKING_NOT_FOUND" as const });
@@ -127,12 +64,16 @@ function standaloneBookingFromRow(ctx: MutationCtx, booking: Doc<"bookings"> | n
 	}
 
 	return loadDriveClientByNormalizedEmail(ctx, booking.email.trim().toLowerCase()).andThen(
-		(driveClient) => {
-			if (driveClient === null) return errAsync({ reason: "DRIVE_RECORD_NOT_FOUND" as const });
-
-			return okAsync({ booking, driveClientId: driveClient._id } satisfies StandaloneBooking);
-		}
+		standaloneBookingFromDriveClient(booking)
 	);
+}
+
+function standaloneBookingFromDriveClient(booking: Doc<"bookings">) {
+	return (driveClient: Doc<"driveClients"> | null) => {
+		if (driveClient === null) return errAsync({ reason: "DRIVE_RECORD_NOT_FOUND" as const });
+
+		return okAsync({ booking, driveClientId: driveClient._id } satisfies StandaloneBooking);
+	};
 }
 
 function packageBookingFromRow(booking: Doc<"bookings"> | null) {
@@ -150,9 +91,18 @@ export function linkBookingDriveClient(
 	bookingId: Id<"bookings">,
 	driveClientId: Id<"driveClients">
 ) {
-	return loadBookingRow(ctx, bookingId).andThen((booking) =>
-		linkBookingDriveClientFromRow(ctx, booking, bookingId, driveClientId)
+	return loadBookingRow(ctx, bookingId).andThen(
+		linkBookingDriveClientFromRowForId(ctx, bookingId, driveClientId)
 	);
+}
+
+function linkBookingDriveClientFromRowForId(
+	ctx: MutationCtx,
+	bookingId: Id<"bookings">,
+	driveClientId: Id<"driveClients">
+) {
+	return (booking: Doc<"bookings"> | null) =>
+		linkBookingDriveClientFromRow(ctx, booking, bookingId, driveClientId);
 }
 
 export function getOrCreateDriveClientId(
@@ -161,18 +111,34 @@ export function getOrCreateDriveClientId(
 ) {
 	const normalizedEmail = client.email.trim().toLowerCase();
 
-	return loadDriveClientByNormalizedEmail(ctx, normalizedEmail).andThen((existingClient) =>
-		getOrCreateDriveClientIdForRow(ctx, existingClient, { ...client, normalizedEmail })
+	return loadDriveClientByNormalizedEmail(ctx, normalizedEmail).andThen(
+		getOrCreateDriveClientIdForClient(ctx, { ...client, normalizedEmail })
 	);
+}
+
+function getOrCreateDriveClientIdForClient(
+	ctx: MutationCtx,
+	client: { email: string; displayName: string; normalizedEmail: string }
+) {
+	return (existingClient: Doc<"driveClients"> | null) =>
+		getOrCreateDriveClientIdForRow(ctx, existingClient, client);
 }
 
 export function saveDriveClientFolder(
 	ctx: MutationCtx,
 	args: Parameters<typeof saveDriveClientFolderForRow>[2]
 ) {
-	return loadDriveClientByNormalizedEmail(ctx, args.normalizedEmail).andThen((existingClient) =>
-		saveDriveClientFolderForRow(ctx, existingClient, args)
+	return loadDriveClientByNormalizedEmail(ctx, args.normalizedEmail).andThen(
+		saveDriveClientFolderForExistingRow(ctx, args)
 	);
+}
+
+function saveDriveClientFolderForExistingRow(
+	ctx: MutationCtx,
+	args: Parameters<typeof saveDriveClientFolderForRow>[2]
+) {
+	return (existingClient: Doc<"driveClients"> | null) =>
+		saveDriveClientFolderForRow(ctx, existingClient, args);
 }
 
 export function saveDriveSessionFolder(
@@ -184,18 +150,50 @@ export function saveDriveSessionFolder(
 	}
 ) {
 	return loadDriveSessionRowByBookingId(ctx, args.bookingId)
-		.andThen((existingSession) => saveDriveSessionFolderForRow(ctx, existingSession, args))
-		.andThen((folderId) =>
-			linkBookingDriveClient(ctx, args.bookingId, args.driveClientId).map(() => folderId)
-		);
+		.andThen(saveDriveSessionFolderForExistingRow(ctx, args))
+		.andThen(linkBookingDriveClientAfterSessionFolderSave(ctx, args));
+}
+
+function saveDriveSessionFolderForExistingRow(
+	ctx: MutationCtx,
+	args: Parameters<typeof saveDriveSessionFolder>[1]
+) {
+	return (existingSession: Doc<"driveSessions"> | null) =>
+		saveDriveSessionFolderForRow(ctx, existingSession, args);
+}
+
+function linkBookingDriveClientAfterSessionFolderSave(
+	ctx: MutationCtx,
+	args: Parameters<typeof saveDriveSessionFolder>[1]
+) {
+	return (folderId: Id<"driveSessions"> | string) =>
+		linkBookingDriveClient(ctx, args.bookingId, args.driveClientId).map(returnFolderId(folderId));
+}
+
+function returnFolderId<T>(folderId: T) {
+	return () => folderId;
 }
 
 export function syncBookingDriveClientIdFromSession(ctx: MutationCtx, bookingId: Id<"bookings">) {
-	return loadBookingRow(ctx, bookingId).andThen((booking) =>
-		loadDriveSessionRowByBookingId(ctx, bookingId).andThen((driveSession) =>
-			syncBookingDriveClientIdFromSessionRows(ctx, booking, bookingId, driveSession)
-		)
+	return loadBookingRow(ctx, bookingId).andThen(
+		syncBookingDriveClientIdFromLoadedSession(ctx, bookingId)
 	);
+}
+
+function syncBookingDriveClientIdFromLoadedSession(ctx: MutationCtx, bookingId: Id<"bookings">) {
+	return (booking: Doc<"bookings"> | null) =>
+		loadDriveSessionRowByBookingId(ctx, bookingId).andThen(
+			syncBookingDriveClientIdFromSessionRowsStep(ctx, booking, bookingId)
+		);
+}
+
+function syncBookingDriveClientIdFromSessionRowsStep(
+	ctx: MutationCtx,
+	booking: Doc<"bookings"> | null,
+	bookingId: Id<"bookings">
+) {
+	return (driveSession: Doc<"driveSessions"> | null) =>
+		syncBookingDriveClientIdFromSessionRows(ctx, booking, bookingId, driveSession);
 }
 
 export function saveDrivePackageFolder(
@@ -205,15 +203,32 @@ export function saveDrivePackageFolder(
 		folder: Parameters<typeof saveDrivePackageFolderForRow>[2]["folder"];
 	}
 ) {
-	return loadDriveSessionRowByBookingId(ctx, args.bookingId).andThen((driveSession) => {
+	return loadDriveSessionRowByBookingId(ctx, args.bookingId).andThen(
+		saveDrivePackageFolderForSessionOrBooking(ctx, args)
+	);
+}
+
+function saveDrivePackageFolderForSessionOrBooking(
+	ctx: MutationCtx,
+	args: Parameters<typeof saveDrivePackageFolder>[1]
+) {
+	return (driveSession: Doc<"driveSessions"> | null) => {
 		if (driveSession !== null) {
 			return saveDrivePackageFolderForRow(ctx, driveSession, args, null);
 		}
 
-		return loadBookingRow(ctx, args.bookingId).andThen((booking) =>
-			saveDrivePackageFolderForRow(ctx, null, args, booking)
+		return loadBookingRow(ctx, args.bookingId).andThen(
+			saveDrivePackageFolderForBookingRow(ctx, args)
 		);
-	});
+	};
+}
+
+function saveDrivePackageFolderForBookingRow(
+	ctx: MutationCtx,
+	args: Parameters<typeof saveDrivePackageFolder>[1]
+) {
+	return (booking: Doc<"bookings"> | null) =>
+		saveDrivePackageFolderForRow(ctx, null, args, booking);
 }
 
 export function allocatePackageSessionNumber(
@@ -221,33 +236,66 @@ export function allocatePackageSessionNumber(
 	args: { bookingId: Id<"bookings"> }
 ) {
 	return loadBookingRow(ctx, args.bookingId)
-		.andThen((booking) => packageBookingFromRow(booking))
-		.andThen((packageBooking) =>
-			loadDriveSessionRowByBookingId(ctx, packageBooking.booking._id).andThen((existingSession) =>
-				packageSessionNumberFromExistingSession(ctx, existingSession, packageBooking)
-			)
-		)
-		.andThen((allocation) => {
-			if (allocation.kind === "already_saved") return okAsync(allocation.number);
+		.andThen(packageBookingFromRow)
+		.andThen(allocatePackageSessionNumberForBooking(ctx))
+		.andThen(saveAllocatedPackageSessionNumber(ctx));
+}
 
-			return savePackageSessionNumber(ctx, allocation);
-		});
+function allocatePackageSessionNumberForBooking(ctx: MutationCtx) {
+	return (packageBooking: PackageBooking) =>
+		loadDriveSessionRowByBookingId(ctx, packageBooking.booking._id).andThen(
+			packageSessionNumberFromExistingSessionStep(ctx, packageBooking)
+		);
+}
+
+function packageSessionNumberFromExistingSessionStep(
+	ctx: MutationCtx,
+	packageBooking: PackageBooking
+) {
+	return (existingSession: Doc<"driveSessions"> | null) =>
+		packageSessionNumberFromExistingSession(ctx, existingSession, packageBooking);
+}
+
+function saveAllocatedPackageSessionNumber(ctx: MutationCtx) {
+	return (allocation: PackageSessionNumberAllocation) => {
+		if (allocation.kind === "already_saved") return okAsync(allocation.number);
+
+		return savePackageSessionNumber(ctx, allocation);
+	};
 }
 
 export function allocateClientSessionNumber(ctx: MutationCtx, args: { bookingId: Id<"bookings"> }) {
 	return loadBookingRow(ctx, args.bookingId)
-		.andThen((booking) => standaloneBookingFromRow(ctx, booking))
-		.andThen((standaloneBooking) =>
-			loadDriveSessionRowByBookingId(ctx, standaloneBooking.booking._id).andThen(
-				(existingSession) =>
-					clientSessionNumberFromExistingSession(ctx, existingSession, standaloneBooking)
-			)
-		)
-		.andThen((allocation) => {
-			if (allocation.kind === "already_saved") return okAsync(allocation.number);
+		.andThen(standaloneBookingFromRowStep(ctx))
+		.andThen(allocateClientSessionNumberForBooking(ctx))
+		.andThen(saveAllocatedClientSessionNumber(ctx));
+}
 
-			return saveClientSessionNumber(ctx, allocation);
-		});
+function standaloneBookingFromRowStep(ctx: MutationCtx) {
+	return (booking: Doc<"bookings"> | null) => standaloneBookingFromRow(ctx, booking);
+}
+
+function allocateClientSessionNumberForBooking(ctx: MutationCtx) {
+	return (standaloneBooking: StandaloneBooking) =>
+		loadDriveSessionRowByBookingId(ctx, standaloneBooking.booking._id).andThen(
+			clientSessionNumberFromExistingSessionStep(ctx, standaloneBooking)
+		);
+}
+
+function clientSessionNumberFromExistingSessionStep(
+	ctx: MutationCtx,
+	standaloneBooking: StandaloneBooking
+) {
+	return (existingSession: Doc<"driveSessions"> | null) =>
+		clientSessionNumberFromExistingSession(ctx, existingSession, standaloneBooking);
+}
+
+function saveAllocatedClientSessionNumber(ctx: MutationCtx) {
+	return (allocation: ClientSessionNumberAllocation) => {
+		if (allocation.kind === "already_saved") return okAsync(allocation.number);
+
+		return saveClientSessionNumber(ctx, allocation);
+	};
 }
 
 export function saveDriveClientAssetsFolder(
@@ -257,9 +305,17 @@ export function saveDriveClientAssetsFolder(
 		folder: Parameters<typeof saveDriveClientAssetsFolderForRow>[2]["folder"];
 	}
 ) {
-	return loadDriveClientRow(ctx, args.driveClientId).andThen((driveClient) =>
-		saveDriveClientAssetsFolderForRow(ctx, driveClient, args)
+	return loadDriveClientRow(ctx, args.driveClientId).andThen(
+		saveDriveClientAssetsFolderForLoadedRow(ctx, args)
 	);
+}
+
+function saveDriveClientAssetsFolderForLoadedRow(
+	ctx: MutationCtx,
+	args: Parameters<typeof saveDriveClientAssetsFolder>[1]
+) {
+	return (driveClient: Doc<"driveClients"> | null) =>
+		saveDriveClientAssetsFolderForRow(ctx, driveClient, args);
 }
 
 export function saveDriveSetupResult(
@@ -284,238 +340,26 @@ export function saveDriveChildFolder(
 		folder: Parameters<typeof saveDriveChildFolderForRow>[2]["folder"];
 	}
 ) {
-	return loadDriveSessionRowByBookingId(ctx, args.bookingId).andThen((driveSession) =>
-		saveDriveChildFolderForRow(ctx, driveSession, args)
+	return loadDriveSessionRowByBookingId(ctx, args.bookingId).andThen(
+		saveDriveChildFolderForLoadedSession(ctx, args)
 	);
 }
 
-export function getEditorDriveSetup(ctx: QueryCtx, bookingId: Id<"bookings">) {
-	return getDriveSetup(ctx, bookingId).andThen((setup) => {
-		const editorTokenIdentifier = setup?.booking.assignedEditorTokenIdentifier;
-
-		if (editorTokenIdentifier === undefined) {
-			return editorDriveSetupFromLoaded(setup, null);
-		}
-
-		return loadEditorProfileByToken(ctx, editorTokenIdentifier).andThen((editor) =>
-			editorDriveSetupFromLoaded(setup, editor)
-		);
-	});
-}
-
-export function getEditorDriveAccessToRemove(
-	ctx: QueryCtx,
-	args: { bookingId: Id<"bookings">; editorTokenIdentifier: string }
-) {
-	return loadDriveSessionRowByBookingId(ctx, args.bookingId).andThen((driveSession) =>
-		editorDriveAccessToRemoveForSession(ctx, driveSession, args)
-	);
-}
-
-export function clearPreviousEditorDriveAccess(
+function saveDriveChildFolderForLoadedSession(
 	ctx: MutationCtx,
-	args: {
-		driveClientEditorPermissionId: Id<"driveClientEditorPermissions"> | null;
-		driveSessionId: Id<"driveSessions">;
-		editorTokenIdentifier: string;
-	}
+	args: Parameters<typeof saveDriveChildFolder>[1]
 ) {
-	return loadDriveSessionRow(ctx, args.driveSessionId).andThen((driveSession) =>
-		clearPreviousEditorDriveAccessForSession(ctx, driveSession, args)
-	);
-}
-
-export function markPreviousEditorRemovalFailed(
-	ctx: MutationCtx,
-	args: { bookingId: Id<"bookings">; editorTokenIdentifier: string }
-) {
-	return loadDriveSessionRowByBookingId(ctx, args.bookingId).andThen((driveSession) =>
-		markPreviousEditorRemovalFailedForSession(ctx, driveSession, args)
-	);
-}
-
-export function getFailedEditorRemoval(ctx: QueryCtx, bookingId: Id<"bookings">) {
-	return loadDriveSessionRowByBookingId(ctx, bookingId).andThen((driveSession) => {
-		const editorTokenIdentifier = driveSession?.failedRemovalEditorTokenIdentifier;
-
-		if (driveSession === null || editorTokenIdentifier === undefined) {
-			return okAsync(null);
-		}
-
-		return loadEditorClientDriveData(ctx, driveSession, editorTokenIdentifier).andThen(
-			(clientData) =>
-				loadEditorProfileByToken(ctx, editorTokenIdentifier).map((editor) =>
-					failedEditorRemovalForSession(driveSession, bookingId, editor, clientData)
-				)
-		);
-	});
-}
-
-export function saveEditorDrivePermission(
-	ctx: MutationCtx,
-	args: {
-		bookingId: Id<"bookings">;
-		editorTokenIdentifier: string;
-		name: "Assets" | "Deliverables" | "Session";
-		permission: Parameters<typeof writeEditorDrivePermission>[2]["permission"];
-	}
-) {
-	return getDriveSetup(ctx, args.bookingId).andThen((setup) => {
-		if (
-			setup === null ||
-			setup.driveClient === null ||
-			setup.driveSession === null ||
-			setup.booking.assignedEditorTokenIdentifier !== args.editorTokenIdentifier
-		) {
-			return err({ reason: "DRIVE_RECORD_NOT_FOUND" as const });
-		}
-
-		return writeEditorDrivePermission(
-			ctx,
-			{ driveClient: setup.driveClient, driveSession: setup.driveSession },
-			args
-		);
-	});
-}
-
-export function saveEditorDrivePermissionsStatus(
-	ctx: MutationCtx,
-	args: { bookingId: Id<"bookings">; editorTokenIdentifier: string; status: "failed" | "ready" }
-) {
-	return getDriveSetup(ctx, args.bookingId).andThen((setup) => {
-		if (
-			setup?.driveSession === null ||
-			setup?.driveSession === undefined ||
-			setup.booking.assignedEditorTokenIdentifier !== args.editorTokenIdentifier
-		) {
-			return err({ reason: "DRIVE_RECORD_NOT_FOUND" as const });
-		}
-
-		return writeEditorDrivePermissionsStatus(ctx, setup.driveSession, args);
-	});
-}
-
-export function claimEditorAssignmentEmail(
-	ctx: MutationCtx,
-	args: { bookingId: Id<"bookings">; editorTokenIdentifier: string; now: number }
-) {
-	return getDriveSetup(ctx, args.bookingId).andThen((setup) => {
-		if (setup === null) {
-			return err({ reason: "EDITOR_ASSIGNMENT_EMAIL_NOT_SENDABLE" as const });
-		}
-
-		const driveSession = setup.driveSession;
-
-		if (
-			driveSession === null ||
-			setup.booking.assignedEditorTokenIdentifier !== args.editorTokenIdentifier ||
-			driveSession.editorDrivePermissionsStatus !== "ready" ||
-			driveSession.editorDrivePermissionsTokenIdentifier !== args.editorTokenIdentifier
-		) {
-			return err({ reason: "EDITOR_ASSIGNMENT_EMAIL_NOT_SENDABLE" as const });
-		}
-
-		return loadEditorProfileByToken(ctx, args.editorTokenIdentifier).andThen((editor) =>
-			claimEditorAssignmentEmailForEditor(ctx, { ...setup, driveSession }, args, editor)
-		);
-	});
-}
-
-export function saveEditorAssignmentEmailResult(
-	ctx: MutationCtx,
-	args: {
-		bookingId: Id<"bookings">;
-		claimedAt: number;
-		editorTokenIdentifier: string;
-		status: "failed" | "sent";
-	}
-) {
-	return loadDriveSessionRowByBookingId(ctx, args.bookingId).andThen((driveSession) =>
-		saveEditorAssignmentEmailResultForSession(ctx, driveSession, args)
-	);
-}
-
-export function saveClientDrivePermission(
-	ctx: MutationCtx,
-	args: {
-		bookingId: Id<"bookings">;
-		name: "Client folder" | "Assets";
-		permission: Parameters<typeof writeClientDrivePermission>[2]["permission"];
-	}
-) {
-	return loadDriveSessionRowByBookingId(ctx, args.bookingId).andThen((driveSession) => {
-		if (driveSession === null) return err({ reason: "DRIVE_RECORD_NOT_FOUND" as const });
-
-		return loadDriveClientRow(ctx, driveSession.driveClientId).andThen((driveClient) => {
-			if (driveClient === null) return err({ reason: "DRIVE_RECORD_NOT_FOUND" as const });
-
-			return writeClientDrivePermission(ctx, driveClient, args);
-		});
-	});
-}
-
-export function saveClientDrivePermissionsStatus(
-	ctx: MutationCtx,
-	args: { bookingId: Id<"bookings">; status: "failed" | "ready" | "skipped" }
-) {
-	return loadDriveSessionRowByBookingId(ctx, args.bookingId).andThen((driveSession) => {
-		if (driveSession === null) return err({ reason: "DRIVE_RECORD_NOT_FOUND" as const });
-
-		return writeClientDrivePermissionsStatusForSession(ctx, driveSession, args.status);
-	});
-}
-
-export function claimClientAssetsEmail(
-	ctx: MutationCtx,
-	args: { bookingId: Id<"bookings">; attempt: "automatic" | "retry"; now: number }
-) {
-	return loadBookingRow(ctx, args.bookingId).andThen((booking) => {
-		if (
-			booking === null ||
-			booking.driveClientId === undefined ||
-			!bookingRequiresClientAssetsEmail(booking.addons)
-		) {
-			return err({ reason: "CLIENT_ASSETS_EMAIL_NOT_SENDABLE" as const });
-		}
-
-		return loadClientAssetsEmailRows(ctx, {
-			bookingId: args.bookingId,
-			driveClientId: booking.driveClientId
-		}).andThen(([driveClient, driveSession]) => {
-			const assetsFolder = driveClient?.assetsFolder;
-
-			if (driveSession === null || assetsFolder === undefined) {
-				return err({ reason: "CLIENT_ASSETS_EMAIL_NOT_SENDABLE" as const });
-			}
-
-			return claimClientAssetsEmailRecord(ctx, {
-				attempt: args.attempt,
-				assetsFolder,
-				booking,
-				driveClient: driveClient ?? null,
-				driveSession,
-				now: args.now
-			});
-		});
-	});
-}
-
-export function saveClientAssetsEmailResult(
-	ctx: MutationCtx,
-	args: {
-		assetsFolderId: string;
-		bookingId: Id<"bookings">;
-		claimedAt: number;
-		status: "sent" | "failed";
-	}
-) {
-	return loadDriveSessionRowByBookingId(ctx, args.bookingId).andThen((driveSession) =>
-		saveClientAssetsEmailResultForSession(ctx, driveSession, args)
-	);
+	return (driveSession: Doc<"driveSessions"> | null) =>
+		saveDriveChildFolderForRow(ctx, driveSession, args);
 }
 
 export function clearSessionDriveDb(ctx: MutationCtx, args: { bookingId: Id<"bookings"> }) {
-	return loadDriveSessionRowByBookingId(ctx, args.bookingId).andThen((driveSession) =>
-		clearSessionDriveDbForSession(ctx, driveSession)
+	return loadDriveSessionRowByBookingId(ctx, args.bookingId).andThen(
+		clearSessionDriveDbForLoadedSession(ctx)
 	);
+}
+
+function clearSessionDriveDbForLoadedSession(ctx: MutationCtx) {
+	return (driveSession: Doc<"driveSessions"> | null) =>
+		clearSessionDriveDbForSession(ctx, driveSession);
 }

@@ -44,6 +44,53 @@ type PackageAvailabilityContext = {
 	packageFromDb: { expiresAt: number };
 };
 
+function retainValueStep<T>(value: T) {
+	return () => value;
+}
+
+function packageFromDbAfterRateLimitStep(ctx: ActionCtx, rateLimitKey: string) {
+	return (packageFromDb: PackageAvailabilityContext["packageFromDb"]) =>
+		checkGoogleCalendarAvailabilityRateLimit(ctx, rateLimitKey).map(retainValueStep(packageFromDb));
+}
+
+function pairPackageWithCalendarClient(packageFromDb: PackageAvailabilityContext["packageFromDb"]) {
+	return (client: PackageAvailabilityContext["client"]) => ({ client, packageFromDb });
+}
+
+function loadPackageCalendarClientForPackageStep(
+	packageFromDb: PackageAvailabilityContext["packageFromDb"]
+) {
+	return loadGoogleCalendarClient("GOOGLE_CALENDAR_AVAILABILITY_FAILED").map(
+		pairPackageWithCalendarClient(packageFromDb)
+	);
+}
+
+function packageAvailabilityContextStep({
+	client,
+	packageFromDb
+}: {
+	client: PackageAvailabilityContext["client"];
+	packageFromDb: PackageAvailabilityContext["packageFromDb"];
+}) {
+	const startDate = formatDateValue(startOfToday());
+	const endDate = formatDateValue(new Date(packageFromDb.expiresAt));
+
+	return getDateAvailabilityRange(startDate, endDate, client.timeZone).map(
+		packageAvailabilityRangeStep(client, packageFromDb)
+	);
+}
+
+function packageAvailabilityRangeStep(
+	client: PackageAvailabilityContext["client"],
+	packageFromDb: PackageAvailabilityContext["packageFromDb"]
+) {
+	return (availabilityRange: PackageAvailabilityContext["availabilityRange"]) => ({
+		availabilityRange,
+		client,
+		packageFromDb
+	});
+}
+
 export function loadValidPackageForCalendarAvailability(
 	ctx: ActionCtx,
 	args: { rateLimitKey: string; token: string }
@@ -54,23 +101,16 @@ export function loadValidPackageForCalendarAvailability(
 			token: args.token
 		})
 	)
-		.andThen((packageFromDb) =>
-			checkGoogleCalendarAvailabilityRateLimit(ctx, args.rateLimitKey).map(() => packageFromDb)
-		)
-		.andThen((packageFromDb) =>
-			loadGoogleCalendarClient("GOOGLE_CALENDAR_AVAILABILITY_FAILED").map((client) => ({
-				client,
-				packageFromDb
-			}))
-		)
-		.andThen(({ client, packageFromDb }) => {
-			const startDate = formatDateValue(startOfToday());
-			const endDate = formatDateValue(new Date(packageFromDb.expiresAt));
+		.andThen(packageFromDbAfterRateLimitStep(ctx, args.rateLimitKey))
+		.andThen(loadPackageCalendarClientForPackageStep)
+		.andThen(packageAvailabilityContextStep);
+}
 
-			return getDateAvailabilityRange(startDate, endDate, client.timeZone).map(
-				(availabilityRange) => ({ availabilityRange, client, packageFromDb })
-			);
-		});
+function packageBusyWindowsContextStep(context: PackageAvailabilityContext) {
+	return (busyWindows: Awaited<ReturnType<typeof getBusyWindowsInRange>>) => ({
+		...context,
+		busyWindows
+	});
 }
 
 export function loadPackageBookableRangeBusyWindows(
@@ -97,7 +137,19 @@ export function loadPackageBookableRangeBusyWindows(
 					: "GOOGLE_CALENDAR_AVAILABILITY_FAILED"
 			};
 		}
-	}).map((busyWindows) => ({ ...context, busyWindows }));
+	}).map(packageBusyWindowsContextStep(context));
+}
+
+function groupedPackageBusyWindowsStep(context: {
+	busyWindows: Awaited<ReturnType<typeof getBusyWindowsInRange>>;
+	client: { timeZone: string };
+	packageFromDb: { expiresAt: number };
+}) {
+	return (busyDays: BusyDayWindow[]) => ({
+		busyWindowsByMonth: groupBusyDaysByMonth(busyDays),
+		packageExpiresAt: context.packageFromDb.expiresAt,
+		timeZone: context.client.timeZone
+	});
 }
 
 export function groupPackageBusyWindowsByMonth(context: {
@@ -105,9 +157,7 @@ export function groupPackageBusyWindowsByMonth(context: {
 	client: { timeZone: string };
 	packageFromDb: { expiresAt: number };
 }) {
-	return groupBusyWindowsByDay(context.busyWindows, context.client.timeZone).map((busyDays) => ({
-		busyWindowsByMonth: groupBusyDaysByMonth(busyDays),
-		packageExpiresAt: context.packageFromDb.expiresAt,
-		timeZone: context.client.timeZone
-	}));
+	return groupBusyWindowsByDay(context.busyWindows, context.client.timeZone).map(
+		groupedPackageBusyWindowsStep(context)
+	);
 }

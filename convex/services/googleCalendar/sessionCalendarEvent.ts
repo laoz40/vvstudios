@@ -37,6 +37,11 @@ function isMissingGoogleCalendarEvent(
 	return "kind" in value;
 }
 
+function matchingSessionCalendarEventStep(session: SessionCalendarEventRecord) {
+	return (events: calendar_v3.Schema$Event[]) =>
+		events.find((event) => isMatchingSessionCalendarEvent(event, session)) ?? null;
+}
+
 function findDeclinedSessionCalendarEvent({
 	session,
 	calendar,
@@ -66,9 +71,37 @@ function findDeclinedSessionCalendarEvent({
 		calendarId,
 		timeMax: endDateTime,
 		timeMin: startDateTime
-	}).map(
-		(events) => events.find((event) => isMatchingSessionCalendarEvent(event, session)) ?? null
+	}).map(matchingSessionCalendarEventStep(session));
+}
+
+function calendarEventDeletedStep(wasFoundEventDeleted: boolean) {
+	return { calendarEventDeleted: wasFoundEventDeleted };
+}
+
+function deleteFoundSessionEventStep(
+	client: GoogleCalendarEventClient,
+	calendarId: string,
+	foundEventId: string
+) {
+	return deleteGoogleCalendarEventIfFound(client.calendar, calendarId, foundEventId).map(
+		calendarEventDeletedStep
 	);
+}
+
+function deleteSessionEventAfterLookupStep(args: {
+	session: SessionCalendarEventRecord;
+	client: GoogleCalendarEventClient;
+	calendarId: string;
+}) {
+	return (foundEvent: calendar_v3.Schema$Event | null) => {
+		const foundEventId = foundEvent?.id ?? null;
+
+		if (!foundEventId) {
+			return okAsync({ calendarEventDeleted: false });
+		}
+
+		return deleteFoundSessionEventStep(args.client, args.calendarId, foundEventId);
+	};
 }
 
 function deleteSessionEventAfterLookup({
@@ -85,17 +118,16 @@ function deleteSessionEventAfterLookup({
 		calendar: client.calendar,
 		calendarId,
 		timeZone: client.timeZone
-	}).andThen((foundEvent) => {
-		const foundEventId = foundEvent?.id ?? null;
+	}).andThen(deleteSessionEventAfterLookupStep({ session, client, calendarId }));
+}
 
-		if (!foundEventId) {
-			return okAsync({ calendarEventDeleted: false });
-		}
-
-		return deleteGoogleCalendarEventIfFound(client.calendar, calendarId, foundEventId).map(
-			(wasFoundEventDeleted) => ({ calendarEventDeleted: wasFoundEventDeleted })
-		);
-	});
+function deleteSavedEventOrLookupStep(args: {
+	session: SessionCalendarEventRecord;
+	client: GoogleCalendarEventClient;
+	calendarId: string;
+}) {
+	return (wasDeleted: boolean) =>
+		wasDeleted ? okAsync({ calendarEventDeleted: true }) : deleteSessionEventAfterLookup(args);
 }
 
 export function deleteSessionCalendarEvent({
@@ -113,11 +145,16 @@ export function deleteSessionCalendarEvent({
 	}
 
 	return deleteGoogleCalendarEventIfFound(client.calendar, calendarId, savedEventId).andThen(
-		(wasDeleted) =>
-			wasDeleted
-				? okAsync({ calendarEventDeleted: true })
-				: deleteSessionEventAfterLookup({ session, client, calendarId })
+		deleteSavedEventOrLookupStep({ session, client, calendarId })
 	);
+}
+
+function insertedSessionCalendarEventStep(client: GoogleCalendarEventClient) {
+	return (replacementEvent: { data: { id?: string | null } }) => ({
+		googleCalendarId: client.calendarId,
+		googleEventId: replacementEvent.data.id ?? undefined,
+		outcome: "replacementCreated" as const
+	});
 }
 
 function insertSessionCalendarEvent({
@@ -146,11 +183,7 @@ function insertSessionCalendarEvent({
 		calendar: client.calendar,
 		calendarId: client.calendarId,
 		requestBody: payloadResult.value
-	}).map((replacementEvent) => ({
-		googleCalendarId: client.calendarId,
-		googleEventId: replacementEvent.data.id ?? undefined,
-		outcome: "replacementCreated" as const
-	}));
+	}).map(insertedSessionCalendarEventStep(client));
 }
 
 export function createSessionCalendarEvent({
@@ -165,6 +198,22 @@ export function createSessionCalendarEvent({
 	time: string;
 }): ResultAsync<SessionCalendarTimingUpdateResult, SessionCalendarTimingUpdateError> {
 	return insertSessionCalendarEvent({ client, date, details, time });
+}
+
+function emptySessionCalendarTimingUpdateStep(): SessionCalendarTimingUpdateResult {
+	return {};
+}
+
+function recoverMissingEventOnPatchStep(args: {
+	client: GoogleCalendarEventClient;
+	date: string;
+	details: SessionCalendarEventDetails;
+	time: string;
+}) {
+	return (patchError: GoogleCalendarEventMissing | SessionCalendarTimingUpdateError) =>
+		isMissingGoogleCalendarEvent(patchError)
+			? insertSessionCalendarEvent(args)
+			: errAsync(patchError);
 }
 
 function patchExistingSessionCalendarEvent({
@@ -199,12 +248,34 @@ function patchExistingSessionCalendarEvent({
 		eventId: googleEventId,
 		requestBody: payloadResult.value
 	})
-		.map(() => ({}) satisfies SessionCalendarTimingUpdateResult)
-		.orElse((patchError) =>
-			isMissingGoogleCalendarEvent(patchError)
-				? insertSessionCalendarEvent({ client, date, details, time })
-				: errAsync(patchError)
-		);
+		.map(emptySessionCalendarTimingUpdateStep)
+		.orElse(recoverMissingEventOnPatchStep({ client, date, details, time }));
+}
+
+function updateExistingGoogleEventStep(args: {
+	client: GoogleCalendarEventClient;
+	date: string;
+	details: SessionCalendarEventDetails;
+	googleCalendarId: string;
+	googleEventId: string;
+	time: string;
+}) {
+	return (existingGoogleEvent: { data: { status?: string | null } }) =>
+		existingGoogleEvent.data.status === "cancelled"
+			? insertSessionCalendarEvent(args)
+			: patchExistingSessionCalendarEvent(args);
+}
+
+function recoverMissingEventOnLookupStep(args: {
+	client: GoogleCalendarEventClient;
+	date: string;
+	details: SessionCalendarEventDetails;
+	time: string;
+}) {
+	return (lookupError: GoogleCalendarEventMissing | SessionCalendarTimingUpdateError) =>
+		isMissingGoogleCalendarEvent(lookupError)
+			? insertSessionCalendarEvent(args)
+			: errAsync(lookupError);
 }
 
 export function updateSessionCalendarEventTiming({
@@ -235,26 +306,13 @@ export function updateSessionCalendarEventTiming({
 	const googleCalendarId = session.googleCalendarId;
 	const googleEventId = session.googleEventId;
 
+	const eventUpdateArgs = { client, date, details, googleCalendarId, googleEventId, time };
+
 	return getGoogleCalendarEvent({
 		calendar: client.calendar,
 		calendarId: googleCalendarId,
 		eventId: googleEventId
 	})
-		.andThen((existingGoogleEvent) =>
-			existingGoogleEvent.data.status === "cancelled"
-				? insertSessionCalendarEvent({ client, date, details, time })
-				: patchExistingSessionCalendarEvent({
-						client,
-						date,
-						details,
-						googleCalendarId,
-						googleEventId,
-						time
-					})
-		)
-		.orElse((lookupError) =>
-			isMissingGoogleCalendarEvent(lookupError)
-				? insertSessionCalendarEvent({ client, date, details, time })
-				: errAsync(lookupError)
-		);
+		.andThen(updateExistingGoogleEventStep(eventUpdateArgs))
+		.orElse(recoverMissingEventOnLookupStep({ client, date, details, time }));
 }

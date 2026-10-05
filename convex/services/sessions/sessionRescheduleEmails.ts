@@ -14,6 +14,26 @@ type BookingRescheduleEmailError =
 	| { reason: "EMAIL_RESPONSE_FAILED" }
 	| { reason: "INVALID_BOOKING_DATA" };
 
+function afterCustomerRescheduleEmailStep(
+	booking: Doc<"bookings">,
+	options: { leadTimeMinutes: number; originalDate: string; originalTime: string }
+) {
+	return () =>
+		sendSessionHostRescheduleEmailForBooking(booking, {
+			leadTimeMinutes: options.leadTimeMinutes,
+			originalDate: options.originalDate,
+			originalTime: options.originalTime
+		}).orElse(logHostRescheduleEmailFailureStep(booking._id));
+}
+
+function logHostRescheduleEmailFailureStep(bookingId: Id<"bookings">) {
+	return (error: { reason: string }) => {
+		console.error("Booking reschedule host email send failed", { bookingId, reason: error.reason });
+
+		return okAsync(null);
+	};
+}
+
 export function sendBookingRescheduledEmailsForBooking(
 	booking: Doc<"bookings">,
 	options: {
@@ -35,20 +55,7 @@ export function sendBookingRescheduledEmailsForBooking(
 		service: booking.service,
 		time: booking.time,
 		...pickBookingAddonQuantities(booking)
-	}).andThen(() =>
-		sendSessionHostRescheduleEmailForBooking(booking, {
-			leadTimeMinutes: options.leadTimeMinutes,
-			originalDate: options.originalDate,
-			originalTime: options.originalTime
-		}).orElse((error) => {
-			console.error("Booking reschedule host email send failed", {
-				bookingId: booking._id,
-				reason: error.reason
-			});
-
-			return okAsync(null);
-		})
-	);
+	}).andThen(afterCustomerRescheduleEmailStep(booking, options));
 }
 
 export function sendSessionHostRescheduleEmailForBooking(
@@ -82,14 +89,46 @@ export function sendSessionHostRescheduleEmailForBooking(
 		notes: parsedBooking.notes,
 		reschedule: { originalDate: options.originalDate, originalTime: options.originalTime },
 		...pickBookingAddonQuantities(parsedBooking)
-	}).orElse((error) => {
-		console.error("Session reschedule host email send failed", {
-			bookingId: booking._id,
+	}).orElse(logSessionHostRescheduleFailureStep(booking._id));
+}
+
+function logSessionHostRescheduleFailureStep(bookingId: Id<"bookings">) {
+	return (error: { reason: string }) => {
+		console.error("Session reschedule host email send failed", { bookingId, reason: error.reason });
+
+		return errAsync({ reason: "HOST_EMAIL_SEND_FAILED" as const });
+	};
+}
+
+function notifyHostAfterAdminRescheduleStep(args: {
+	leadTimeMinutes: number;
+	originalDate: string;
+	originalTime: string;
+	result: AdminSessionUpdateResult;
+}) {
+	return (updatedSession: Doc<"bookings">) =>
+		sendSessionHostRescheduleEmailForBooking(updatedSession, {
+			leadTimeMinutes: args.leadTimeMinutes,
+			originalDate: args.originalDate,
+			originalTime: args.originalTime
+		})
+			.orElse(logAdminHostRescheduleFailureStep(updatedSession._id))
+			.map(retainAdminSessionUpdateResultStep(args.result));
+}
+
+function logAdminHostRescheduleFailureStep(bookingId: Id<"bookings">) {
+	return (error: { reason: string }) => {
+		console.error("Admin session reschedule host email send failed", {
+			bookingId,
 			reason: error.reason
 		});
 
-		return errAsync({ reason: "HOST_EMAIL_SEND_FAILED" as const });
-	});
+		return okAsync(null);
+	};
+}
+
+function retainAdminSessionUpdateResultStep(result: AdminSessionUpdateResult) {
+	return () => result;
 }
 
 export function notifyHostOfAdminSessionReschedule(
@@ -102,20 +141,5 @@ export function notifyHostOfAdminSessionReschedule(
 		result: AdminSessionUpdateResult;
 	}
 ): ResultAsync<AdminSessionUpdateResult, { reason: "BOOKING_NOT_FOUND" }> {
-	return getSessionFromQuery(ctx, args.bookingId).andThen((updatedSession) =>
-		sendSessionHostRescheduleEmailForBooking(updatedSession, {
-			leadTimeMinutes: args.leadTimeMinutes,
-			originalDate: args.originalDate,
-			originalTime: args.originalTime
-		})
-			.orElse((error) => {
-				console.error("Admin session reschedule host email send failed", {
-					bookingId: updatedSession._id,
-					reason: error.reason
-				});
-
-				return okAsync(null);
-			})
-			.map(() => args.result)
-	);
+	return getSessionFromQuery(ctx, args.bookingId).andThen(notifyHostAfterAdminRescheduleStep(args));
 }

@@ -1,15 +1,18 @@
 import { errAsync, ok, okAsync } from "neverthrow";
-import type { Id } from "#convex/_generated/dataModel";
+import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
 import { archiveDeadPackage } from "#convex/lib/packages/packageArchive";
 import {
 	buildPublicPackageStatusResponse,
 	validatePackageExpiry,
 	validatePendingPackageAbandonment,
-	type AbandonPendingPackageSuccess
+	type AbandonPendingPackageDecision,
+	type AbandonPendingPackageSuccess,
+	type ExpirePackageDecision
 } from "#convex/lib/packages/packageCheckout";
 import {
 	getPackageCheckoutClaimStatus,
+	type PackageCheckoutClaimStatus,
 	validatePackageClaimStripeSession
 } from "#convex/lib/packages/packageCheckoutClaim";
 import {
@@ -22,6 +25,69 @@ import {
 	patchPackageStripeCheckoutIds
 } from "#convex/lib/packages/packageUpdates";
 
+type ClaimPackageCheckoutPaymentArgs = {
+	packageId: string;
+	stripeSessionId: string;
+	stripePaymentIntentId?: string;
+};
+
+function loadPackageForNormalizedId(ctx: MutationCtx) {
+	return (normalizedPackageId: Id<"packages">) => getPackageFromDb(ctx, normalizedPackageId);
+}
+
+function validateClaimStripeSessionForArgs(args: ClaimPackageCheckoutPaymentArgs) {
+	return (packageFromDb: Doc<"packages">) =>
+		validatePackageClaimStripeSession(packageFromDb, args.stripeSessionId).map(
+			keepValue(packageFromDb)
+		);
+}
+
+function keepValue<T>(value: T) {
+	return () => value;
+}
+
+function attachCheckoutClaimStatus(packageFromDb: Doc<"packages">) {
+	return (claimStatus: PackageCheckoutClaimStatus<Doc<"packages">>) => ({
+		claimStatus,
+		packageFromDb
+	});
+}
+
+function attachClaimStatusToPackage(packageFromDb: Doc<"packages">) {
+	return getPackageCheckoutClaimStatus(packageFromDb).map(attachCheckoutClaimStatus(packageFromDb));
+}
+
+function finalizePackageCheckoutClaim(ctx: MutationCtx, args: ClaimPackageCheckoutPaymentArgs) {
+	return ({
+		claimStatus,
+		packageFromDb
+	}: {
+		claimStatus: PackageCheckoutClaimStatus<Doc<"packages">>;
+		packageFromDb: Doc<"packages">;
+	}) => {
+		const packageId = packageFromDb._id;
+
+		if (claimStatus.kind === "already_completed") {
+			return okAsync({ outcome: "already_completed" as const, packageId });
+		}
+
+		if (claimStatus.kind === "already_claimed") {
+			return okAsync({ outcome: "already_claimed" as const, packageId });
+		}
+
+		const now = Date.now();
+
+		return patchPackageCheckoutClaimed(ctx, packageFromDb._id, {
+			packageCheckoutClaimedAt: now,
+			stripePaymentIntentId: args.stripePaymentIntentId
+		}).map(toClaimedPackageCheckoutOutcome(packageId));
+	};
+}
+
+function toClaimedPackageCheckoutOutcome(packageId: Id<"packages">) {
+	return () => ({ outcome: "claimed" as const, packageId });
+}
+
 export function writePackageStripeCheckoutIds(
 	ctx: MutationCtx,
 	args: { packageId: Id<"packages">; stripeSessionId: string; stripeCustomerId: string }
@@ -31,39 +97,44 @@ export function writePackageStripeCheckoutIds(
 
 export function claimPackageCheckoutPayment(
 	ctx: MutationCtx,
-	args: { packageId: string; stripeSessionId: string; stripePaymentIntentId?: string }
+	args: ClaimPackageCheckoutPaymentArgs
 ) {
 	return normalizePackageId(ctx, args.packageId)
-		.asyncAndThen((normalizedPackageId) => getPackageFromDb(ctx, normalizedPackageId))
-		.andThen((packageFromDb) =>
-			validatePackageClaimStripeSession(packageFromDb, args.stripeSessionId).map(
-				() => packageFromDb
-			)
-		)
-		.andThen((packageFromDb) =>
-			getPackageCheckoutClaimStatus(packageFromDb).map((claimStatus) => ({
-				claimStatus,
-				packageFromDb
-			}))
-		)
-		.andThen(({ claimStatus, packageFromDb }) => {
-			const packageId = packageFromDb._id;
+		.asyncAndThen(loadPackageForNormalizedId(ctx))
+		.andThen(validateClaimStripeSessionForArgs(args))
+		.andThen(attachClaimStatusToPackage)
+		.andThen(finalizePackageCheckoutClaim(ctx, args));
+}
 
-			if (claimStatus.kind === "already_completed") {
-				return okAsync({ outcome: "already_completed" as const, packageId });
-			}
+function validatePendingPackageAbandonmentForSession(stripeSessionId: string) {
+	return (packageFromDb: Doc<"packages">) =>
+		validatePendingPackageAbandonment(packageFromDb, stripeSessionId);
+}
 
-			if (claimStatus.kind === "already_claimed") {
-				return okAsync({ outcome: "already_claimed" as const, packageId });
-			}
+function toAbandonedPackageOutcome(_archived: null): AbandonPendingPackageSuccess {
+	return { outcome: "abandoned" };
+}
 
-			const now = Date.now();
+function archiveAbandonedPendingPackage(ctx: MutationCtx, packageId: Id<"packages">) {
+	return archiveDeadPackage(ctx, packageId, { status: "abandoned" }).map(toAbandonedPackageOutcome);
+}
 
-			return patchPackageCheckoutClaimed(ctx, packageFromDb._id, {
-				packageCheckoutClaimedAt: now,
-				stripePaymentIntentId: args.stripePaymentIntentId
-			}).map(() => ({ outcome: "claimed" as const, packageId }));
-		});
+function resolvePendingPackageAbandonment(ctx: MutationCtx, packageId: Id<"packages">) {
+	return (abandonDecision: AbandonPendingPackageDecision) => {
+		if (abandonDecision.kind === "complete") {
+			return ok(abandonDecision.value);
+		}
+
+		return archiveAbandonedPendingPackage(ctx, packageId);
+	};
+}
+
+function mapPackageNotFoundToAbandonOutcome(
+	error: { reason: "PACKAGE_NOT_FOUND" } | { reason: string }
+) {
+	return error.reason === "PACKAGE_NOT_FOUND"
+		? ok({ outcome: "not_found" as const })
+		: errAsync(error);
 }
 
 export function abandonPendingPackageCheckout(
@@ -71,43 +142,45 @@ export function abandonPendingPackageCheckout(
 	args: { packageId: Id<"packages">; stripeSessionId: string }
 ) {
 	return getPackageFromDb(ctx, args.packageId)
-		.andThen((packageFromDb) =>
-			validatePendingPackageAbandonment(packageFromDb, args.stripeSessionId)
-		)
-		.andThen((abandonDecision) => {
-			if (abandonDecision.kind === "complete") {
-				return ok(abandonDecision.value);
-			}
+		.andThen(validatePendingPackageAbandonmentForSession(args.stripeSessionId))
+		.andThen(resolvePendingPackageAbandonment(ctx, args.packageId))
+		.orElse(mapPackageNotFoundToAbandonOutcome);
+}
 
-			return archiveDeadPackage(ctx, args.packageId, { status: "abandoned" }).map(
-				(): AbandonPendingPackageSuccess => ({ outcome: "abandoned" })
-			);
-		})
-		.orElse((error) =>
-			error.reason === "PACKAGE_NOT_FOUND" ? ok({ outcome: "not_found" as const }) : errAsync(error)
-		);
+function toFreshlyExpiredPackage(_archived: null) {
+	return { alreadyExpired: false };
+}
+
+function expirePendingPackageRecord(ctx: MutationCtx, packageId: Id<"packages">) {
+	return archiveDeadPackage(ctx, packageId, { status: "expired" }).map(toFreshlyExpiredPackage);
+}
+
+function resolvePendingPackageExpiry(ctx: MutationCtx) {
+	return (expireDecision: ExpirePackageDecision) => {
+		if (expireDecision.kind === "complete") {
+			return ok({ alreadyExpired: expireDecision.alreadyExpired });
+		}
+
+		return expirePendingPackageRecord(ctx, expireDecision.packageId);
+	};
 }
 
 export function expirePendingPackageByStripeSessionId(ctx: MutationCtx, stripeSessionId: string) {
 	return lookupPackageByStripeSessionId(ctx, stripeSessionId)
 		.andThen(validatePackageExpiry)
-		.andThen((expireDecision) => {
-			if (expireDecision.kind === "complete") {
-				return ok({ alreadyExpired: expireDecision.alreadyExpired });
-			}
-
-			return archiveDeadPackage(ctx, expireDecision.packageId, { status: "expired" }).map(() => ({
-				alreadyExpired: false
-			}));
-		});
+		.andThen(resolvePendingPackageExpiry(ctx));
 }
 
 export function loadPackageRowByStripeSessionId(ctx: QueryCtx, stripeSessionId: string) {
 	return lookupPackageByStripeSessionId(ctx, stripeSessionId);
 }
 
+function buildPublicPackageStatusIfPresent(packageFromDb: Doc<"packages"> | null) {
+	return packageFromDb === null ? null : buildPublicPackageStatusResponse(packageFromDb);
+}
+
 export function loadPublicPackageStatusByStripeSessionId(ctx: QueryCtx, stripeSessionId: string) {
-	return loadPackageRowByStripeSessionId(ctx, stripeSessionId).map((packageFromDb) =>
-		packageFromDb === null ? null : buildPublicPackageStatusResponse(packageFromDb)
+	return loadPackageRowByStripeSessionId(ctx, stripeSessionId).map(
+		buildPublicPackageStatusIfPresent
 	);
 }

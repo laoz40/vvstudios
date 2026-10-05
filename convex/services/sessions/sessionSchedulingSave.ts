@@ -48,29 +48,61 @@ type AdminSessionDatabasePatch = AdminSessionTimingPatch & {
 	reservationDuration?: undefined;
 };
 
+function adminSessionUpdatePatchPairStep(session: Doc<"bookings">) {
+	return (updatePatch: AdminSessionTimingPatch) => ({ session, updatePatch });
+}
+
+function adminUpdatePatchForSessionStep(args: SaveAdminSessionUpdateArgs) {
+	return (session: Doc<"bookings">) =>
+		buildAdminSessionUpdatePatch({
+			session,
+			timeZone: env.GOOGLE_CALENDAR_TIMEZONE,
+			values: args
+		}).map(adminSessionUpdatePatchPairStep(session));
+}
+
+function retainAdminSessionUpdatePairStep(pair: {
+	session: Doc<"bookings">;
+	updatePatch: AdminSessionTimingPatch;
+}) {
+	return () => pair;
+}
+
+function requireAdminReservationStep(args: SaveAdminSessionUpdateArgs, now: number) {
+	return ({
+		session,
+		updatePatch
+	}: {
+		session: Doc<"bookings">;
+		updatePatch: AdminSessionTimingPatch;
+	}) =>
+		requireSessionReservation(session, args.reservation, now).map(
+			retainAdminSessionUpdatePairStep({ session, updatePatch })
+		);
+}
+
+function resolvedAdminSessionUpdateStep(args: SaveAdminSessionUpdateArgs) {
+	return ({
+		session,
+		updatePatch
+	}: {
+		session: Doc<"bookings">;
+		updatePatch: AdminSessionTimingPatch;
+	}) => ({
+		session,
+		updatePatch,
+		timingChanged:
+			session.sessionStartAt !== updatePatch.sessionStartAt || session.duration !== args.duration
+	});
+}
+
 export function resolveAdminSessionUpdate(ctx: MutationCtx, args: SaveAdminSessionUpdateArgs) {
 	const now = Date.now();
 
 	return getSessionFromDb(ctx, args.bookingId)
-		.andThen((session) =>
-			buildAdminSessionUpdatePatch({
-				session,
-				timeZone: env.GOOGLE_CALENDAR_TIMEZONE,
-				values: args
-			}).map((updatePatch) => ({ session, updatePatch }))
-		)
-		.andThen(({ session, updatePatch }) =>
-			requireSessionReservation(session, args.reservation, now).map(() => ({
-				session,
-				updatePatch
-			}))
-		)
-		.map(({ session, updatePatch }) => ({
-			session,
-			updatePatch,
-			timingChanged:
-				session.sessionStartAt !== updatePatch.sessionStartAt || session.duration !== args.duration
-		}));
+		.andThen(adminUpdatePatchForSessionStep(args))
+		.andThen(requireAdminReservationStep(args, now))
+		.map(resolvedAdminSessionUpdateStep(args));
 }
 
 export function writeAdminSessionUpdateWithDriveSetup(
@@ -107,6 +139,35 @@ export function writeAdminSessionUpdateWithDriveSetup(
 	});
 }
 
+function validatedClientRescheduleSearchOverridesStep(args: SaveClientSessionRescheduleArgs) {
+	return (session: Doc<"bookings">) => ({
+		session,
+		searchOverrides: {
+			addons: args.addons ?? session.addons,
+			date: args.date,
+			notes: args.notes ?? session.notes,
+			service: args.service ?? session.service,
+			time: args.time
+		}
+	});
+}
+
+function requireClientRescheduleReservationStep(
+	args: SaveClientSessionRescheduleArgs,
+	now: number
+) {
+	return (session: Doc<"bookings">) =>
+		requireSessionReservation(session, args.reservation, now).map(retainSessionStep(session));
+}
+
+function retainSessionStep(session: Doc<"bookings">) {
+	return () => session;
+}
+
+function requirePackageSessionForRescheduleStep(args: SaveClientSessionRescheduleArgs) {
+	return (session: Doc<"bookings">) => requirePackageSessionForReschedule(session, args.packageId);
+}
+
 export function validateClientSessionReschedule(
 	ctx: MutationCtx,
 	args: SaveClientSessionRescheduleArgs
@@ -114,20 +175,9 @@ export function validateClientSessionReschedule(
 	const now = Date.now();
 
 	return getSessionFromDb(ctx, args.bookingId)
-		.andThen((session) => requirePackageSessionForReschedule(session, args.packageId))
-		.andThen((session) =>
-			requireSessionReservation(session, args.reservation, now).map(() => session)
-		)
-		.map((session) => ({
-			session,
-			searchOverrides: {
-				addons: args.addons ?? session.addons,
-				date: args.date,
-				notes: args.notes ?? session.notes,
-				service: args.service ?? session.service,
-				time: args.time
-			}
-		}));
+		.andThen(requirePackageSessionForRescheduleStep(args))
+		.andThen(requireClientRescheduleReservationStep(args, now))
+		.map(validatedClientRescheduleSearchOverridesStep(args));
 }
 
 export function patchClientSessionReschedule(

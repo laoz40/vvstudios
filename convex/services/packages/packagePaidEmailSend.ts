@@ -17,6 +17,22 @@ type PackageScheduleEmailResult = ResultAsync<
 	{ reason: "PACKAGE_NOT_FOUND" } | { reason: "PACKAGE_SCHEDULE_EMAIL_FAILED" }
 >;
 
+function recordSentPackagePaidEmail(ctx: ActionCtx, packageId: Id<"packages">) {
+	return ({ receiptNumber }: { receiptNumber: string }) =>
+		recordPackagePaidEmailAttempt(ctx, packageId, "sent", receiptNumber);
+}
+
+function failPackageScheduleEmailAfterRecord() {
+	return () => errAsync({ reason: "PACKAGE_SCHEDULE_EMAIL_FAILED" as const });
+}
+
+function recordFailedPackagePaidEmailAndFail(ctx: ActionCtx, packageId: Id<"packages">) {
+	return (error: { reason: string }) =>
+		recordPackagePaidEmailAttempt(ctx, packageId, "failed", error.reason).andThen(
+			failPackageScheduleEmailAfterRecord()
+		);
+}
+
 export function sendAndRecordPackagePaidEmail(
 	ctx: ActionCtx,
 	packageId: Id<"packages">,
@@ -27,14 +43,8 @@ export function sendAndRecordPackagePaidEmail(
 		leadTimeMinutes: context.leadTimeMinutes,
 		scheduleUrl: context.scheduleUrl
 	})
-		.andThen(({ receiptNumber }) =>
-			recordPackagePaidEmailAttempt(ctx, packageId, "sent", receiptNumber)
-		)
-		.orElse((error) =>
-			recordPackagePaidEmailAttempt(ctx, packageId, "failed", error.reason).andThen(() =>
-				errAsync({ reason: "PACKAGE_SCHEDULE_EMAIL_FAILED" as const })
-			)
-		);
+		.andThen(recordSentPackagePaidEmail(ctx, packageId))
+		.orElse(recordFailedPackagePaidEmailAndFail(ctx, packageId));
 }
 
 export function sendPackageCheckoutPaidEmails(
@@ -63,7 +73,7 @@ function recordPackagePaidEmailAttempt(
 			packageId,
 			"sent",
 			receiptNumberOrFailureCode
-		).andThen(() => recordPackageScheduleEmailAttempt(ctx, packageId, "sent"));
+		).andThen(recordPackageScheduleEmailSentStep(ctx, packageId));
 	}
 
 	return recordPackageReceiptEmailAttempt(
@@ -71,7 +81,15 @@ function recordPackagePaidEmailAttempt(
 		packageId,
 		"failed",
 		receiptNumberOrFailureCode
-	).andThen(() => recordPackageScheduleEmailAttempt(ctx, packageId, "failed"));
+	).andThen(recordPackageScheduleEmailFailedStep(ctx, packageId));
+}
+
+function recordPackageScheduleEmailSentStep(ctx: ActionCtx, packageId: Id<"packages">) {
+	return () => recordPackageScheduleEmailAttempt(ctx, packageId, "sent");
+}
+
+function recordPackageScheduleEmailFailedStep(ctx: ActionCtx, packageId: Id<"packages">) {
+	return () => recordPackageScheduleEmailAttempt(ctx, packageId, "failed");
 }
 
 function recordPackageScheduleEmailAttempt(

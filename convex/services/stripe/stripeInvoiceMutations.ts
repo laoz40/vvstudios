@@ -1,5 +1,5 @@
 import { okAsync } from "neverthrow";
-import type { Id } from "#convex/_generated/dataModel";
+import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
 import type { StripeInvoiceLineItem } from "#convex/lib/stripe/stripeInvoice";
 import {
@@ -10,6 +10,7 @@ import {
 	recordBookingStripeInvoice,
 	recordPackageAdjustmentStripeInvoice,
 	recordPackageStripeInvoice,
+	type StripeInvoiceInsertResult,
 	type StripeInvoicePaymentClaim
 } from "#convex/lib/stripe/stripeInvoices";
 import { requirePermission } from "#convex/services/auth";
@@ -43,11 +44,8 @@ type RecordPackageAdjustmentStripeInvoiceArgs = {
 	totalAmount: number;
 };
 
-export function markStripeInvoicePaid(
-	ctx: MutationCtx,
-	args: { stripeInvoiceId: string; paidAt: number }
-) {
-	return getStripeInvoiceByStripeInvoiceId(ctx, args.stripeInvoiceId).andThen((stripeInvoice) => {
+function markStripeInvoicePaidWhenPresent(ctx: MutationCtx, paidAt: number) {
+	return (stripeInvoice: Doc<"stripeInvoices"> | null) => {
 		if (!stripeInvoice) {
 			return okAsync({ outcome: "not_found" as const } satisfies StripeInvoicePaymentClaim);
 		}
@@ -56,16 +54,61 @@ export function markStripeInvoicePaid(
 			return okAsync({ outcome: "already_completed" as const } satisfies StripeInvoicePaymentClaim);
 		}
 
-		return patchStripeInvoicePaymentStatus(ctx, stripeInvoice._id, args.paidAt);
-	});
+		return patchStripeInvoicePaymentStatus(ctx, stripeInvoice._id, paidAt);
+	};
+}
+
+function unarchiveBookingAfterInsert(ctx: MutationCtx, bookingId: Id<"bookings">) {
+	return (insertResult: StripeInvoiceInsertResult) =>
+		unarchiveAfterNewBookingInvoice(ctx, bookingId, insertResult);
+}
+
+function unarchivePackageAfterInsert(ctx: MutationCtx, packageId: Id<"packages">) {
+	return (insertResult: StripeInvoiceInsertResult) =>
+		unarchiveAfterNewPackageInvoice(ctx, packageId, insertResult);
+}
+
+function keepClaim<T>(claim: T) {
+	return () => claim;
+}
+
+function archiveBookingAfterStripeInvoicePaid(
+	ctx: MutationCtx,
+	stripeInvoiceId: string,
+	paidAt: number
+) {
+	return (claim: StripeInvoicePaymentClaim) => {
+		if (claim.outcome === "not_found") {
+			return okAsync(claim);
+		}
+
+		return archiveBookingWhenStripeInvoicePaid(ctx, stripeInvoiceId, paidAt).map(keepClaim(claim));
+	};
+}
+
+function listBookingStripeInvoices(ctx: QueryCtx, bookingId: Id<"bookings">) {
+	return () => listStripeInvoicesForBooking(ctx, bookingId);
+}
+
+function listPackageStripeInvoices(ctx: QueryCtx, packageId: Id<"packages">) {
+	return () => listStripeInvoicesForPackage(ctx, packageId);
+}
+
+export function markStripeInvoicePaid(
+	ctx: MutationCtx,
+	args: { stripeInvoiceId: string; paidAt: number }
+) {
+	return getStripeInvoiceByStripeInvoiceId(ctx, args.stripeInvoiceId).andThen(
+		markStripeInvoicePaidWhenPresent(ctx, args.paidAt)
+	);
 }
 
 export function recordBookingStripeInvoiceWithUnarchive(
 	ctx: MutationCtx,
 	args: RecordBookingStripeInvoiceArgs
 ) {
-	return recordBookingStripeInvoice(ctx, args).andThen((insertResult) =>
-		unarchiveAfterNewBookingInvoice(ctx, args.bookingId, insertResult)
+	return recordBookingStripeInvoice(ctx, args).andThen(
+		unarchiveBookingAfterInsert(ctx, args.bookingId)
 	);
 }
 
@@ -73,8 +116,8 @@ export function recordPackageStripeInvoiceWithUnarchive(
 	ctx: MutationCtx,
 	args: RecordPackageStripeInvoiceArgs
 ) {
-	return recordPackageStripeInvoice(ctx, args).andThen((insertResult) =>
-		unarchiveAfterNewPackageInvoice(ctx, args.packageId, insertResult)
+	return recordPackageStripeInvoice(ctx, args).andThen(
+		unarchivePackageAfterInsert(ctx, args.packageId)
 	);
 }
 
@@ -82,8 +125,8 @@ export function recordPackageAdjustmentStripeInvoiceWithUnarchive(
 	ctx: MutationCtx,
 	args: RecordPackageAdjustmentStripeInvoiceArgs
 ) {
-	return recordPackageAdjustmentStripeInvoice(ctx, args).andThen((insertResult) =>
-		unarchiveAfterNewPackageInvoice(ctx, args.packageId, insertResult)
+	return recordPackageAdjustmentStripeInvoice(ctx, args).andThen(
+		unarchivePackageAfterInsert(ctx, args.packageId)
 	);
 }
 
@@ -91,25 +134,19 @@ export function markStripeInvoicePaidWithArchive(
 	ctx: MutationCtx,
 	args: { stripeInvoiceId: string; paidAt: number }
 ) {
-	return markStripeInvoicePaid(ctx, args).andThen((claim) => {
-		if (claim.outcome === "not_found") {
-			return okAsync(claim);
-		}
-
-		return archiveBookingWhenStripeInvoicePaid(ctx, args.stripeInvoiceId, args.paidAt).map(
-			() => claim
-		);
-	});
+	return markStripeInvoicePaid(ctx, args).andThen(
+		archiveBookingAfterStripeInvoicePaid(ctx, args.stripeInvoiceId, args.paidAt)
+	);
 }
 
 export function listBookingStripeInvoicesForAdmin(ctx: QueryCtx, bookingId: Id<"bookings">) {
-	return requirePermission(ctx, "view:sensitive-booking-data").andThen(() =>
-		listStripeInvoicesForBooking(ctx, bookingId)
+	return requirePermission(ctx, "view:sensitive-booking-data").andThen(
+		listBookingStripeInvoices(ctx, bookingId)
 	);
 }
 
 export function listPackageStripeInvoicesForAdmin(ctx: QueryCtx, packageId: Id<"packages">) {
-	return requirePermission(ctx, "view:sensitive-booking-data").andThen(() =>
-		listStripeInvoicesForPackage(ctx, packageId)
+	return requirePermission(ctx, "view:sensitive-booking-data").andThen(
+		listPackageStripeInvoices(ctx, packageId)
 	);
 }

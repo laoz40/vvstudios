@@ -9,6 +9,41 @@ import { fromConvexTuple } from "#convex/lib/result";
 
 type ReminderClaim = { session: Doc<"bookings"> };
 
+function reminderClaimFromMutation(claim: ReminderClaim) {
+	return claim;
+}
+
+function markReminderSentAfterEmail(ctx: ActionCtx, bookingId: Id<"bookings">) {
+	return (_value: null) =>
+		fromConvexTuple(
+			ctx.runMutation(internal.sessionReminders.markReminderSent, { bookingId, now: Date.now() })
+		).map(reminderEmailDeliveryComplete);
+}
+
+function reminderEmailDeliveryComplete() {
+	return null;
+}
+
+function markReminderFailedAfterEmailError(ctx: ActionCtx, bookingId: Id<"bookings">) {
+	return (reminderError: { reason: string }) =>
+		fromConvexTuple(
+			ctx.runMutation(internal.sessionReminders.markReminderFailed, {
+				bookingId,
+				failureCode: reminderError.reason
+			})
+		)
+			.map(reminderEmailDeliveryComplete)
+			.orElse(reminderFailureRecordComplete);
+}
+
+function reminderFailureRecordComplete() {
+	return okAsync(null);
+}
+
+function noopReminderClaimOnFailure() {
+	return okAsync(null);
+}
+
 export function claimSessionReminderSend(
 	ctx: ActionCtx,
 	bookingId: Id<"bookings">,
@@ -17,8 +52,8 @@ export function claimSessionReminderSend(
 	return fromConvexTuple(
 		ctx.runMutation(internal.sessionReminders.claimReminder, { bookingId, now })
 	)
-		.map((claim): ReminderClaim => claim)
-		.orElse(() => okAsync(null));
+		.map(reminderClaimFromMutation)
+		.orElse(noopReminderClaimOnFailure);
 }
 
 export function deliverClaimedSessionReminderEmail(
@@ -27,21 +62,8 @@ export function deliverClaimedSessionReminderEmail(
 	claim: ReminderClaim
 ): ResultAsync<null, never> {
 	return sendBookingReminderEmailForSession(ctx, claim.session)
-		.andThen(() =>
-			fromConvexTuple(
-				ctx.runMutation(internal.sessionReminders.markReminderSent, { bookingId, now: Date.now() })
-			).map(() => null)
-		)
-		.orElse((reminderError) =>
-			fromConvexTuple(
-				ctx.runMutation(internal.sessionReminders.markReminderFailed, {
-					bookingId,
-					failureCode: reminderError.reason
-				})
-			)
-				.map(() => null)
-				.orElse(() => okAsync(null))
-		);
+		.andThen(markReminderSentAfterEmail(ctx, bookingId))
+		.orElse(markReminderFailedAfterEmailError(ctx, bookingId));
 }
 
 export function sendSessionReminderWhenClaimed(

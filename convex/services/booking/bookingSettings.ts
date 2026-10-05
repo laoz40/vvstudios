@@ -10,6 +10,30 @@ import {
 	validateBookingSettings
 } from "#convex/lib/booking/bookingSettings";
 import { okOrThrow } from "#convex/lib/result";
+import type { Doc } from "#convex/_generated/dataModel";
+
+type BookingSettingsRowValue = BookingAvailabilitySettings & {
+	key: "main";
+	updatedAt: number;
+	updatedBy: string;
+};
+
+function upsertBookingAvailabilitySettingsRow(ctx: MutationCtx, value: BookingSettingsRowValue) {
+	return (existing: Doc<"bookingSettings"> | null) =>
+		existing
+			? patchBookingAvailabilitySettingsRow(ctx, existing._id, value)
+			: insertBookingAvailabilitySettingsRow(ctx, value);
+}
+
+function writeValidatedBookingSettings(ctx: MutationCtx, value: BookingSettingsRowValue) {
+	return lookupBookingAvailabilitySettingsRow(ctx).andThen(
+		upsertBookingAvailabilitySettingsRow(ctx, value)
+	);
+}
+
+function persistValidatedBookingSettings(ctx: MutationCtx, value: BookingSettingsRowValue) {
+	return (_settings: BookingAvailabilitySettings) => writeValidatedBookingSettings(ctx, value);
+}
 
 export function loadBookingAvailabilitySettings(ctx: QueryCtx) {
 	return readBookingAvailabilitySettings(ctx);
@@ -28,11 +52,7 @@ export function writeBookingAvailabilitySettings(
 ) {
 	const value = { ...settings, key: "main" as const, updatedAt: Date.now(), updatedBy };
 
-	return validateBookingSettings(settings).asyncAndThen(() =>
-		lookupBookingAvailabilitySettingsRow(ctx).andThen((existing) =>
-			existing
-				? patchBookingAvailabilitySettingsRow(ctx, existing._id, value)
-				: insertBookingAvailabilitySettingsRow(ctx, value)
-		)
+	return validateBookingSettings(settings).asyncAndThen(
+		persistValidatedBookingSettings(ctx, value)
 	);
 }

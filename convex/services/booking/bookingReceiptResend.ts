@@ -15,19 +15,84 @@ function isConfirmedBookingStatus(status: string) {
 	return status === "confirmed" || status === "email_failed";
 }
 
+function validateConfirmedSessionForReceiptResend(session: Doc<"bookings">) {
+	if (!isConfirmedBookingStatus(session.status)) {
+		return err({ reason: "BOOKING_NOT_CONFIRMED" as const });
+	}
+
+	return ok(session);
+}
+
+function loadSessionForReceiptResend(ctx: ActionCtx, bookingId: Id<"bookings">) {
+	return () => getSessionFromQuery(ctx, bookingId);
+}
+
+function returnSameSession(session: Doc<"bookings">) {
+	return () => session;
+}
+
+function sendCustomerReceiptWithSettings(ctx: ActionCtx, session: Doc<"bookings">) {
+	return (settings: BookingAvailabilitySettings) =>
+		getSessionFromQuery(ctx, session._id).andThen(
+			sendCustomerReceiptForLoadedSession(ctx, settings)
+		);
+}
+
+function sendCustomerReceiptForLoadedSession(
+	ctx: ActionCtx,
+	settings: BookingAvailabilitySettings
+) {
+	return (sessionFromDb: Doc<"bookings">) =>
+		createRescheduleUrlForSession(ctx, sessionFromDb).andThen(
+			sendReceiptEmailsForRescheduleUrl(sessionFromDb, settings)
+		);
+}
+
+function sendReceiptEmailsForRescheduleUrl(
+	sessionFromDb: Doc<"bookings">,
+	settings: BookingAvailabilitySettings
+) {
+	return (rescheduleUrl: string) =>
+		sendBookingReceiptEmailsForBooking(sessionFromDb, {
+			leadTimeMinutes: settings.leadTimeMinutes,
+			rescheduleUrl,
+			skipHostEmail: true
+		}).map(receiptResendResultForSession(sessionFromDb));
+}
+
+function receiptResendResultForSession(sessionFromDb: Doc<"bookings">) {
+	return ({ receiptNumber }: { receiptNumber: string }) => ({
+		session: sessionFromDb,
+		receiptNumber
+	});
+}
+
+function markReceiptResendSent(ctx: ActionCtx, session: Doc<"bookings">) {
+	return () =>
+		fromConvexTuple(
+			ctx.runMutation(internal.bookingConfirmation.markSessionInvoiceEmailRetrySent, {
+				bookingId: session._id
+			})
+		);
+}
+
+function recordReceiptNumberBeforeResendSent(ctx: ActionCtx, session: Doc<"bookings">) {
+	return (receiptNumber: string) =>
+		fromConvexTuple(
+			ctx.runMutation(internal.bookingConfirmation.recordBookingReceiptNumber, {
+				bookingId: session._id,
+				receiptNumber
+			})
+		).andThen(markReceiptResendSent(ctx, session));
+}
+
 export function loadConfirmedSessionForReceiptResend(
 	ctx: ActionCtx,
 	args: { bookingId: Id<"bookings"> }
 ): ResultAsync<Doc<"bookings">, { reason: string }> {
 	return requirePermissionActions(ctx, "send:receipt-emails")
-		.andThen(() => getSessionFromQuery(ctx, args.bookingId))
-		.andThen((session) => {
-			if (!isConfirmedBookingStatus(session.status)) {
-				return err({ reason: "BOOKING_NOT_CONFIRMED" as const });
-			}
-
-			return ok(session);
-		});
+		.andThen(loadSessionForReceiptResend(ctx, args.bookingId))
+		.andThen(validateConfirmedSessionForReceiptResend);
 }
 
 export function writeStandaloneBookingReceiptNumber(
@@ -38,7 +103,7 @@ export function writeStandaloneBookingReceiptNumber(
 		ctx.runMutation(internal.bookingConfirmation.ensureStandaloneBookingReceiptNumber, {
 			bookingId: session._id
 		})
-	).map(() => session);
+	).map(returnSameSession(session));
 }
 
 export function sendBookingReceiptEmailToCustomer(
@@ -46,16 +111,7 @@ export function sendBookingReceiptEmailToCustomer(
 	session: Doc<"bookings">
 ): ResultAsync<{ receiptNumber: string; session: Doc<"bookings"> }, { reason: string }> {
 	return okOrThrow<BookingAvailabilitySettings>(ctx.runQuery(api.bookingSettings.get, {})).andThen(
-		(settings) =>
-			getSessionFromQuery(ctx, session._id).andThen((sessionFromDb) =>
-				createRescheduleUrlForSession(ctx, sessionFromDb).andThen((rescheduleUrl) =>
-					sendBookingReceiptEmailsForBooking(sessionFromDb, {
-						leadTimeMinutes: settings.leadTimeMinutes,
-						rescheduleUrl,
-						skipHostEmail: true
-					}).map(({ receiptNumber }) => ({ session: sessionFromDb, receiptNumber }))
-				)
-			)
+		sendCustomerReceiptWithSettings(ctx, session)
 	);
 }
 
@@ -63,16 +119,5 @@ export function recordBookingReceiptResendOutcome(
 	ctx: ActionCtx,
 	args: { receiptNumber: string; session: Doc<"bookings"> }
 ): ResultAsync<null, { reason: string }> {
-	return fromConvexTuple(
-		ctx.runMutation(internal.bookingConfirmation.recordBookingReceiptNumber, {
-			bookingId: args.session._id,
-			receiptNumber: args.receiptNumber
-		})
-	).andThen(() =>
-		fromConvexTuple(
-			ctx.runMutation(internal.bookingConfirmation.markSessionInvoiceEmailRetrySent, {
-				bookingId: args.session._id
-			})
-		)
-	);
+	return recordReceiptNumberBeforeResendSent(ctx, args.session)(args.receiptNumber);
 }

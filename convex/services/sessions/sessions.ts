@@ -1,6 +1,9 @@
 import { ConvexError } from "convex/values";
 import { err, ok } from "neverthrow";
-import { searchBlobPatchForBookingAsync } from "#convex/lib/adminSearch/adminSearchBlob";
+import {
+	searchBlobPatchForBookingAsync,
+	type BookingSearchBlobPatch
+} from "#convex/lib/adminSearch/adminSearchBlob";
 import type { Doc } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
 import { patchBookingInstagramHandle } from "#convex/lib/booking/bookingConfirmationSessionPatches";
@@ -62,13 +65,21 @@ export function requireConfirmedBookingSession(session: Doc<"bookings">) {
 	return ok(session);
 }
 
+function patchInstagramHandleStep(
+	ctx: MutationCtx,
+	session: Doc<"bookings">,
+	instagramHandle: string
+) {
+	return (searchBlobPatch: BookingSearchBlobPatch) =>
+		patchBookingInstagramHandle(ctx, session, { instagramHandle, searchBlobPatch });
+}
+
 export function writeSessionInstagramHandle(
 	ctx: MutationCtx,
 	session: Doc<"bookings">,
 	instagramHandle: string
 ) {
 	return searchBlobPatchForBookingAsync(ctx, session, { instagramHandle }).andThen(
-		(searchBlobPatch) =>
-			patchBookingInstagramHandle(ctx, session, { instagramHandle, searchBlobPatch })
+		patchInstagramHandleStep(ctx, session, instagramHandle)
 	);
 }

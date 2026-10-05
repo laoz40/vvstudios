@@ -1,7 +1,7 @@
 "use node";
 
 import type { calendar_v3 } from "googleapis/build/src/apis/calendar/v3";
-import { err, ok, okAsync } from "neverthrow";
+import { err, errAsync, ok, okAsync, type ResultAsync } from "neverthrow";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { ActionCtx } from "#convex/_generated/server";
 import { loadBookingAvailabilitySettings } from "#convex/lib/booking/bookingConfirmationActionBoundaries";
@@ -33,6 +33,7 @@ import {
 	getSessionEditFieldChanges,
 	getSessionStartAt,
 	type AdminSessionUpdateArgs,
+	type AdminSessionUpdateError,
 	type AdminSessionUpdateResult as LibAdminSessionUpdateResult,
 	validateSessionTimingEdit,
 	verifySessionCanBeScheduled
@@ -52,6 +53,10 @@ function eventDetails(args: AdminSessionUpdateArgs) {
 	};
 }
 
+function requireSchedulableFailedSessionStep(canBeScheduled: boolean) {
+	return canBeScheduled ? ok(undefined) : err({ reason: "BOOKING_TIME_UNAVAILABLE" as const });
+}
+
 function verifyFailedSessionNewSlot({
 	args,
 	session,
@@ -69,9 +74,23 @@ function verifyFailedSessionNewSlot({
 		calendarIds: client.calendarIds,
 		settings,
 		timeZone: client.timeZone
-	}).andThen((canBeScheduled) =>
-		canBeScheduled ? ok(undefined) : err({ reason: "BOOKING_TIME_UNAVAILABLE" as const })
-	);
+	}).andThen(requireSchedulableFailedSessionStep);
+}
+
+function mapFailedSessionPayloadResultStep(
+	payloadResult: ReturnType<typeof buildSessionCalendarEventPayload>
+) {
+	return payloadResult.mapErr(() => ({ reason: "BOOKING_INVALID_INPUT" as const }));
+}
+
+function buildFailedSessionGoogleEventPayloadStep({
+	args,
+	client
+}: {
+	args: AdminSessionUpdateArgs;
+	client: AdminSessionGoogleCalendarClient;
+}) {
+	return () => buildFailedSessionGoogleEventPayload({ args, client });
 }
 
 function buildFailedSessionGoogleEventPayload({
@@ -100,9 +119,7 @@ function buildFailedSessionGoogleEventPayload({
 					: "GOOGLE_CALENDAR_CREATE_FAILED"
 			};
 		}
-	}).andThen((payloadResult) =>
-		payloadResult.mapErr(() => ({ reason: "BOOKING_INVALID_INPUT" as const }))
-	);
+	}).andThen(mapFailedSessionPayloadResultStep);
 }
 
 function insertFailedSessionGoogleEvent({
@@ -131,22 +148,37 @@ function insertFailedSessionGoogleEvent({
 	});
 }
 
+function loadSessionForAdminEditStep(ctx: ActionCtx, bookingId: Id<"bookings">) {
+	return () => getSessionFromQuery(ctx, bookingId);
+}
+
 export function requireEditSessionsPermissionAndLoadBooking(
 	ctx: ActionCtx,
 	bookingId: Id<"bookings">
 ) {
-	return requirePermissionActions(ctx, "edit:sessions").andThen(() =>
-		getSessionFromQuery(ctx, bookingId)
+	return requirePermissionActions(ctx, "edit:sessions").andThen(
+		loadSessionForAdminEditStep(ctx, bookingId)
+	);
+}
+
+function adminSessionEditDepsStep(settings: SessionAvailabilitySettings) {
+	return (client: AdminSessionGoogleCalendarClient) => ({ client, settings });
+}
+
+function loadAdminEditGoogleClientStep(settings: SessionAvailabilitySettings) {
+	return loadGoogleCalendarClient("GOOGLE_CALENDAR_AVAILABILITY_FAILED").map(
+		adminSessionEditDepsStep(settings)
 	);
 }
 
 export function loadAdminSessionEditDeps(ctx: ActionCtx) {
-	return loadBookingAvailabilitySettings(ctx).andThen((settings) =>
-		loadGoogleCalendarClient("GOOGLE_CALENDAR_AVAILABILITY_FAILED").map((client) => ({
-			client,
-			settings
-		}))
-	);
+	return loadBookingAvailabilitySettings(ctx).andThen(loadAdminEditGoogleClientStep);
+}
+
+function rethrowSaveErrorAfterOrphanCleanupStep<Error extends AdminSessionUpdateError>(
+	saveError: Error
+) {
+	return () => err(saveError);
 }
 
 function savePromotedFailedSession({
@@ -190,8 +222,39 @@ function savePromotedFailedSession({
 			googleEventId
 		})
 			.orElse(() => okAsync(undefined))
-			.andThen(() => err(saveError));
+			.andThen(rethrowSaveErrorAfterOrphanCleanupStep(saveError));
 	});
+}
+
+function savePromotedFailedSessionStep(args: {
+	args: AdminSessionUpdateArgs;
+	session: Doc<"bookings">;
+	client: AdminSessionGoogleCalendarClient;
+	ctx: ActionCtx;
+	reservation?: SessionReservation;
+}) {
+	return (createdEvent: { data: { id?: string | null } }) => {
+		const googleEventId = createdEvent.data.id ?? undefined;
+
+		return savePromotedFailedSession({ ...args, googleEventId });
+	};
+}
+
+function insertFailedSessionGoogleEventStep(args: {
+	args: AdminSessionUpdateArgs;
+	session: Doc<"bookings">;
+	client: AdminSessionGoogleCalendarClient;
+	ctx: ActionCtx;
+	reservation?: SessionReservation;
+}) {
+	return (requestBody: calendar_v3.Schema$Event) =>
+		insertFailedSessionGoogleEvent({ client: args.client, requestBody }).andThen(
+			savePromotedFailedSessionStep(args)
+		);
+}
+
+function createdFromFailedGoogleOutcomeStep() {
+	return { googleOutcome: "createdFromFailed" as const };
 }
 
 function promoteFailedSession({
@@ -209,23 +272,16 @@ function promoteFailedSession({
 	reservation?: SessionReservation;
 	settings: SessionAvailabilitySettings;
 }) {
-	return verifyFailedSessionNewSlot({ args, session, client, settings })
-		.andThen(() => buildFailedSessionGoogleEventPayload({ args, client }))
-		.andThen((requestBody) =>
-			insertFailedSessionGoogleEvent({ client, requestBody }).andThen((createdEvent) => {
-				const googleEventId = createdEvent.data.id ?? undefined;
+	const promoteArgs = { args, session, client, ctx, reservation };
 
-				return savePromotedFailedSession({
-					args,
-					session,
-					client,
-					ctx,
-					googleEventId,
-					reservation
-				});
-			})
-		)
-		.map(() => ({ googleOutcome: "createdFromFailed" as const }));
+	return verifyFailedSessionNewSlot({ args, session, client, settings })
+		.andThen(buildFailedSessionGoogleEventPayloadStep({ args, client }))
+		.andThen(insertFailedSessionGoogleEventStep(promoteArgs))
+		.map(createdFromFailedGoogleOutcomeStep);
+}
+
+function emptyAdminSessionUpdateResultStep() {
+	return {};
 }
 
 function saveAdminFieldsOnly({
@@ -243,13 +299,47 @@ function saveAdminFieldsOnly({
 		saveArgs.reservation = reservation;
 	}
 
-	return saveAdminSessionUpdate(ctx, saveArgs).map(() => ({}));
+	return saveAdminSessionUpdate(ctx, saveArgs).map(emptyAdminSessionUpdateResultStep);
 }
 
 function shouldSyncConfirmedToGoogle(session: Doc<"bookings">, args: AdminSessionUpdateArgs) {
 	const fieldChanges = getSessionEditFieldChanges(session, args);
 
 	return fieldChanges.timingFieldsChanged || fieldChanges.googleEventFieldsChanged;
+}
+
+function confirmedGoogleSaveOutcomeStep(outcome?: "replacementCreated") {
+	return () => ({ googleOutcome: outcome });
+}
+
+function saveConfirmedTimingUpdateStep(args: {
+	args: AdminSessionUpdateArgs;
+	ctx: ActionCtx;
+	reservation?: SessionReservation;
+}) {
+	return (timingUpdate: {
+		googleCalendarId?: string;
+		googleEventId?: string;
+		outcome?: "replacementCreated";
+	}) => {
+		if (!timingUpdate.googleEventId && !timingUpdate.googleCalendarId) {
+			return ok(null);
+		}
+
+		const saveArgs: SaveAdminSessionUpdateArgs = {
+			...args.args,
+			googleCalendarId: timingUpdate.googleCalendarId,
+			googleEventId: timingUpdate.googleEventId
+		};
+
+		if (args.reservation) {
+			saveArgs.reservation = args.reservation;
+		}
+
+		return saveAdminSessionUpdate(args.ctx, saveArgs).map(
+			confirmedGoogleSaveOutcomeStep(timingUpdate.outcome)
+		);
+	};
 }
 
 function updateConfirmedGoogleEvent({
@@ -276,25 +366,15 @@ function updateConfirmedGoogleEvent({
 		duration: args.duration,
 		settings,
 		time: args.time
-	}).andThen((timingUpdate) => {
-		if (!timingUpdate.googleEventId && !timingUpdate.googleCalendarId) {
-			return ok(null);
-		}
+	}).andThen(saveConfirmedTimingUpdateStep({ args, ctx, reservation }));
+}
 
-		const saveArgs: SaveAdminSessionUpdateArgs = {
-			...args,
-			googleCalendarId: timingUpdate.googleCalendarId,
-			googleEventId: timingUpdate.googleEventId
-		};
-
-		if (reservation) {
-			saveArgs.reservation = reservation;
-		}
-
-		return saveAdminSessionUpdate(ctx, saveArgs).map(() => ({
-			googleOutcome: timingUpdate.outcome
-		}));
-	});
+function saveAdminFieldsOnlyStep(args: {
+	args: AdminSessionUpdateArgs;
+	ctx: ActionCtx;
+	reservation?: SessionReservation;
+}) {
+	return () => saveAdminFieldsOnly(args);
 }
 
 function syncAdminSessionGoogleAndSave({
@@ -331,7 +411,7 @@ function syncAdminSessionGoogleAndSave({
 			next: { date: args.date, duration: args.duration, time: args.time },
 			settings,
 			timeZone: client.timeZone
-		}).andThen(() => saveAdminFieldsOnly({ args, ctx, reservation }));
+		}).andThen(saveAdminFieldsOnlyStep({ args, ctx, reservation }));
 	}
 
 	if (!shouldSyncConfirmedToGoogle(session, args)) {
@@ -339,14 +419,48 @@ function syncAdminSessionGoogleAndSave({
 	}
 
 	return updateConfirmedGoogleEvent({ args, session, client, ctx, reservation, settings }).andThen(
-		(replacementOutcome) => {
-			if (replacementOutcome) {
-				return ok(replacementOutcome);
-			}
-
-			return saveAdminFieldsOnly({ args, ctx, reservation });
-		}
+		resolveConfirmedGoogleSyncOutcomeStep({ args, ctx, reservation })
 	);
+}
+
+function resolveConfirmedGoogleSyncOutcomeStep(args: {
+	args: AdminSessionUpdateArgs;
+	ctx: ActionCtx;
+	reservation?: SessionReservation;
+}) {
+	return (replacementOutcome: AdminSessionUpdateResult | null) => {
+		if (replacementOutcome) {
+			return ok(replacementOutcome);
+		}
+
+		return saveAdminFieldsOnly(args);
+	};
+}
+
+function requireAvailableAdminReservationStep(reservationResult: {
+	outcome: "reserved" | "unavailable";
+	reservation?: SessionReservation;
+}) {
+	if (reservationResult.outcome === "unavailable") {
+		return errAsync({ reason: "BOOKING_TIME_UNAVAILABLE" as const });
+	}
+
+	return okAsync(reservationResult.reservation!);
+}
+
+function reserveAdminSessionSlotStep(
+	ctx: ActionCtx,
+	args: AdminSessionUpdateArgs,
+	session: Doc<"bookings">,
+	settings: SessionAvailabilitySettings
+) {
+	return (sessionStartAt: number) =>
+		reserveSessionSlot(ctx, {
+			bookingId: session._id,
+			duration: args.duration,
+			eventBufferMinutes: settings.eventBufferMinutes,
+			sessionStartAt
+		}).andThen(requireAvailableAdminReservationStep);
 }
 
 function reserveSlotForAdminTimingChange(
@@ -356,33 +470,62 @@ function reserveSlotForAdminTimingChange(
 	client: AdminSessionGoogleCalendarClient,
 	settings: SessionAvailabilitySettings
 ) {
-	return getSessionStartAt(args.date, args.time, client.timeZone).asyncAndThen((sessionStartAt) =>
-		reserveSessionSlot(ctx, {
-			bookingId: session._id,
-			duration: args.duration,
-			eventBufferMinutes: settings.eventBufferMinutes,
-			sessionStartAt
-		}).andThen((reservationResult) => {
-			if (reservationResult.outcome === "unavailable") {
-				return err({ reason: "BOOKING_TIME_UNAVAILABLE" as const });
-			}
-
-			return ok(reservationResult.reservation);
-		})
+	return getSessionStartAt(args.date, args.time, client.timeZone).asyncAndThen(
+		reserveAdminSessionSlotStep(ctx, args, session, settings)
 	);
+}
+
+function rethrowAdminUpdateErrorStep<Error extends AdminSessionUpdateError>(error: Error) {
+	return () => err(error);
+}
+
+function compensateFailedAdminUpdateStep(
+	ctx: ActionCtx,
+	session: Doc<"bookings">,
+	reservation: SessionReservation
+) {
+	return (error: AdminSessionUpdateError) =>
+		clearSessionSlotReservation(ctx, { bookingId: session._id, reservation }).andThen(
+			rethrowAdminUpdateErrorStep(error)
+		);
 }
 
 function withReservationCompensation(
 	ctx: ActionCtx,
 	session: Doc<"bookings">,
 	reservation: SessionReservation,
-	update: () => ReturnType<typeof syncAdminSessionGoogleAndSave>
+	update: () => ResultAsync<
+		AdminSessionUpdateResult,
+		| AdminSessionUpdateError
+		| {
+				reason:
+					| "GOOGLE_CALENDAR_AUTH_FAILED"
+					| "GOOGLE_CALENDAR_AVAILABILITY_FAILED"
+					| "GOOGLE_CALENDAR_RATE_LIMITED";
+		  }
+	>
 ) {
-	return update().orElse((error) =>
-		clearSessionSlotReservation(ctx, { bookingId: session._id, reservation }).andThen(() =>
-			err(error)
-		)
-	);
+	return update().orElse(compensateFailedAdminUpdateStep(ctx, session, reservation));
+}
+
+function syncAdminSessionWithReservationStep(args: {
+	args: AdminSessionUpdateArgs;
+	session: Doc<"bookings">;
+	client: AdminSessionGoogleCalendarClient;
+	ctx: ActionCtx;
+	settings: SessionAvailabilitySettings;
+}) {
+	return (reservation: SessionReservation) =>
+		withReservationCompensation(args.ctx, args.session, reservation, () =>
+			syncAdminSessionGoogleAndSave({ ...args, reservation })
+		);
+}
+
+export function attachAdminUpdateContext(
+	session: Doc<"bookings">,
+	settings: SessionAvailabilitySettings
+) {
+	return (result: AdminSessionUpdateResult) => ({ result, session, settings });
 }
 
 export function syncAdminBookingGoogleCalendarAndDb({
@@ -397,16 +540,13 @@ export function syncAdminBookingGoogleCalendarAndDb({
 	client: AdminSessionGoogleCalendarClient;
 	ctx: ActionCtx;
 	settings: SessionAvailabilitySettings;
-}): ReturnType<typeof syncAdminSessionGoogleAndSave> {
+}) {
 	if (!didSessionTimingChange(session, args)) {
 		return syncAdminSessionGoogleAndSave({ args, session, client, ctx, settings });
 	}
 
 	return reserveSlotForAdminTimingChange(ctx, args, session, client, settings).andThen(
-		(reservation) =>
-			withReservationCompensation(ctx, session, reservation, () =>
-				syncAdminSessionGoogleAndSave({ args, session, client, ctx, reservation, settings })
-			)
+		syncAdminSessionWithReservationStep({ args, session, client, ctx, settings })
 	);
 }
 

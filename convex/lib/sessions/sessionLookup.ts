@@ -1,7 +1,17 @@
-import { err, ok } from "neverthrow";
-import type { Id } from "#convex/_generated/dataModel";
+import { err, ok, type Result } from "neverthrow";
+import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
 import { okOrThrow } from "#convex/lib/result";
+
+export function requireBookingRow(
+	session: Doc<"bookings"> | null
+): Result<Doc<"bookings">, { reason: "BOOKING_NOT_FOUND" }> {
+	if (session === null) {
+		return err({ reason: "BOOKING_NOT_FOUND" });
+	}
+
+	return ok(session);
+}
 
 export function getBookingRow(ctx: QueryCtx | MutationCtx, bookingId: Id<"bookings">) {
 	return okOrThrow(ctx.db.get("bookings", bookingId));

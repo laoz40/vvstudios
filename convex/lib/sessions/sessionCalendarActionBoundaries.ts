@@ -10,7 +10,13 @@ import type {
 	SaveClientSessionRescheduleArgs
 } from "#convex/lib/sessions/sessionSchedulingArgs";
 import type { SessionReservation } from "#convex/lib/sessions/sessionReservations";
+import type { AdminSessionUpdateError } from "#convex/lib/sessions/sessionAdminEdit";
+import type { LockRescheduleLinkError } from "#convex/lib/sessions/sessionRescheduleLinks";
 import type { RescheduleLinkLookupError } from "#convex/services/sessions/sessionReschedule";
+
+type UnlockRescheduleLinkError =
+	| { reason: "RESCHEDULE_LINK_NOT_FOUND" }
+	| { reason: "RESCHEDULE_LINK_USED" };
 
 export type ValidRescheduleDetails = {
 	session: Doc<"bookings">;
@@ -32,7 +38,7 @@ export function loadValidRescheduleLinkAndSession(
 export function lockRescheduleLink(
 	ctx: ActionCtx,
 	args: { linkId: Doc<"bookingRescheduleLinks">["_id"]; now: number }
-) {
+): ResultAsync<null, LockRescheduleLinkError> {
 	return fromConvexTuple(
 		ctx.runMutation(internal.sessionReschedule.lockRescheduleLink, {
 			linkId: args.linkId,
@@ -44,7 +50,7 @@ export function lockRescheduleLink(
 export function unlockRescheduleLink(
 	ctx: ActionCtx,
 	args: { linkId: Doc<"bookingRescheduleLinks">["_id"]; lockedAt: number; expiresAt?: number }
-) {
+): ResultAsync<null, UnlockRescheduleLinkError> {
 	if (args.expiresAt === undefined) {
 		return fromConvexTuple(
 			ctx.runMutation(internal.sessionReschedule.unlockRescheduleLink, {
@@ -75,7 +81,7 @@ export function reserveSessionSlot(
 		eventBufferMinutes: number;
 		sessionStartAt: number;
 	}
-) {
+): ResultAsync<ReserveSessionSlotResult, AdminSessionUpdateError> {
 	return fromConvexTuple(
 		ctx.runMutation(internal.sessionScheduling.reserveSessionReservation, {
 			bookingId: args.bookingId,
@@ -90,7 +96,7 @@ export function reserveSessionSlot(
 export function clearSessionSlotReservation(
 	ctx: ActionCtx,
 	args: { bookingId: Id<"bookings">; reservation: SessionReservation }
-) {
+): ResultAsync<{ cleared: boolean } | null, AdminSessionUpdateError> {
 	return fromConvexTuple(
 		ctx.runMutation(internal.sessionScheduling.clearSessionReservation, {
 			bookingId: args.bookingId,
@@ -102,13 +108,16 @@ export function clearSessionSlotReservation(
 export function saveClientSessionReschedule(
 	ctx: ActionCtx,
 	saveArgs: SaveClientSessionRescheduleArgs
-) {
+): ResultAsync<null, AdminSessionUpdateError> {
 	return fromConvexTuple(
 		ctx.runMutation(internal.sessionScheduling.saveClientSessionReschedule, saveArgs)
 	);
 }
 
-export function saveAdminSessionUpdate(ctx: ActionCtx, saveArgs: SaveAdminSessionUpdateArgs) {
+export function saveAdminSessionUpdate(
+	ctx: ActionCtx,
+	saveArgs: SaveAdminSessionUpdateArgs
+): ResultAsync<null, AdminSessionUpdateError> {
 	return fromConvexTuple(
 		ctx.runMutation(internal.sessionScheduling.saveAdminSessionUpdate, saveArgs)
 	);

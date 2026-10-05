@@ -1,7 +1,10 @@
 "use node";
 
 import type { ActionCtx } from "#convex/_generated/server";
-import { loadValidRescheduleLinkAndSession } from "#convex/lib/sessions/sessionCalendarActionBoundaries";
+import {
+	loadValidRescheduleLinkAndSession,
+	type ValidRescheduleDetails
+} from "#convex/lib/sessions/sessionCalendarActionBoundaries";
 import {
 	checkSessionMeetsAvailabilitySettings,
 	getAvailableTimeOptions
@@ -43,9 +46,18 @@ export function loadAvailableBookingTimesForDay(
 	return loadDayAvailableBookingTimes({ date: args.date, duration: args.duration, settings });
 }
 
+function pairRescheduleDetailsWithSettings(details: ValidRescheduleDetails) {
+	return (settings: BookingAvailabilitySettings) => ({ details, settings });
+}
+
+function loadRescheduleBookingSettingsStep(ctx: ActionCtx) {
+	return (details: ValidRescheduleDetails) =>
+		getBookingSettingsService(ctx).map(pairRescheduleDetailsWithSettings(details));
+}
+
 export function loadRescheduleSessionAndBookingSettings(ctx: ActionCtx, token: string) {
-	return loadValidRescheduleLinkAndSession(ctx, { now: Date.now(), token }).andThen((details) =>
-		getBookingSettingsService(ctx).map((settings) => ({ details, settings }))
+	return loadValidRescheduleLinkAndSession(ctx, { now: Date.now(), token }).andThen(
+		loadRescheduleBookingSettingsStep(ctx)
 	);
 }
 
@@ -62,18 +74,18 @@ export function loadRescheduleBookableRangeBusyWindows(
 	});
 }
 
-export function loadAvailableRescheduleTimesForDay(
+function availableRescheduleTimesForDayStep(
 	args: { date: string },
 	details: { session: { duration: string; googleCalendarId?: string; googleEventId?: string } },
 	settings: BookingAvailabilitySettings
 ) {
-	return loadDayBusyWindows({
-		date: args.date,
-		ignoredEvent: {
-			calendarId: details.session.googleCalendarId,
-			eventId: details.session.googleEventId
-		}
-	}).map(({ busyWindows, timeZone }) => {
+	return ({
+		busyWindows,
+		timeZone
+	}: {
+		busyWindows: Parameters<typeof getAvailableTimeOptions>[0]["busyWindows"];
+		timeZone: string;
+	}) => {
 		const calendarAvailableTimes = getAvailableTimeOptions({
 			busyWindows,
 			date: args.date,
@@ -96,5 +108,19 @@ export function loadAvailableRescheduleTimesForDay(
 		);
 
 		return { timeZone, times };
-	});
+	};
+}
+
+export function loadAvailableRescheduleTimesForDay(
+	args: { date: string },
+	details: { session: { duration: string; googleCalendarId?: string; googleEventId?: string } },
+	settings: BookingAvailabilitySettings
+) {
+	return loadDayBusyWindows({
+		date: args.date,
+		ignoredEvent: {
+			calendarId: details.session.googleCalendarId,
+			eventId: details.session.googleEventId
+		}
+	}).map(availableRescheduleTimesForDayStep(args, details, settings));
 }

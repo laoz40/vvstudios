@@ -9,6 +9,20 @@ import {
 } from "#convex/lib/email/emailRenders";
 import { getHostEmails, sendEmail } from "#convex/lib/email/emailSend";
 
+function returnNull(): null {
+	return null;
+}
+
+function sendSessionHostDetailsEmailWithHtml(
+	hostEmails: string[],
+	args: SendSessionHostDetailsEmailArgs
+) {
+	return (html: string) =>
+		sendEmail({ to: hostEmails, subject: sessionHostDetailsEmailSubject(args), html }).map(
+			returnNull
+		);
+}
+
 export function sendSessionHostDetailsEmail(args: SendSessionHostDetailsEmailArgs) {
 	const hostEmails = getHostEmails();
 
@@ -16,11 +30,19 @@ export function sendSessionHostDetailsEmail(args: SendSessionHostDetailsEmailArg
 		return okAsync(null);
 	}
 
-	return renderSessionHostDetailsEmailHtml(args).andThen((html) =>
-		sendEmail({ to: hostEmails, subject: sessionHostDetailsEmailSubject(args), html }).map(
-			() => null
-		)
+	return renderSessionHostDetailsEmailHtml(args).andThen(
+		sendSessionHostDetailsEmailWithHtml(hostEmails, args)
 	);
+}
+
+function sendPackageHostDetailsEmailWithHtml(
+	hostEmails: string[],
+	args: SendPackageHostDetailsEmailArgs
+) {
+	return (html: string) =>
+		sendEmail({ to: hostEmails, subject: packageHostDetailsEmailSubject(args), html }).map(
+			returnNull
+		);
 }
 
 export function sendPackageHostDetailsEmail(args: SendPackageHostDetailsEmailArgs) {
@@ -30,9 +52,7 @@ export function sendPackageHostDetailsEmail(args: SendPackageHostDetailsEmailArg
 		return okAsync(null);
 	}
 
-	return renderPackageHostDetailsEmailHtml(args).andThen((html) =>
-		sendEmail({ to: hostEmails, subject: packageHostDetailsEmailSubject(args), html }).map(
-			() => null
-		)
+	return renderPackageHostDetailsEmailHtml(args).andThen(
+		sendPackageHostDetailsEmailWithHtml(hostEmails, args)
 	);
 }

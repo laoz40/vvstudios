@@ -5,9 +5,21 @@ import { sendFeedbackEmailForMessage } from "#convex/services/feedback/feedbackE
 import { parseFeedbackMessage } from "#convex/lib/feedback";
 import { checkFeedbackSubmitRateLimit } from "#convex/lib/rateLimits";
 
+function passthroughValue<T>(value: T) {
+	return () => value;
+}
+
+function passMessageAfterFeedbackRateLimit(ctx: ActionCtx) {
+	return (parsed: string) => checkFeedbackSubmitRateLimit(ctx).map(passthroughValue(parsed));
+}
+
+function feedbackSubmitComplete() {
+	return null;
+}
+
 export function submitFeedbackMessage(ctx: ActionCtx, message: string) {
 	return parseFeedbackMessage(message)
-		.asyncAndThen((parsed) => checkFeedbackSubmitRateLimit(ctx).map(() => parsed))
+		.asyncAndThen(passMessageAfterFeedbackRateLimit(ctx))
 		.andThen(sendFeedbackEmailForMessage)
-		.map(() => null);
+		.map(feedbackSubmitComplete);
 }

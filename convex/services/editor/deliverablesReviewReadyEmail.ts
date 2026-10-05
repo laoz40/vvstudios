@@ -7,6 +7,23 @@ import {
 } from "#convex/lib/email/emailRenders";
 import { getHostEmails, sendEmail } from "#convex/lib/email/emailSend";
 
+function returnNull(): null {
+	return null;
+}
+
+function sendDeliverablesReviewReadyEmailWithHtml(
+	hostEmails: string[],
+	args: { clientName: string; editorName: string; sessionDate: string; idempotencyKey: string }
+) {
+	return (html: string) =>
+		sendEmail({
+			to: hostEmails,
+			subject: deliverablesReviewReadyHostEmailSubject(args),
+			html,
+			idempotencyKey: args.idempotencyKey
+		}).map(returnNull);
+}
+
 export function sendDeliverablesReviewReadyEmail(args: {
 	clientName: string;
 	editorName: string;
@@ -23,12 +40,5 @@ export function sendDeliverablesReviewReadyEmail(args: {
 		clientName: args.clientName,
 		editorName: args.editorName,
 		sessionDate: args.sessionDate
-	}).andThen((html) =>
-		sendEmail({
-			to: hostEmails,
-			subject: deliverablesReviewReadyHostEmailSubject(args),
-			html,
-			idempotencyKey: args.idempotencyKey
-		}).map(() => null)
-	);
+	}).andThen(sendDeliverablesReviewReadyEmailWithHtml(hostEmails, args));
 }
