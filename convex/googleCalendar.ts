@@ -1,5 +1,6 @@
 "use node";
 
+import { okAsync } from "neverthrow";
 import { v } from "convex/values";
 import { tupleErr, tupleOk, type Result } from "#/lib/result";
 import { action, internalAction } from "#convex/_generated/server";
@@ -10,12 +11,23 @@ import {
 	getAvailableRescheduleTimesService,
 	getBookableRangeBusyWindowsService,
 	getRescheduleBookableRangeBusyWindowsService,
-	rescheduleSessionService,
-	updateSessionFromAdminService,
 	type GetAvailableRescheduleTimesError,
 	type RescheduleSessionError,
 	type UpdateSessionFromAdminError
 } from "#convex/services/googleCalendar/sessionCalendar";
+import {
+	authorizeAdminSessionEdit,
+	loadAdminSessionEditDeps,
+	notifyHostIfNeeded,
+	persistAdminSessionGoogleUpdate
+} from "#convex/services/googleCalendar/sessionAdminUpdateWorkflow";
+import {
+	finishReschedule,
+	loadRescheduleTargetAndValidate,
+	lockAndReserve,
+	persistRescheduleAfterCalendar,
+	syncCalendar
+} from "#convex/services/googleCalendar/sessionRescheduleWorkflow";
 import {
 	bookingAddonQuantitiesValidator,
 	bookingAddonsValidator
@@ -32,11 +44,12 @@ import {
 	retryClientDrivePermissionsService,
 	type DriveClientPermissionsError
 } from "#convex/services/drive/driveClientPermissions";
+import { sendSessionReminderEmailService } from "#convex/services/booking/bookingConfirmationActions";
 import {
-	completeClaimedSessionService,
-	sendSessionReminderEmailService
-} from "#convex/services/booking/bookingConfirmationActions";
-import type { CompleteClaimedSessionError } from "#convex/services/booking/bookingClaimedSessionWorkflow";
+	loadClaimedSession,
+	runCompletion,
+	type CompleteClaimedSessionError
+} from "#convex/services/booking/bookingClaimedSessionWorkflow";
 import type { CompleteClaimedSessionSuccess } from "#convex/services/booking/bookingConfirmation";
 import type { Id } from "#convex/_generated/dataModel";
 import { cleanupCancelledSessionDriveService } from "#convex/services/drive/cleanupCancelledSessionDrive";
@@ -107,7 +120,7 @@ export const getAvailableRescheduleTimes = action({
 
 export const rescheduleSession = action({
 	args: { token: v.string(), date: v.string(), time: v.string() },
-	handler: async (
+	handler: (
 		ctx,
 		args
 	): Promise<
@@ -115,7 +128,20 @@ export const rescheduleSession = action({
 			{ bookingId: Id<"bookings">; warning?: "RESCHEDULE_EMAIL_SEND_FAILED" },
 			RescheduleSessionError
 		>
-	> => await rescheduleSessionService(ctx, args).match(tupleOk, tupleErr)
+	> =>
+		loadRescheduleTargetAndValidate(ctx, args)
+			.andThen(({ calendarClient, details, sessionStartAt, settings }) =>
+				lockAndReserve(ctx, details, sessionStartAt, settings).map((state) => ({
+					calendarClient,
+					state
+				}))
+			)
+			.andThen(({ calendarClient, state }) => syncCalendar(ctx, args, state, calendarClient))
+			.andThen((state) => persistRescheduleAfterCalendar(ctx, args, state))
+			.andThen(({ session, settings, timingUpdate }) =>
+				finishReschedule(session, args, timingUpdate, settings)
+			)
+			.match(tupleOk, tupleErr)
 });
 
 export const updateSessionFromAdmin = action({
@@ -134,11 +160,20 @@ export const updateSessionFromAdmin = action({
 		...bookingAddonQuantitiesValidator,
 		notes: v.optional(v.string())
 	},
-	handler: async (
-		ctx,
-		args
-	): Promise<Result<AdminSessionUpdateResult, UpdateSessionFromAdminError>> =>
-		await updateSessionFromAdminService(ctx, args).match(tupleOk, tupleErr)
+	handler: (ctx, args): Promise<Result<AdminSessionUpdateResult, UpdateSessionFromAdminError>> =>
+		authorizeAdminSessionEdit(ctx, args.bookingId)
+			.andThen((session) => loadAdminSessionEditDeps(ctx).map((deps) => ({ session, ...deps })))
+			.andThen(({ client, session, settings }) =>
+				persistAdminSessionGoogleUpdate({ args, session, client, ctx, settings }).map((result) => ({
+					result,
+					session,
+					settings
+				}))
+			)
+			.andThen(({ result, session, settings }) =>
+				notifyHostIfNeeded(ctx, args, session, settings, result)
+			)
+			.match(tupleOk, tupleErr)
 });
 
 export const cancelBookingFromAdmin = action({
@@ -155,11 +190,15 @@ export const sendSessionReminderEmail = internalAction({
 
 export const completeClaimedSession = internalAction({
 	args: { bookingId: v.id("bookings") },
-	handler: async (
+	handler: (
 		ctx,
 		args
 	): Promise<Result<CompleteClaimedSessionSuccess, CompleteClaimedSessionError>> =>
-		(await completeClaimedSessionService(ctx, args)).match(tupleOk, tupleErr)
+		loadClaimedSession(ctx, args.bookingId)
+			.andThen((loaded) =>
+				loaded.kind === "done" ? okAsync(loaded.outcome) : runCompletion(ctx, loaded.session)
+			)
+			.match(tupleOk, tupleErr)
 });
 
 export const cleanupCancelledSessionDrive = internalAction({

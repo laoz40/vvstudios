@@ -2,8 +2,12 @@
 
 import type { calendar_v3 } from "googleapis/build/src/apis/calendar/v3";
 import { err, ok, okAsync } from "neverthrow";
-import type { Doc } from "#convex/_generated/dataModel";
+import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { ActionCtx } from "#convex/_generated/server";
+import { loadBookingAvailabilitySettings } from "#convex/lib/booking/bookingConfirmationActionBoundaries";
+import { loadGoogleCalendarClient } from "#convex/lib/googleCalendar/googleCalendarClient";
+import { getSessionFromQuery } from "#convex/lib/sessions/sessionLookup";
+import { requirePermissionActions } from "#convex/services/auth";
 import {
 	clearSessionSlotReservation,
 	reserveSessionSlot,
@@ -15,7 +19,6 @@ import {
 } from "#convex/services/googleCalendar/sessionCalendarTimingSync";
 import {
 	calendarErrorSchema,
-	calendarResultAsync,
 	mapCalendarErrorCode
 } from "#convex/lib/googleCalendar/googleCalendarErrors";
 import { tryPromise } from "#convex/lib/result";
@@ -107,13 +110,37 @@ function insertFailedSessionGoogleEvent({
 	client: AdminSessionGoogleCalendarClient;
 	requestBody: calendar_v3.Schema$Event;
 }) {
-	return calendarResultAsync(
-		client.calendar.events.insert({
-			calendarId: client.calendarId,
-			sendUpdates: "all",
-			requestBody
-		}),
-		"GOOGLE_CALENDAR_CREATE_FAILED"
+	return tryPromise({
+		try: () =>
+			client.calendar.events.insert({
+				calendarId: client.calendarId,
+				sendUpdates: "all",
+				requestBody
+			}),
+		catch: (error) => {
+			const parsedError = calendarErrorSchema.safeParse(error);
+
+			return {
+				reason: parsedError.success
+					? mapCalendarErrorCode(parsedError.data, "GOOGLE_CALENDAR_CREATE_FAILED")
+					: "GOOGLE_CALENDAR_CREATE_FAILED"
+			};
+		}
+	});
+}
+
+export function authorizeAdminSessionEdit(ctx: ActionCtx, bookingId: Id<"bookings">) {
+	return requirePermissionActions(ctx, "edit:sessions").andThen(() =>
+		getSessionFromQuery(ctx, bookingId)
+	);
+}
+
+export function loadAdminSessionEditDeps(ctx: ActionCtx) {
+	return loadBookingAvailabilitySettings(ctx).andThen((settings) =>
+		loadGoogleCalendarClient("GOOGLE_CALENDAR_AVAILABILITY_FAILED").map((client) => ({
+			client,
+			settings
+		}))
 	);
 }
 

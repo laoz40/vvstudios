@@ -1,5 +1,4 @@
 import { z } from "zod";
-import { tryPromise } from "#convex/lib/result";
 
 export type CalendarFallbackCode =
 	| "GOOGLE_CALENDAR_AVAILABILITY_FAILED"
@@ -50,22 +49,4 @@ export function isCalendarEventNotFound(error: CalendarApiError) {
 	const status = error.response?.status;
 
 	return status === 404 || status === 410;
-}
-
-export function calendarResultAsync<T, F extends CalendarFallbackCode>(
-	promise: Promise<T>,
-	fallbackCode: F
-) {
-	return tryPromise({
-		try: () => promise,
-		catch: (error) => {
-			const parsedError = calendarErrorSchema.safeParse(error);
-
-			const reason = parsedError.success
-				? mapCalendarErrorCode(parsedError.data, fallbackCode)
-				: fallbackCode;
-
-			return { reason };
-		}
-	});
 }

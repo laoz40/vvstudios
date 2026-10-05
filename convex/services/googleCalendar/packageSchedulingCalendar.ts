@@ -8,7 +8,11 @@ import {
 	getBusyWindowsInRange
 } from "#convex/lib/googleCalendar/googleCalendarAvailability";
 import { loadGoogleCalendarClient } from "#convex/lib/googleCalendar/googleCalendarClient";
-import { calendarResultAsync } from "#convex/lib/googleCalendar/googleCalendarErrors";
+import {
+	calendarErrorSchema,
+	mapCalendarErrorCode
+} from "#convex/lib/googleCalendar/googleCalendarErrors";
+import { tryPromise } from "#convex/lib/result";
 import type { ValidPackageByTokenError } from "#convex/lib/packages/packageScheduling";
 import { fromConvexTuple } from "#convex/lib/result";
 import { checkGoogleCalendarAvailabilityRateLimit } from "#convex/lib/rateLimits";
@@ -194,16 +198,25 @@ function fetchPackageBusyWindows(context: {
 	};
 	packageFromDb: { expiresAt: number };
 }) {
-	return calendarResultAsync(
-		getBusyWindowsInRange({
-			calendar: context.client.calendar,
-			calendarIds: context.client.calendarIds,
-			timeMax: context.availabilityRange.timeMax,
-			timeMin: context.availabilityRange.timeMin,
-			timeZone: context.client.timeZone
-		}),
-		"GOOGLE_CALENDAR_AVAILABILITY_FAILED"
-	).map((busyWindows) => ({
+	return tryPromise({
+		try: () =>
+			getBusyWindowsInRange({
+				calendar: context.client.calendar,
+				calendarIds: context.client.calendarIds,
+				timeMax: context.availabilityRange.timeMax,
+				timeMin: context.availabilityRange.timeMin,
+				timeZone: context.client.timeZone
+			}),
+		catch: (error) => {
+			const parsedError = calendarErrorSchema.safeParse(error);
+
+			return {
+				reason: parsedError.success
+					? mapCalendarErrorCode(parsedError.data, "GOOGLE_CALENDAR_AVAILABILITY_FAILED")
+					: "GOOGLE_CALENDAR_AVAILABILITY_FAILED"
+			};
+		}
+	}).map((busyWindows) => ({
 		busyWindows,
 		client: context.client,
 		packageFromDb: context.packageFromDb
@@ -241,16 +254,25 @@ function ensurePackageSlotAvailable(args: {
 			? { calendarId: args.session.googleCalendarId, eventId: args.session.googleEventId }
 			: undefined;
 
-		return calendarResultAsync(
-			getBusyWindows({
-				calendar: client.calendar,
-				calendarIds: client.calendarIds,
-				date: args.details.date,
-				ignoredEvent,
-				timeZone: client.timeZone
-			}),
-			"GOOGLE_CALENDAR_SYNC_FAILED"
-		).andThen((busyWindows) => {
+		return tryPromise({
+			try: () =>
+				getBusyWindows({
+					calendar: client.calendar,
+					calendarIds: client.calendarIds,
+					date: args.details.date,
+					ignoredEvent,
+					timeZone: client.timeZone
+				}),
+			catch: (error) => {
+				const parsedError = calendarErrorSchema.safeParse(error);
+
+				return {
+					reason: parsedError.success
+						? mapCalendarErrorCode(parsedError.data, "GOOGLE_CALENDAR_SYNC_FAILED")
+						: "GOOGLE_CALENDAR_SYNC_FAILED"
+				};
+			}
+		}).andThen((busyWindows) => {
 			const isAvailable = isTimeSlotAvailable({
 				busyWindows,
 				date: args.details.date,

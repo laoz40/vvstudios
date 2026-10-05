@@ -12,7 +12,11 @@ import {
 	sendConfirmedBookingInvoice
 } from "#convex/lib/booking/bookingConfirmation";
 import { getGoogleCalendarClient } from "#convex/lib/googleCalendar/googleCalendarClient";
-import { calendarResultAsync } from "#convex/lib/googleCalendar/googleCalendarErrors";
+import {
+	calendarErrorSchema,
+	mapCalendarErrorCode
+} from "#convex/lib/googleCalendar/googleCalendarErrors";
+import { tryPromise } from "#convex/lib/result";
 import { buildSessionCalendarEventPayload } from "#convex/lib/sessions/sessionCalendarEventPayload";
 import { pickBookingAddonQuantities } from "#studio/features/booking-form/lib/booking-form-model";
 import type { SessionAvailabilitySettings } from "#convex/lib/sessions/sessionCalendarTime";
@@ -212,14 +216,23 @@ function insertCalendarEvent(
 		);
 	}
 
-	return calendarResultAsync(
-		calendarClient.calendar.events.insert({
-			calendarId: calendarClient.calendarId,
-			sendUpdates: "all",
-			requestBody: payloadResult.value
-		}),
-		"GOOGLE_CALENDAR_CREATE_FAILED"
-	)
+	return tryPromise({
+		try: () =>
+			calendarClient.calendar.events.insert({
+				calendarId: calendarClient.calendarId,
+				sendUpdates: "all",
+				requestBody: payloadResult.value
+			}),
+		catch: (error) => {
+			const parsedError = calendarErrorSchema.safeParse(error);
+
+			return {
+				reason: parsedError.success
+					? mapCalendarErrorCode(parsedError.data, "GOOGLE_CALENDAR_CREATE_FAILED")
+					: "GOOGLE_CALENDAR_CREATE_FAILED"
+			};
+		}
+	})
 		.map((createdEvent) => ({
 			kind: "created" as const,
 			googleEventId: createdEvent.data.id ?? undefined

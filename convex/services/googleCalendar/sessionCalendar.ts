@@ -16,11 +16,14 @@ import {
 	getGoogleCalendarClient,
 	loadGoogleCalendarClient
 } from "#convex/lib/googleCalendar/googleCalendarClient";
-import { calendarResultAsync } from "#convex/lib/googleCalendar/googleCalendarErrors";
+import {
+	calendarErrorSchema,
+	mapCalendarErrorCode
+} from "#convex/lib/googleCalendar/googleCalendarErrors";
 import { deleteSessionCalendarEvent } from "#convex/services/googleCalendar/sessionCalendarEventWorkflow";
 import { getSessionFromQuery } from "#convex/lib/sessions/sessionLookup";
 import { checkGoogleCalendarAvailabilityRateLimit } from "#convex/lib/rateLimits";
-import { fromConvexTuple } from "#convex/lib/result";
+import { fromConvexTuple, tryPromise } from "#convex/lib/result";
 import {
 	checkSessionMeetsAvailabilitySettings,
 	getAvailableTimeOptions,
@@ -32,27 +35,7 @@ import {
 } from "#convex/lib/sessions/sessionCalendarTime";
 import { getBookingSettingsService } from "#convex/services/booking/bookingSettings";
 import type { RescheduleLinkLookupError } from "#convex/services/sessions/sessionReschedule";
-import { loadBookingAvailabilitySettings } from "#convex/lib/booking/bookingConfirmationActionBoundaries";
-import {
-	finishReschedule,
-	loadRescheduleTargetAndValidate,
-	lockAndReserve,
-	persistRescheduleAfterCalendar,
-	syncCalendar,
-	type RescheduleSessionArgs,
-	type RescheduleSessionError
-} from "#convex/services/googleCalendar/sessionRescheduleWorkflow";
-import {
-	persistAdminSessionGoogleUpdate,
-	notifyHostIfNeeded
-} from "#convex/services/googleCalendar/sessionAdminUpdateWorkflow";
-import type {
-	AdminSessionUpdateArgs,
-	AdminSessionUpdateError,
-	AdminSessionUpdateResult
-} from "#convex/lib/sessions/sessionAdminEdit";
-
-export type { RescheduleSessionArgs };
+import type { AdminSessionUpdateError } from "#convex/lib/sessions/sessionAdminEdit";
 
 type IgnoredBusyEvent = { calendarId?: string; eventId?: string };
 
@@ -85,17 +68,26 @@ function getBookableRangeBusyWindowsFromGoogleCalendar({
 
 			return getDateAvailabilityRange(startDate, endDate, timeZone).asyncAndThen(
 				({ timeMin, timeMax }) =>
-					calendarResultAsync(
-						getBusyWindowsInRange({
-							calendar,
-							calendarIds,
-							ignoredEvent,
-							timeMax,
-							timeMin,
-							timeZone
-						}),
-						"GOOGLE_CALENDAR_AVAILABILITY_FAILED"
-					).andThen((busyWindows) =>
+					tryPromise({
+						try: () =>
+							getBusyWindowsInRange({
+								calendar,
+								calendarIds,
+								ignoredEvent,
+								timeMax,
+								timeMin,
+								timeZone
+							}),
+						catch: (error) => {
+							const parsedError = calendarErrorSchema.safeParse(error);
+
+							return {
+								reason: parsedError.success
+									? mapCalendarErrorCode(parsedError.data, "GOOGLE_CALENDAR_AVAILABILITY_FAILED")
+									: "GOOGLE_CALENDAR_AVAILABILITY_FAILED"
+							};
+						}
+					}).andThen((busyWindows) =>
 						groupBusyWindowsByDay(busyWindows, timeZone).map((busyDays) => ({
 							busyWindowsByMonth: groupBusyDaysByMonth(busyDays),
 							timeZone
@@ -119,10 +111,18 @@ export function getAvailableBookingTimesService(
 	return getBookingSettingsService(ctx).andThen((settings) =>
 		loadGoogleCalendarClient("GOOGLE_CALENDAR_AVAILABILITY_FAILED").andThen(
 			({ calendar, calendarIds, timeZone }) =>
-				calendarResultAsync(
-					getBusyWindows({ calendar, calendarIds, date: args.date, timeZone }),
-					"GOOGLE_CALENDAR_AVAILABILITY_FAILED"
-				).map((busyWindows) => ({
+				tryPromise({
+					try: () => getBusyWindows({ calendar, calendarIds, date: args.date, timeZone }),
+					catch: (error) => {
+						const parsedError = calendarErrorSchema.safeParse(error);
+
+						return {
+							reason: parsedError.success
+								? mapCalendarErrorCode(parsedError.data, "GOOGLE_CALENDAR_AVAILABILITY_FAILED")
+								: "GOOGLE_CALENDAR_AVAILABILITY_FAILED"
+						};
+					}
+				}).map((busyWindows) => ({
 					timeZone,
 					times: getAvailableTimeOptions({
 						busyWindows,
@@ -164,23 +164,40 @@ export function getAvailableRescheduleTimesService(
 	return loadValidRescheduleLinkAndSession(ctx, { now: Date.now(), token: args.token })
 		.andThen((details) => getBookingSettingsService(ctx).map((settings) => ({ details, settings })))
 		.andThen(({ details, settings }) =>
-			calendarResultAsync(
-				Promise.resolve().then(() => getGoogleCalendarClient()),
-				"GOOGLE_CALENDAR_AVAILABILITY_FAILED"
-			).andThen(({ calendar, calendarIds, timeZone }) =>
-				calendarResultAsync(
-					getBusyWindows({
-						calendar,
-						calendarIds,
-						date: args.date,
-						ignoredEvent: {
-							calendarId: details.session.googleCalendarId,
-							eventId: details.session.googleEventId
-						},
-						timeZone
-					}),
-					"GOOGLE_CALENDAR_AVAILABILITY_FAILED"
-				).map((busyWindows) => {
+			tryPromise({
+				try: () => Promise.resolve().then(() => getGoogleCalendarClient()),
+				catch: (error) => {
+					const parsedError = calendarErrorSchema.safeParse(error);
+
+					return {
+						reason: parsedError.success
+							? mapCalendarErrorCode(parsedError.data, "GOOGLE_CALENDAR_AVAILABILITY_FAILED")
+							: "GOOGLE_CALENDAR_AVAILABILITY_FAILED"
+					};
+				}
+			}).andThen(({ calendar, calendarIds, timeZone }) =>
+				tryPromise({
+					try: () =>
+						getBusyWindows({
+							calendar,
+							calendarIds,
+							date: args.date,
+							ignoredEvent: {
+								calendarId: details.session.googleCalendarId,
+								eventId: details.session.googleEventId
+							},
+							timeZone
+						}),
+					catch: (error) => {
+						const parsedError = calendarErrorSchema.safeParse(error);
+
+						return {
+							reason: parsedError.success
+								? mapCalendarErrorCode(parsedError.data, "GOOGLE_CALENDAR_AVAILABILITY_FAILED")
+								: "GOOGLE_CALENDAR_AVAILABILITY_FAILED"
+						};
+					}
+				}).map((busyWindows) => {
 					const calendarAvailableTimes = getAvailableTimeOptions({
 						busyWindows,
 						date: args.date,
@@ -220,60 +237,11 @@ export type CancelBookingFromAdminError = {
 		| "GOOGLE_CALENDAR_RATE_LIMITED";
 };
 
-export function rescheduleSessionService(
-	ctx: ActionCtx,
-	args: RescheduleSessionArgs
-): ResultAsync<
-	{ bookingId: Id<"bookings">; warning?: "RESCHEDULE_EMAIL_SEND_FAILED" },
-	RescheduleSessionError
-> {
-	return loadRescheduleTargetAndValidate(ctx, args)
-		.andThen(({ calendarClient, details, sessionStartAt, settings }) =>
-			lockAndReserve(ctx, details, sessionStartAt, settings).map((state) => ({
-				calendarClient,
-				state
-			}))
-		)
-		.andThen(({ calendarClient, state }) => syncCalendar(ctx, args, state, calendarClient))
-		.andThen((state) => persistRescheduleAfterCalendar(ctx, args, state))
-		.andThen(({ session, settings, timingUpdate }) =>
-			finishReschedule(session, args, timingUpdate, settings)
-		);
-}
-
 export type UpdateSessionFromAdminError =
 	| AdminSessionUpdateError
 	| { reason: "NOT_AUTHENTICATED" }
 	| { reason: "NOT_AUTHORIZED" }
 	| { reason: "BOOKING_NOT_FOUND" };
-
-function authorizeAdminSessionEdit(ctx: ActionCtx, bookingId: Id<"bookings">) {
-	return requirePermissionActions(ctx, "edit:sessions").andThen(() =>
-		getSessionFromQuery(ctx, bookingId)
-	);
-}
-
-function loadAdminSessionEditDeps(ctx: ActionCtx) {
-	return loadBookingAvailabilitySettings(ctx).andThen((settings) =>
-		loadGoogleCalendarClient("GOOGLE_CALENDAR_AVAILABILITY_FAILED").map((client) => ({
-			client,
-			settings
-		}))
-	);
-}
-
-export function updateSessionFromAdminService(
-	ctx: ActionCtx,
-	args: AdminSessionUpdateArgs
-): ResultAsync<AdminSessionUpdateResult, UpdateSessionFromAdminError> {
-	return authorizeAdminSessionEdit(ctx, args.bookingId)
-		.andThen((session) => loadAdminSessionEditDeps(ctx).map((deps) => ({ session, ...deps })))
-		.andThen(({ client, session, settings }) =>
-			persistAdminSessionGoogleUpdate({ args, session, client, ctx, settings }).andThen((result) =>
-				notifyHostIfNeeded(ctx, args, session, settings, result)
-			)
-		);
-}
 
 export function cancelBookingFromAdminService(
 	ctx: ActionCtx,

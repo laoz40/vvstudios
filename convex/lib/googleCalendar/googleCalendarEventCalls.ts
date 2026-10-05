@@ -2,7 +2,6 @@ import type { calendar_v3 } from "googleapis/build/src/apis/calendar/v3";
 import type { Id } from "#convex/_generated/dataModel";
 import {
 	calendarErrorSchema,
-	calendarResultAsync,
 	isCalendarEventNotFound,
 	mapCalendarErrorCode
 } from "#convex/lib/googleCalendar/googleCalendarErrors";
@@ -110,17 +109,26 @@ export function listGoogleCalendarEventsInWindow({
 	timeMax: string;
 	timeMin: string;
 }) {
-	return calendarResultAsync(
-		calendar.events.list({
-			calendarId,
-			singleEvents: true,
-			showDeleted: false,
-			showHiddenInvitations: true,
-			timeMax,
-			timeMin
-		}),
-		"GOOGLE_CALENDAR_DELETE_FAILED"
-	).map((response) => response.data.items ?? []);
+	return tryPromise({
+		try: () =>
+			calendar.events.list({
+				calendarId,
+				singleEvents: true,
+				showDeleted: false,
+				showHiddenInvitations: true,
+				timeMax,
+				timeMin
+			}),
+		catch: (error) => {
+			const parsedError = calendarErrorSchema.safeParse(error);
+
+			return {
+				reason: parsedError.success
+					? mapCalendarErrorCode(parsedError.data, "GOOGLE_CALENDAR_DELETE_FAILED")
+					: "GOOGLE_CALENDAR_DELETE_FAILED"
+			};
+		}
+	}).map((response) => response.data.items ?? []);
 }
 
 export type GoogleCalendarEventMissing = { kind: "missing" };
@@ -192,8 +200,16 @@ export function insertGoogleCalendarEvent({
 	calendarId: string;
 	requestBody: calendar_v3.Schema$Event;
 }) {
-	return calendarResultAsync(
-		calendar.events.insert({ calendarId, sendUpdates: "all", requestBody }),
-		"GOOGLE_CALENDAR_CREATE_FAILED"
-	);
+	return tryPromise({
+		try: () => calendar.events.insert({ calendarId, sendUpdates: "all", requestBody }),
+		catch: (error) => {
+			const parsedError = calendarErrorSchema.safeParse(error);
+
+			return {
+				reason: parsedError.success
+					? mapCalendarErrorCode(parsedError.data, "GOOGLE_CALENDAR_CREATE_FAILED")
+					: "GOOGLE_CALENDAR_CREATE_FAILED"
+			};
+		}
+	});
 }
