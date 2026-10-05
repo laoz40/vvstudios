@@ -1,8 +1,8 @@
-import { ok, ResultAsync, type ResultAsync as ResultAsyncType } from "neverthrow";
+import { ok, type ResultAsync as ResultAsyncType } from "neverthrow";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
 import {
-	patchPackageSessionBookingsContactSearch,
+	patchPackageSessionBookingsContactSearchStep,
 	searchBlobPatchForPackage
 } from "#convex/lib/adminSearch/adminSearchBlob";
 import { checkBookingSubmitRateLimit } from "#convex/lib/rateLimits";
@@ -239,9 +239,7 @@ function syncInstagramContactSearch(
 	packageId: Id<"packages">,
 	contactFields: PackageContactSearchFields
 ) {
-	return ResultAsync.fromSafePromise(
-		patchPackageSessionBookingsContactSearch(ctx, packageId, contactFields)
-	).map(() => null);
+	return patchPackageSessionBookingsContactSearchStep(ctx, packageId, contactFields);
 }
 
 type PackageContactSearchFields = {

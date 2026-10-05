@@ -1,5 +1,5 @@
 import { ResultAsync } from "neverthrow";
-import { okOrThrow } from "#convex/lib/result";
+import { externalPromise, okOrThrow } from "#convex/lib/result";
 import type { Doc } from "#convex/_generated/dataModel";
 import type { QueryCtx } from "#convex/_generated/server";
 import { exhaustiveCheck } from "#/lib/result";
@@ -397,18 +397,12 @@ export function listAdminPackages(ctx: QueryCtx, args: ListAdminPackagesArgs) {
 	const view = args.view ?? "inbox";
 	const includeStale = args.includeStale ?? false;
 
-	return ResultAsync.fromSafePromise(fetchAdminPackagesListPage(ctx, args)).andThen(
-		(packagesPage) => {
-			const visiblePackages = applyAdminPackageListVisibility(
-				packagesPage.page,
-				view,
-				includeStale
-			);
+	return externalPromise(fetchAdminPackagesListPage(ctx, args)).andThen((packagesPage) => {
+		const visiblePackages = applyAdminPackageListVisibility(packagesPage.page, view, includeStale);
 
-			return loadAdminPackageListRows(ctx, visiblePackages).map((page) => ({
-				...packagesPage,
-				page
-			}));
-		}
-	);
+		return loadAdminPackageListRows(ctx, visiblePackages).map((page) => ({
+			...packagesPage,
+			page
+		}));
+	});
 }

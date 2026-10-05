@@ -13,11 +13,11 @@ import {
 	validatePackageUpdate
 } from "#convex/lib/packages/packageUpdates";
 import {
-	patchPackageSessionBookingsContactSearch,
+	patchPackageSessionBookingsContactSearchStep,
 	searchBlobPatchForPackage,
 	type PackageContactSearchFields
 } from "#convex/lib/adminSearch/adminSearchBlob";
-import { okAsync, ResultAsync } from "neverthrow";
+import { okAsync } from "neverthrow";
 
 type ArchivePackageArgs = { packageId: Id<"packages">; archived: boolean };
 
@@ -103,9 +103,7 @@ function syncContactSearchAfterAdminPatch(
 		return okAsync(null);
 	}
 
-	return ResultAsync.fromSafePromise(
-		patchPackageSessionBookingsContactSearch(ctx, args.packageId, contactFields)
-	).map(() => null);
+	return patchPackageSessionBookingsContactSearchStep(ctx, args.packageId, contactFields);
 }
 
 function loadPackageAfterArchivePermission(ctx: MutationCtx, packageId: Id<"packages">) {

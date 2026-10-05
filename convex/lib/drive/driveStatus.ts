@@ -1,6 +1,7 @@
 import type { Doc } from "#convex/_generated/dataModel";
 import { exhaustiveCheck } from "#/lib/result";
 import type { QueryCtx } from "#convex/_generated/server";
+import { externalPromise } from "#convex/lib/result";
 import { bookingRequiresClientAssetsEmail } from "#convex/lib/booking/bookingAddonQuantities";
 import { isClientFolderSharingDismissed } from "#convex/lib/drive/driveClientAccess";
 import { resolveSessionFolderDisplayName } from "#convex/lib/drive/sessionFolders/resolveFolderNames";
@@ -471,6 +472,10 @@ export async function getDriveWorkflowFailureForBooking(ctx: QueryCtx, booking: 
 		packageRecord,
 		sharedPackageFolder
 	});
+}
+
+export function loadEditorSessionDriveFolders(ctx: QueryCtx, booking: Doc<"bookings">) {
+	return externalPromise(getEditorSessionDriveFolders(ctx, booking));
 }
 
 export async function getEditorSessionDriveFolders(ctx: QueryCtx, booking: Doc<"bookings">) {

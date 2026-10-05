@@ -1,20 +1,19 @@
 import { err, type ResultAsync as NeverthrowResultAsync } from "neverthrow";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
-import { tryPromise } from "#convex/lib/result";
 import { getBookingRow } from "#convex/lib/sessions/sessionLookup";
 import {
 	createActiveRescheduleLinkForSession,
 	getRescheduleLinkRow,
 	hashRescheduleTokenAsync,
 	lookupRescheduleLinkByTokenHash,
-	markExistingActiveSessionRescheduleLinksUsed,
 	patchRescheduleLinkRow,
 	rescheduleUrlFromLinkRow,
 	validateActiveRescheduleLink,
 	validateAdminSessionForReschedule,
 	validatePublicFailedSessionForReschedule,
 	validateRescheduleLinkSession,
+	writeRescheduleLinksUsedForBooking,
 	type RescheduleLinkLookupError,
 	type ValidRescheduleLinkAndSession
 } from "#convex/lib/sessions/sessionRescheduleLinks";
@@ -56,15 +55,7 @@ export function markActiveRescheduleLinksUsedForBooking(
 	args: { bookingId: Id<"bookings">; now: number }
 ) {
 	return getSessionFromDb(ctx, args.bookingId).andThen(() =>
-		tryPromise({
-			try: () =>
-				markExistingActiveSessionRescheduleLinksUsed({
-					ctx,
-					bookingId: args.bookingId,
-					now: args.now
-				}).then(() => null),
-			catch: () => ({ reason: "RESCHEDULE_LINK_UPDATE_FAILED" as const })
-		})
+		writeRescheduleLinksUsedForBooking(ctx, args)
 	);
 }
 

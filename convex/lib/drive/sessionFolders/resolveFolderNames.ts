@@ -1,5 +1,6 @@
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { QueryCtx } from "#convex/_generated/server";
+import { externalPromise } from "#convex/lib/result";
 import { loadPackageBookings } from "#convex/lib/drive/driveLookup";
 import {
 	formatDriveNumberedSessionFolderName,
@@ -107,6 +108,14 @@ export async function resolveSessionFolderDisplayName(
 	}
 
 	return formatDriveNumberedSessionFolderName(sessionFolderNumber, booking.sessionStartAt);
+}
+
+export function loadSessionFolderDisplayName(
+	ctx: DriveFolderNumberCtx,
+	booking: Doc<"bookings">,
+	driveSession: Doc<"driveSessions"> | null
+) {
+	return externalPromise(resolveSessionFolderDisplayName(ctx, booking, driveSession));
 }
 
 async function resolveBookingDriveClientId(ctx: DriveFolderNumberCtx, booking: Doc<"bookings">) {

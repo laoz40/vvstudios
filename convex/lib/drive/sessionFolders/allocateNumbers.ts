@@ -6,7 +6,7 @@ import {
 	computeClientSessionFolderNumber,
 	computePackageSessionFolderNumber
 } from "#convex/lib/drive/sessionFolders/resolveFolderNames";
-import { okOrThrow } from "#convex/lib/result";
+import { externalPromise, okOrThrow } from "#convex/lib/result";
 
 export type ClientSessionNumberError = {
 	reason: "BOOKING_NOT_FOUND" | "BOOKING_IS_PACKAGE" | "DRIVE_RECORD_NOT_FOUND";
@@ -46,7 +46,7 @@ function loadNextClientSessionNumber(
 	ctx: MutationCtx,
 	standaloneBooking: StandaloneBooking
 ): ResultAsync<number, ClientSessionNumberError> {
-	return ResultAsync.fromSafePromise(
+	return externalPromise(
 		computeClientSessionFolderNumber(
 			ctx,
 			standaloneBooking.booking,
@@ -132,7 +132,7 @@ function loadNextPackageSessionNumber(
 	ctx: MutationCtx,
 	packageBooking: PackageBooking
 ): ResultAsync<number, PackageSessionNumberError> {
-	return ResultAsync.fromSafePromise(
+	return externalPromise(
 		computePackageSessionFolderNumber(ctx, packageBooking.booking, packageBooking.packageId)
 	).andThen((number) =>
 		number === undefined ? errAsync({ reason: "BOOKING_NOT_FOUND" as const }) : okAsync(number)

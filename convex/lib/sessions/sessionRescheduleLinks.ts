@@ -1,10 +1,10 @@
-import { err, ok, type Result, ResultAsync } from "neverthrow";
+import { err, ok, type Result, type ResultAsync } from "neverthrow";
 import { internal } from "#convex/_generated/api";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { ActionCtx, MutationCtx, QueryCtx } from "#convex/_generated/server";
 import { env } from "#convex/env";
 import { bytesToHex } from "#convex/lib/crypto/bytesToHex";
-import { fromConvexTuple, okOrThrow } from "#convex/lib/result";
+import { externalPromise, fromConvexTuple, okOrThrow } from "#convex/lib/result";
 
 const rescheduleLinkInvalidationBatchSize = 100;
 
@@ -54,7 +54,7 @@ export function generateRescheduleToken() {
 export function hashRescheduleTokenAsync(token: string): ResultAsync<string, never> {
 	const encodedToken = new TextEncoder().encode(token);
 
-	return ResultAsync.fromSafePromise(
+	return externalPromise(
 		crypto.subtle
 			.digest("SHA-256", encodedToken)
 			.then((hashBuffer) => bytesToHex(new Uint8Array(hashBuffer)))
@@ -201,11 +201,7 @@ export function createActiveRescheduleLinkForSession({
 	expiresAt: number;
 	now: number;
 }): ResultAsync<{ linkId: Id<"bookingRescheduleLinks">; token: string }, never> {
-	return ResultAsync.fromSafePromise(
-		markExistingActiveSessionRescheduleLinksUsed({ ctx, bookingId: session._id, now }).then(
-			() => null
-		)
-	).andThen(() => {
+	return writeRescheduleLinksUsedForBooking(ctx, { bookingId: session._id, now }).andThen(() => {
 		const token = generateRescheduleToken();
 
 		return hashRescheduleTokenAsync(token).andThen((tokenHash) =>
@@ -253,6 +249,19 @@ export async function markExistingActiveSessionRescheduleLinksUsed(args: {
 	};
 
 	await invalidateNextBatch();
+}
+
+export function writeRescheduleLinksUsedForBooking(
+	ctx: MutationCtx,
+	args: { bookingId: Id<"bookings">; now: number }
+) {
+	return externalPromise(
+		markExistingActiveSessionRescheduleLinksUsed({
+			ctx,
+			bookingId: args.bookingId,
+			now: args.now
+		}).then(() => null)
+	);
 }
 
 export function lookupRescheduleLinkByTokenHash(ctx: QueryCtx, tokenHash: string) {

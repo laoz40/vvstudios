@@ -1,11 +1,11 @@
 import type { UserIdentity } from "convex/server";
-import { err, ok, okAsync, ResultAsync } from "neverthrow";
+import { err, ok, okAsync } from "neverthrow";
 import { z } from "zod";
 import type { Doc } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
 import {
 	editorProfileDisplayName,
-	patchBookingsAssignedEditorDisplayName
+	writeBookingsAssignedEditorDisplayName
 } from "#convex/lib/editor/editorAssignments";
 import { okOrThrow } from "#convex/lib/result";
 
@@ -82,12 +82,10 @@ export function saveEditorDetails(
 					return okAsync(null);
 				}
 
-				return ResultAsync.fromSafePromise(
-					patchBookingsAssignedEditorDisplayName(
-						ctx,
-						editor.tokenIdentifier,
-						nextAssignedEditorDisplayName
-					).then(() => null)
+				return writeBookingsAssignedEditorDisplayName(
+					ctx,
+					editor.tokenIdentifier,
+					nextAssignedEditorDisplayName
 				);
 			}
 		);

@@ -2,9 +2,8 @@ import { okAsync, type ResultAsync } from "neverthrow";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { MutationCtx } from "#convex/_generated/server";
 import { isBookingArchived, setBookingArchived } from "#convex/lib/archiveState";
-import { tryPromise } from "#convex/lib/result";
 import {
-	archivePastDeadCheckoutSessionsBatch,
+	archivePastDeadCheckoutSessionsBatchStep,
 	isSessionEligibleForAutoArchive,
 	mergeDeadCheckoutBookingUpdates,
 	patchBookingFields
@@ -98,8 +97,5 @@ export function runArchivePastDeadCheckoutBatch(
 	cursor: string | null,
 	numItems?: number
 ) {
-	return tryPromise({
-		try: () => archivePastDeadCheckoutSessionsBatch(ctx, cursor, numItems),
-		catch: () => ({ reason: "SESSION_ARCHIVE_FAILED" as const })
-	});
+	return archivePastDeadCheckoutSessionsBatchStep(ctx, cursor, numItems);
 }

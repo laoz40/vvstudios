@@ -7,7 +7,7 @@ import {
 	isBookingArchived,
 	setBookingArchived
 } from "#convex/lib/archiveState";
-import { okOrThrow } from "#convex/lib/result";
+import { externalPromise, okOrThrow } from "#convex/lib/result";
 import type { StripeInvoiceAmountSummary } from "#convex/lib/stripe/stripeInvoices";
 
 const DEAD_CHECKOUT_STATUSES = ["cancelled", "expired", "abandoned"] as const;
@@ -77,6 +77,14 @@ export async function archivePastDeadCheckoutSessionsBatch(
 		newlyArchived,
 		scanned: page.page.length
 	};
+}
+
+export function archivePastDeadCheckoutSessionsBatchStep(
+	ctx: MutationCtx,
+	cursor: string | null,
+	numItems?: number
+) {
+	return externalPromise(archivePastDeadCheckoutSessionsBatch(ctx, cursor, numItems));
 }
 
 export function mergeDeadCheckoutBookingUpdates(

@@ -2,7 +2,7 @@ import { okAsync } from "neverthrow";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
 import { normalizeAbn, normalizePhone } from "#convex/lib/contactNormalization";
-import { okOrThrow } from "#convex/lib/result";
+import { externalPromise, okOrThrow } from "#convex/lib/result";
 
 type BookingSearchBlobFields = Pick<
 	Doc<"bookings">,
@@ -132,6 +132,16 @@ export type PackageContactSearchFields = Pick<
 	Doc<"packages">,
 	"name" | "phone" | "accountName" | "abn" | "email" | "instagramHandle"
 >;
+
+export function patchPackageSessionBookingsContactSearchStep(
+	ctx: MutationCtx,
+	packageId: Id<"packages">,
+	contactFields: PackageContactSearchFields
+) {
+	return externalPromise(
+		patchPackageSessionBookingsContactSearch(ctx, packageId, contactFields).then(() => null)
+	);
+}
 
 export async function patchPackageSessionBookingsContactSearch(
 	ctx: MutationCtx,

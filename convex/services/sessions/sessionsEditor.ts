@@ -12,7 +12,10 @@ import {
 	isEditorVisibleSession,
 	paginateBookingsForAssigneeEditor
 } from "#convex/lib/editor/editorSessions";
-import { getEditorSessionDriveFolders } from "#convex/lib/drive/driveStatus";
+import {
+	getEditorSessionDriveFolders,
+	loadEditorSessionDriveFolders
+} from "#convex/lib/drive/driveStatus";
 import { requirePermission } from "#convex/services/auth";
 
 function loadActiveEditorProfilesStep(ctx: QueryCtx) {
@@ -51,9 +54,8 @@ function projectSessionWithDriveFoldersStep(
 }
 
 function buildEditorSessionRowStep(ctx: QueryCtx, session: Doc<"bookings">) {
-	return ResultAsync.fromPromise(getEditorSessionDriveFolders(ctx, session), () => null).map(
-		(driveFolders: Awaited<ReturnType<typeof getEditorSessionDriveFolders>>) =>
-			projectSessionWithDriveFoldersStep(session, driveFolders)
+	return loadEditorSessionDriveFolders(ctx, session).map((driveFolders) =>
+		projectSessionWithDriveFoldersStep(session, driveFolders)
 	);
 }
 
