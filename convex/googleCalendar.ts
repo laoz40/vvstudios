@@ -59,7 +59,10 @@ import {
 } from "#convex/lib/drive/driveClientPermissions";
 import { syncBookingDriveClientIdForRetry } from "#convex/services/drive/driveClientPermissions";
 import { requirePermissionActions } from "#convex/services/auth";
-import { sendSessionReminderEmailService } from "#convex/services/booking/bookingConfirmationActions";
+import {
+	claimSessionReminderSend,
+	sendSessionReminderWhenClaimed
+} from "#convex/services/booking/sessionReminderEmailWorkflow";
 import { loadBookingAvailabilitySettings } from "#convex/lib/booking/bookingConfirmationActionBoundaries";
 import { getGoogleCalendarClient } from "#convex/lib/googleCalendar/googleCalendarClient";
 import {
@@ -246,8 +249,13 @@ export const cancelBookingFromAdmin = action({
 
 export const sendSessionReminderEmail = internalAction({
 	args: { bookingId: v.id("bookings") },
-	handler: async (ctx, args) =>
-		(await sendSessionReminderEmailService(ctx, args)).match(tupleOk, tupleErr)
+	handler: async (ctx, args) => {
+		const now = Date.now();
+
+		return await claimSessionReminderSend(ctx, args.bookingId, now)
+			.andThen((claim) => sendSessionReminderWhenClaimed(ctx, args.bookingId, claim))
+			.match(tupleOk, tupleErr);
+	}
 });
 
 export const completeClaimedSession = internalAction({

@@ -52,10 +52,6 @@ type ListEditorSessionsArgs = PaginationArgs;
 
 type GetPublicRescheduleCompleteSessionArgs = { bookingId: string };
 
-type SaveSessionInstagramHandleArgs = { stripeSessionId: string; instagramHandle: string };
-
-type ArchiveSessionArgs = { bookingId: Id<"bookings">; archived: boolean };
-
 type ArchivePastDeadCheckoutSessionsArgs = { cursor: string | null; numItems?: number };
 
 type UpdateSessionEditStatusArgs = {
@@ -78,12 +74,6 @@ type UpdateSessionAdminNotesArgs = { bookingId: Id<"bookings">; adminNotes: stri
 type MarkSessionCalendarEventDeletedArgs = { bookingId: Id<"bookings"> };
 
 type GetDriveStatusArgs = { bookingId: Id<"bookings"> };
-
-type AssignSessionEditorArgs = {
-	bookingId: Id<"bookings">;
-	editorTokenIdentifier: string | null;
-	adminNotes: string;
-};
 
 export function getDriveStatusService(ctx: QueryCtx, args: GetDriveStatusArgs) {
 	return requirePermission(ctx, "view:sensitive-booking-data").andThen(() =>
@@ -177,46 +167,27 @@ export function getPublicRescheduleCompleteSessionService(
 	});
 }
 
-export function saveSessionInstagramHandleService(
+export function requireConfirmedBookingSession(session: Doc<"bookings">) {
+	if (session.status !== "confirmed" && session.status !== "email_failed") {
+		return err({ reason: "BOOKING_NOT_CONFIRMED" as const });
+	}
+
+	return ok(session);
+}
+
+export function writeSessionInstagramHandle(
 	ctx: MutationCtx,
-	args: SaveSessionInstagramHandleArgs
+	session: Doc<"bookings">,
+	instagramHandle: string
 ) {
-	return getSessionByStripeSessionId(ctx, args.stripeSessionId)
-		.andThen((session) => {
-			if (session.status !== "confirmed" && session.status !== "email_failed") {
-				return err({ reason: "BOOKING_NOT_CONFIRMED" as const });
-			}
-
-			return ok(session);
-		})
-		.andThen((session) =>
-			searchBlobPatchForBookingAsync(ctx, session, {
-				instagramHandle: args.instagramHandle
-			}).andThen((searchBlobPatch) =>
-				okOrThrow(
-					ctx.db
-						.patch("bookings", session._id, {
-							instagramHandle: args.instagramHandle,
-							...searchBlobPatch
-						})
-						.then(() => null)
-				)
+	return searchBlobPatchForBookingAsync(ctx, session, { instagramHandle }).andThen(
+		(searchBlobPatch) =>
+			okOrThrow(
+				ctx.db
+					.patch("bookings", session._id, { instagramHandle, ...searchBlobPatch })
+					.then(() => null)
 			)
-		);
-}
-
-export function assignSessionEditorService(ctx: MutationCtx, args: AssignSessionEditorArgs) {
-	return requirePermission(ctx, "assign:session-editor")
-		.andThen(() => getSessionFromDb(ctx, args.bookingId))
-		.andThen((session) =>
-			updateSessionEditorAssignment(ctx, session, args.editorTokenIdentifier, args.adminNotes)
-		);
-}
-
-export function archiveSessionService(ctx: MutationCtx, args: ArchiveSessionArgs) {
-	return requirePermission(ctx, "archive:sessions")
-		.andThen(() => getSessionFromDb(ctx, args.bookingId))
-		.andThen(() => setBookingArchived(ctx, args.bookingId, args.archived));
+	);
 }
 
 export function archivePastDeadCheckoutSessionsService(

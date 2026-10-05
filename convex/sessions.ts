@@ -7,10 +7,12 @@ import {
 } from "#convex/lib/editor/editorSessions";
 import { loadSessionForDeliverables } from "#convex/services/editor/loadSessionForDeliverables";
 import { internalMutation, internalQuery, mutation, query } from "#convex/_generated/server";
+import { setBookingArchived } from "#convex/lib/archiveState";
+import { updateSessionEditorAssignment } from "#convex/lib/editor/editorAssignments";
+import { getSessionByStripeSessionId, getSessionFromDb } from "#convex/lib/sessions/sessionLookup";
+import { requirePermission } from "#convex/services/auth";
 import {
 	archivePastDeadCheckoutSessionsService,
-	archiveSessionService,
-	assignSessionEditorService,
 	buildPublicSessionStatusResponse,
 	getDriveStatusService,
 	getPublicRescheduleCompleteSessionService,
@@ -18,10 +20,11 @@ import {
 	listEditorSessionsService,
 	listSessionsService,
 	markSessionCalendarEventDeletedService,
-	saveSessionInstagramHandleService,
+	requireConfirmedBookingSession,
 	updateSessionAdminNotesService,
 	updateSessionNotesService,
-	updateSessionEditStatusService
+	updateSessionEditStatusService,
+	writeSessionInstagramHandle
 } from "#convex/services/sessions/sessions";
 
 export const detectDeliverablesCustomerType = internalQuery({
@@ -116,7 +119,11 @@ export const getSessionStatusByStripeSessionId = query({
 
 export const saveSessionInstagramHandle = mutation({
 	args: { stripeSessionId: v.string(), instagramHandle: v.string() },
-	handler: (ctx, args) => saveSessionInstagramHandleService(ctx, args).match(tupleOk, tupleErr)
+	handler: (ctx, args) =>
+		getSessionByStripeSessionId(ctx, args.stripeSessionId)
+			.andThen(requireConfirmedBookingSession)
+			.andThen((session) => writeSessionInstagramHandle(ctx, session, args.instagramHandle))
+			.match(tupleOk, tupleErr)
 });
 
 export const assignSessionEditor = mutation({
@@ -125,12 +132,22 @@ export const assignSessionEditor = mutation({
 		editorTokenIdentifier: v.union(v.string(), v.null()),
 		adminNotes: v.string()
 	},
-	handler: (ctx, args) => assignSessionEditorService(ctx, args).match(tupleOk, tupleErr)
+	handler: (ctx, args) =>
+		requirePermission(ctx, "assign:session-editor")
+			.andThen(() => getSessionFromDb(ctx, args.bookingId))
+			.andThen((session) =>
+				updateSessionEditorAssignment(ctx, session, args.editorTokenIdentifier, args.adminNotes)
+			)
+			.match(tupleOk, tupleErr)
 });
 
 export const archiveSession = mutation({
 	args: { bookingId: v.id("bookings"), archived: v.boolean() },
-	handler: (ctx, args) => archiveSessionService(ctx, args).match(tupleOk, tupleErr)
+	handler: (ctx, args) =>
+		requirePermission(ctx, "archive:sessions")
+			.andThen(() => getSessionFromDb(ctx, args.bookingId))
+			.andThen(() => setBookingArchived(ctx, args.bookingId, args.archived))
+			.match(tupleOk, tupleErr)
 });
 
 export const archivePastDeadCheckoutSessions = mutation({

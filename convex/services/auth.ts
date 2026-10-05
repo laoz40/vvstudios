@@ -6,7 +6,6 @@ import type { ActionCtx, MutationCtx, QueryCtx } from "#convex/_generated/server
 import {
 	getEditorByToken,
 	isAdminIdentity,
-	requireAdminIdentity,
 	requireEnrollableEditorProfile,
 	requireUser,
 	saveEditorDetails
@@ -81,30 +80,22 @@ export function requirePermissionActions(ctx: ActionCtx, permission: Permission)
 	);
 }
 
-export function getCurrentUserAccessService(ctx: QueryCtx) {
-	return requireUser(ctx).andThen((identity) =>
-		getUserRoleAndPermissions(identity, (token) => getEditorByToken(ctx, token))
+export function loadUserAccessForIdentity(ctx: QueryCtx, identity: UserIdentity) {
+	return getUserRoleAndPermissions(identity, (token) => getEditorByToken(ctx, token));
+}
+
+export function saveSignedInEditorProfile(ctx: MutationCtx, identity: UserIdentity) {
+	if (isAdminIdentity(identity)) {
+		return ok(null);
+	}
+
+	return getEditorByToken(ctx, identity.tokenIdentifier).andThen((editor) =>
+		saveEditorDetails(ctx, identity, editor)
 	);
 }
 
-export function createEditorUserService(ctx: MutationCtx) {
-	return requireUser(ctx).andThen((identity) => {
-		if (isAdminIdentity(identity)) {
-			return ok(null);
-		}
-
-		return getEditorByToken(ctx, identity.tokenIdentifier).andThen((editor) =>
-			saveEditorDetails(ctx, identity, editor)
-		);
-	});
-}
-
-export function enrollAdminAsEditorService(ctx: MutationCtx) {
-	return requireUser(ctx)
-		.andThen(requireAdminIdentity)
-		.andThen((identity) =>
-			getEditorByToken(ctx, identity.tokenIdentifier)
-				.andThen(requireEnrollableEditorProfile)
-				.andThen((editor) => saveEditorDetails(ctx, identity, editor))
-		);
+export function saveAdminEditorEnrollment(ctx: MutationCtx, identity: UserIdentity) {
+	return getEditorByToken(ctx, identity.tokenIdentifier)
+		.andThen(requireEnrollableEditorProfile)
+		.andThen((editor) => saveEditorDetails(ctx, identity, editor));
 }
