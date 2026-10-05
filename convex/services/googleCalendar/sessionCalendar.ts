@@ -1,17 +1,13 @@
 "use node";
 
 import { ResultAsync } from "neverthrow";
-import { internal } from "#convex/_generated/api";
-import type { Id } from "#convex/_generated/dataModel";
 import { formatDateValue, getLastBookableDate, startOfToday } from "#studio/lib/bookingdatetime";
 import type { ActionCtx } from "#convex/_generated/server";
-import { requirePermissionActions } from "#convex/services/auth";
 import { loadValidRescheduleLinkAndSession } from "#convex/lib/sessions/sessionCalendarActionBoundaries";
 import {
 	getBusyWindows,
 	getBusyWindowsInRange
 } from "#convex/lib/googleCalendar/googleCalendarAvailability";
-import { cleanupCancelledSessionDriveService } from "#convex/services/drive/cleanupCancelledSessionDrive";
 import {
 	getGoogleCalendarClient,
 	loadGoogleCalendarClient
@@ -20,10 +16,8 @@ import {
 	calendarErrorSchema,
 	mapCalendarErrorCode
 } from "#convex/lib/googleCalendar/googleCalendarErrors";
-import { deleteSessionCalendarEvent } from "#convex/services/googleCalendar/sessionCalendarEventWorkflow";
-import { getSessionFromQuery } from "#convex/lib/sessions/sessionLookup";
 import { checkGoogleCalendarAvailabilityRateLimit } from "#convex/lib/rateLimits";
-import { fromConvexTuple, tryPromise } from "#convex/lib/result";
+import { tryPromise } from "#convex/lib/result";
 import {
 	checkSessionMeetsAvailabilitySettings,
 	getAvailableTimeOptions,
@@ -242,31 +236,3 @@ export type UpdateSessionFromAdminError =
 	| { reason: "NOT_AUTHENTICATED" }
 	| { reason: "NOT_AUTHORIZED" }
 	| { reason: "BOOKING_NOT_FOUND" };
-
-export function cancelBookingFromAdminService(
-	ctx: ActionCtx,
-	bookingId: Id<"bookings">
-): ResultAsync<{ cancelled: boolean }, CancelBookingFromAdminError> {
-	return (
-		requirePermissionActions(ctx, "cancel:sessions")
-			// Load the booking only after cancel:sessions authorization succeeds.
-			.andThen(() => getSessionFromQuery(ctx, bookingId))
-			.andThen((session) =>
-				loadGoogleCalendarClient("GOOGLE_CALENDAR_DELETE_FAILED").map((client) => ({
-					client,
-					session
-				}))
-			)
-			// Delete the provider event before cancelling the booking in Convex.
-			.andThen(({ client, session }) => deleteSessionCalendarEvent({ session, client }))
-			// Persist cancellation after deletion succeeds or the provider event is already missing.
-			.andThen(() =>
-				fromConvexTuple(
-					ctx.runMutation(internal.sessions.markSessionCalendarEventDeleted, { bookingId })
-				)
-			)
-			.andThen(() =>
-				cleanupCancelledSessionDriveService(ctx, { bookingId }).map(() => ({ cancelled: true }))
-			)
-	);
-}

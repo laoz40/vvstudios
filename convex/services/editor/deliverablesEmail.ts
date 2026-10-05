@@ -5,7 +5,6 @@ import { internal } from "#convex/_generated/api";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { ActionCtx } from "#convex/_generated/server";
 import { sendSessionDeliverablesEmail as sendDeliverablesEmail } from "#convex/lib/email/emailTemplateSenders";
-import { loadSessionForDeliverablesFromAction } from "#convex/services/editor/loadSessionForDeliverables";
 import {
 	ensureAnyoneReaderPermission,
 	listDriveFolderChildren,
@@ -16,7 +15,7 @@ import { fromConvexTuple } from "#convex/lib/result";
 
 export type SendSessionDeliverablesEmailArgs = { bookingId: Id<"bookings">; editorNotes?: string };
 
-type SendDeliverablesError =
+export type SendDeliverablesError =
 	| { reason: "NOT_AUTHENTICATED" }
 	| { reason: "NOT_AUTHORIZED" }
 	| { reason: "BOOKING_NOT_FOUND" }
@@ -72,7 +71,26 @@ function requireDeliverablesFolderContents(folder: { id: string; url: string }) 
 		});
 }
 
-function sendDeliverablesEmailForSession(
+export function assertDeliverablesEmailPending(
+	session: Doc<"bookings">
+): ResultAsync<Doc<"bookings"> | null, never> {
+	if (session.editStatus === "completed") {
+		return okAsync(null);
+	}
+
+	return okAsync(session);
+}
+
+export function prepareDeliverablesFolderForSend(
+	ctx: ActionCtx,
+	bookingId: Id<"bookings">
+): ResultAsync<{ id: string; url: string }, SendDeliverablesError> {
+	return requireSavedDeliverablesFolder(bookingId, ctx)
+		.andThen(requireDeliverablesFolderContents)
+		.andThen((folder) => grantGuestViewerLink(folder));
+}
+
+export function sendDeliverablesEmailForSession(
 	ctx: ActionCtx,
 	session: Doc<"bookings">,
 	folderUrl: string,
@@ -100,23 +118,4 @@ function sendDeliverablesEmailForSession(
 
 			return emailError;
 		});
-}
-
-export function sendSessionDeliverablesEmailService(
-	ctx: ActionCtx,
-	args: SendSessionDeliverablesEmailArgs
-): ResultAsync<null, SendDeliverablesError> {
-	return loadSessionForDeliverablesFromAction(ctx, args.bookingId).andThen((session) => {
-		// A session already marked completed was delivered. Skip a second email until it leaves completed.
-		if (session.editStatus === "completed") {
-			return okAsync(null);
-		}
-
-		return requireSavedDeliverablesFolder(session._id, ctx)
-			.andThen(requireDeliverablesFolderContents)
-			.andThen((folder) => grantGuestViewerLink(folder))
-			.andThen((folder) =>
-				sendDeliverablesEmailForSession(ctx, session, folder.url, args.editorNotes)
-			);
-	});
 }

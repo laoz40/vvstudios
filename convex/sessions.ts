@@ -1,14 +1,17 @@
 import { paginationOptsValidator } from "convex/server";
 import { ConvexError, v } from "convex/values";
 import { tupleErr, tupleOk } from "#/lib/result";
-import { detectDeliverablesCustomerType as detectCustomerType } from "#convex/lib/editor/editorSessions";
+import {
+	detectDeliverablesCustomerType as detectCustomerType,
+	detectDeliverablesCustomerType as resolveDeliverablesCustomerType
+} from "#convex/lib/editor/editorSessions";
+import { loadSessionForDeliverables } from "#convex/services/editor/loadSessionForDeliverables";
 import { internalMutation, internalQuery, mutation, query } from "#convex/_generated/server";
 import {
 	archivePastDeadCheckoutSessionsService,
 	archiveSessionService,
 	assignSessionEditorService,
 	buildPublicSessionStatusResponse,
-	getDeliverablesCustomerTypeService,
 	getDriveStatusService,
 	getPublicRescheduleCompleteSessionService,
 	listActiveEditorsService,
@@ -48,7 +51,10 @@ export const getDriveStatus = query({
 
 export const getDeliverablesCustomerType = query({
 	args: { bookingId: v.id("bookings") },
-	handler: (ctx, args) => getDeliverablesCustomerTypeService(ctx, args).match(tupleOk, tupleErr)
+	handler: (ctx, args) =>
+		loadSessionForDeliverables(ctx, args.bookingId)
+			.andThen((session) => resolveDeliverablesCustomerType(ctx, session))
+			.match(tupleOk, tupleErr)
 });
 
 export const listSessions = query({

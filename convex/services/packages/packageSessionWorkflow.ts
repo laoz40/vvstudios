@@ -176,10 +176,12 @@ export function syncPackageRescheduleCalendar(
 	})
 		.map((calendar) => ({ calendar, details, reservation }))
 		.orElse((calendarError) =>
-			clearPackageSessionReservation(ctx, { bookingId: args.bookingId, reservation }).andThen(() => {
-				// SAFETY: Package calendar failures use the same `reason` codes as reschedule session errors.
-				return err(calendarError as ReschedulePackageSessionError);
-			})
+			clearPackageSessionReservation(ctx, { bookingId: args.bookingId, reservation }).andThen(
+				() => {
+					// SAFETY: Package calendar failures use the same `reason` codes as reschedule session errors.
+					return err(calendarError as ReschedulePackageSessionError);
+				}
+			)
 		);
 }
 

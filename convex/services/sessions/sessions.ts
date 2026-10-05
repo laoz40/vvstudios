@@ -17,7 +17,6 @@ import {
 } from "#convex/lib/editor/editorAssignments";
 import {
 	buildEditorSessionProjection,
-	detectDeliverablesCustomerType,
 	isEditorVisibleSession,
 	requireDeliverablesEligibility,
 	requireDeliverablesOwnership,
@@ -25,7 +24,6 @@ import {
 	saveSessionEditorNotes,
 	saveSessionEditStatus
 } from "#convex/lib/editor/editorSessions";
-import { loadSessionForDeliverables } from "#convex/services/editor/loadSessionForDeliverables";
 import { getDriveStatus, getEditorSessionDriveFolders } from "#convex/lib/drive/driveStatus";
 import { okOrThrow } from "#convex/lib/result";
 import { getSessionByStripeSessionId, getSessionFromDb } from "#convex/lib/sessions/sessionLookup";
@@ -53,8 +51,6 @@ type ListSessionsArgs = PaginationArgs & {
 type ListEditorSessionsArgs = PaginationArgs;
 
 type GetPublicRescheduleCompleteSessionArgs = { bookingId: string };
-
-type GetDeliverablesCustomerTypeArgs = { bookingId: Id<"bookings"> };
 
 type SaveSessionInstagramHandleArgs = { stripeSessionId: string; instagramHandle: string };
 
@@ -92,15 +88,6 @@ type AssignSessionEditorArgs = {
 export function getDriveStatusService(ctx: QueryCtx, args: GetDriveStatusArgs) {
 	return requirePermission(ctx, "view:sensitive-booking-data").andThen(() =>
 		getDriveStatus(ctx, args.bookingId)
-	);
-}
-
-export function getDeliverablesCustomerTypeService(
-	ctx: QueryCtx,
-	args: GetDeliverablesCustomerTypeArgs
-) {
-	return loadSessionForDeliverables(ctx, args.bookingId).andThen((session) =>
-		detectDeliverablesCustomerType(ctx, session)
 	);
 }
 

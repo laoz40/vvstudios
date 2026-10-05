@@ -2,8 +2,6 @@ import type { BookingAvailabilitySettings } from "#studio/lib/bookingAvailabilit
 import type { ResultAsync as NeverthrowResultAsync } from "neverthrow";
 import { api } from "#convex/_generated/api";
 import type { ActionCtx, MutationCtx } from "#convex/_generated/server";
-import { requirePermission } from "#convex/services/auth";
-import { validateBookingSettings } from "#convex/lib/booking/bookingSettings";
 import { okOrThrow } from "#convex/lib/result";
 
 export function getBookingSettingsService(
@@ -12,29 +10,21 @@ export function getBookingSettingsService(
 	return okOrThrow(ctx.runQuery(api.bookingSettings.get, {}));
 }
 
-export function updateBookingSettingsService(
+export function persistBookingAvailabilitySettings(
 	ctx: MutationCtx,
-	settings: BookingAvailabilitySettings
+	settings: BookingAvailabilitySettings,
+	updatedBy: string
 ) {
-	return requirePermission(ctx, "update:availability")
-		.andThen((identity) => validateBookingSettings(settings).map(() => identity))
-		.andThen((identity) => {
-			const value = {
-				...settings,
-				key: "main" as const,
-				updatedAt: Date.now(),
-				updatedBy: identity.email
-			};
+	const value = { ...settings, key: "main" as const, updatedAt: Date.now(), updatedBy };
 
-			return okOrThrow(
-				ctx.db
-					.query("bookingSettings")
-					.withIndex("by_key", (query) => query.eq("key", "main"))
-					.unique()
-			).andThen((existing) =>
-				existing
-					? okOrThrow(ctx.db.patch("bookingSettings", existing._id, value).then(() => null))
-					: okOrThrow(ctx.db.insert("bookingSettings", value).then(() => null))
-			);
-		});
+	return okOrThrow(
+		ctx.db
+			.query("bookingSettings")
+			.withIndex("by_key", (indexQuery) => indexQuery.eq("key", "main"))
+			.unique()
+	).andThen((existing) =>
+		existing
+			? okOrThrow(ctx.db.patch("bookingSettings", existing._id, value).then(() => null))
+			: okOrThrow(ctx.db.insert("bookingSettings", value).then(() => null))
+	);
 }

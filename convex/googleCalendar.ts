@@ -6,7 +6,6 @@ import { tupleErr, tupleOk, type Result } from "#/lib/result";
 import { action, internalAction } from "#convex/_generated/server";
 import { type BusyDayWindow } from "#convex/lib/sessions/sessionCalendarTime";
 import {
-	cancelBookingFromAdminService,
 	getAvailableBookingTimesService,
 	getAvailableRescheduleTimesService,
 	getBookableRangeBusyWindowsService,
@@ -22,12 +21,20 @@ import {
 	persistAdminSessionGoogleUpdate
 } from "#convex/services/googleCalendar/sessionAdminUpdateWorkflow";
 import {
+	authorizeAdminBookingCancel,
+	cleanupAdminCancelledBookingDrive,
+	deleteAdminBookingCalendarEvent,
+	loadAdminCancelSession,
+	persistAdminBookingCalendarDeletion
+} from "#convex/services/googleCalendar/cancelBookingFromAdminWorkflow";
+import {
 	finishReschedule,
 	loadRescheduleTargetAndValidate,
 	lockAndReserve,
 	persistRescheduleAfterCalendar,
 	syncCalendar
 } from "#convex/services/googleCalendar/sessionRescheduleWorkflow";
+import type { CancelBookingFromAdminError } from "#convex/services/googleCalendar/sessionCalendar";
 import {
 	bookingAddonQuantitiesValidator,
 	bookingAddonsValidator
@@ -178,8 +185,13 @@ export const updateSessionFromAdmin = action({
 
 export const cancelBookingFromAdmin = action({
 	args: { bookingId: v.id("bookings") },
-	handler: async (ctx, args) =>
-		await cancelBookingFromAdminService(ctx, args.bookingId).match(tupleOk, tupleErr)
+	handler: (ctx, args): Promise<Result<{ cancelled: boolean }, CancelBookingFromAdminError>> =>
+		authorizeAdminBookingCancel(ctx)
+			.andThen(() => loadAdminCancelSession(ctx, args.bookingId))
+			.andThen(deleteAdminBookingCalendarEvent)
+			.andThen(() => persistAdminBookingCalendarDeletion(ctx, args.bookingId))
+			.andThen(() => cleanupAdminCancelledBookingDrive(ctx, args.bookingId))
+			.match(tupleOk, tupleErr)
 });
 
 export const sendSessionReminderEmail = internalAction({
