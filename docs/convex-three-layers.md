@@ -43,3 +43,15 @@ Inside a service step such as **get item**: permission check + DB read + not-fou
 ## Neverthrow & errors
 
 Implementation rules live in [AGENTS.md](../AGENTS.md) under Convex → Neverthrow. Deeper review notes: [convex-neverthrow-review.md](./convex-neverthrow-review.md).
+
+## Lint enforcement (`bun run lint`)
+
+The `convex-layers` oxlint plugin (`tools/oxlint/convex-layers/`) runs on `convex/*.ts` and `convex/services/**`:
+
+| Rule | What it blocks |
+| --- | --- |
+| `convex-layers/no-handler-lib-import` | Top-level handler modules importing `#convex/lib/**`. Handlers call services only. Allowlisted entrypoints: `http.ts`, `devSeed.ts`, `schema.ts`. |
+| `convex-layers/no-db-in-services` | `ctx.db` reads/writes inside `convex/services/**`. DB I/O stays in lib; services compose lib functions. |
+| `convex-layers/no-lib-reexport` | `export { … } from "#convex/lib/…"` or re-exporting a lib import unchanged from a service file. Use a real service function, or `export type Foo = LibFoo` for public types. |
+
+Rule unit tests live next to each rule under `tools/oxlint/convex-layers/rules/*.test.ts` (same layout as `tools/oxlint/neverthrow/`).
