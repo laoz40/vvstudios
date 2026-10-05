@@ -1,15 +1,12 @@
-import type { Doc, Id } from "#convex/_generated/dataModel";
+import type { Doc } from "#convex/_generated/dataModel";
 import { exhaustiveCheck } from "#/lib/result";
 import type { QueryCtx } from "#convex/_generated/server";
 import { bookingRequiresClientAssetsEmail } from "#convex/lib/booking/bookingAddonQuantities";
 import { isClientFolderSharingDismissed } from "#convex/lib/drive/driveClientAccess";
 import { resolveSessionFolderDisplayName } from "#convex/lib/drive/sessionFolders/resolveFolderNames";
-import {
-	getDriveSetup,
-	loadSharedPackageFolder,
-	resolveDriveClientForBooking
-} from "#convex/lib/drive/driveLookup";
-import { okAsync, ResultAsync } from "neverthrow";
+import { resolveDriveClientForBooking } from "#convex/lib/drive/driveLookup";
+import { loadPackageBookings } from "#convex/lib/drive/driveLookup";
+import { packageFolderFromOtherPackageBookings } from "#convex/lib/drive/driveSetupLoad";
 import type { DriveChildFolderName } from "#convex/lib/drive/googleDrive";
 import {
 	formatDriveClientFolderName,
@@ -354,7 +351,7 @@ function buildDriveWorkflowFailureStatus(args: {
 	});
 }
 
-function getDriveSetupEntities(
+export function getDriveSetupEntities(
 	setupInfo: {
 		booking: Doc<"bookings"> | null;
 		driveClient: Doc<"driveClients"> | null;
@@ -372,7 +369,7 @@ function getDriveSetupEntities(
 	};
 }
 
-function buildDriveStatusFromSetup(
+export function buildDriveStatusFromSetup(
 	setupInfo: {
 		booking: Doc<"bookings"> | null;
 		driveClient: Doc<"driveClients"> | null;
@@ -422,20 +419,6 @@ function buildDriveStatusFromSetup(
 	};
 }
 
-export function getDriveStatus(ctx: QueryCtx, bookingId: Id<"bookings">) {
-	return getDriveSetup(ctx, bookingId).andThen((setupInfo) => {
-		const { booking, driveSession } = getDriveSetupEntities(setupInfo);
-
-		if (booking === null) {
-			return okAsync(buildDriveStatusFromSetup(setupInfo, undefined));
-		}
-
-		return ResultAsync.fromSafePromise(
-			resolveSessionFolderDisplayName(ctx, booking, driveSession)
-		).map((sessionFolderName) => buildDriveStatusFromSetup(setupInfo, sessionFolderName));
-	});
-}
-
 // Admin session lists only need the failure flag, not the full Drive status payload.
 export async function getDriveWorkflowFailureForBooking(ctx: QueryCtx, booking: Doc<"bookings">) {
 	const [driveClientFromBooking, driveSession, packageRecord] = await Promise.all([
@@ -462,10 +445,20 @@ export async function getDriveWorkflowFailureForBooking(ctx: QueryCtx, booking: 
 	let sharedPackageFolder: Doc<"driveSessions">["packageFolder"] | undefined;
 
 	if (driveSession?.packageFolder === undefined && booking.packageId !== undefined) {
-		const sharedFolderResult = await loadSharedPackageFolder(ctx, booking.packageId, booking._id);
+		const packageBookingsResult = await loadPackageBookings(ctx, booking.packageId);
+
+		if (packageBookingsResult.isErr()) {
+			throw new Error("loadPackageBookings failed");
+		}
+
+		const sharedFolderResult = await packageFolderFromOtherPackageBookings(
+			ctx,
+			packageBookingsResult.value,
+			booking._id
+		);
 
 		if (sharedFolderResult.isErr()) {
-			throw new Error("loadSharedPackageFolder failed");
+			throw new Error("packageFolderFromOtherPackageBookings failed");
 		}
 
 		sharedPackageFolder = sharedFolderResult.value;

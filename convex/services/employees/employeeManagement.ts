@@ -1,10 +1,10 @@
-import { ResultAsync } from "neverthrow";
+import { err, ok, ResultAsync } from "neverthrow";
 import type { Doc } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
 import {
-	getEditorProfileByToken,
 	getEditorWorkStatus,
 	listEditorProfiles,
+	lookupEditorProfileByToken,
 	patchEditorAccess,
 	patchEditorNotes
 } from "#convex/lib/editor/editorAccess";
@@ -28,14 +28,24 @@ export function loadEmployeeRoster(ctx: QueryCtx) {
 	);
 }
 
+function requireEditorProfileByToken(ctx: MutationCtx, tokenIdentifier: string) {
+	return lookupEditorProfileByToken(ctx, tokenIdentifier).andThen((editor) => {
+		if (editor === null) {
+			return err({ reason: "EDITOR_NOT_FOUND" as const });
+		}
+
+		return ok(editor);
+	});
+}
+
 export function saveEmployeeAccess(ctx: MutationCtx, tokenIdentifier: string, isActive: boolean) {
-	return getEditorProfileByToken(ctx, tokenIdentifier).andThen((editor) =>
+	return requireEditorProfileByToken(ctx, tokenIdentifier).andThen((editor) =>
 		patchEditorAccess(ctx, editor._id, isActive)
 	);
 }
 
 export function saveEmployeeNotes(ctx: MutationCtx, tokenIdentifier: string, notes: string) {
-	return getEditorProfileByToken(ctx, tokenIdentifier).andThen((editor) =>
+	return requireEditorProfileByToken(ctx, tokenIdentifier).andThen((editor) =>
 		patchEditorNotes(ctx, editor._id, notes)
 	);
 }

@@ -4,7 +4,7 @@ import { okAsync, type ResultAsync } from "neverthrow";
 import { internal } from "#convex/_generated/api";
 import type { Id } from "#convex/_generated/dataModel";
 import type { ActionCtx } from "#convex/_generated/server";
-import { checkPackageSubmitRateLimit } from "#convex/lib/booking/bookingSubmission";
+import { checkPackageSubmitRateLimit } from "#convex/services/booking/bookingSubmission";
 import { createPendingPackage } from "#convex/lib/packages/packagePayment";
 import {
 	parsePackageRequest,

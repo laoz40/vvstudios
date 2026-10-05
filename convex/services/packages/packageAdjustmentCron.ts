@@ -1,7 +1,7 @@
 import type { Id } from "#convex/_generated/dataModel";
 import type { MutationCtx } from "#convex/_generated/server";
 import { processPackageAdjustment } from "#convex/lib/packages/packageAdjustments";
-import { archivePackageWhenFullyDone } from "#convex/lib/packages/packageArchive";
+import { archivePackageWhenFullyDone } from "#convex/services/packages/packageArchive";
 
 export async function runPackageAdjustmentWhenExpired(
 	ctx: MutationCtx,

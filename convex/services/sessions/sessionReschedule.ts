@@ -2,11 +2,11 @@ import { err, ok, type ResultAsync as NeverthrowResultAsync } from "neverthrow";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
 import { tryPromise } from "#convex/lib/result";
+import { getBookingRow } from "#convex/lib/sessions/sessionLookup";
 import {
-	getBookingRow,
 	getSessionByStripeSessionId,
 	getSessionFromDb
-} from "#convex/lib/sessions/sessionLookup";
+} from "#convex/services/sessions/sessionLookup";
 import {
 	createActiveRescheduleLinkForSession,
 	getRescheduleLinkRow,

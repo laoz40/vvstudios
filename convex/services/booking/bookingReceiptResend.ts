@@ -8,7 +8,7 @@ import { requirePermissionActions } from "#convex/services/requirePermissionActi
 import { sendBookingReceiptEmailsForBooking } from "#convex/services/booking/bookingReceiptEmails";
 import { fromConvexTuple, okOrThrow } from "#convex/lib/result";
 import { createRescheduleUrlForSession } from "#convex/lib/sessions/sessionRescheduleLinks";
-import { getSessionFromQuery } from "#convex/lib/sessions/sessionLookup";
+import { getSessionFromQuery } from "#convex/services/sessions/sessionLookup";
 import type { BookingAvailabilitySettings } from "#studio/lib/bookingAvailabilitySettings";
 
 function isConfirmedBookingStatus(status: string) {

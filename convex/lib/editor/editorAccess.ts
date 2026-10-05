@@ -1,4 +1,4 @@
-import { err, ok, type ResultAsync } from "neverthrow";
+import { type ResultAsync } from "neverthrow";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
 import { okOrThrow } from "#convex/lib/result";
@@ -46,17 +46,13 @@ export function getEditorWorkStatus(
 	});
 }
 
-export function getEditorProfileByToken(ctx: MutationCtx, tokenIdentifier: string) {
+export function lookupEditorProfileByToken(ctx: MutationCtx, tokenIdentifier: string) {
 	return okOrThrow(
 		ctx.db
 			.query("editorProfiles")
 			.withIndex("by_tokenIdentifier", (query) => query.eq("tokenIdentifier", tokenIdentifier))
 			.unique()
-	).andThen((editor) => {
-		if (editor === null) return err({ reason: "EDITOR_NOT_FOUND" as const });
-
-		return ok(editor);
-	});
+	);
 }
 
 export function patchEditorAccess(

@@ -12,7 +12,7 @@ import {
 	refreshPackageScheduleToken
 } from "#convex/lib/packages/packagePayment";
 import { sendAndRecordPackagePaidEmail } from "#convex/services/packages/packagePaidEmailSend";
-import { getPackageForAction } from "#convex/lib/packages/packageLookup";
+import { getPackageForAction } from "#convex/services/packages/packageLookup";
 import { okOrThrow } from "#convex/lib/result";
 import type { BookingAvailabilitySettings } from "#studio/lib/bookingAvailabilitySettings";
 

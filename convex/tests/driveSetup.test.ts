@@ -11,7 +11,7 @@ import { describe, expect, test } from "vitest";
 import { bookingDocument } from "#convex/tests/insertDocumentDefaults";
 import { internal } from "#convex/_generated/api";
 import type { Id } from "#convex/_generated/dataModel";
-import { getOrCreateDriveClientId } from "#convex/lib/drive/driveFolders";
+import { getOrCreateDriveClientId } from "#convex/services/drive/driveInternal";
 import { resolveSessionFolderDisplayName } from "#convex/lib/drive/sessionFolders/resolveFolderNames";
 import { createConvexTest } from "#convex/test.setup";
 

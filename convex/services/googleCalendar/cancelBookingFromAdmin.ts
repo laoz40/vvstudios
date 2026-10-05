@@ -9,7 +9,7 @@ import { loadGoogleCalendarClient } from "#convex/lib/googleCalendar/googleCalen
 import { deleteSessionCalendarEvent } from "#convex/services/googleCalendar/sessionCalendarEvent";
 import type { GoogleCalendarEventClient } from "#convex/lib/sessions/sessionCalendarEventPayload";
 import type { Doc } from "#convex/_generated/dataModel";
-import { getSessionFromQuery } from "#convex/lib/sessions/sessionLookup";
+import { getSessionFromQuery } from "#convex/services/sessions/sessionLookup";
 import { fromConvexTuple } from "#convex/lib/result";
 import type { CancelBookingFromAdminError } from "#convex/services/googleCalendar/sessionCalendar";
 

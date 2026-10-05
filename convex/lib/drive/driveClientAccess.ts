@@ -173,35 +173,24 @@ export function claimClientAssetsEmailRecord(
 	);
 }
 
-export function saveClientAssetsEmailResult(
+export function saveClientAssetsEmailResultForSession(
 	ctx: MutationCtx,
-	args: {
-		assetsFolderId: string;
-		bookingId: Id<"bookings">;
-		claimedAt: number;
-		status: "sent" | "failed";
-	}
+	driveSession: Doc<"driveSessions"> | null,
+	args: { assetsFolderId: string; claimedAt: number; status: "sent" | "failed" }
 ) {
+	if (driveSession === null || driveSession.assetsEmailClaimedAt !== args.claimedAt) {
+		return ok(null);
+	}
+
 	return okOrThrow(
 		ctx.db
-			.query("driveSessions")
-			.withIndex("by_bookingId", (query) => query.eq("bookingId", args.bookingId))
-			.unique()
-	).andThen((driveSession) => {
-		if (driveSession === null || driveSession.assetsEmailClaimedAt !== args.claimedAt) {
-			return ok(null);
-		}
-
-		return okOrThrow(
-			ctx.db
-				.patch("driveSessions", driveSession._id, {
-					assetsEmailClaimedAt: undefined,
-					assetsEmailFolderId:
-						args.status === "sent" ? args.assetsFolderId : driveSession.assetsEmailFolderId,
-					assetsEmailStatus: args.status,
-					updatedAt: Date.now()
-				})
-				.then(() => null)
-		);
-	});
+			.patch("driveSessions", driveSession._id, {
+				assetsEmailClaimedAt: undefined,
+				assetsEmailFolderId:
+					args.status === "sent" ? args.assetsFolderId : driveSession.assetsEmailFolderId,
+				assetsEmailStatus: args.status,
+				updatedAt: Date.now()
+			})
+			.then(() => null)
+	);
 }

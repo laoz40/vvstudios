@@ -3,9 +3,11 @@ import type { ResultAsync as NeverthrowResultAsync } from "neverthrow";
 import { api } from "#convex/_generated/api";
 import type { ActionCtx, MutationCtx, QueryCtx } from "#convex/_generated/server";
 import {
+	insertBookingAvailabilitySettingsRow,
+	lookupBookingAvailabilitySettingsRow,
+	patchBookingAvailabilitySettingsRow,
 	readBookingAvailabilitySettings,
-	validateBookingSettings,
-	writeBookingAvailabilitySettingsRow
+	validateBookingSettings
 } from "#convex/lib/booking/bookingSettings";
 import { okOrThrow } from "#convex/lib/result";
 
@@ -24,7 +26,13 @@ export function writeBookingAvailabilitySettings(
 	settings: BookingAvailabilitySettings,
 	updatedBy: string
 ) {
+	const value = { ...settings, key: "main" as const, updatedAt: Date.now(), updatedBy };
+
 	return validateBookingSettings(settings).asyncAndThen(() =>
-		writeBookingAvailabilitySettingsRow(ctx, settings, updatedBy)
+		lookupBookingAvailabilitySettingsRow(ctx).andThen((existing) =>
+			existing
+				? patchBookingAvailabilitySettingsRow(ctx, existing._id, value)
+				: insertBookingAvailabilitySettingsRow(ctx, value)
+		)
 	);
 }

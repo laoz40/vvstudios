@@ -10,7 +10,7 @@ import {
 	requireDeliverablesEligibility,
 	requireDeliverablesOwnership
 } from "#convex/lib/editor/editorSessions";
-import { getSessionFromDb, getSessionFromQuery } from "#convex/lib/sessions/sessionLookup";
+import { getSessionFromDb, getSessionFromQuery } from "#convex/services/sessions/sessionLookup";
 
 export type LoadSessionForDeliverablesError =
 	| { reason: "NOT_AUTHENTICATED" }

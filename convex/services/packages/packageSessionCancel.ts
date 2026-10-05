@@ -5,7 +5,7 @@ import {
 	getPackageSessionForToken,
 	sessionConsumesPackageCapacity
 } from "#convex/lib/packages/packageScheduling";
-import { archiveDeadCheckoutBooking } from "#convex/lib/sessions/sessionArchive";
+import { archiveDeadCheckoutBooking } from "#convex/services/sessions/sessionArchive";
 
 export function rejectMissingCapacityConsumingPackageSession(session: Doc<"bookings"> | null) {
 	if (!session || !sessionConsumesPackageCapacity(session)) {

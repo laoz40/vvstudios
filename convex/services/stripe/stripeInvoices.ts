@@ -1,17 +1,13 @@
 import { ok, okAsync } from "neverthrow";
 import type { Id } from "#convex/_generated/dataModel";
 import type { MutationCtx } from "#convex/_generated/server";
-import {
-	archivePackageWhenFullyDone,
-	unarchivePackageForNewUnpaidInvoice
-} from "#convex/lib/packages/packageArchive";
+import { unarchivePackageForNewUnpaidInvoice } from "#convex/lib/packages/packageArchive";
+import { archivePackageWhenFullyDone } from "#convex/services/packages/packageArchive";
 import { getPackageFromDb } from "#convex/services/packages/packageLookup";
 import { getStripeInvoiceByStripeInvoiceId } from "#convex/lib/stripe/stripeInvoices";
-import { getSessionFromDb } from "#convex/lib/sessions/sessionLookup";
-import {
-	archiveSessionWhenFullyDone,
-	unarchiveSessionForNewUnpaidInvoice
-} from "#convex/lib/sessions/sessionArchive";
+import { getSessionFromDb } from "#convex/services/sessions/sessionLookup";
+import { unarchiveSessionForNewUnpaidInvoice } from "#convex/lib/sessions/sessionArchive";
+import { archiveSessionWhenFullyDone } from "#convex/services/sessions/sessionArchive";
 import { type StripeInvoiceInsertResult } from "#convex/lib/stripe/stripeInvoices";
 
 export function unarchiveAfterNewBookingInvoice(

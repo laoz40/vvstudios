@@ -1,6 +1,6 @@
 import type { UserIdentity } from "convex/server";
 import type { PaginationOptions } from "convex/server";
-import { err, ok, okAsync } from "neverthrow";
+import { err, ok } from "neverthrow";
 import type { Doc } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
 import { isAdminIdentity } from "#convex/lib/auth";
@@ -106,46 +106,21 @@ export function saveSessionAdminNotes(
 	);
 }
 
-export function saveSessionEditStatus(
+export function patchSessionEditStatus(
 	ctx: MutationCtx,
-	session: Doc<"bookings">,
+	bookingId: Doc<"bookings">["_id"],
 	editStatus: "to_edit" | "editing" | "review" | "completed"
 ) {
-	const editorTokenIdentifier = session.assignedEditorTokenIdentifier;
+	return okOrThrow(ctx.db.patch("bookings", bookingId, { editStatus }).then(() => null));
+}
 
-	// Credit each transition into Completed. A duplicate credit requires an unlikely manual
-	// Completed → Editing → Completed cycle, so we avoid adding persistent tracking for it.
-	const shouldIncrementTotal =
-		editStatus === "completed" &&
-		session.editStatus !== "completed" &&
-		editorTokenIdentifier !== undefined;
-
-	const patchBookingEditStatus = () =>
-		okOrThrow(ctx.db.patch("bookings", session._id, { editStatus }).then(() => null));
-
-	if (!shouldIncrementTotal) {
-		return patchBookingEditStatus();
-	}
-
+export function incrementEditorTotalEdits(
+	ctx: MutationCtx,
+	editorId: Doc<"editorProfiles">["_id"],
+	currentTotalEdits: number
+) {
 	return okOrThrow(
-		ctx.db
-			.query("editorProfiles")
-			.withIndex("by_tokenIdentifier", (query) =>
-				query.eq("tokenIdentifier", editorTokenIdentifier)
-			)
-			.unique()
-	).andThen((editor) =>
-		patchBookingEditStatus().andThen(() => {
-			if (editor === null) {
-				return okAsync(null);
-			}
-
-			return okOrThrow(
-				ctx.db
-					.patch("editorProfiles", editor._id, { totalEdits: editor.totalEdits + 1 })
-					.then(() => null)
-			);
-		})
+		ctx.db.patch("editorProfiles", editorId, { totalEdits: currentTotalEdits + 1 }).then(() => null)
 	);
 }
 

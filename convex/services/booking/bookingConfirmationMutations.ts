@@ -24,7 +24,8 @@ import {
 	bookingReceiptPaidAt,
 	resolveBookingReceiptNumber
 } from "#studio/features/booking-invoice/lib/receipt-number";
-import { getSessionFromDb, normalizeBookingId } from "#convex/lib/sessions/sessionLookup";
+import { normalizeBookingId } from "#convex/lib/sessions/sessionLookup";
+import { getSessionFromDb } from "#convex/services/sessions/sessionLookup";
 import {
 	sessionHasReservation,
 	type SessionReservation

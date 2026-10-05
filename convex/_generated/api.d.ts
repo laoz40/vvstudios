@@ -57,7 +57,6 @@ import type * as lib_drive_sessionFolders_allocateNumbers from "../lib/drive/ses
 import type * as lib_drive_sessionFolders_cancelCleanup from "../lib/drive/sessionFolders/cancelCleanup.js";
 import type * as lib_drive_sessionFolders_clearSessionRecords from "../lib/drive/sessionFolders/clearSessionRecords.js";
 import type * as lib_drive_sessionFolders_driveSetupInfo from "../lib/drive/sessionFolders/driveSetupInfo.js";
-import type * as lib_drive_sessionFolders_ensureFolders from "../lib/drive/sessionFolders/ensureFolders.js";
 import type * as lib_drive_sessionFolders_resolveFolderNames from "../lib/drive/sessionFolders/resolveFolderNames.js";
 import type * as lib_editor_deliverablesReviewNotification from "../lib/editor/deliverablesReviewNotification.js";
 import type * as lib_editor_editorAccess from "../lib/editor/editorAccess.js";
@@ -97,7 +96,6 @@ import type * as lib_sessions_pendingCheckoutSession from "../lib/sessions/pendi
 import type * as lib_sessions_sessionAdminEdit from "../lib/sessions/sessionAdminEdit.js";
 import type * as lib_sessions_sessionArchive from "../lib/sessions/sessionArchive.js";
 import type * as lib_sessions_sessionCalendarActionBoundaries from "../lib/sessions/sessionCalendarActionBoundaries.js";
-import type * as lib_sessions_sessionCalendarAvailabilityLoad from "../lib/sessions/sessionCalendarAvailabilityLoad.js";
 import type * as lib_sessions_sessionCalendarEventPayload from "../lib/sessions/sessionCalendarEventPayload.js";
 import type * as lib_sessions_sessionCalendarTime from "../lib/sessions/sessionCalendarTime.js";
 import type * as lib_sessions_sessionCheckout from "../lib/sessions/sessionCheckout.js";
@@ -243,7 +241,6 @@ declare const fullApi: ApiFromModules<{
   "lib/drive/sessionFolders/cancelCleanup": typeof lib_drive_sessionFolders_cancelCleanup;
   "lib/drive/sessionFolders/clearSessionRecords": typeof lib_drive_sessionFolders_clearSessionRecords;
   "lib/drive/sessionFolders/driveSetupInfo": typeof lib_drive_sessionFolders_driveSetupInfo;
-  "lib/drive/sessionFolders/ensureFolders": typeof lib_drive_sessionFolders_ensureFolders;
   "lib/drive/sessionFolders/resolveFolderNames": typeof lib_drive_sessionFolders_resolveFolderNames;
   "lib/editor/deliverablesReviewNotification": typeof lib_editor_deliverablesReviewNotification;
   "lib/editor/editorAccess": typeof lib_editor_editorAccess;
@@ -283,7 +280,6 @@ declare const fullApi: ApiFromModules<{
   "lib/sessions/sessionAdminEdit": typeof lib_sessions_sessionAdminEdit;
   "lib/sessions/sessionArchive": typeof lib_sessions_sessionArchive;
   "lib/sessions/sessionCalendarActionBoundaries": typeof lib_sessions_sessionCalendarActionBoundaries;
-  "lib/sessions/sessionCalendarAvailabilityLoad": typeof lib_sessions_sessionCalendarAvailabilityLoad;
   "lib/sessions/sessionCalendarEventPayload": typeof lib_sessions_sessionCalendarEventPayload;
   "lib/sessions/sessionCalendarTime": typeof lib_sessions_sessionCalendarTime;
   "lib/sessions/sessionCheckout": typeof lib_sessions_sessionCheckout;

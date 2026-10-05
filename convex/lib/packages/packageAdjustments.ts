@@ -44,17 +44,31 @@ export function validatePackageAdjustmentEmailClaim(
 	return ok(adjustment);
 }
 
-export function getPackageAdjustmentInvoice(
+export function lookupPackageAdjustmentRow(
 	ctx: QueryCtx | MutationCtx,
 	adjustmentId: Id<"packageAdjustments">
 ) {
-	return okOrThrow(ctx.db.get("packageAdjustments", adjustmentId)).andThen((adjustment) => {
-		if (!adjustment || adjustment.outcome !== "invoice_required") {
-			return err({ reason: "PACKAGE_ADJUSTMENT_NOT_FOUND" as const });
-		}
+	return okOrThrow(ctx.db.get("packageAdjustments", adjustmentId));
+}
 
-		return ok(adjustment);
-	});
+export function lookupPackageAdjustmentByPackageId(
+	ctx: QueryCtx | MutationCtx,
+	packageId: Id<"packages">
+) {
+	return okOrThrow(
+		ctx.db
+			.query("packageAdjustments")
+			.withIndex("by_packageId", (indexQuery) => indexQuery.eq("packageId", packageId))
+			.unique()
+	);
+}
+
+export function requirePackageAdjustmentInvoiceRow(adjustment: Doc<"packageAdjustments">) {
+	if (adjustment.outcome !== "invoice_required") {
+		return err({ reason: "PACKAGE_ADJUSTMENT_NOT_FOUND" as const });
+	}
+
+	return ok(adjustment);
 }
 
 export function requirePackageAdjustmentPaymentEligibility(

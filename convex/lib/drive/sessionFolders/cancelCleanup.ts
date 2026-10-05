@@ -4,11 +4,11 @@ import { okAsync, type ResultAsync } from "neverthrow";
 import { internal } from "#convex/_generated/api";
 import type { Id } from "#convex/_generated/dataModel";
 import type { ActionCtx } from "#convex/_generated/server";
+import type { DriveClient } from "#convex/lib/drive/googleDrive";
 import {
 	deleteDriveFolderTree,
-	isDriveFolderTreeEmpty,
-	type DriveClient
-} from "#convex/lib/drive/googleDrive";
+	isDriveFolderTreeEmpty
+} from "#convex/services/drive/googleDriveFolderTree";
 import { fromConvexTuple } from "#convex/lib/result";
 
 export function clearSessionDriveDb(

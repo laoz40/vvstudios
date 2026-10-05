@@ -3,7 +3,7 @@ import { api } from "#convex/_generated/api";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
 import { getBookingAvailabilitySettings } from "#convex/lib/booking/bookingSettings";
-import { getOrCreateDriveClientId } from "#convex/lib/drive/driveFolders";
+import { getOrCreateDriveClientId } from "#convex/services/drive/driveInternal";
 import { insertPackageSessionBookingRow as persistPackageSessionBookingRow } from "#convex/lib/packages/packageSessionBookings";
 import { patchPackageExpiryReminderStateCleared } from "#convex/lib/packages/packageUpdates";
 import { scheduleDriveSetup } from "#convex/lib/drive/driveScheduling";

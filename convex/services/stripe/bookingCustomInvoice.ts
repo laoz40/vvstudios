@@ -11,7 +11,7 @@ import {
 	validateCustomTotalDueAmount
 } from "#convex/lib/stripe/customInvoices";
 import { formatBookingInvoiceNumber } from "#studio/features/booking-invoice/lib/build-booking-invoice-data";
-import { getSessionFromDb } from "#convex/lib/sessions/sessionLookup";
+import { getSessionFromDb } from "#convex/services/sessions/sessionLookup";
 
 type CustomInvoiceDetails = {
 	dueDate?: string;

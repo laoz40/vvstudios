@@ -2,7 +2,7 @@ import { err, ok } from "neverthrow";
 import type { Id } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
 import { getTomorrowTimeZoneDayRange, REMINDER_TIME_ZONE } from "#convex/lib/reminderScheduleTime";
-import { getSessionFromDb } from "#convex/lib/sessions/sessionLookup";
+import { getSessionFromDb } from "#convex/services/sessions/sessionLookup";
 import {
 	patchSessionReminderEmailClaimed,
 	patchSessionReminderEmailFailed,

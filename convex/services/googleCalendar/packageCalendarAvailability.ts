@@ -13,11 +13,11 @@ import { tryPromise, fromConvexTuple } from "#convex/lib/result";
 import type { ValidPackageByTokenError } from "#convex/lib/packages/packageScheduling";
 import { checkGoogleCalendarAvailabilityRateLimit } from "#convex/lib/rateLimits";
 import {
-	getDateAvailabilityRange,
 	groupBusyDaysByMonth,
 	groupBusyWindowsByDay,
 	type BusyDayWindow as LibBusyDayWindow
 } from "#convex/lib/sessions/sessionCalendarTime";
+import { getDateAvailabilityRange } from "#convex/services/googleCalendar/sessionCalendarTime";
 import { formatDateValue, startOfToday } from "#studio/lib/bookingdatetime";
 
 export type BusyDayWindow = LibBusyDayWindow;

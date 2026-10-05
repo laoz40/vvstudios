@@ -8,8 +8,11 @@ import {
 	saveSessionAdminNotes,
 	saveSessionEditorNotes
 } from "#convex/lib/editor/editorSessions";
-import { archiveDeadCheckoutBooking } from "#convex/lib/sessions/sessionArchive";
-import { getSessionByStripeSessionId, getSessionFromDb } from "#convex/lib/sessions/sessionLookup";
+import { archiveDeadCheckoutBooking } from "#convex/services/sessions/sessionArchive";
+import {
+	getSessionByStripeSessionId,
+	getSessionFromDb
+} from "#convex/services/sessions/sessionLookup";
 import { requirePermission } from "#convex/services/auth";
 import { writeSessionEditStatusWithHostNotification } from "#convex/services/sessions/sessionDeliverables";
 import {

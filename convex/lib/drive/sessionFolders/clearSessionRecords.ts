@@ -1,31 +1,24 @@
-import { ok, type ResultAsync } from "neverthrow";
-import type { Id } from "#convex/_generated/dataModel";
+import { okAsync, type ResultAsync } from "neverthrow";
+import type { Doc } from "#convex/_generated/dataModel";
 import type { MutationCtx } from "#convex/_generated/server";
 import { okOrThrow } from "#convex/lib/result";
 
-export function clearSessionDriveDb(
+export function clearSessionDriveDbForSession(
 	ctx: MutationCtx,
-	args: { bookingId: Id<"bookings"> }
+	driveSession: Doc<"driveSessions"> | null
 ): ResultAsync<null, never> {
+	if (driveSession === null) return okAsync(null);
+
 	return okOrThrow(
 		ctx.db
-			.query("driveSessions")
-			.withIndex("by_bookingId", (query) => query.eq("bookingId", args.bookingId))
-			.unique()
-	).andThen((driveSession) => {
-		if (driveSession === null) return ok(null);
-
-		return okOrThrow(
-			ctx.db
-				.patch("driveSessions", driveSession._id, {
-					sessionFolder: undefined,
-					rawMediaFolder: undefined,
-					deliverablesFolder: undefined,
-					packageSessionNumber: undefined,
-					clientSessionNumber: undefined,
-					updatedAt: Date.now()
-				})
-				.then(() => null)
-		);
-	});
+			.patch("driveSessions", driveSession._id, {
+				sessionFolder: undefined,
+				rawMediaFolder: undefined,
+				deliverablesFolder: undefined,
+				packageSessionNumber: undefined,
+				clientSessionNumber: undefined,
+				updatedAt: Date.now()
+			})
+			.then(() => null)
+	);
 }

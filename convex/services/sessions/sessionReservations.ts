@@ -2,7 +2,7 @@ import { err, ok, type Result } from "neverthrow";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { MutationCtx } from "#convex/_generated/server";
 import { doSessionWindowsOverlap } from "#convex/lib/sessions/sessionCalendarTime";
-import { getSessionFromDb } from "#convex/lib/sessions/sessionLookup";
+import { getSessionFromDb } from "#convex/services/sessions/sessionLookup";
 import {
 	collectActiveReservationBookings,
 	collectConfirmedBookingsInWindow,

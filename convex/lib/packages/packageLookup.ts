@@ -41,16 +41,10 @@ export function lookupPackageRow(ctx: QueryCtx | MutationCtx, packageId: Id<"pac
 	return okOrThrow(ctx.db.get("packages", packageId));
 }
 
-export function getPackageForAction(ctx: ActionCtx, packageId: Id<"packages">) {
+export function lookupPackageByIdForAction(ctx: ActionCtx, packageId: Id<"packages">) {
 	return okOrThrow<Doc<"packages"> | null>(
 		ctx.runQuery(internal.packages.getPackageById, { packageId: packageId })
-	).andThen((packageFromDb) => {
-		if (packageFromDb === null) {
-			return err({ reason: "PACKAGE_NOT_FOUND" as const });
-		}
-
-		return ok(packageFromDb);
-	});
+	);
 }
 
 export function getValidPackageByToken(ctx: QueryCtx | MutationCtx, token: string, now: number) {

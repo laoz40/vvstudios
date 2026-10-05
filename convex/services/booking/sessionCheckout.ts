@@ -3,7 +3,7 @@ import type { Id } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
 import { patchBookingStripeCheckoutIds } from "#convex/lib/booking/bookingConfirmationSessionPatches";
 import { env } from "#convex/env";
-import { archiveDeadCheckoutBooking } from "#convex/lib/sessions/sessionArchive";
+import { archiveDeadCheckoutBooking } from "#convex/services/sessions/sessionArchive";
 import { getSessionStartAt } from "#convex/lib/sessions/sessionAdminEdit";
 import {
 	type DeletePendingSessionSuccess,

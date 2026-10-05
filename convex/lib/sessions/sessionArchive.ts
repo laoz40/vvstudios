@@ -8,12 +8,7 @@ import {
 	setBookingArchived
 } from "#convex/lib/archiveState";
 import { okOrThrow } from "#convex/lib/result";
-import { getSessionFromDb } from "#convex/lib/sessions/sessionLookup";
-import {
-	listStripeInvoicesForBooking,
-	summarizeStripeInvoices,
-	type StripeInvoiceAmountSummary
-} from "#convex/lib/stripe/stripeInvoices";
+import type { StripeInvoiceAmountSummary } from "#convex/lib/stripe/stripeInvoices";
 
 const DEAD_CHECKOUT_STATUSES = ["cancelled", "expired", "abandoned"] as const;
 
@@ -84,27 +79,30 @@ export async function archivePastDeadCheckoutSessionsBatch(
 	};
 }
 
-export function archiveDeadCheckoutBooking(
-	ctx: MutationCtx,
-	bookingId: Id<"bookings">,
+export function mergeDeadCheckoutBookingUpdates(
+	session: Doc<"bookings">,
 	updates: Partial<Doc<"bookings">>,
 	now = Date.now()
-): ResultAsync<null, never> {
-	return getSessionFromDb(ctx, bookingId)
-		.andThen((session) => {
-			const merged: Partial<Doc<"bookings">> = { ...updates };
+): Partial<Doc<"bookings">> {
+	const merged: Partial<Doc<"bookings">> = { ...updates };
 
-			if (updates.status !== undefined && isDeadCheckoutStatus(updates.status)) {
-				const sessionStartAt = merged.sessionStartAt ?? session.sessionStartAt;
+	if (updates.status !== undefined && isDeadCheckoutStatus(updates.status)) {
+		const sessionStartAt = merged.sessionStartAt ?? session.sessionStartAt;
 
-				if (shouldArchiveDeadCheckoutBooking(sessionStartAt, now)) {
-					Object.assign(merged, bookingArchivedPatch());
-				}
-			}
+		if (shouldArchiveDeadCheckoutBooking(sessionStartAt, now)) {
+			Object.assign(merged, bookingArchivedPatch());
+		}
+	}
 
-			return okOrThrow(ctx.db.patch("bookings", bookingId, merged).then(() => null));
-		})
-		.orElse(() => okAsync(null));
+	return merged;
+}
+
+export function patchBookingFields(
+	ctx: MutationCtx,
+	bookingId: Id<"bookings">,
+	updates: Partial<Doc<"bookings">>
+) {
+	return okOrThrow(ctx.db.patch("bookings", bookingId, updates).then(() => null));
 }
 
 export function isSessionEligibleForAutoArchive(
@@ -129,32 +127,6 @@ export function isSessionEligibleForAutoArchive(
 	}
 
 	return true;
-}
-
-export function archiveSessionWhenFullyDone(
-	ctx: MutationCtx,
-	bookingId: Id<"bookings">,
-	now = Date.now()
-): ResultAsync<null, never> {
-	return getSessionFromDb(ctx, bookingId)
-		.andThen((session) =>
-			listStripeInvoicesForBooking(ctx, bookingId).map((invoices) => ({
-				session,
-				stripeSummary: summarizeStripeInvoices(invoices)
-			}))
-		)
-		.andThen(({ session, stripeSummary }) => {
-			if (isBookingArchived(session)) {
-				return okAsync(null);
-			}
-
-			if (!isSessionEligibleForAutoArchive(session, stripeSummary, now)) {
-				return okAsync(null);
-			}
-
-			return setBookingArchived(ctx, bookingId, true);
-		})
-		.orElse(() => okAsync(null));
 }
 
 /** Puts a confirmed session back in the admin inbox when a new unpaid invoice needs attention. */

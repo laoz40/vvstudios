@@ -9,9 +9,9 @@ import {
 	type PermissionActionError
 } from "#convex/services/requirePermissionActions";
 import type { StripeInvoiceBillingUrls } from "#convex/lib/stripe/stripeInvoiceBillingUrls";
-import { getPackageForAction } from "#convex/lib/packages/packageLookup";
+import { getPackageForAction } from "#convex/services/packages/packageLookup";
 import { fromConvexTuple } from "#convex/lib/result";
-import { getSessionFromQuery } from "#convex/lib/sessions/sessionLookup";
+import { getSessionFromQuery } from "#convex/services/sessions/sessionLookup";
 import {
 	createAndSendStripeInvoice,
 	type StripeInvoiceLineItem,

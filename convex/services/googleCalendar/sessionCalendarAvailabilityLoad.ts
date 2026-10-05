@@ -12,12 +12,11 @@ import {
 import { tryPromise } from "#convex/lib/result";
 import {
 	getAvailableTimeOptions,
-	getDateAvailabilityRange,
 	groupBusyDaysByMonth,
 	groupBusyWindowsByDay,
-	type BusyDayWindow,
 	type SessionAvailabilitySettings
 } from "#convex/lib/sessions/sessionCalendarTime";
+import { getDateAvailabilityRange } from "#convex/services/googleCalendar/sessionCalendarTime";
 import { formatDateValue, getLastBookableDate, startOfToday } from "#studio/lib/bookingdatetime";
 
 type IgnoredBusyEvent = { calendarId?: string; eventId?: string };
@@ -132,5 +131,3 @@ export function loadDayBusyWindows({
 			}).map((busyWindows) => ({ busyWindows, timeZone }))
 	);
 }
-
-export type { BusyDayWindow };

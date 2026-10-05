@@ -23,7 +23,7 @@ import {
 	verifySessionCanBeScheduled
 } from "#convex/lib/sessions/sessionAdminEdit";
 import type { SessionReservation } from "#convex/lib/sessions/sessionReservations";
-import { getSessionFromQuery } from "#convex/lib/sessions/sessionLookup";
+import { getSessionFromQuery } from "#convex/services/sessions/sessionLookup";
 import type { CompleteClaimedSessionSuccess } from "#convex/services/booking/bookingConfirmation";
 
 export type CompleteClaimedSessionError =

@@ -4,7 +4,6 @@ import { internal } from "#convex/_generated/api";
 import type { Id } from "#convex/_generated/dataModel";
 import type { MutationCtx } from "#convex/_generated/server";
 import {
-	getPackageAdjustmentInvoice,
 	patchPackageAdjustmentInvoiceEmailClaimed,
 	patchPackageAdjustmentInvoiceEmailFailed,
 	patchPackageAdjustmentInvoiceEmailSent,
@@ -15,7 +14,8 @@ import {
 	type PackageAdjustmentEmailClaim
 } from "#convex/lib/packages/packageAdjustments";
 import { claimPackageAdjustmentInvoicePayment } from "#convex/lib/packages/packageAdjustmentInvoicePayment";
-import { archivePackageWhenFullyDone } from "#convex/lib/packages/packageArchive";
+import { archivePackageWhenFullyDone } from "#convex/services/packages/packageArchive";
+import { getPackageAdjustmentInvoice } from "#convex/services/packages/packageAdjustments";
 import { getPackageFromDb } from "#convex/services/packages/packageLookup";
 import { okOrThrow } from "#convex/lib/result";
 import { recordPackageAdjustmentStripeInvoice } from "#convex/lib/stripe/stripeInvoices";

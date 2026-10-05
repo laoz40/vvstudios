@@ -2,13 +2,13 @@ import { errAsync, okAsync, type ResultAsync as NeverthrowResultAsync } from "ne
 import type { Id } from "#convex/_generated/dataModel";
 import type { QueryCtx } from "#convex/_generated/server";
 import { detectDeliverablesCustomerType } from "#convex/lib/editor/editorSessions";
-import { getDriveStatus } from "#convex/lib/drive/driveStatus";
+import { getDriveStatus } from "#convex/services/drive/driveStatusQuery";
 import {
 	getBookingRow,
-	getSessionFromDb,
 	lookupBookingByStripeSessionId,
 	normalizeBookingId
 } from "#convex/lib/sessions/sessionLookup";
+import { getSessionFromDb } from "#convex/services/sessions/sessionLookup";
 import { requirePermission } from "#convex/services/auth";
 import { buildPublicSessionStatusResponse } from "#convex/services/sessions/sessions";
 

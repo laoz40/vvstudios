@@ -317,23 +317,6 @@ export function getAvailabilityRange(date: string) {
 	};
 }
 
-export function getDateAvailabilityRange(
-	startDate: string,
-	endDate: string,
-	timeZone: string
-): Result<
-	{ timeMax: string; timeMin: string },
-	Exclude<SessionTimeParseError, { reason: "BOOKING_INVALID_DURATION" }>
-> {
-	return getUtcDateForZonedDateTime(getNextDate(endDate), "00:00", timeZone).andThen(
-		(timeMaxDate) =>
-			getUtcDateForZonedDateTime(startDate, "00:00", timeZone).map((timeMinDate) => ({
-				timeMax: timeMaxDate.toISOString(),
-				timeMin: timeMinDate.toISOString()
-			}))
-	);
-}
-
 export function groupBusyWindowsByDay(
 	busyWindows: BusyWindow[],
 	timeZone: string

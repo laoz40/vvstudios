@@ -11,7 +11,7 @@ import {
 	type DriveSetupInfo,
 	type SetupError as LibSetupError
 } from "#convex/lib/drive/sessionFolders/driveSetupInfo";
-import { ensureSessionDriveFolders } from "#convex/lib/drive/sessionFolders/ensureFolders";
+import { ensureSessionDriveFolders } from "#convex/services/drive/ensureSessionDriveFolders";
 import { fromConvexTuple } from "#convex/lib/result";
 import { requireClientDrivePermissionsAndSendAssetsEmail } from "#convex/services/drive/driveClientPermissions";
 import { setupEditorAccess } from "#convex/services/drive/editorDrivePermissions";

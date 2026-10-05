@@ -6,8 +6,8 @@ import {
 	scheduleDeliverablesReviewHostEmail,
 	shouldNotifyHostOfDeliverablesReview
 } from "#convex/lib/editor/deliverablesReviewNotification";
-import { saveSessionEditStatus } from "#convex/lib/editor/editorSessions";
-import { archiveSessionWhenFullyDone } from "#convex/lib/sessions/sessionArchive";
+import { saveSessionEditStatus } from "#convex/services/editor/sessionEditStatus";
+import { archiveSessionWhenFullyDone } from "#convex/services/sessions/sessionArchive";
 
 type DeliverablesEditAccess = { identity: UserIdentity; session: Doc<"bookings"> };
 

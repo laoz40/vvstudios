@@ -33,6 +33,13 @@ export function loadClientAssetsEmailRows(
 	);
 }
 
+export function loadDriveSessionRow(
+	ctx: Pick<QueryCtx, "db">,
+	driveSessionId: Id<"driveSessions">
+) {
+	return okOrThrow(ctx.db.get("driveSessions", driveSessionId));
+}
+
 export function loadDriveSessionRowByBookingId(
 	ctx: Pick<QueryCtx, "db">,
 	bookingId: Id<"bookings">
@@ -68,16 +75,6 @@ export function linkBookingDriveClientFromRow(
 	}
 
 	return patchBookingDriveClientId(ctx, bookingId, driveClientId);
-}
-
-export function linkBookingDriveClient(
-	ctx: MutationCtx,
-	bookingId: Id<"bookings">,
-	driveClientId: Id<"driveClients">
-): ResultAsync<null, LinkBookingDriveClientError> {
-	return loadBookingRow(ctx, bookingId).andThen((booking) =>
-		linkBookingDriveClientFromRow(ctx, booking, bookingId, driveClientId)
-	);
 }
 
 export function syncBookingDriveClientIdFromSessionRows(

@@ -1,4 +1,4 @@
-import { ok, okAsync, ResultAsync } from "neverthrow";
+import { okAsync, type ResultAsync } from "neverthrow";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { QueryCtx } from "#convex/_generated/server";
 import { okOrThrow } from "#convex/lib/result";
@@ -36,78 +36,4 @@ export function loadPackageBookings(ctx: Pick<QueryCtx, "db">, packageId: Id<"pa
 			)
 			.collect()
 	);
-}
-
-export function loadSharedPackageFolder(
-	ctx: QueryCtx,
-	packageId: Id<"packages">,
-	currentBookingId: Id<"bookings">
-): ResultAsync<Doc<"driveSessions">["packageFolder"] | undefined, never> {
-	return loadPackageBookings(ctx, packageId).andThen((packageBookings) =>
-		ResultAsync.combine(
-			packageBookings
-				.filter((packageBooking) => packageBooking._id !== currentBookingId)
-				.map((packageBooking) =>
-					okOrThrow(
-						ctx.db
-							.query("driveSessions")
-							.withIndex("by_bookingId", (query) => query.eq("bookingId", packageBooking._id))
-							.unique()
-					).map((driveSession) => driveSession?.packageFolder)
-				)
-		).map((sharedFolders) => sharedFolders.find((packageFolder) => packageFolder !== undefined))
-	);
-}
-
-export function getDriveSetup(ctx: QueryCtx, bookingId: Id<"bookings">) {
-	return okOrThrow(ctx.db.get("bookings", bookingId)).andThen((booking) => {
-		if (booking === null) return ok(null);
-
-		const driveClientFromBookingResult =
-			booking.driveClientId !== undefined
-				? okOrThrow(ctx.db.get("driveClients", booking.driveClientId))
-				: okAsync<Doc<"driveClients"> | null>(null);
-
-		const driveSessionResult = okOrThrow(
-			ctx.db
-				.query("driveSessions")
-				.withIndex("by_bookingId", (query) => query.eq("bookingId", bookingId))
-				.unique()
-		);
-
-		const packageRecordResult =
-			booking.packageId !== undefined
-				? okOrThrow(ctx.db.get("packages", booking.packageId))
-				: okAsync<Doc<"packages"> | null>(null);
-
-		return driveClientFromBookingResult.andThen((driveClientFromBooking) =>
-			driveSessionResult.andThen((driveSession) =>
-				packageRecordResult.andThen((packageRecord) =>
-					resolveDriveClientForBooking(ctx, driveSession, driveClientFromBooking).andThen(
-						(driveClient) => {
-							if (driveSession?.packageFolder !== undefined || booking.packageId === undefined) {
-								return ok({
-									booking,
-									driveClient,
-									driveSession,
-									packageRecord,
-									sharedPackageFolder: undefined
-								});
-							}
-
-							return loadSharedPackageFolder(ctx, booking.packageId, booking._id).map(
-								(sharedPackageFolder) => ({
-									booking,
-									driveClient,
-									driveSession,
-									packageRecord,
-									sharedPackageFolder
-								})
-							);
-						}
-					)
-				)
-			)
-		);
-	});
 }

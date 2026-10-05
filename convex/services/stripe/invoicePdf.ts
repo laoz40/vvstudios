@@ -13,9 +13,9 @@ import {
 	renderBookingInvoicePdfInNode,
 	renderBookingReceiptPdfInNode
 } from "#convex/lib/booking/bookingInvoicePdfRender";
-import { getPackageForAction } from "#convex/lib/packages/packageLookup";
+import { getPackageForAction } from "#convex/services/packages/packageLookup";
 import { okOrThrow } from "#convex/lib/result";
-import { getSessionFromQuery } from "#convex/lib/sessions/sessionLookup";
+import { getSessionFromQuery } from "#convex/services/sessions/sessionLookup";
 import {
 	toInvoicePdfPayload,
 	validateBookingInvoiceDownload,

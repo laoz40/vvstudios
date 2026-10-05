@@ -1,4 +1,5 @@
 import { err, ok } from "neverthrow";
+import type { Id } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
 import {
 	DEFAULT_BOOKING_AVAILABILITY_SETTINGS,
@@ -74,21 +75,26 @@ export function validateBookingSettings(settings: BookingAvailabilitySettings) {
 	return ok(settings);
 }
 
-export function writeBookingAvailabilitySettingsRow(
-	ctx: MutationCtx,
-	settings: BookingAvailabilitySettings,
-	updatedBy: string
-) {
-	const value = { ...settings, key: "main" as const, updatedAt: Date.now(), updatedBy };
-
+export function lookupBookingAvailabilitySettingsRow(ctx: MutationCtx) {
 	return okOrThrow(
 		ctx.db
 			.query("bookingSettings")
 			.withIndex("by_key", (indexQuery) => indexQuery.eq("key", "main"))
 			.unique()
-	).andThen((existing) =>
-		existing
-			? okOrThrow(ctx.db.patch("bookingSettings", existing._id, value).then(() => null))
-			: okOrThrow(ctx.db.insert("bookingSettings", value).then(() => null))
 	);
+}
+
+export function patchBookingAvailabilitySettingsRow(
+	ctx: MutationCtx,
+	settingsRowId: Id<"bookingSettings">,
+	value: BookingAvailabilitySettings & { key: "main"; updatedAt: number; updatedBy: string }
+) {
+	return okOrThrow(ctx.db.patch("bookingSettings", settingsRowId, value).then(() => null));
+}
+
+export function insertBookingAvailabilitySettingsRow(
+	ctx: MutationCtx,
+	value: BookingAvailabilitySettings & { key: "main"; updatedAt: number; updatedBy: string }
+) {
+	return okOrThrow(ctx.db.insert("bookingSettings", value).then(() => null));
 }

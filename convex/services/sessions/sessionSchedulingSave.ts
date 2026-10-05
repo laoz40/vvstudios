@@ -22,7 +22,7 @@ import {
 	requirePackageSessionForReschedule,
 	requireSessionReservation
 } from "#convex/lib/sessions/sessionSchedulingSave";
-import { getSessionFromDb } from "#convex/lib/sessions/sessionLookup";
+import { getSessionFromDb } from "#convex/services/sessions/sessionLookup";
 
 /** Loaded booking + computed patch + flags, before any write. */
 export type ResolvedAdminSessionUpdate = {
