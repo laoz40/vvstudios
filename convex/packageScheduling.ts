@@ -16,16 +16,14 @@ import {
 import { SERVICES } from "#studio/features/booking-form/lib/booking-form-model";
 import { getCapacityConsumingPackageSessions } from "#convex/lib/packages/packageScheduling";
 import { getValidPackageByToken as findValidPackageByToken } from "#convex/lib/packages/packageLookup";
+import { processPackageAdjustment } from "#convex/lib/packages/packageAdjustments";
+import { archivePackageWhenFullyDone } from "#convex/lib/packages/packageArchive";
+import { okOrThrow } from "#convex/lib/result";
 import { buildPackageTokenCustomerView } from "#convex/lib/packages/packageTokenView";
 import {
 	cancelPackageSessionBooking,
 	loadPackageSessionOwnedByToken
 } from "#convex/services/packages/packageSessionCancelWorkflow";
-import {
-	processPackageAdjustmentAtExpiryService,
-	processPackageAdjustmentWhenSessionsCompleteService,
-	setPackageDefaultSpaceService
-} from "#convex/services/packages/packageScheduling";
 import {
 	rejectFullPackageAndParseSessionStartTime,
 	rejectPackageCreateWhenUnavailableOrFull,
@@ -69,7 +67,16 @@ const recordingSpaceValidator = v.union(...SERVICES.map((service) => v.literal(s
 
 export const setDefaultSpace = mutation({
 	args: { service: recordingSpaceValidator, token: v.string() },
-	handler: (ctx, args) => setPackageDefaultSpaceService(ctx, args).match(tupleOk, tupleErr)
+	handler: (ctx, args) =>
+		findValidPackageByToken(ctx, args.token, Date.now())
+			.andThen((packageRecord) =>
+				okOrThrow(
+					ctx.db
+						.patch("packages", packageRecord._id, { defaultSpace: args.service })
+						.then(() => ({ defaultSpace: args.service }))
+				)
+			)
+			.match(tupleOk, tupleErr)
 });
 
 const packageSessionInput = {
@@ -149,12 +156,18 @@ export const getValidPackageByToken = internalQuery({
 
 export const processPackageAdjustmentAtExpiry = internalMutation({
 	args: { packageId: v.id("packages"), expectedExpiresAt: v.number() },
-	handler: (ctx, args) => processPackageAdjustmentAtExpiryService(ctx, args)
+	handler: async (ctx, args) => {
+		await processPackageAdjustment(ctx, { ...args, trigger: "package_expired" });
+		await archivePackageWhenFullyDone(ctx, args.packageId);
+	}
 });
 
 export const processPackageAdjustmentWhenSessionsComplete = internalMutation({
 	args: { packageId: v.id("packages") },
-	handler: (ctx, args) => processPackageAdjustmentWhenSessionsCompleteService(ctx, args)
+	handler: async (ctx, args) => {
+		await processPackageAdjustment(ctx, { ...args, trigger: "all_sessions_completed" });
+		await archivePackageWhenFullyDone(ctx, args.packageId);
+	}
 });
 
 const requestArgs = { token: v.string(), date: v.string(), time: v.string(), now: v.number() };

@@ -1,5 +1,6 @@
 import { paginationOptsValidator } from "convex/server";
 import { ConvexError, v } from "convex/values";
+import { err, errAsync, ok, ResultAsync } from "neverthrow";
 import { tupleErr, tupleOk } from "#/lib/result";
 import {
 	detectDeliverablesCustomerType as detectCustomerType,
@@ -15,7 +16,17 @@ import {
 	saveSessionAdminNotes,
 	saveSessionEditorNotes
 } from "#convex/lib/editor/editorSessions";
+import {
+	buildActiveEditorProjection,
+	listActiveEditorProfiles
+} from "#convex/lib/editor/editorAssignments";
+import {
+	buildEditorSessionProjection,
+	isEditorVisibleSession
+} from "#convex/lib/editor/editorSessions";
+import { getEditorSessionDriveFolders } from "#convex/lib/drive/driveStatus";
 import { getDriveStatus as loadDriveStatusForBooking } from "#convex/lib/drive/driveStatus";
+import { okOrThrow } from "#convex/lib/result";
 import { archiveDeadCheckoutBooking } from "#convex/lib/sessions/sessionArchive";
 import { getSessionByStripeSessionId, getSessionFromDb } from "#convex/lib/sessions/sessionLookup";
 import { requirePermission } from "#convex/services/auth";
@@ -23,9 +34,6 @@ import { runArchivePastDeadCheckoutBatch } from "#convex/services/sessions/sessi
 import { writeSessionEditStatusWithHostNotification } from "#convex/services/sessions/sessionDeliverablesWorkflow";
 import {
 	buildPublicSessionStatusResponse,
-	getPublicRescheduleCompleteSessionService,
-	listActiveEditorsService,
-	listEditorSessionsService,
 	listSessionsService,
 	requireConfirmedBookingSession,
 	writeSessionInstagramHandle
@@ -82,30 +90,73 @@ export const listSessions = query({
 export const listActiveEditors = query({
 	args: {},
 	handler: (ctx) =>
-		listActiveEditorsService(ctx).match(
-			(editors) => editors,
-			(error) => {
-				throw new ConvexError(error);
-			}
-		)
+		requirePermission(ctx, "assign:session-editor")
+			.andThen(() => listActiveEditorProfiles(ctx))
+			.andThen((editors) =>
+				ResultAsync.combine(editors.map((editor) => buildActiveEditorProjection(ctx, editor)))
+			)
+			.match(
+				(editors) => editors,
+				(error) => {
+					throw new ConvexError(error);
+				}
+			)
 });
 
 export const listEditorSessions = query({
 	args: { paginationOpts: paginationOptsValidator },
 	// Paginated queries must return Convex's native page shape, so authorization errors throw.
 	handler: (ctx, args) =>
-		listEditorSessionsService(ctx, args).match(
-			(sessionsPage) => sessionsPage,
-			(error) => {
-				throw new ConvexError(error);
-			}
-		)
+		requirePermission(ctx, "view:sessions")
+			.andThen((identity) =>
+				okOrThrow(
+					ctx.db
+						.query("bookings")
+						.withIndex("by_assignedEditorTokenIdentifier_and_driveClientId", (indexQuery) =>
+							indexQuery.eq("assignedEditorTokenIdentifier", identity.tokenIdentifier)
+						)
+						.order("desc")
+						.paginate(args.paginationOpts)
+				)
+			)
+			.andThen((bookingsPage) => {
+				const visibleSessions = bookingsPage.page.filter(isEditorVisibleSession);
+
+				return ResultAsync.combine(
+					visibleSessions.map((session) =>
+						ResultAsync.fromPromise(getEditorSessionDriveFolders(ctx, session), () => null).map(
+							(driveFolders) => buildEditorSessionProjection(session, driveFolders)
+						)
+					)
+				).map((page) => ({ ...bookingsPage, page }));
+			})
+			.match(
+				(sessionsPage) => sessionsPage,
+				(error) => {
+					throw new ConvexError(error);
+				}
+			)
 });
 
 export const getPublicRescheduleCompleteSession = query({
 	args: { bookingId: v.string() },
-	handler: (ctx, args) =>
-		getPublicRescheduleCompleteSessionService(ctx, args).match(tupleOk, tupleErr)
+	handler: (ctx, args) => {
+		const bookingId = ctx.db.normalizeId("bookings", args.bookingId);
+
+		if (bookingId === null) {
+			return errAsync({ reason: "BOOKING_NOT_FOUND" as const }).match(tupleOk, tupleErr);
+		}
+
+		return okOrThrow(ctx.db.get("bookings", bookingId))
+			.andThen((session) => {
+				if (!session) {
+					return err({ reason: "BOOKING_NOT_FOUND" as const });
+				}
+
+				return ok(buildPublicSessionStatusResponse(session));
+			})
+			.match(tupleOk, tupleErr);
+	}
 });
 
 export const getSessionStatusByStripeSessionId = query({

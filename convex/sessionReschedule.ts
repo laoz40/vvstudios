@@ -1,16 +1,19 @@
 import { v } from "convex/values";
+import { ResultAsync } from "neverthrow";
 import { tupleErr, tupleOk } from "#/lib/result";
 import { internalMutation, internalQuery, mutation, query } from "#convex/_generated/server";
-import { getSessionByStripeSessionId } from "#convex/lib/sessions/sessionLookup";
-import { validatePublicFailedSessionForReschedule } from "#convex/lib/sessions/sessionRescheduleLinks";
+import { getSessionByStripeSessionId, getSessionFromDb } from "#convex/lib/sessions/sessionLookup";
 import {
-	createActiveRescheduleLinkService,
-	createAdminRescheduleLink as createAdminRescheduleLinkService,
-	getValidRescheduleLinkAndSessionService,
+	createActiveRescheduleLinkForSession,
+	markExistingActiveSessionRescheduleLinksUsed,
+	validatePublicFailedSessionForReschedule
+} from "#convex/lib/sessions/sessionRescheduleLinks";
+import {
 	issueRescheduleLink,
-	lockRescheduleLinkService,
-	markActiveRescheduleLinksUsedForSessionService,
-	unlockRescheduleLinkService
+	loadValidRescheduleLinkAndSession,
+	lockRescheduleLinkAt,
+	reopenRescheduleLink,
+	writeAdminRescheduleLink
 } from "#convex/services/sessions/sessionReschedule";
 
 export type { RescheduleLinkLookupError } from "#convex/services/sessions/sessionReschedule";
@@ -26,14 +29,13 @@ export const createPublicFailedSessionRescheduleLink = mutation({
 
 export const createAdminRescheduleLink = mutation({
 	args: { bookingId: v.id("bookings") },
-	handler: async (ctx, args) =>
-		await createAdminRescheduleLinkService(ctx, args).match(tupleOk, tupleErr)
+	handler: async (ctx, args) => await writeAdminRescheduleLink(ctx, args).match(tupleOk, tupleErr)
 });
 
 export const getRescheduleSessionByToken = query({
 	args: { token: v.string() },
 	handler: async (ctx, args) =>
-		await getValidRescheduleLinkAndSessionService(ctx, { now: Date.now(), token: args.token })
+		await loadValidRescheduleLinkAndSession(ctx, { now: Date.now(), token: args.token })
 			.map(({ session, link }) => ({
 				session: {
 					date: session.date,
@@ -51,19 +53,39 @@ export const getRescheduleSessionByToken = query({
 export const getValidRescheduleLinkAndSession = internalQuery({
 	args: { token: v.string(), now: v.number() },
 	handler: async (ctx, args) =>
-		await getValidRescheduleLinkAndSessionService(ctx, args).match(tupleOk, tupleErr)
+		await loadValidRescheduleLinkAndSession(ctx, args).match(tupleOk, tupleErr)
 });
 
 export const createActiveRescheduleLink = internalMutation({
 	args: { bookingId: v.id("bookings"), expiresAt: v.number(), now: v.number() },
 	handler: async (ctx, args) =>
-		await createActiveRescheduleLinkService(ctx, args).match(tupleOk, tupleErr)
+		await getSessionFromDb(ctx, args.bookingId)
+			.andThen((session) =>
+				createActiveRescheduleLinkForSession({
+					session,
+					ctx,
+					expiresAt: args.expiresAt,
+					now: args.now
+				})
+			)
+			.match(tupleOk, tupleErr)
 });
 
 export const markActiveRescheduleLinksUsedForSession = internalMutation({
 	args: { bookingId: v.id("bookings"), now: v.number() },
 	handler: async (ctx, args) =>
-		await markActiveRescheduleLinksUsedForSessionService(ctx, args).match(tupleOk, tupleErr)
+		await getSessionFromDb(ctx, args.bookingId)
+			.andThen(() =>
+				ResultAsync.fromPromise(
+					markExistingActiveSessionRescheduleLinksUsed({
+						ctx,
+						bookingId: args.bookingId,
+						now: args.now
+					}),
+					() => ({ reason: "RESCHEDULE_LINK_UPDATE_FAILED" as const })
+				).map(() => null)
+			)
+			.match(tupleOk, tupleErr)
 });
 
 export const unlockRescheduleLink = internalMutation({
@@ -72,11 +94,10 @@ export const unlockRescheduleLink = internalMutation({
 		lockedAt: v.number(),
 		expiresAt: v.optional(v.number())
 	},
-	handler: async (ctx, args) =>
-		await unlockRescheduleLinkService(ctx, args).match(tupleOk, tupleErr)
+	handler: async (ctx, args) => await reopenRescheduleLink(ctx, args).match(tupleOk, tupleErr)
 });
 
 export const lockRescheduleLink = internalMutation({
 	args: { linkId: v.id("bookingRescheduleLinks"), now: v.number() },
-	handler: async (ctx, args) => await lockRescheduleLinkService(ctx, args).match(tupleOk, tupleErr)
+	handler: async (ctx, args) => await lockRescheduleLinkAt(ctx, args).match(tupleOk, tupleErr)
 });
