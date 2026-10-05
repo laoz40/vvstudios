@@ -17,7 +17,7 @@ import {
 	loadGoogleCalendarClient
 } from "#convex/lib/googleCalendar/googleCalendarClient";
 import { calendarResultAsync } from "#convex/lib/googleCalendar/googleCalendarErrors";
-import { deleteSessionCalendarEvent } from "#convex/lib/sessions/sessionCalendarEvents";
+import { deleteSessionCalendarEvent } from "#convex/services/googleCalendar/sessionCalendarEventWorkflow";
 import { getSessionFromQuery } from "#convex/lib/sessions/sessionLookup";
 import { checkGoogleCalendarAvailabilityRateLimit } from "#convex/lib/rateLimits";
 import { fromConvexTuple } from "#convex/lib/result";

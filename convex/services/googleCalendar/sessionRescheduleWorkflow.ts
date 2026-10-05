@@ -17,7 +17,7 @@ import {
 	unlockRescheduleLink,
 	type ValidRescheduleDetails
 } from "#convex/lib/sessions/sessionCalendarActionBoundaries";
-import { updateSessionTimingWithGoogleCalendar } from "#convex/lib/sessions/sessionAdminGoogleCalendarUpdate";
+import { updateSessionTimingWithGoogleCalendar } from "#convex/services/googleCalendar/sessionCalendarTimingSync";
 import {
 	getSessionStartAt,
 	validateSessionTimingEdit

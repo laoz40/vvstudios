@@ -12,7 +12,7 @@ import {
 import {
 	updateSessionTimingWithGoogleCalendar,
 	type AdminSessionGoogleCalendarClient
-} from "#convex/lib/sessions/sessionAdminGoogleCalendarUpdate";
+} from "#convex/services/googleCalendar/sessionCalendarTimingSync";
 import {
 	calendarErrorSchema,
 	calendarResultAsync,
@@ -21,10 +21,8 @@ import {
 import { tryPromise } from "#convex/lib/result";
 import type { SaveAdminSessionUpdateArgs } from "#convex/lib/sessions/sessionSchedulingArgs";
 import { pickBookingAddonQuantities } from "#studio/features/booking-form/lib/booking-form-model";
-import {
-	buildSessionCalendarEventPayload,
-	removeOrphanedSessionCalendarEvent
-} from "#convex/lib/sessions/sessionCalendarEvents";
+import { removeOrphanedSessionCalendarEvent } from "#convex/lib/googleCalendar/googleCalendarEventCalls";
+import { buildSessionCalendarEventPayload } from "#convex/lib/sessions/sessionCalendarEventPayload";
 import type { SessionAvailabilitySettings } from "#convex/lib/sessions/sessionCalendarTime";
 import type { SessionReservation } from "#convex/lib/sessions/sessionReservations";
 import {

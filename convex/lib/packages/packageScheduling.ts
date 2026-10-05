@@ -8,7 +8,7 @@ import type {
 import { checkSessionMeetsAvailabilitySettings } from "#convex/lib/sessions/sessionCalendarTime";
 import type { GoogleCalendarWriteError } from "#convex/lib/googleCalendar/googleCalendarErrors";
 import type { BookingSubmitRateLimitError } from "#convex/lib/rateLimits";
-import type { SessionCalendarEventRecord } from "#convex/lib/sessions/sessionCalendarEvents";
+import type { SessionCalendarEventRecord } from "#convex/lib/sessions/sessionCalendarEventPayload";
 import {
 	getPackageSessionAddons,
 	isDurationOption,

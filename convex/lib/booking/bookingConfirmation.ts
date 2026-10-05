@@ -9,7 +9,7 @@ import { sendBookingReceiptEmailsForBooking } from "#convex/lib/booking/bookingD
 import { sendSessionReminderEmail } from "#convex/lib/email/email";
 import { pickBookingAddonQuantities } from "#studio/features/booking-form/lib/booking-form-model";
 import { getGoogleCalendarClient } from "#convex/lib/googleCalendar/googleCalendarClient";
-import { removeOrphanedSessionCalendarEvent } from "#convex/lib/sessions/sessionCalendarEvents";
+import { removeOrphanedSessionCalendarEvent } from "#convex/lib/googleCalendar/googleCalendarEventCalls";
 import {
 	buildEventWindow,
 	type SessionAvailabilitySettings

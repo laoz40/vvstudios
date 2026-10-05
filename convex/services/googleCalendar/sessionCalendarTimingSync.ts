@@ -1,11 +1,14 @@
+"use node";
+
 import type { calendar_v3 } from "googleapis/build/src/apis/calendar/v3";
-import { ResultAsync } from "neverthrow";
+import type { ResultAsync } from "neverthrow";
 import type { Doc } from "#convex/_generated/dataModel";
+import type { SessionCalendarEventDetails } from "#convex/lib/sessions/sessionCalendarEventPayload";
 import {
 	updateSessionCalendarEventTiming,
-	type SessionCalendarEventDetails,
-	type SessionCalendarTimingUpdateResult
-} from "#convex/lib/sessions/sessionCalendarEvents";
+	type SessionCalendarTimingUpdateResult,
+	type SessionCalendarTimingUpdateError
+} from "#convex/services/googleCalendar/sessionCalendarEventWorkflow";
 import type { SessionAvailabilitySettings } from "#convex/lib/sessions/sessionCalendarTime";
 import {
 	getSessionStartAt,
@@ -44,7 +47,7 @@ export function updateSessionTimingWithGoogleCalendar({
 	time: string;
 }): ResultAsync<
 	SessionCalendarTimingUpdateResult & { sessionStartAt: number },
-	AdminSessionUpdateError
+	AdminSessionUpdateError | SessionCalendarTimingUpdateError
 > {
 	return getSessionStartAt(date, time, client.timeZone).asyncAndThen((sessionStartAt) =>
 		validateSessionTimingEdit({
@@ -75,3 +78,5 @@ export function updateSessionTimingWithGoogleCalendar({
 			.map((calendarUpdate) => ({ ...calendarUpdate, sessionStartAt }))
 	);
 }
+
+export type { SessionCalendarTimingUpdateResult };
