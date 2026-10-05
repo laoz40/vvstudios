@@ -9,8 +9,14 @@ import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { BookingAddonQuantitiesArgs } from "#convex/lib/booking/bookingAddonQuantities";
 import type { BookingAddon } from "#studio/features/booking-form/lib/booking-form-model";
 import { getPackageUpdateValidationError } from "#convex/lib/packages/packageScheduling";
-import { buildPackageSearchBlob } from "#convex/lib/adminSearch/adminSearchBlob";
+import {
+	buildPackageSearchBlob,
+	patchPackageSessionBookingsContactSearch,
+	searchBlobPatchForPackage
+} from "#convex/lib/adminSearch/adminSearchBlob";
 import { normalizePhone } from "#convex/lib/contactNormalization";
+import type { MutationCtx } from "#convex/_generated/server";
+import { okOrThrow } from "#convex/lib/result";
 
 export type CreatePendingPackageArgs = {
 	name: string;
@@ -238,4 +244,29 @@ export function buildPackageUpdatePatch(args: UpdatePackageArgs, updatedPackage:
 	}
 
 	return patch;
+}
+
+export function patchPackageInstagramHandle(
+	ctx: MutationCtx,
+	args: { packageFromDb: Doc<"packages">; instagramHandle: string }
+) {
+	return okOrThrow(
+		ctx.db
+			.patch("packages", args.packageFromDb._id, {
+				instagramHandle: args.instagramHandle,
+				...searchBlobPatchForPackage(args.packageFromDb, { instagramHandle: args.instagramHandle })
+			})
+			.then(async () => {
+				await patchPackageSessionBookingsContactSearch(ctx, args.packageFromDb._id, {
+					name: args.packageFromDb.name,
+					phone: args.packageFromDb.phone,
+					accountName: args.packageFromDb.accountName,
+					abn: args.packageFromDb.abn,
+					email: args.packageFromDb.email,
+					instagramHandle: args.instagramHandle
+				});
+
+				return null;
+			})
+	);
 }

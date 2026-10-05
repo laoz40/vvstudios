@@ -3,6 +3,10 @@ import { v } from "convex/values";
 import { tupleErr, tupleOk } from "#/lib/result";
 import { internalMutation, internalQuery, mutation, query } from "#convex/_generated/server";
 import {
+	bookingAddonQuantitiesValidator,
+	bookingAddonsValidator
+} from "#convex/services/booking/bookingFormValidators";
+import {
 	archivePackageFromAdmin,
 	loadAdminPackageUpdateValidation,
 	writeAdminPackageFields
@@ -11,18 +15,21 @@ import { listAdminPackagesPage } from "#convex/services/packages/packageAdminQue
 import {
 	enforcePackageSubmitRateLimit,
 	insertPendingPackageRecord,
+	loadPackageEligibleForInstagramUpdate,
+	loadPackageRowById,
 	markPackagePaidWithScheduleToken,
-	readPackageRowById,
 	refreshPaidPackageScheduleToken,
-	writePackageInstagramHandle,
+	savePackageInstagramHandle as applyPackageInstagramHandleUpdate,
 	writePackageReceiptEmailAttempt,
 	writePackageScheduleEmailAttempt
 } from "#convex/services/packages/packageInternalMutationWorkflow";
-import {
-	bookingAddonQuantitiesValidator,
-	bookingAddonsValidator,
-	packageInvoiceLineItemValidator
-} from "#convex/services/packages/packageValidators";
+
+const packageInvoiceLineItemValidator = v.object({
+	amount: v.number(),
+	description: v.string(),
+	quantity: v.number(),
+	rate: v.number()
+});
 
 export const checkPackageSubmitRateLimit = internalMutation({
 	args: { submitRateLimitKey: v.string() },
@@ -117,10 +124,22 @@ export const markPackageReceiptEmailAttempt = internalMutation({
 
 export const savePackageInstagramHandle = mutation({
 	args: { packageId: v.id("packages"), instagramHandle: v.string() },
-	handler: (ctx, args) => writePackageInstagramHandle(ctx, args).match(tupleOk, tupleErr)
+	handler: (ctx, args) =>
+		loadPackageEligibleForInstagramUpdate(ctx, args.packageId)
+			.andThen((packageFromDb) =>
+				applyPackageInstagramHandleUpdate(ctx, {
+					packageFromDb,
+					instagramHandle: args.instagramHandle
+				})
+			)
+			.match(tupleOk, tupleErr)
 });
 
 export const getPackageById = internalQuery({
 	args: { packageId: v.id("packages") },
-	handler: (ctx, args) => readPackageRowById(ctx, args.packageId)
+	handler: (ctx, args) =>
+		loadPackageRowById(ctx, args.packageId).match(
+			(packageFromDb) => packageFromDb,
+			() => null
+		)
 });

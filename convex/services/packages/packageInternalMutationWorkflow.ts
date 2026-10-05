@@ -2,7 +2,6 @@ import { err, ok, type ResultAsync } from "neverthrow";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
 import {
-	patchPackageSessionBookingsContactSearch,
 	searchBlobPatchForBooking,
 	searchBlobPatchForPackage
 } from "#convex/lib/adminSearch/adminSearchBlob";
@@ -22,7 +21,8 @@ import {
 } from "#convex/lib/packages/packageScheduling";
 import {
 	buildPendingPackageRecord,
-	type CreatePendingPackageArgs
+	type CreatePendingPackageArgs,
+	patchPackageInstagramHandle
 } from "#convex/lib/packages/packageUpdates";
 import { okOrThrow } from "#convex/lib/result";
 
@@ -167,44 +167,23 @@ export function writePackageReceiptEmailAttempt(
 	});
 }
 
-export function writePackageInstagramHandle(
-	ctx: MutationCtx,
-	args: { packageId: Id<"packages">; instagramHandle: string }
-) {
-	return getPackageFromDb(ctx, args.packageId)
-		.andThen((packageFromDb) => {
-			if (packageFromDb.status !== "pending_payment" && packageFromDb.status !== "paid") {
-				return err({ reason: "PACKAGE_NOT_ACTIVE" as const });
-			}
+export function loadPackageEligibleForInstagramUpdate(ctx: MutationCtx, packageId: Id<"packages">) {
+	return getPackageFromDb(ctx, packageId).andThen((packageFromDb) => {
+		if (packageFromDb.status !== "pending_payment" && packageFromDb.status !== "paid") {
+			return err({ reason: "PACKAGE_NOT_ACTIVE" as const });
+		}
 
-			return ok(packageFromDb);
-		})
-		.andThen((packageFromDb) =>
-			okOrThrow(
-				ctx.db
-					.patch("packages", packageFromDb._id, {
-						instagramHandle: args.instagramHandle,
-						...searchBlobPatchForPackage(packageFromDb, { instagramHandle: args.instagramHandle })
-					})
-					.then(async () => {
-						await patchPackageSessionBookingsContactSearch(ctx, packageFromDb._id, {
-							name: packageFromDb.name,
-							phone: packageFromDb.phone,
-							accountName: packageFromDb.accountName,
-							abn: packageFromDb.abn,
-							email: packageFromDb.email,
-							instagramHandle: args.instagramHandle
-						});
-
-						return null;
-					})
-			)
-		);
+		return ok(packageFromDb);
+	});
 }
 
-export async function readPackageRowById(
-	ctx: QueryCtx,
-	packageId: Id<"packages">
-): Promise<Doc<"packages"> | null> {
-	return await ctx.db.get("packages", packageId);
+export function savePackageInstagramHandle(
+	ctx: MutationCtx,
+	args: { packageFromDb: Doc<"packages">; instagramHandle: string }
+) {
+	return patchPackageInstagramHandle(ctx, args);
+}
+
+export function loadPackageRowById(ctx: QueryCtx, packageId: Id<"packages">) {
+	return getPackageFromDb(ctx, packageId);
 }
