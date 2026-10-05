@@ -90,7 +90,7 @@ export function applySessionPatch(
 	);
 }
 
-export function persistSessionPatchWithDriveSetup(args: {
+export function writeSessionBookingPatchWithDriveSetup(args: {
 	ctx: MutationCtx;
 	bookingId: Id<"bookings">;
 	booking: Doc<"bookings">;

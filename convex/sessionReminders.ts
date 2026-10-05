@@ -1,33 +1,25 @@
+import type { Doc } from "#convex/_generated/dataModel";
 import { v } from "convex/values";
 import { tupleErr, tupleOk } from "#/lib/result";
 import { internal } from "#convex/_generated/api";
 import { internalAction, internalMutation, internalQuery } from "#convex/_generated/server";
-import {
-	getTomorrowTimeZoneDayRange,
-	REMINDER_BATCH_SIZE,
-	REMINDER_TIME_ZONE
-} from "#convex/lib/reminderScheduleTime";
+import { REMINDER_BATCH_SIZE } from "#convex/lib/reminderScheduleTime";
 import { sendDuePackageReminders } from "#convex/packageReminders";
 import {
 	claimSessionReminderEmail,
+	getTomorrowSessionReminderWindow,
+	listConfirmedSessionsDueForReminderEmail,
 	writeSessionReminderEmailFailed,
 	writeSessionReminderEmailSent
 } from "#convex/services/sessions/sessionReminderMutationWorkflow";
 
 export const listSessionsDueForReminderEmail = internalQuery({
 	args: { dayStart: v.number(), dayEnd: v.number(), limit: v.optional(v.number()) },
-	handler: async (ctx, args) => {
-		return await ctx.db
-			.query("bookings")
-			.withIndex("by_status_and_reminderEmailSentAt_and_sessionStartAt", (indexQuery) =>
-				indexQuery
-					.eq("status", "confirmed")
-					.eq("reminderEmailSentAt", undefined)
-					.gte("sessionStartAt", args.dayStart)
-					.lt("sessionStartAt", args.dayEnd)
-			)
-			.take(args.limit ?? REMINDER_BATCH_SIZE);
-	}
+	handler: async (ctx, args) =>
+		await listConfirmedSessionsDueForReminderEmail(ctx, args).match(
+			(bookings) => bookings,
+			() => []
+		)
 });
 
 export const claimReminder = internalMutation({
@@ -51,7 +43,7 @@ export const sendDueReminders = internalAction({
 		const nowDate = new Date();
 		await sendDuePackageReminders(ctx, nowDate);
 
-		const { dayEnd, dayStart } = getTomorrowTimeZoneDayRange(nowDate, REMINDER_TIME_ZONE);
+		const { dayEnd, dayStart } = getTomorrowSessionReminderWindow(nowDate);
 
 		const bookings = await ctx.runQuery(internal.sessionReminders.listSessionsDueForReminderEmail, {
 			dayEnd,
@@ -59,9 +51,8 @@ export const sendDueReminders = internalAction({
 			limit: REMINDER_BATCH_SIZE
 		});
 
-		// Reminders are non-critical, so isolate each booking to ensure one failure does not block the rest.
 		await Promise.all(
-			bookings.map(async (booking) => {
+			bookings.map(async (booking: Doc<"bookings">) => {
 				try {
 					await ctx.runAction(internal.googleCalendar.sendSessionReminderEmail, {
 						bookingId: booking._id

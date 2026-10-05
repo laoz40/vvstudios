@@ -1,6 +1,7 @@
 "use node";
 
 import { err, ok, okAsync, type Result, type ResultAsync } from "neverthrow";
+import { loadBookingAvailabilitySettings } from "#convex/lib/booking/bookingConfirmationActionBoundaries";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { ActionCtx } from "#convex/_generated/server";
 import { reserveClaimedBookingSession } from "#convex/lib/booking/bookingConfirmationActionBoundaries";
@@ -217,4 +218,52 @@ export function saveConfirmedClaimedBookingAndSendInvoice(
 			}));
 		}
 	);
+}
+
+export function runCompleteClaimedSession(
+	ctx: ActionCtx,
+	bookingId: Id<"bookings">
+): ResultAsync<CompleteClaimedSessionSuccess, CompleteClaimedSessionError> {
+	return loadClaimedSession(ctx, bookingId).andThen((loaded) => {
+		if (loaded.kind === "done") {
+			return okAsync(loaded.outcome);
+		}
+
+		const session = loaded.session;
+		const calendarClient = getGoogleCalendarClient();
+
+		return loadBookingAvailabilitySettings(ctx).andThen((settings) =>
+			verifyClaimedBookingSchedule(ctx, session, settings, calendarClient).andThen((schedule) => {
+				if (schedule.kind === "done") {
+					return okAsync(schedule.outcome);
+				}
+
+				return reserveClaimedBookingSlot(ctx, session, settings).andThen((hold) => {
+					if (hold.kind === "done") {
+						return okAsync(hold.outcome);
+					}
+
+					return createClaimedBookingCalendarEvent(
+						ctx,
+						session,
+						calendarClient,
+						hold.reservation
+					).andThen((calendar) => {
+						if (calendar.kind === "done") {
+							return okAsync(calendar.outcome);
+						}
+
+						return saveConfirmedClaimedBookingAndSendInvoice(
+							ctx,
+							session,
+							settings,
+							calendarClient,
+							hold.reservation,
+							calendar.googleEventId
+						);
+					});
+				});
+			})
+		);
+	});
 }

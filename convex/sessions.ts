@@ -1,69 +1,54 @@
 import { paginationOptsValidator } from "convex/server";
-import { ConvexError, v } from "convex/values";
-import { err, errAsync, ok, ResultAsync } from "neverthrow";
+import { v } from "convex/values";
 import { tupleErr, tupleOk } from "#/lib/result";
-import {
-	detectDeliverablesCustomerType as detectCustomerType,
-	detectDeliverablesCustomerType as resolveDeliverablesCustomerType
-} from "#convex/lib/editor/editorSessions";
 import { loadSessionForDeliverables } from "#convex/services/editor/loadSessionForDeliverables";
 import { internalMutation, internalQuery, mutation, query } from "#convex/_generated/server";
-import { setBookingArchived } from "#convex/lib/archiveState";
-import { updateSessionEditorAssignment } from "#convex/lib/editor/editorAssignments";
-import {
-	requireDeliverablesEligibility,
-	requireDeliverablesOwnership,
-	saveSessionAdminNotes,
-	saveSessionEditorNotes
-} from "#convex/lib/editor/editorSessions";
-import {
-	buildActiveEditorProjection,
-	listActiveEditorProfiles
-} from "#convex/lib/editor/editorAssignments";
-import {
-	buildEditorSessionProjection,
-	isEditorVisibleSession
-} from "#convex/lib/editor/editorSessions";
-import { getEditorSessionDriveFolders } from "#convex/lib/drive/driveStatus";
-import { getDriveStatus as loadDriveStatusForBooking } from "#convex/lib/drive/driveStatus";
-import { okOrThrow } from "#convex/lib/result";
-import { archiveDeadCheckoutBooking } from "#convex/lib/sessions/sessionArchive";
-import { getSessionByStripeSessionId, getSessionFromDb } from "#convex/lib/sessions/sessionLookup";
 import { requirePermission } from "#convex/services/auth";
 import { runArchivePastDeadCheckoutBatch } from "#convex/services/sessions/sessionArchiveWorkflow";
-import { writeSessionEditStatusWithHostNotification } from "#convex/services/sessions/sessionDeliverablesWorkflow";
+import { listSessionsService } from "#convex/services/sessions/sessions";
 import {
-	buildPublicSessionStatusResponse,
-	listSessionsService,
-	requireConfirmedBookingSession,
-	writeSessionInstagramHandle
-} from "#convex/services/sessions/sessions";
+	listActiveEditorsForAdmin,
+	listEditorSessionsForAssignee,
+	throwConvexErrorOnAuthFailure
+} from "#convex/services/sessions/sessionsEditorWorkflow";
+import {
+	assignSessionEditorFromAdmin,
+	archiveSessionFromAdmin,
+	cancelSessionAfterCalendarEventDeleted,
+	saveSessionInstagramHandleByStripeSessionId,
+	writeSessionAdminNotesFromAdmin,
+	writeSessionEditStatusFromEditor,
+	writeSessionEditorNotesFromEditor
+} from "#convex/services/sessions/sessionsMutationWorkflow";
+import {
+	loadDriveStatusForSensitiveBooking,
+	loadInternalDeliverablesCustomerType,
+	loadPublicRescheduleCompleteSession,
+	loadSessionRowById,
+	loadSessionStatusByStripeSessionId
+} from "#convex/services/sessions/sessionsQueryWorkflow";
+import { resolveDeliverablesCustomerTypeForSession } from "#convex/services/sessions/sessionsQueryWorkflow";
 
 export const detectDeliverablesCustomerType = internalQuery({
 	args: { bookingId: v.id("bookings") },
-	handler: async (ctx, args) => {
-		const session = await ctx.db.get("bookings", args.bookingId);
-
-		if (session === null) {
-			return tupleErr({ reason: "BOOKING_NOT_FOUND" as const });
-		}
-
-		return detectCustomerType(ctx, session).match(tupleOk, tupleErr);
-	}
+	handler: (ctx, args) =>
+		loadInternalDeliverablesCustomerType(ctx, args.bookingId).match(tupleOk, tupleErr)
 });
 
 export const getSessionById = internalQuery({
 	args: { bookingId: v.id("bookings") },
-	handler: async (ctx, args) => {
-		return await ctx.db.get("bookings", args.bookingId);
-	}
+	handler: async (ctx, args) =>
+		(await loadSessionRowById(ctx, args.bookingId)).match(
+			(session) => session,
+			() => null
+		)
 });
 
 export const getDriveStatus = query({
 	args: { bookingId: v.id("bookings") },
 	handler: (ctx, args) =>
 		requirePermission(ctx, "view:sensitive-booking-data")
-			.andThen(() => loadDriveStatusForBooking(ctx, args.bookingId))
+			.andThen(() => loadDriveStatusForSensitiveBooking(ctx, args.bookingId))
 			.match(tupleOk, tupleErr)
 });
 
@@ -71,7 +56,7 @@ export const getDeliverablesCustomerType = query({
 	args: { bookingId: v.id("bookings") },
 	handler: (ctx, args) =>
 		loadSessionForDeliverables(ctx, args.bookingId)
-			.andThen((session) => resolveDeliverablesCustomerType(ctx, session))
+			.andThen((session) => resolveDeliverablesCustomerTypeForSession(ctx, session))
 			.match(tupleOk, tupleErr)
 });
 
@@ -90,98 +75,37 @@ export const listSessions = query({
 export const listActiveEditors = query({
 	args: {},
 	handler: (ctx) =>
-		requirePermission(ctx, "assign:session-editor")
-			.andThen(() => listActiveEditorProfiles(ctx))
-			.andThen((editors) =>
-				ResultAsync.combine(editors.map((editor) => buildActiveEditorProjection(ctx, editor)))
-			)
-			.match(
-				(editors) => editors,
-				(error) => {
-					throw new ConvexError(error);
-				}
-			)
+		listActiveEditorsForAdmin(ctx).match((editors) => editors, throwConvexErrorOnAuthFailure)
 });
 
 export const listEditorSessions = query({
 	args: { paginationOpts: paginationOptsValidator },
-	// Paginated queries must return Convex's native page shape, so authorization errors throw.
 	handler: (ctx, args) =>
-		requirePermission(ctx, "view:sessions")
-			.andThen((identity) =>
-				okOrThrow(
-					ctx.db
-						.query("bookings")
-						.withIndex("by_assignedEditorTokenIdentifier_and_driveClientId", (indexQuery) =>
-							indexQuery.eq("assignedEditorTokenIdentifier", identity.tokenIdentifier)
-						)
-						.order("desc")
-						.paginate(args.paginationOpts)
-				)
-			)
-			.andThen((bookingsPage) => {
-				const visibleSessions = bookingsPage.page.filter(isEditorVisibleSession);
-
-				return ResultAsync.combine(
-					visibleSessions.map((session) =>
-						ResultAsync.fromPromise(getEditorSessionDriveFolders(ctx, session), () => null).map(
-							(driveFolders) => buildEditorSessionProjection(session, driveFolders)
-						)
-					)
-				).map((page) => ({ ...bookingsPage, page }));
-			})
-			.match(
-				(sessionsPage) => sessionsPage,
-				(error) => {
-					throw new ConvexError(error);
-				}
-			)
+		listEditorSessionsForAssignee(ctx, args.paginationOpts).match(
+			(sessionsPage) => sessionsPage,
+			throwConvexErrorOnAuthFailure
+		)
 });
 
 export const getPublicRescheduleCompleteSession = query({
 	args: { bookingId: v.string() },
-	handler: (ctx, args) => {
-		const bookingId = ctx.db.normalizeId("bookings", args.bookingId);
-
-		if (bookingId === null) {
-			return errAsync({ reason: "BOOKING_NOT_FOUND" as const }).match(tupleOk, tupleErr);
-		}
-
-		return okOrThrow(ctx.db.get("bookings", bookingId))
-			.andThen((session) => {
-				if (!session) {
-					return err({ reason: "BOOKING_NOT_FOUND" as const });
-				}
-
-				return ok(buildPublicSessionStatusResponse(session));
-			})
-			.match(tupleOk, tupleErr);
-	}
+	handler: (ctx, args) =>
+		loadPublicRescheduleCompleteSession(ctx, args.bookingId).match(tupleOk, tupleErr)
 });
 
 export const getSessionStatusByStripeSessionId = query({
 	args: { stripeSessionId: v.string() },
-	handler: async (ctx, args) => {
-		const session = await ctx.db
-			.query("bookings")
-			.withIndex("by_stripeSessionId", (indexQuery) =>
-				indexQuery.eq("stripeSessionId", args.stripeSessionId)
-			)
-			.unique();
-
-		if (!session) return null;
-
-		return buildPublicSessionStatusResponse(session);
-	}
+	handler: async (ctx, args) =>
+		(await loadSessionStatusByStripeSessionId(ctx, args.stripeSessionId)).match(
+			(status) => status,
+			() => null
+		)
 });
 
 export const saveSessionInstagramHandle = mutation({
 	args: { stripeSessionId: v.string(), instagramHandle: v.string() },
 	handler: (ctx, args) =>
-		getSessionByStripeSessionId(ctx, args.stripeSessionId)
-			.andThen(requireConfirmedBookingSession)
-			.andThen((session) => writeSessionInstagramHandle(ctx, session, args.instagramHandle))
-			.match(tupleOk, tupleErr)
+		saveSessionInstagramHandleByStripeSessionId(ctx, args).match(tupleOk, tupleErr)
 });
 
 export const assignSessionEditor = mutation({
@@ -190,22 +114,12 @@ export const assignSessionEditor = mutation({
 		editorTokenIdentifier: v.union(v.string(), v.null()),
 		adminNotes: v.string()
 	},
-	handler: (ctx, args) =>
-		requirePermission(ctx, "assign:session-editor")
-			.andThen(() => getSessionFromDb(ctx, args.bookingId))
-			.andThen((session) =>
-				updateSessionEditorAssignment(ctx, session, args.editorTokenIdentifier, args.adminNotes)
-			)
-			.match(tupleOk, tupleErr)
+	handler: (ctx, args) => assignSessionEditorFromAdmin(ctx, args).match(tupleOk, tupleErr)
 });
 
 export const archiveSession = mutation({
 	args: { bookingId: v.id("bookings"), archived: v.boolean() },
-	handler: (ctx, args) =>
-		requirePermission(ctx, "archive:sessions")
-			.andThen(() => getSessionFromDb(ctx, args.bookingId))
-			.andThen(() => setBookingArchived(ctx, args.bookingId, args.archived))
-			.match(tupleOk, tupleErr)
+	handler: (ctx, args) => archiveSessionFromAdmin(ctx, args).match(tupleOk, tupleErr)
 });
 
 export const archivePastDeadCheckoutSessions = mutation({
@@ -218,23 +132,12 @@ export const archivePastDeadCheckoutSessions = mutation({
 
 export const updateSessionAdminNotes = mutation({
 	args: { bookingId: v.id("bookings"), adminNotes: v.string() },
-	handler: (ctx, args) =>
-		requirePermission(ctx, "assign:session-editor")
-			.andThen(() => getSessionFromDb(ctx, args.bookingId))
-			.andThen((session) => saveSessionAdminNotes(ctx, session, args.adminNotes))
-			.match(tupleOk, tupleErr)
+	handler: (ctx, args) => writeSessionAdminNotesFromAdmin(ctx, args).match(tupleOk, tupleErr)
 });
 
 export const updateSessionNotes = mutation({
 	args: { bookingId: v.id("bookings"), editorNotes: v.string() },
-	handler: (ctx, args) =>
-		requirePermission(ctx, "update:deliverables")
-			.andThen((identity) =>
-				getSessionFromDb(ctx, args.bookingId).map((session) => ({ identity, session }))
-			)
-			.andThen(requireDeliverablesOwnership)
-			.andThen(({ session }) => saveSessionEditorNotes(ctx, session, args.editorNotes))
-			.match(tupleOk, tupleErr)
+	handler: (ctx, args) => writeSessionEditorNotesFromEditor(ctx, args).match(tupleOk, tupleErr)
 });
 
 export const updateSessionEditStatus = mutation({
@@ -247,28 +150,11 @@ export const updateSessionEditStatus = mutation({
 			v.literal("completed")
 		)
 	},
-	handler: (ctx, args) =>
-		requirePermission(ctx, "update:deliverables")
-			.andThen((identity) =>
-				getSessionFromDb(ctx, args.bookingId).map((session) => ({ identity, session }))
-			)
-			.andThen(requireDeliverablesOwnership)
-			.andThen((access) => requireDeliverablesEligibility(access).map(() => access))
-			.andThen((access) => writeSessionEditStatusWithHostNotification(ctx, access, args.editStatus))
-			.match(tupleOk, tupleErr)
+	handler: (ctx, args) => writeSessionEditStatusFromEditor(ctx, args).match(tupleOk, tupleErr)
 });
 
 export const markSessionCalendarEventDeleted = internalMutation({
 	args: { bookingId: v.id("bookings") },
 	handler: (ctx, args) =>
-		getSessionFromDb(ctx, args.bookingId)
-			.andThen(() =>
-				archiveDeadCheckoutBooking(ctx, args.bookingId, {
-					bookingFailureCode: undefined,
-					googleCalendarId: undefined,
-					googleEventId: undefined,
-					status: "cancelled"
-				})
-			)
-			.match(tupleOk, tupleErr)
+		cancelSessionAfterCalendarEventDeleted(ctx, args.bookingId).match(tupleOk, tupleErr)
 });

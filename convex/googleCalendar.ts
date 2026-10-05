@@ -1,16 +1,12 @@
 "use node";
 
-import { okAsync } from "neverthrow";
 import { v } from "convex/values";
 import { tupleErr, tupleOk, type Result } from "#/lib/result";
 import { action, internalAction } from "#convex/_generated/server";
-import { type BusyDayWindow } from "#convex/lib/sessions/sessionCalendarTime";
 import {
+	type BusyDayWindow,
 	type GetAvailableRescheduleTimesError,
-	type RescheduleSessionError,
-	type UpdateSessionFromAdminError
-} from "#convex/services/googleCalendar/sessionCalendar";
-import {
+	enforceGoogleCalendarAvailabilityRateLimit,
 	loadAvailableBookingTimesForDay,
 	loadAvailableRescheduleTimesForDay,
 	loadBookableRangeBusyWindows,
@@ -18,7 +14,10 @@ import {
 	loadRescheduleSessionAndBookingSettings,
 	loadBookingAvailabilitySettingsForAction
 } from "#convex/services/googleCalendar/sessionCalendarAvailabilityWorkflow";
-import { checkGoogleCalendarAvailabilityRateLimit } from "#convex/lib/rateLimits";
+import {
+	type RescheduleSessionError,
+	type UpdateSessionFromAdminError
+} from "#convex/services/googleCalendar/sessionCalendar";
 import {
 	requireEditSessionsPermissionAndLoadBooking,
 	loadAdminSessionEditDeps,
@@ -43,8 +42,8 @@ import type { CancelBookingFromAdminError } from "#convex/services/googleCalenda
 import {
 	bookingAddonQuantitiesValidator,
 	bookingAddonsValidator
-} from "#convex/lib/booking/bookingAddonQuantities";
-import type { AdminSessionUpdateResult } from "#convex/lib/sessions/sessionAdminEdit";
+} from "#convex/services/booking/bookingFormValidators";
+import type { AdminSessionUpdateResult } from "#convex/services/googleCalendar/sessionAdminUpdateWorkflow";
 import {
 	createSessionDriveFoldersAndCompleteSetup,
 	runScheduledSessionDriveFolderSetup,
@@ -55,22 +54,16 @@ import {
 	recordClientDrivePermissionsFailure,
 	requireClientDrivePermissions,
 	sendClientAssetsFolderEmail,
+	syncBookingDriveClientIdForRetry,
 	type DriveClientPermissionsError
-} from "#convex/lib/drive/driveClientPermissions";
-import { syncBookingDriveClientIdForRetry } from "#convex/services/drive/driveClientPermissions";
+} from "#convex/services/drive/driveClientPermissions";
 import { requirePermissionActions } from "#convex/services/auth";
 import {
 	claimSessionReminderSend,
 	sendSessionReminderWhenClaimed
 } from "#convex/services/booking/sessionReminderEmailWorkflow";
-import { loadBookingAvailabilitySettings } from "#convex/lib/booking/bookingConfirmationActionBoundaries";
-import { getGoogleCalendarClient } from "#convex/lib/googleCalendar/googleCalendarClient";
 import {
-	saveConfirmedClaimedBookingAndSendInvoice,
-	createClaimedBookingCalendarEvent,
-	loadClaimedSession,
-	reserveClaimedBookingSlot,
-	verifyClaimedBookingSchedule,
+	runCompleteClaimedSession,
 	type CompleteClaimedSessionError
 } from "#convex/services/booking/bookingClaimedSessionWorkflow";
 import type { CompleteClaimedSessionSuccess } from "#convex/services/booking/bookingConfirmation";
@@ -136,7 +129,7 @@ export const runScheduledDriveSetup = internalAction({
 export const getBookableRangeBusyWindows = action({
 	args: { rateLimitKey: v.string() },
 	handler: async (ctx, args) =>
-		await checkGoogleCalendarAvailabilityRateLimit(ctx, args.rateLimitKey)
+		await enforceGoogleCalendarAvailabilityRateLimit(ctx, args.rateLimitKey)
 			.andThen(() => loadBookingAvailabilitySettingsForAction(ctx))
 			.andThen((settings) => loadBookableRangeBusyWindows(settings))
 			.match(tupleOk, tupleErr)
@@ -161,7 +154,7 @@ export const getRescheduleBookableRangeBusyWindows = action({
 			GetAvailableRescheduleTimesError
 		>
 	> =>
-		await checkGoogleCalendarAvailabilityRateLimit(ctx, args.rateLimitKey)
+		await enforceGoogleCalendarAvailabilityRateLimit(ctx, args.rateLimitKey)
 			.andThen(() => loadRescheduleSessionAndBookingSettings(ctx, args.token))
 			.andThen(({ details, settings }) => loadRescheduleBookableRangeBusyWindows(settings, details))
 			.match(tupleOk, tupleErr)
@@ -264,52 +257,7 @@ export const completeClaimedSession = internalAction({
 		ctx,
 		args
 	): Promise<Result<CompleteClaimedSessionSuccess, CompleteClaimedSessionError>> =>
-		loadClaimedSession(ctx, args.bookingId)
-			.andThen((loaded) => {
-				if (loaded.kind === "done") {
-					return okAsync(loaded.outcome);
-				}
-
-				const session = loaded.session;
-				const calendarClient = getGoogleCalendarClient();
-
-				return loadBookingAvailabilitySettings(ctx).andThen((settings) =>
-					verifyClaimedBookingSchedule(ctx, session, settings, calendarClient).andThen(
-						(schedule) => {
-							if (schedule.kind === "done") {
-								return okAsync(schedule.outcome);
-							}
-
-							return reserveClaimedBookingSlot(ctx, session, settings).andThen((hold) => {
-								if (hold.kind === "done") {
-									return okAsync(hold.outcome);
-								}
-
-								return createClaimedBookingCalendarEvent(
-									ctx,
-									session,
-									calendarClient,
-									hold.reservation
-								).andThen((calendar) => {
-									if (calendar.kind === "done") {
-										return okAsync(calendar.outcome);
-									}
-
-									return saveConfirmedClaimedBookingAndSendInvoice(
-										ctx,
-										session,
-										settings,
-										calendarClient,
-										hold.reservation,
-										calendar.googleEventId
-									);
-								});
-							});
-						}
-					)
-				);
-			})
-			.match(tupleOk, tupleErr)
+		runCompleteClaimedSession(ctx, args.bookingId).match(tupleOk, tupleErr)
 });
 
 export const cleanupCancelledSessionDrive = internalAction({

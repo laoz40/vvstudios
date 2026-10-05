@@ -99,3 +99,5 @@ export function saveAdminEditorEnrollment(ctx: MutationCtx, identity: UserIdenti
 		.andThen(requireEnrollableEditorProfile)
 		.andThen((editor) => saveEditorDetails(ctx, identity, editor));
 }
+
+export { getEditorByToken, requireAdminIdentity, requireUser } from "#convex/lib/auth";

@@ -18,11 +18,14 @@ import type {
 	SaveClientSessionRescheduleArgs
 } from "#convex/lib/sessions/sessionSchedulingArgs";
 import {
-	persistSessionPatchWithDriveSetup,
+	writeSessionBookingPatchWithDriveSetup,
 	requirePackageSessionForReschedule,
 	requireSessionReservation
 } from "#convex/lib/sessions/sessionSchedulingSave";
 import { getSessionFromDb } from "#convex/lib/sessions/sessionLookup";
+import { reserveSessionTime, unreserveSessionTime } from "#convex/lib/sessions/sessionReservations";
+
+export { reserveSessionTime, unreserveSessionTime };
 
 /** Loaded booking + computed patch + flags, before any write. */
 export type ResolvedAdminSessionUpdate = {
@@ -73,7 +76,7 @@ export function resolveAdminSessionUpdate(ctx: MutationCtx, args: SaveAdminSessi
 		}));
 }
 
-export function persistAdminSessionUpdate(
+export function writeAdminSessionUpdateWithDriveSetup(
 	ctx: MutationCtx,
 	args: SaveAdminSessionUpdateArgs,
 	resolved: ResolvedAdminSessionUpdate
@@ -91,7 +94,7 @@ export function persistAdminSessionUpdate(
 		Object.assign(patch, clearedSessionReservationPatch);
 	}
 
-	return persistSessionPatchWithDriveSetup({
+	return writeSessionBookingPatchWithDriveSetup({
 		ctx,
 		bookingId: args.bookingId,
 		booking: resolved.session,
@@ -137,7 +140,7 @@ export function patchClientSessionReschedule(
 ) {
 	const session = validated.session;
 
-	return persistSessionPatchWithDriveSetup({
+	return writeSessionBookingPatchWithDriveSetup({
 		ctx,
 		bookingId: args.bookingId,
 		booking: session,

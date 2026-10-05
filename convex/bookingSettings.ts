@@ -1,14 +1,14 @@
 import { v } from "convex/values";
 import { mutation, query } from "#convex/_generated/server";
 import { tupleErr, tupleOk } from "#/lib/result";
-import {
-	readBookingAvailabilitySettings,
-	validateBookingSettings
-} from "#convex/lib/booking/bookingSettings";
 import { requirePermission } from "#convex/services/auth";
-import { writeBookingAvailabilitySettings } from "#convex/services/booking/bookingSettings";
+import {
+	loadBookingAvailabilitySettings,
+	validateBookingAvailabilitySettings,
+	writeBookingAvailabilitySettings
+} from "#convex/services/booking/bookingSettings";
 
-export const get = query({ args: {}, handler: (ctx) => readBookingAvailabilitySettings(ctx) });
+export const get = query({ args: {}, handler: (ctx) => loadBookingAvailabilitySettings(ctx) });
 
 export const update = mutation({
 	args: {
@@ -19,7 +19,9 @@ export const update = mutation({
 	},
 	handler: (ctx, args) =>
 		requirePermission(ctx, "update:availability")
-			.andThen((identity) => validateBookingSettings(args).map(() => identity.email ?? "unknown"))
+			.andThen((identity) =>
+				validateBookingAvailabilitySettings(args).map(() => identity.email ?? "unknown")
+			)
 			.andThen((updatedBy) => writeBookingAvailabilitySettings(ctx, args, updatedBy))
 			.match(tupleOk, tupleErr)
 });

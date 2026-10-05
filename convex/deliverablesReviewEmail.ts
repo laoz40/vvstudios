@@ -3,7 +3,7 @@
 import { v } from "convex/values";
 import { tupleErr, tupleOk } from "#/lib/result";
 import { internalAction } from "#convex/_generated/server";
-import { sendDeliverablesReviewReadyHostEmail } from "#convex/lib/email/email";
+import { sendDeliverablesReviewReadyEmail as sendDeliverablesReviewReadyEmailStep } from "#convex/services/editor/deliverablesReviewEmailWorkflow";
 
 export const sendDeliverablesReviewReadyEmail = internalAction({
 	args: {
@@ -14,7 +14,7 @@ export const sendDeliverablesReviewReadyEmail = internalAction({
 		sessionDate: v.string()
 	},
 	handler: (_ctx, args) =>
-		sendDeliverablesReviewReadyHostEmail({
+		sendDeliverablesReviewReadyEmailStep({
 			clientName: args.clientName,
 			editorName: args.editorName,
 			sessionDate: args.sessionDate,

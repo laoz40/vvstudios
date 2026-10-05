@@ -8,7 +8,7 @@ import type { CreateEmbeddedCheckoutSessionError } from "#convex/services/stripe
 import {
 	bookingAddonQuantitiesValidator,
 	bookingAddonsValidator
-} from "#convex/lib/booking/bookingAddonQuantities";
+} from "#convex/services/booking/bookingFormValidators";
 import {
 	closeAbandonedBookingStripeCheckout,
 	createPendingBookingForStripeCheckout,

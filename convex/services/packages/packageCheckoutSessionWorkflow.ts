@@ -7,6 +7,7 @@ import type { ActionCtx } from "#convex/_generated/server";
 import { checkPackageSubmitRateLimit } from "#convex/lib/booking/bookingSubmission";
 import { createPendingPackage } from "#convex/lib/packages/packagePayment";
 import {
+	parsePackageRequest,
 	type CreatePackageRequestArgs,
 	type ParsedPackageRequest
 } from "#convex/lib/packages/packageUpdates";
@@ -39,6 +40,10 @@ export type CloseEmbeddedPackageCheckoutSessionError =
 type CloseEmbeddedPackageCheckoutSessionSuccess = {
 	outcome: "already_complete" | "abandoned" | "not_found" | "not_pending";
 };
+
+export function parsePackageCheckoutRequest(args: CreatePackageRequestArgs) {
+	return parsePackageRequest(args);
+}
 
 export function runPackageCheckoutSubmitRateLimit(
 	ctx: ActionCtx,

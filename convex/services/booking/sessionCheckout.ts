@@ -22,6 +22,11 @@ import {
 	validateCheckoutSessionAvailability
 } from "#convex/lib/sessions/pendingCheckoutSession";
 import { getBookingAvailabilitySettings } from "#convex/lib/booking/bookingSettings";
+import { checkBookingSubmitRateLimit } from "#convex/lib/rateLimits";
+
+export function enforceBookingSubmitRateLimit(ctx: MutationCtx, submitRateLimitKey: string) {
+	return checkBookingSubmitRateLimit(ctx, submitRateLimitKey);
+}
 
 export function rejectCheckoutSlotUnavailable(
 	ctx: MutationCtx,

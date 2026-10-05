@@ -6,12 +6,12 @@ import { tupleErr, tupleOk } from "#/lib/result";
 import {
 	bookingAddonQuantitiesValidator,
 	bookingAddonsValidator
-} from "#convex/lib/booking/bookingAddonQuantities";
-import { parsePackageRequest } from "#convex/lib/packages/packageUpdates";
+} from "#convex/services/booking/bookingFormValidators";
 import {
 	closeAbandonedPackageStripeCheckout,
 	createPendingPackageForStripeCheckout,
 	openEmbeddedPackageStripeCheckout,
+	parsePackageCheckoutRequest,
 	runPackageCheckoutSubmitRateLimit
 } from "#convex/services/packages/packageCheckoutSessionWorkflow";
 import {
@@ -34,7 +34,7 @@ export const createPackageCheckoutSession = action({
 		packageSize: v.union(v.literal(4), v.literal(8), v.literal(12))
 	},
 	handler: async (ctx, args) => {
-		return await parsePackageRequest(args)
+		return await parsePackageCheckoutRequest(args)
 			.andThen((packageRequest) => runPackageCheckoutSubmitRateLimit(ctx, packageRequest))
 			.andThen((validRequest) => createPendingPackageForStripeCheckout(ctx, validRequest))
 			.andThen((checkoutDraft) => openEmbeddedPackageStripeCheckout(ctx, checkoutDraft))

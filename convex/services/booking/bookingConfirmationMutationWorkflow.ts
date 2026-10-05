@@ -14,6 +14,12 @@ import {
 	validateClaimStripeSession
 } from "#convex/lib/booking/bookingConfirmationClaim";
 import {
+	buildConfirmedBookingPatch,
+	patchConfirmedBooking,
+	requireBookingConfirmationReservation,
+	scheduleDriveSetupForConfirmedBooking
+} from "#convex/lib/booking/bookingConfirmationSave";
+import {
 	clearedSessionReservationPatch,
 	sessionHasReservation,
 	type SessionReservation
@@ -208,4 +214,27 @@ export function markPendingBookingConfirmationFailed(
 				.then(() => null)
 		);
 	});
+}
+
+export function confirmBookingAfterPaymentClaim(
+	ctx: MutationCtx,
+	args: {
+		bookingId: Id<"bookings">;
+		googleEventId?: string;
+		googleCalendarId?: string;
+		reservation: SessionReservation;
+	}
+) {
+	const confirmedAt = Date.now();
+
+	return getSessionFromDb(ctx, args.bookingId)
+		.andThen((session) =>
+			requireBookingConfirmationReservation(session, args.reservation, confirmedAt)
+		)
+		.andThen((session) =>
+			buildConfirmedBookingPatch(ctx, session, args, confirmedAt).andThen((patch) =>
+				patchConfirmedBooking(ctx, args.bookingId, session, patch)
+			)
+		)
+		.andThen((session) => scheduleDriveSetupForConfirmedBooking(ctx, session));
 }

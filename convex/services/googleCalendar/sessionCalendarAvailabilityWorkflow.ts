@@ -15,7 +15,15 @@ import {
 import { getBookingSettingsService } from "#convex/services/booking/bookingSettings";
 import type { RescheduleLinkLookupError } from "#convex/services/sessions/sessionReschedule";
 import type { SessionAvailabilityValidationError } from "#convex/lib/sessions/sessionCalendarTime";
+import type { BusyDayWindow } from "#convex/lib/sessions/sessionCalendarTime";
+import { checkGoogleCalendarAvailabilityRateLimit } from "#convex/lib/rateLimits";
 import type { BookingAvailabilitySettings } from "#studio/lib/bookingAvailabilitySettings";
+
+export type { BusyDayWindow };
+
+export function enforceGoogleCalendarAvailabilityRateLimit(ctx: ActionCtx, rateLimitKey: string) {
+	return checkGoogleCalendarAvailabilityRateLimit(ctx, rateLimitKey);
+}
 
 export type GetAvailableRescheduleTimesError =
 	| RescheduleLinkLookupError

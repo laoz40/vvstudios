@@ -3,11 +3,9 @@ import { tupleErr, tupleOk } from "#/lib/result";
 import { internalQuery, mutation, query } from "#convex/_generated/server";
 import {
 	getEditorByToken as findEditorByToken,
-	requireAdminIdentity,
-	requireUser
-} from "#convex/lib/auth";
-import {
 	loadUserAccessForIdentity,
+	requireAdminIdentity,
+	requireUser,
 	saveAdminEditorEnrollment,
 	saveSignedInEditorProfile
 } from "#convex/services/auth";

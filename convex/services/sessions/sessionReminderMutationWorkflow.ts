@@ -1,10 +1,38 @@
 import { err, ok } from "neverthrow";
-import type { Id } from "#convex/_generated/dataModel";
+import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { MutationCtx } from "#convex/_generated/server";
 import { okOrThrow } from "#convex/lib/result";
+import {
+	getTomorrowTimeZoneDayRange,
+	REMINDER_BATCH_SIZE,
+	REMINDER_TIME_ZONE
+} from "#convex/lib/reminderScheduleTime";
 import { getSessionFromDb } from "#convex/lib/sessions/sessionLookup";
+import type { QueryCtx } from "#convex/_generated/server";
 
 type ReminderBookingArgs = { bookingId: Id<"bookings"> };
+
+export function getTomorrowSessionReminderWindow(nowDate: Date) {
+	return getTomorrowTimeZoneDayRange(nowDate, REMINDER_TIME_ZONE);
+}
+
+export function listConfirmedSessionsDueForReminderEmail(
+	ctx: QueryCtx,
+	args: { dayStart: number; dayEnd: number; limit?: number }
+): import("neverthrow").ResultAsync<Doc<"bookings">[], never> {
+	return okOrThrow(
+		ctx.db
+			.query("bookings")
+			.withIndex("by_status_and_reminderEmailSentAt_and_sessionStartAt", (indexQuery) =>
+				indexQuery
+					.eq("status", "confirmed")
+					.eq("reminderEmailSentAt", undefined)
+					.gte("sessionStartAt", args.dayStart)
+					.lt("sessionStartAt", args.dayEnd)
+			)
+			.take(args.limit ?? REMINDER_BATCH_SIZE)
+	);
+}
 
 export function claimSessionReminderEmail(
 	ctx: MutationCtx,

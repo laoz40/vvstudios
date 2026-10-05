@@ -1,17 +1,17 @@
 import { v } from "convex/values";
 import { tupleErr, tupleOk } from "#/lib/result";
 import { internalMutation } from "#convex/_generated/server";
+import { sessionReservationValidator } from "#convex/services/sessions/sessionReservationValidators";
 import {
-	sessionReservationValidator,
 	reserveSessionTime,
 	unreserveSessionTime
-} from "#convex/lib/sessions/sessionReservations";
+} from "#convex/services/sessions/sessionSchedulingSave";
 import {
 	bookingAddonQuantitiesValidator,
 	bookingAddonsValidator
-} from "#convex/lib/booking/bookingAddonQuantities";
+} from "#convex/services/booking/bookingFormValidators";
 import {
-	persistAdminSessionUpdate,
+	writeAdminSessionUpdateWithDriveSetup,
 	patchClientSessionReschedule,
 	resolveAdminSessionUpdate,
 	schedulePackageAdjustmentAfterReschedule,
@@ -59,7 +59,7 @@ export const saveAdminSessionUpdate = internalMutation({
 	},
 	handler: (ctx, args) =>
 		resolveAdminSessionUpdate(ctx, args)
-			.andThen((resolved) => persistAdminSessionUpdate(ctx, args, resolved))
+			.andThen((resolved) => writeAdminSessionUpdateWithDriveSetup(ctx, args, resolved))
 			.match(tupleOk, tupleErr)
 });
 

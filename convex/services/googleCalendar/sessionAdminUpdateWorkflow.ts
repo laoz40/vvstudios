@@ -431,3 +431,5 @@ export function notifyHostIfNeeded(
 		result
 	});
 }
+
+export type { AdminSessionUpdateResult } from "#convex/lib/sessions/sessionAdminEdit";

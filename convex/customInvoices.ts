@@ -4,10 +4,11 @@ import { internalQuery, mutation, query } from "#convex/_generated/server";
 import {
 	bookingAddonQuantitiesValidator,
 	bookingAddonsValidator
-} from "#convex/lib/booking/bookingAddonQuantities";
+} from "#convex/services/booking/bookingFormValidators";
 import {
 	createBookingCustomInvoiceFromAdmin,
-	listCustomInvoicesForBooking as listCustomInvoicesForBookingStep
+	listCustomInvoicesForBooking as listCustomInvoicesForBookingStep,
+	loadBookingCustomInvoiceInput
 } from "#convex/services/stripe/bookingCustomInvoiceWorkflow";
 
 export const createCustomInvoice = mutation({
@@ -32,13 +33,9 @@ export const listCustomInvoicesForBooking = query({
 
 export const getBookingCustomInvoiceInput = internalQuery({
 	args: { bookingId: v.id("bookings"), customInvoiceId: v.id("customInvoices") },
-	handler: async (ctx, args) => {
-		const customInvoice = await ctx.db.get("customInvoices", args.customInvoiceId);
-
-		if (customInvoice?.bookingId !== args.bookingId) {
-			return null;
-		}
-
-		return customInvoice;
-	}
+	handler: async (ctx, args) =>
+		(await loadBookingCustomInvoiceInput(ctx, args)).match(
+			(customInvoice) => customInvoice,
+			() => null
+		)
 });

@@ -1,14 +1,14 @@
 import { v } from "convex/values";
 import { tupleErr, tupleOk } from "#/lib/result";
 import { internalMutation, internalQuery } from "#convex/_generated/server";
-import { checkBookingSubmitRateLimit } from "#convex/lib/rateLimits";
 import {
 	bookingAddonQuantitiesValidator,
 	bookingAddonsValidator
-} from "#convex/lib/booking/bookingAddonQuantities";
+} from "#convex/services/booking/bookingFormValidators";
 import {
 	abandonPendingCheckoutBooking,
 	createPendingCheckoutBooking,
+	enforceBookingSubmitRateLimit,
 	expirePendingCheckoutByStripeSessionId,
 	loadBookingRowByStripeSessionId,
 	parseCheckoutSessionStartTime,
@@ -19,7 +19,7 @@ import {
 export const checkSessionSubmitRateLimit = internalMutation({
 	args: { submitRateLimitKey: v.string() },
 	handler: (ctx, args) =>
-		checkBookingSubmitRateLimit(ctx, args.submitRateLimitKey).match(tupleOk, tupleErr)
+		enforceBookingSubmitRateLimit(ctx, args.submitRateLimitKey).match(tupleOk, tupleErr)
 });
 
 export const createPendingSession = internalMutation({

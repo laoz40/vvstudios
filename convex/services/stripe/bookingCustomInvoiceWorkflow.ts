@@ -35,6 +35,15 @@ export function listCustomInvoicesForBooking(ctx: QueryCtx, args: { bookingId: I
 	);
 }
 
+export function loadBookingCustomInvoiceInput(
+	ctx: QueryCtx,
+	args: { bookingId: Id<"bookings">; customInvoiceId: Id<"customInvoices"> }
+) {
+	return okOrThrow(ctx.db.get("customInvoices", args.customInvoiceId)).map((customInvoice) =>
+		customInvoice?.bookingId === args.bookingId ? customInvoice : null
+	);
+}
+
 export function createBookingCustomInvoiceFromAdmin(
 	ctx: MutationCtx,
 	args: CreateBookingCustomInvoiceArgs

@@ -5,7 +5,7 @@ import type {
 	CreatePackageSessionError,
 	ReschedulePackageSessionError,
 	UnschedulePackageSessionError
-} from "#convex/lib/packages/packageScheduling";
+} from "#convex/services/packages/packageSessionSchedulingTypes";
 import {
 	action,
 	internalMutation,
