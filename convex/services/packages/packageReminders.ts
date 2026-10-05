@@ -1,27 +1,19 @@
 import { internal } from "#convex/_generated/api";
-import type { Doc } from "#convex/_generated/dataModel";
-import type { ActionCtx, MutationCtx, QueryCtx } from "#convex/_generated/server";
+import type { ActionCtx, QueryCtx } from "#convex/_generated/server";
 import { sendPackageExpiryReminderEmail } from "#convex/lib/email/email";
-import { getPackageFromDb } from "#convex/lib/packages/packageLookup";
 import { getCapacityConsumingPackageSessions } from "#convex/lib/packages/packageScheduling";
-import {
-	hasSentPackageReminder,
-	validatePackageReminderClaim,
-	type PackageReminderType
-} from "#convex/lib/packages/packageReminders";
+import { hasSentPackageReminder } from "#convex/lib/packages/packageReminders";
 import {
 	getTimeZoneDate,
 	getTimeZoneDayRange,
 	REMINDER_BATCH_SIZE,
 	REMINDER_TIME_ZONE
 } from "#convex/lib/reminderScheduleTime";
-import { fromConvexTuple, okOrThrow } from "#convex/lib/result";
+import { fromConvexTuple } from "#convex/lib/result";
 
 const MAX_PACKAGE_SESSIONS = 12;
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
-
-type PackageReminderArgs = { packageId: Doc<"packages">["_id"]; reminderType: PackageReminderType };
 
 export async function listPackagesPotentiallyDueForExpiryReminderService(
 	ctx: QueryCtx,
@@ -67,61 +59,6 @@ export async function listPackagesPotentiallyDueForExpiryReminderService(
 				remainingSessions: packageFromDb.packageSize - sessionsResult.value.length
 			};
 		})
-	);
-}
-
-export function claimPackageReminderService(
-	ctx: MutationCtx,
-	args: PackageReminderArgs & { now: number }
-) {
-	return getPackageFromDb(ctx, args.packageId)
-		.andThen((packageFromDb) => validatePackageReminderClaim(packageFromDb, args.reminderType))
-		.andThen(() =>
-			okOrThrow(
-				ctx.db
-					.patch("packages", args.packageId, {
-						packageReminderState: {
-							type: args.reminderType,
-							status: "claimed",
-							claimedAt: args.now
-						}
-					})
-					.then(() => null)
-			)
-		);
-}
-
-export function markPackageReminderSentService(
-	ctx: MutationCtx,
-	args: PackageReminderArgs & { now: number }
-) {
-	return getPackageFromDb(ctx, args.packageId).andThen(() =>
-		okOrThrow(
-			ctx.db
-				.patch("packages", args.packageId, {
-					packageReminderState: { type: args.reminderType, status: "sent", sentAt: args.now }
-				})
-				.then(() => null)
-		)
-	);
-}
-
-export function markPackageReminderFailedService(
-	ctx: MutationCtx,
-	args: PackageReminderArgs & { failureCode: string }
-) {
-	return getPackageFromDb(ctx, args.packageId).andThen(() =>
-		okOrThrow(
-			ctx.db
-				.patch("packages", args.packageId, {
-					packageReminderState: {
-						type: args.reminderType,
-						status: "failed",
-						failureCode: args.failureCode
-					}
-				})
-				.then(() => null)
-		)
 	);
 }
 

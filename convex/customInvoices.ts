@@ -6,9 +6,9 @@ import {
 	bookingAddonsValidator
 } from "#convex/lib/booking/bookingAddonQuantities";
 import {
-	createBookingCustomInvoiceService,
-	listCustomInvoicesForBookingService
-} from "#convex/services/stripe/customInvoices";
+	createBookingCustomInvoiceFromAdmin,
+	listCustomInvoicesForBooking as listCustomInvoicesForBookingStep
+} from "#convex/services/stripe/bookingCustomInvoiceWorkflow";
 
 export const createCustomInvoice = mutation({
 	args: {
@@ -22,13 +22,12 @@ export const createCustomInvoice = mutation({
 		customTotalDueAmount: v.optional(v.number())
 	},
 	handler: async (ctx, args) =>
-		createBookingCustomInvoiceService(ctx, args).match(tupleOk, tupleErr)
+		createBookingCustomInvoiceFromAdmin(ctx, args).match(tupleOk, tupleErr)
 });
 
 export const listCustomInvoicesForBooking = query({
 	args: { bookingId: v.id("bookings") },
-	handler: async (ctx, args) =>
-		listCustomInvoicesForBookingService(ctx, args).match(tupleOk, tupleErr)
+	handler: async (ctx, args) => listCustomInvoicesForBookingStep(ctx, args).match(tupleOk, tupleErr)
 });
 
 export const getBookingCustomInvoiceInput = internalQuery({

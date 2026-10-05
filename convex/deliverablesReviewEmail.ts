@@ -3,7 +3,7 @@
 import { v } from "convex/values";
 import { tupleErr, tupleOk } from "#/lib/result";
 import { internalAction } from "#convex/_generated/server";
-import { sendDeliverablesReviewReadyEmailService } from "#convex/services/editor/deliverablesReviewEmail";
+import { sendDeliverablesReviewReadyHostEmail } from "#convex/lib/email/email";
 
 export const sendDeliverablesReviewReadyEmail = internalAction({
 	args: {
@@ -13,6 +13,11 @@ export const sendDeliverablesReviewReadyEmail = internalAction({
 		idempotencyKey: v.string(),
 		sessionDate: v.string()
 	},
-	handler: (ctx, args) =>
-		sendDeliverablesReviewReadyEmailService(ctx, args).match(tupleOk, tupleErr)
+	handler: (_ctx, args) =>
+		sendDeliverablesReviewReadyHostEmail({
+			clientName: args.clientName,
+			editorName: args.editorName,
+			sessionDate: args.sessionDate,
+			idempotencyKey: args.idempotencyKey
+		}).match(tupleOk, tupleErr)
 });

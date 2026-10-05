@@ -2,14 +2,14 @@ import { v } from "convex/values";
 import { tupleErr, tupleOk } from "#/lib/result";
 import { mutation, query } from "#convex/_generated/server";
 import {
-	listEmployees as listEmployeesService,
+	listEmployees as listEmployeesForAdmin,
 	updateEmployeeAccessForAdmin,
 	updateEmployeeNotesForAdmin
 } from "#convex/services/employees/employeeManagement";
 
 export const listEmployees = query({
 	args: {},
-	handler: (ctx) => listEmployeesService(ctx).match(tupleOk, tupleErr)
+	handler: (ctx) => listEmployeesForAdmin(ctx).match(tupleOk, tupleErr)
 });
 
 export const updateEmployeeNotes = mutation({

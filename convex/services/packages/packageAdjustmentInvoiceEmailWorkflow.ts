@@ -1,11 +1,12 @@
 import { ok, okAsync } from "neverthrow";
+import { internal } from "#convex/_generated/api";
 import type { Id } from "#convex/_generated/dataModel";
 import type { MutationCtx } from "#convex/_generated/server";
-import { requirePermission } from "#convex/services/auth";
 import {
 	getPackageAdjustmentInvoice,
 	requirePackageAdjustmentPaymentEligibility,
 	validatePackageAdjustmentEmailClaim,
+	PACKAGE_ADJUSTMENT_EMAIL_CLAIM_TIMEOUT_MS,
 	type PackageAdjustmentEmailClaim
 } from "#convex/lib/packages/packageAdjustments";
 import { claimPackageAdjustmentInvoicePayment } from "#convex/lib/packages/packageAdjustmentInvoicePayment";
@@ -13,6 +14,7 @@ import { archivePackageWhenFullyDone } from "#convex/lib/packages/packageArchive
 import { getPackageFromDb } from "#convex/lib/packages/packageLookup";
 import { okOrThrow } from "#convex/lib/result";
 import { recordPackageAdjustmentStripeInvoice } from "#convex/lib/stripe/stripeInvoices";
+import { requirePermission } from "#convex/services/auth";
 import { getCustomerAddonDisplayLabel } from "#studio/features/booking-form/lib/booking-form-model";
 
 export type ClaimPackageAdjustmentInvoiceEmailArgs = PackageAdjustmentEmailClaim & {
@@ -30,69 +32,61 @@ type MarkPackageAdjustmentPaymentStatusArgs = {
 	paid: boolean;
 };
 
-export function claimPackageAdjustmentInvoiceEmailService(
+export function claimPackageAdjustmentInvoiceEmail(
 	ctx: MutationCtx,
-	args: ClaimPackageAdjustmentInvoiceEmailArgs,
-	scheduleStalledEmailRecovery: () => Promise<Id<"_scheduled_functions">>
+	args: ClaimPackageAdjustmentInvoiceEmailArgs
 ) {
-	return (
-		getPackageAdjustmentInvoice(ctx, args.adjustmentId)
-			// Confirm this attempt can claim the email without replacing an active sender.
-			.andThen((adjustment) => validatePackageAdjustmentEmailClaim(adjustment, args))
-			// Load the package snapshot needed to render and send the adjustment invoice.
-			.andThen((adjustment) =>
-				getPackageFromDb(ctx, adjustment.packageId).map((packageRecord) => ({
-					adjustment,
-					packageRecord
-				}))
+	return getPackageAdjustmentInvoice(ctx, args.adjustmentId)
+		.andThen((adjustment) => validatePackageAdjustmentEmailClaim(adjustment, args))
+		.andThen((adjustment) =>
+			getPackageFromDb(ctx, adjustment.packageId).map((packageRecord) => ({
+				adjustment,
+				packageRecord
+			}))
+		)
+		.andThen(({ adjustment, packageRecord }) =>
+			okOrThrow(
+				ctx.db
+					.patch("packageAdjustments", adjustment._id, { invoiceEmailClaimedAt: args.now })
+					.then(() =>
+						ctx.scheduler.runAfter(
+							PACKAGE_ADJUSTMENT_EMAIL_CLAIM_TIMEOUT_MS,
+							internal.packageAdjustments.markStalledPackageAdjustmentInvoiceEmailFailed,
+							{ adjustmentId: args.adjustmentId, claimedAt: args.now }
+						)
+					)
+					.then(() => ({ adjustment, packageRecord }))
 			)
-			// Claim the email and schedule recovery if the sender never records a result.
-			.andThen(({ adjustment, packageRecord }) =>
-				okOrThrow(
-					ctx.db
-						.patch("packageAdjustments", adjustment._id, { invoiceEmailClaimedAt: args.now })
-						// If the sender never records sent or failed, this delayed job releases its claim.
-						.then(scheduleStalledEmailRecovery)
-						.then(() => ({ adjustment, packageRecord }))
-				)
-			)
-	);
+		);
 }
 
-// Starting an email records a claim so another sender cannot send it at the same time.
-// If that sender never finishes, this delayed cleanup marks the email failed and clears the claim
-// so it can be retried.
-export function markStalledPackageAdjustmentInvoiceEmailFailedService(
+export function markStalledPackageAdjustmentInvoiceEmailFailed(
 	ctx: MutationCtx,
 	args: ClaimedPackageAdjustmentInvoiceEmailArgs
 ) {
-	return (
-		getPackageAdjustmentInvoice(ctx, args.adjustmentId)
-			// A missing adjustment needs no cleanup, so treat not found as success. Database failures still reject.
-			.orElse(() => ok(null))
-			.andThen((adjustment) => {
-				// Ignore missing adjustments, completed emails, and recovery jobs for superseded claims.
-				if (
-					!adjustment ||
-					adjustment.invoiceEmailStatus !== "pending" ||
-					adjustment.invoiceEmailClaimedAt !== args.claimedAt
-				) {
-					return ok(null);
-				}
+	return getPackageAdjustmentInvoice(ctx, args.adjustmentId)
+		.orElse(() => ok(null))
+		.andThen((adjustment) => {
+			if (
+				!adjustment ||
+				adjustment.invoiceEmailStatus !== "pending" ||
+				adjustment.invoiceEmailClaimedAt !== args.claimedAt
+			) {
+				return ok(null);
+			}
 
-				return okOrThrow(
-					ctx.db
-						.patch("packageAdjustments", adjustment._id, {
-							invoiceEmailStatus: "failed",
-							invoiceEmailClaimedAt: undefined
-						})
-						.then(() => null)
-				);
-			})
-	);
+			return okOrThrow(
+				ctx.db
+					.patch("packageAdjustments", adjustment._id, {
+						invoiceEmailStatus: "failed",
+						invoiceEmailClaimedAt: undefined
+					})
+					.then(() => null)
+			);
+		});
 }
 
-export function completePackageAdjustmentInvoiceEmailSentService(
+export function writePackageAdjustmentInvoiceEmailSent(
 	ctx: MutationCtx,
 	args: ClaimedPackageAdjustmentInvoiceEmailArgs & { stripeInvoiceId: string }
 ) {
@@ -128,7 +122,7 @@ export function completePackageAdjustmentInvoiceEmailSentService(
 	});
 }
 
-export function completePackageAdjustmentInvoiceEmailFailedService(
+export function writePackageAdjustmentInvoiceEmailFailed(
 	ctx: MutationCtx,
 	args: ClaimedPackageAdjustmentInvoiceEmailArgs
 ) {
@@ -148,7 +142,7 @@ export function completePackageAdjustmentInvoiceEmailFailedService(
 	});
 }
 
-export function claimPackageAdjustmentInvoicePaymentService(
+export function claimPackageAdjustmentInvoicePaymentAndArchive(
 	ctx: MutationCtx,
 	args: { stripeInvoiceId: string; adjustmentId?: string; paidAt: number }
 ) {
@@ -161,7 +155,7 @@ export function claimPackageAdjustmentInvoicePaymentService(
 	});
 }
 
-export function markPackageAdjustmentPaymentStatusService(
+export function updatePackageAdjustmentPaymentStatusFromAdmin(
 	ctx: MutationCtx,
 	args: MarkPackageAdjustmentPaymentStatusArgs
 ) {

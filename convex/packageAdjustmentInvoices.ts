@@ -4,38 +4,51 @@ import { v } from "convex/values";
 import { tupleErr, tupleOk } from "#/lib/result";
 import type { Id } from "#convex/_generated/dataModel";
 import { action, internalAction, type ActionCtx } from "#convex/_generated/server";
+import { requirePermissionActions } from "#convex/services/auth";
 import {
-	retryPackageAdjustmentInvoiceEmailService,
-	sendPackageAdjustmentInvoiceService
-} from "#convex/services/packages/packageAdjustmentInvoices";
+	claimPackageAdjustmentInvoiceEmailForSend,
+	createSendAndRecordPackageAdjustmentInvoice
+} from "#convex/services/packages/packageAdjustmentInvoiceSendWorkflow";
 
 export const sendPackageAdjustmentInvoice = internalAction({
 	args: {
 		adjustmentId: v.id("packageAdjustments"),
 		attempt: v.union(v.literal("automatic"), v.literal("retry"))
 	},
-	handler: (ctx, args) => sendPackageAdjustmentInvoiceHandler(ctx, args)
-});
+	handler: async (ctx, args) => {
+		const claimedAt = Date.now();
 
-function sendPackageAdjustmentInvoiceHandler(
-	ctx: ActionCtx,
-	args: { adjustmentId: Id<"packageAdjustments">; attempt: "automatic" | "retry" }
-) {
-	return sendPackageAdjustmentInvoiceService(ctx, args).match(tupleOk, tupleErr);
-}
+		return await sendPackageAdjustmentInvoiceHandler(ctx, { ...args, claimedAt }).match(
+			tupleOk,
+			tupleErr
+		);
+	}
+});
 
 export const retryPackageAdjustmentInvoiceEmail = action({
 	args: { adjustmentId: v.id("packageAdjustments") },
-	handler: (ctx, args) => retryPackageAdjustmentInvoiceEmailHandler(ctx, args)
+	handler: async (ctx, args) =>
+		await requirePermissionActions(ctx, "send:receipt-emails")
+			.andThen(() =>
+				sendPackageAdjustmentInvoiceHandler(ctx, {
+					adjustmentId: args.adjustmentId,
+					attempt: "retry",
+					claimedAt: Date.now()
+				})
+			)
+			.match(tupleOk, tupleErr)
 });
 
-function retryPackageAdjustmentInvoiceEmailHandler(
+async function sendPackageAdjustmentInvoiceHandler(
 	ctx: ActionCtx,
-	args: { adjustmentId: Id<"packageAdjustments"> }
+	args: {
+		adjustmentId: Id<"packageAdjustments">;
+		attempt: "automatic" | "retry";
+		claimedAt: number;
+	}
 ) {
-	return retryPackageAdjustmentInvoiceEmailService(ctx, args).match(tupleOk, tupleErr);
+	return claimPackageAdjustmentInvoiceEmailForSend(ctx, args, args.claimedAt).andThen(
+		(invoiceInput) =>
+			createSendAndRecordPackageAdjustmentInvoice(ctx, args, args.claimedAt, invoiceInput)
+	);
 }
-
-export type RetryPackageAdjustmentInvoiceEmailResult = Awaited<
-	ReturnType<typeof retryPackageAdjustmentInvoiceEmailHandler>
->;

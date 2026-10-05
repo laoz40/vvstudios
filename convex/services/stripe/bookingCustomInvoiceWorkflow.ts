@@ -23,10 +23,7 @@ export type CreateBookingCustomInvoiceArgs = CustomInvoiceDetails & {
 	service?: string;
 };
 
-export function listCustomInvoicesForBookingService(
-	ctx: QueryCtx,
-	args: { bookingId: Id<"bookings"> }
-) {
+export function listCustomInvoicesForBooking(ctx: QueryCtx, args: { bookingId: Id<"bookings"> }) {
 	return requirePermission(ctx, "view:sensitive-booking-data").andThen(() =>
 		okOrThrow(
 			ctx.db
@@ -38,7 +35,7 @@ export function listCustomInvoicesForBookingService(
 	);
 }
 
-export function createBookingCustomInvoiceService(
+export function createBookingCustomInvoiceFromAdmin(
 	ctx: MutationCtx,
 	args: CreateBookingCustomInvoiceArgs
 ) {
