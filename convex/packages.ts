@@ -21,10 +21,9 @@ import {
 	loadAdminPackageUpdateValidation,
 	writeAdminPackageFields
 } from "#convex/services/packages/packageAdminMutationWorkflow";
-import {
-	createPendingPackageService,
-	listPackagesService
-} from "#convex/services/packages/packages";
+import { requirePermission } from "#convex/services/auth";
+import { listAdminPackages } from "#convex/lib/listAdminPackages";
+import { buildPendingPackageRecord } from "#convex/lib/packages/packageUpdates";
 import {
 	createPackageScheduleToken,
 	validatePackageScheduleTokenRefresh
@@ -69,7 +68,20 @@ export const createPendingPackage = internalMutation({
 		totalDueAmount: v.number(),
 		invoiceLineItems: v.array(bookingInvoiceLineItemValidator)
 	},
-	handler: (ctx, args) => createPendingPackageService(ctx, args)
+	handler: (ctx, args) => {
+		const createdAt = Date.now();
+
+		const packageRecord = buildPendingPackageRecord(
+			{ ...args, email: args.email.trim().toLowerCase() },
+			createdAt
+		);
+
+		return okOrThrow(
+			ctx.db
+				.insert("packages", packageRecord)
+				.then((packageId) => ({ packageRecord: { _id: packageId, ...packageRecord } }))
+		);
+	}
 });
 
 export const listPackages = query({
@@ -81,12 +93,14 @@ export const listPackages = query({
 		searchQuery: v.optional(v.string())
 	},
 	handler: (ctx, args) =>
-		listPackagesService(ctx, args).match(
-			(packagesPage) => packagesPage,
-			(error) => {
-				throw new ConvexError(error);
-			}
-		)
+		requirePermission(ctx, "view:packages")
+			.andThen(() => listAdminPackages(ctx, args))
+			.match(
+				(packagesPage) => packagesPage,
+				(error) => {
+					throw new ConvexError(error);
+				}
+			)
 });
 
 export const updatePackageFromAdmin = mutation({

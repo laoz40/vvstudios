@@ -6,7 +6,7 @@ import { getSessionFromDb } from "#convex/lib/sessions/sessionLookup";
 
 type ReminderBookingArgs = { bookingId: Id<"bookings"> };
 
-export function claimReminderService(
+export function claimSessionReminderEmail(
 	ctx: MutationCtx,
 	args: ReminderBookingArgs & { now: number }
 ) {
@@ -34,7 +34,7 @@ export function claimReminderService(
 		);
 }
 
-export function markReminderSentService(
+export function writeSessionReminderEmailSent(
 	ctx: MutationCtx,
 	args: ReminderBookingArgs & { now: number }
 ) {
@@ -51,7 +51,7 @@ export function markReminderSentService(
 	);
 }
 
-export function markReminderFailedService(
+export function writeSessionReminderEmailFailed(
 	ctx: MutationCtx,
 	args: ReminderBookingArgs & { failureCode: string }
 ) {

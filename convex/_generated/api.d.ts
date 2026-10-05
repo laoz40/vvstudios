@@ -140,9 +140,7 @@ import type * as services_packages_packageCheckoutActions from "../services/pack
 import type * as services_packages_packageCheckoutCompletion from "../services/packages/packageCheckoutCompletion.js";
 import type * as services_packages_packageCheckoutCompletionActions from "../services/packages/packageCheckoutCompletionActions.js";
 import type * as services_packages_packageReminders from "../services/packages/packageReminders.js";
-import type * as services_packages_packageScheduling from "../services/packages/packageScheduling.js";
-import type * as services_packages_packages from "../services/packages/packages.js";
-import type * as services_sessions_sessionReminders from "../services/sessions/sessionReminders.js";
+import type * as services_sessions_sessionReminderMutationWorkflow from "../services/sessions/sessionReminderMutationWorkflow.js";
 import type * as services_sessions_sessionReschedule from "../services/sessions/sessionReschedule.js";
 import type * as services_sessions_sessions from "../services/sessions/sessions.js";
 import type * as services_stripe_customInvoices from "../services/stripe/customInvoices.js";
@@ -299,9 +297,7 @@ declare const fullApi: ApiFromModules<{
   "services/packages/packageCheckoutCompletion": typeof services_packages_packageCheckoutCompletion;
   "services/packages/packageCheckoutCompletionActions": typeof services_packages_packageCheckoutCompletionActions;
   "services/packages/packageReminders": typeof services_packages_packageReminders;
-  "services/packages/packageScheduling": typeof services_packages_packageScheduling;
-  "services/packages/packages": typeof services_packages_packages;
-  "services/sessions/sessionReminders": typeof services_sessions_sessionReminders;
+  "services/sessions/sessionReminderMutationWorkflow": typeof services_sessions_sessionReminderMutationWorkflow;
   "services/sessions/sessionReschedule": typeof services_sessions_sessionReschedule;
   "services/sessions/sessions": typeof services_sessions_sessions;
   "services/stripe/customInvoices": typeof services_stripe_customInvoices;

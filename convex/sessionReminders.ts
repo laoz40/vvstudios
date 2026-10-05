@@ -9,10 +9,10 @@ import {
 } from "#convex/lib/reminderScheduleTime";
 import { sendDuePackageReminders } from "#convex/packageReminders";
 import {
-	claimReminderService,
-	markReminderFailedService,
-	markReminderSentService
-} from "#convex/services/sessions/sessionReminders";
+	claimSessionReminderEmail,
+	writeSessionReminderEmailFailed,
+	writeSessionReminderEmailSent
+} from "#convex/services/sessions/sessionReminderMutationWorkflow";
 
 export const listSessionsDueForReminderEmail = internalQuery({
 	args: { dayStart: v.number(), dayEnd: v.number(), limit: v.optional(v.number()) },
@@ -32,17 +32,17 @@ export const listSessionsDueForReminderEmail = internalQuery({
 
 export const claimReminder = internalMutation({
 	args: { bookingId: v.id("bookings"), now: v.number() },
-	handler: (ctx, args) => claimReminderService(ctx, args).match(tupleOk, tupleErr)
+	handler: (ctx, args) => claimSessionReminderEmail(ctx, args).match(tupleOk, tupleErr)
 });
 
 export const markReminderSent = internalMutation({
 	args: { bookingId: v.id("bookings"), now: v.number() },
-	handler: (ctx, args) => markReminderSentService(ctx, args).match(tupleOk, tupleErr)
+	handler: (ctx, args) => writeSessionReminderEmailSent(ctx, args).match(tupleOk, tupleErr)
 });
 
 export const markReminderFailed = internalMutation({
 	args: { bookingId: v.id("bookings"), failureCode: v.string() },
-	handler: (ctx, args) => markReminderFailedService(ctx, args).match(tupleOk, tupleErr)
+	handler: (ctx, args) => writeSessionReminderEmailFailed(ctx, args).match(tupleOk, tupleErr)
 });
 
 export const sendDueReminders = internalAction({

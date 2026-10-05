@@ -7,13 +7,19 @@ import {
 	bookingAddonsValidator
 } from "#convex/lib/booking/bookingAddonQuantities";
 import { env } from "#convex/env";
+import { okOrThrow } from "#convex/lib/result";
+import { archiveDeadCheckoutBooking } from "#convex/lib/sessions/sessionArchive";
+import {
+	validatePendingSessionDeletion,
+	validateSessionExpiry,
+	type DeletePendingSessionSuccess
+} from "#convex/lib/sessions/sessionCheckout";
 import { getSessionStartAt } from "#convex/lib/sessions/sessionAdminEdit";
 import {
 	assertCheckoutSessionAvailable,
-	createPendingCheckoutBooking,
-	deletePendingSessionService,
-	markSessionExpiredByStripeSessionIdService
+	createPendingCheckoutBooking
 } from "#convex/services/booking/sessionCheckout";
+import { ok } from "neverthrow";
 
 export const checkSessionSubmitRateLimit = internalMutation({
 	args: { submitRateLimitKey: v.string() },
@@ -68,10 +74,40 @@ export const setSessionStripeSessionId = internalMutation({
 export const markSessionExpiredByStripeSessionId = internalMutation({
 	args: { stripeSessionId: v.string() },
 	handler: (ctx, args) =>
-		markSessionExpiredByStripeSessionIdService(ctx, args).match(tupleOk, tupleErr)
+		okOrThrow(
+			ctx.db
+				.query("bookings")
+				.withIndex("by_stripeSessionId", (indexQuery) =>
+					indexQuery.eq("stripeSessionId", args.stripeSessionId)
+				)
+				.unique()
+		)
+			.andThen(validateSessionExpiry)
+			.andThen((decision) => {
+				if (decision.kind === "complete") {
+					return ok<{ alreadyExpired: boolean }>({ alreadyExpired: decision.alreadyExpired });
+				}
+
+				return archiveDeadCheckoutBooking(ctx, decision.bookingId, { status: "expired" }).map(
+					() => ({ alreadyExpired: false })
+				);
+			})
+			.match(tupleOk, tupleErr)
 });
 
 export const deletePendingSession = internalMutation({
 	args: { bookingId: v.id("bookings"), stripeSessionId: v.string() },
-	handler: (ctx, args) => deletePendingSessionService(ctx, args).match(tupleOk, tupleErr)
+	handler: (ctx, args) =>
+		okOrThrow(ctx.db.get("bookings", args.bookingId))
+			.andThen((booking) => validatePendingSessionDeletion(booking, args.stripeSessionId))
+			.andThen((decision) => {
+				if (decision.kind === "complete") {
+					return ok<DeletePendingSessionSuccess>(decision.value);
+				}
+
+				return archiveDeadCheckoutBooking(ctx, args.bookingId, { status: "abandoned" }).map(
+					(): DeletePendingSessionSuccess => ({ outcome: "abandoned" })
+				);
+			})
+			.match(tupleOk, tupleErr)
 });
