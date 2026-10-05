@@ -42,27 +42,26 @@ function patchEditorAssignmentAfterSearchStep(
 	ctx: MutationCtx,
 	session: Doc<"bookings">,
 	editor: Doc<"editorProfiles"> | undefined,
-	adminNotes: string
+	adminNotes: string,
+
+	searchBlobPatch: BookingSearchBlobPatch
 ) {
-	return (searchBlobPatch: BookingSearchBlobPatch) =>
-		patchBookingEditorAssignment(ctx, session._id, {
-			adminNotes: adminNotes.trim() || undefined,
-			assignedEditorTokenIdentifier: editor?.tokenIdentifier,
-			searchBlobPatch
-		});
+	return patchBookingEditorAssignment(ctx, session._id, {
+		adminNotes: adminNotes.trim() || undefined,
+		assignedEditorTokenIdentifier: editor?.tokenIdentifier,
+		searchBlobPatch
+	});
 }
 
 function patchLastAssignedIfEditorStep(
 	ctx: MutationCtx,
 	editor: Doc<"editorProfiles"> | undefined
 ) {
-	return () => {
-		if (editor === undefined) {
-			return okAsync(null);
-		}
+	if (editor === undefined) {
+		return okAsync(null);
+	}
 
-		return patchEditorProfileLastAssignedAt(ctx, editor._id);
-	};
+	return patchEditorProfileLastAssignedAt(ctx, editor._id);
 }
 
 function scheduleDriveAccessRemovalIfNeededStep(
@@ -71,13 +70,11 @@ function scheduleDriveAccessRemovalIfNeededStep(
 	previousEditorNeedsAccessRemoved: boolean,
 	previousEditorTokenIdentifier: string | undefined
 ) {
-	return () => {
-		if (!previousEditorNeedsAccessRemoved) {
-			return okAsync(null);
-		}
+	if (!previousEditorNeedsAccessRemoved) {
+		return okAsync(null);
+	}
 
-		return scheduleEditorDriveAccessUpdate(ctx, sessionId, previousEditorTokenIdentifier!);
-	};
+	return scheduleEditorDriveAccessUpdate(ctx, sessionId, previousEditorTokenIdentifier!);
 }
 
 function scheduleFirstAssignmentDriveSetupStep(
@@ -85,13 +82,11 @@ function scheduleFirstAssignmentDriveSetupStep(
 	sessionId: Doc<"bookings">["_id"],
 	isFirstAssignment: boolean
 ) {
-	return () => {
-		if (!isFirstAssignment) {
-			return okAsync(null);
-		}
+	if (!isFirstAssignment) {
+		return okAsync(null);
+	}
 
-		return scheduleEditorDriveAccessSetup(ctx, sessionId);
-	};
+	return scheduleEditorDriveAccessSetup(ctx, sessionId);
 }
 
 function saveSessionEditorAssignment(
@@ -117,9 +112,11 @@ function saveSessionEditorAssignment(
 		assignedEditorTokenIdentifier: editor?.tokenIdentifier,
 		assignedEditorDisplayName
 	})
-		.andThen(patchEditorAssignmentAfterSearchStep(ctx, session, editor, adminNotes))
-		.andThen(patchLastAssignedIfEditorStep(ctx, editor))
-		.andThen(
+		.andThen((searchBlobPatch: BookingSearchBlobPatch) =>
+			patchEditorAssignmentAfterSearchStep(ctx, session, editor, adminNotes, searchBlobPatch)
+		)
+		.andThen(() => patchLastAssignedIfEditorStep(ctx, editor))
+		.andThen(() =>
 			scheduleDriveAccessRemovalIfNeededStep(
 				ctx,
 				session._id,
@@ -127,16 +124,20 @@ function saveSessionEditorAssignment(
 				previousEditorTokenIdentifier
 			)
 		)
-		.andThen(scheduleFirstAssignmentDriveSetupStep(ctx, session._id, isFirstAssignment));
+		.andThen(() => scheduleFirstAssignmentDriveSetupStep(ctx, session._id, isFirstAssignment));
 }
 
-function assignEditorToSessionStep(ctx: MutationCtx, session: Doc<"bookings">, adminNotes: string) {
-	return (editor: Doc<"editorProfiles">) =>
-		saveSessionEditorAssignment(ctx, session, editor, adminNotes);
+function assignEditorToSessionStep(
+	ctx: MutationCtx,
+	session: Doc<"bookings">,
+	adminNotes: string,
+	editor: Doc<"editorProfiles">
+) {
+	return saveSessionEditorAssignment(ctx, session, editor, adminNotes);
 }
 
 function lookupEditorProfileByTokenStep(ctx: MutationCtx, editorTokenIdentifier: string) {
-	return () => lookupEditorProfileByToken(ctx, editorTokenIdentifier);
+	return lookupEditorProfileByToken(ctx, editorTokenIdentifier);
 }
 
 export function updateSessionEditorAssignment(
@@ -150,7 +151,9 @@ export function updateSessionEditorAssignment(
 	}
 
 	return requireEditorAssignableSession(session)
-		.asyncAndThen(lookupEditorProfileByTokenStep(ctx, editorTokenIdentifier))
+		.asyncAndThen(() => lookupEditorProfileByTokenStep(ctx, editorTokenIdentifier))
 		.andThen(requireActiveEditor)
-		.andThen(assignEditorToSessionStep(ctx, session, adminNotes));
+		.andThen((editor: Doc<"editorProfiles">) =>
+			assignEditorToSessionStep(ctx, session, adminNotes, editor)
+		);
 }

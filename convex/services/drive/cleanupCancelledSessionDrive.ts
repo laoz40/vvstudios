@@ -15,24 +15,29 @@ import type { DriveSetupInfo } from "#convex/lib/drive/sessionFolders/driveSetup
 function deleteEmptySessionFolderWhenPossible(
 	ctx: ActionCtx,
 	bookingId: Id<"bookings">,
-	sessionFolderId: string
+	sessionFolderId: string,
+
+	drive: DriveClient
 ) {
-	return (drive: DriveClient) =>
-		deleteEmptyDriveFolderWhenEmpty(ctx, { bookingId, drive, sessionFolderId });
+	return deleteEmptyDriveFolderWhenEmpty(ctx, { bookingId, drive, sessionFolderId });
 }
 
-function clearCancelledDriveFromSetup(ctx: ActionCtx, bookingId: Id<"bookings">) {
-	return (setupInfo: DriveSetupInfo | null) => {
-		const sessionFolderId = setupInfo?.driveSession?.sessionFolder?.id;
+function clearCancelledDriveFromSetup(
+	ctx: ActionCtx,
+	bookingId: Id<"bookings">,
+	setupInfo: DriveSetupInfo | null
+) {
+	const sessionFolderId = setupInfo?.driveSession?.sessionFolder?.id;
 
-		if (sessionFolderId === undefined) {
-			return clearSessionDriveDb(ctx, bookingId);
-		}
+	if (sessionFolderId === undefined) {
+		return clearSessionDriveDb(ctx, bookingId);
+	}
 
-		return loadDriveClient()
-			.andThen(deleteEmptySessionFolderWhenPossible(ctx, bookingId, sessionFolderId))
-			.orElse(() => okAsync(null));
-	};
+	return loadDriveClient()
+		.andThen((drive: DriveClient) =>
+			deleteEmptySessionFolderWhenPossible(ctx, bookingId, sessionFolderId, drive)
+		)
+		.orElse(() => okAsync(null));
 }
 
 export function clearCancelledSessionDriveFields(
@@ -42,6 +47,8 @@ export function clearCancelledSessionDriveFields(
 	return fromConvexTuple(
 		ctx.runQuery(internal.sessionsDriveInternal.getDriveSetup, { bookingId: args.bookingId })
 	)
-		.andThen(clearCancelledDriveFromSetup(ctx, args.bookingId))
+		.andThen((setupInfo: DriveSetupInfo | null) =>
+			clearCancelledDriveFromSetup(ctx, args.bookingId, setupInfo)
+		)
 		.orElse(() => okAsync(null));
 }

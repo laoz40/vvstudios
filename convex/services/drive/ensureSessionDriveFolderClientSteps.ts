@@ -28,12 +28,12 @@ function mapVerifiedExistingClientFolder(
 	savedClient: NonNullable<DriveSetupInfo["driveClient"]>,
 	savedClientFolderId: string
 ) {
-	return () => ({
+	return {
 		drive,
 		clientFolderId: savedClientFolderId,
 		driveClientId: savedClient._id,
 		assetsFolder: savedClient.assetsFolder
-	});
+	};
 }
 
 function recreateClientFolderAfterMissing(
@@ -41,16 +41,16 @@ function recreateClientFolderAfterMissing(
 	setupInfo: DriveSetupInfo,
 	drive: DriveClient,
 	replaceMissingFolders: boolean,
-	savedClient: NonNullable<DriveSetupInfo["driveClient"]>
-) {
-	return (error: SetupError) => {
-		if (!shouldReplaceMissingFolder(error, replaceMissingFolders)) return err(error);
-		savedClient.folderId = undefined;
+	savedClient: NonNullable<DriveSetupInfo["driveClient"]>,
 
-		return clearSavedClientFolder(ctx, savedClient._id).andThen(
-			recreateClientFolderStep(ctx, setupInfo, drive, replaceMissingFolders)
-		);
-	};
+	error: SetupError
+) {
+	if (!shouldReplaceMissingFolder(error, replaceMissingFolders)) return err(error);
+	savedClient.folderId = undefined;
+
+	return clearSavedClientFolder(ctx, savedClient._id).andThen(() =>
+		recreateClientFolderStep(ctx, setupInfo, drive, replaceMissingFolders)
+	);
 }
 
 function recreateClientFolderStep(
@@ -59,35 +59,35 @@ function recreateClientFolderStep(
 	drive: DriveClient,
 	replaceMissingFolders: boolean
 ) {
-	return () => getOrCreateClientFolder(ctx, setupInfo, drive, replaceMissingFolders);
+	return getOrCreateClientFolder(ctx, setupInfo, drive, replaceMissingFolders);
 }
 
 function saveCreatedClientFolder(
 	ctx: ActionCtx,
 	drive: DriveClient,
 	normalizedEmail: string,
-	displayName: string
+	displayName: string,
+
+	folder: SavedDriveFolder
 ) {
-	return (folder: SavedDriveFolder) =>
-		fromConvexTuple(
-			ctx.runMutation(internal.sessionsDriveInternal.saveDriveClientFolder, {
-				normalizedEmail,
-				displayName,
-				folder
-			})
-		).map(mapSavedClientFolderSetup(drive));
+	return fromConvexTuple(
+		ctx.runMutation(internal.sessionsDriveInternal.saveDriveClientFolder, {
+			normalizedEmail,
+			displayName,
+			folder
+		})
+	).map((_value) => mapSavedClientFolderSetup(drive, _value));
 }
 
-function mapSavedClientFolderSetup(drive: DriveClient) {
-	return ({
+function mapSavedClientFolderSetup(
+	drive: DriveClient,
+	{
 		assetsFolder,
 		driveClientId,
 		folderId
-	}: {
-		assetsFolder: SavedFolder | undefined;
-		driveClientId: Id<"driveClients">;
-		folderId: string;
-	}) => ({ drive, clientFolderId: folderId, driveClientId, assetsFolder });
+	}: { assetsFolder: SavedFolder | undefined; driveClientId: Id<"driveClients">; folderId: string }
+) {
+	return { drive, clientFolderId: folderId, driveClientId, assetsFolder };
 }
 
 export function getOrCreateClientFolder(
@@ -101,9 +101,16 @@ export function getOrCreateClientFolder(
 
 	if (savedClient !== null && savedClientFolderId !== undefined) {
 		return verifyDriveFolder(drive, savedClientFolderId)
-			.map(mapVerifiedExistingClientFolder(drive, savedClient, savedClientFolderId))
-			.orElse(
-				recreateClientFolderAfterMissing(ctx, setupInfo, drive, replaceMissingFolders, savedClient)
+			.map(() => mapVerifiedExistingClientFolder(drive, savedClient, savedClientFolderId))
+			.orElse((error: SetupError) =>
+				recreateClientFolderAfterMissing(
+					ctx,
+					setupInfo,
+					drive,
+					replaceMissingFolders,
+					savedClient,
+					error
+				)
 			);
 	}
 
@@ -113,32 +120,34 @@ export function getOrCreateClientFolder(
 		name: displayName,
 		parentId: env.GOOGLE_DRIVE_ROOT_FOLDER_ID,
 		marker: `client:${normalizedEmail}`
-	}).andThen(saveCreatedClientFolder(ctx, drive, normalizedEmail, displayName));
+	}).andThen((folder: SavedDriveFolder) =>
+		saveCreatedClientFolder(ctx, drive, normalizedEmail, displayName, folder)
+	);
 }
 
 function mapClientWithExistingAssetsFolder(
 	client: ClientFolderSetup,
 	savedAssetsFolder: SavedFolder
 ) {
-	return () => ({ ...client, assetsFolder: savedAssetsFolder });
+	return { ...client, assetsFolder: savedAssetsFolder };
 }
 
 function recreateClientAssetsFolderAfterMissing(
 	ctx: ActionCtx,
 	setupInfo: DriveSetupInfo,
 	client: ClientFolderSetup,
-	replaceMissingFolders: boolean
+	replaceMissingFolders: boolean,
+
+	error: SetupError
 ) {
-	return (error: SetupError) => {
-		if (!shouldReplaceMissingFolder(error, replaceMissingFolders)) return err(error);
-		client.assetsFolder = undefined;
+	if (!shouldReplaceMissingFolder(error, replaceMissingFolders)) return err(error);
+	client.assetsFolder = undefined;
 
-		if (setupInfo.driveClient !== null) setupInfo.driveClient.assetsFolder = undefined;
+	if (setupInfo.driveClient !== null) setupInfo.driveClient.assetsFolder = undefined;
 
-		return clearSavedClientAssetsFolder(ctx, client.driveClientId).andThen(
-			recreateClientAssetsFolderStep(ctx, setupInfo, client, replaceMissingFolders)
-		);
-	};
+	return clearSavedClientAssetsFolder(ctx, client.driveClientId).andThen(() =>
+		recreateClientAssetsFolderStep(ctx, setupInfo, client, replaceMissingFolders)
+	);
 }
 
 function recreateClientAssetsFolderStep(
@@ -147,21 +156,24 @@ function recreateClientAssetsFolderStep(
 	client: ClientFolderSetup,
 	replaceMissingFolders: boolean
 ) {
-	return () => getOrCreateClientAssetsFolder(ctx, setupInfo, client, replaceMissingFolders);
+	return getOrCreateClientAssetsFolder(ctx, setupInfo, client, replaceMissingFolders);
 }
 
-function saveCreatedClientAssetsFolder(ctx: ActionCtx, client: ClientFolderSetup) {
-	return (folder: SavedDriveFolder) =>
-		fromConvexTuple(
-			ctx.runMutation(internal.sessionsDriveInternal.saveDriveClientAssetsFolder, {
-				driveClientId: client.driveClientId,
-				folder
-			})
-		);
+function saveCreatedClientAssetsFolder(
+	ctx: ActionCtx,
+	client: ClientFolderSetup,
+	folder: SavedDriveFolder
+) {
+	return fromConvexTuple(
+		ctx.runMutation(internal.sessionsDriveInternal.saveDriveClientAssetsFolder, {
+			driveClientId: client.driveClientId,
+			folder
+		})
+	);
 }
 
-function mapClientWithSavedAssetsFolder(client: ClientFolderSetup) {
-	return (assetsFolder: SavedFolder) => ({ ...client, assetsFolder });
+function mapClientWithSavedAssetsFolder(client: ClientFolderSetup, assetsFolder: SavedFolder) {
+	return { ...client, assetsFolder };
 }
 
 export function getOrCreateClientAssetsFolder(
@@ -174,9 +186,9 @@ export function getOrCreateClientAssetsFolder(
 
 	if (savedAssetsFolder !== undefined) {
 		return verifyDriveFolder(client.drive, savedAssetsFolder.id)
-			.map(mapClientWithExistingAssetsFolder(client, savedAssetsFolder))
-			.orElse(
-				recreateClientAssetsFolderAfterMissing(ctx, setupInfo, client, replaceMissingFolders)
+			.map(() => mapClientWithExistingAssetsFolder(client, savedAssetsFolder))
+			.orElse((error: SetupError) =>
+				recreateClientAssetsFolderAfterMissing(ctx, setupInfo, client, replaceMissingFolders, error)
 			);
 	}
 
@@ -185,6 +197,6 @@ export function getOrCreateClientAssetsFolder(
 		parentId: client.clientFolderId,
 		marker: `client:${getClientIdentity(setupInfo).normalizedEmail}:assets`
 	})
-		.andThen(saveCreatedClientAssetsFolder(ctx, client))
-		.map(mapClientWithSavedAssetsFolder(client));
+		.andThen((folder: SavedDriveFolder) => saveCreatedClientAssetsFolder(ctx, client, folder))
+		.map((assetsFolder: SavedFolder) => mapClientWithSavedAssetsFolder(client, assetsFolder));
 }

@@ -24,32 +24,32 @@ export function saveClientDrivePermission(
 	}
 ) {
 	return loadDriveSessionRowByBookingId(ctx, args.bookingId).andThen(
-		saveClientDrivePermissionForLoadedSession(ctx, args)
+		(driveSession: Doc<"driveSessions"> | null) =>
+			saveClientDrivePermissionForLoadedSession(ctx, args, driveSession)
 	);
 }
 
 function saveClientDrivePermissionForLoadedSession(
 	ctx: MutationCtx,
-	args: Parameters<typeof saveClientDrivePermission>[1]
+	args: Parameters<typeof saveClientDrivePermission>[1],
+	driveSession: Doc<"driveSessions"> | null
 ) {
-	return (driveSession: Doc<"driveSessions"> | null) => {
-		if (driveSession === null) return err({ reason: "DRIVE_RECORD_NOT_FOUND" as const });
+	if (driveSession === null) return err({ reason: "DRIVE_RECORD_NOT_FOUND" as const });
 
-		return loadDriveClientRow(ctx, driveSession.driveClientId).andThen(
-			writeClientDrivePermissionForLoadedClient(ctx, args)
-		);
-	};
+	return loadDriveClientRow(ctx, driveSession.driveClientId).andThen(
+		(driveClient: Doc<"driveClients"> | null) =>
+			writeClientDrivePermissionForLoadedClient(ctx, args, driveClient)
+	);
 }
 
 function writeClientDrivePermissionForLoadedClient(
 	ctx: MutationCtx,
-	args: Parameters<typeof saveClientDrivePermission>[1]
+	args: Parameters<typeof saveClientDrivePermission>[1],
+	driveClient: Doc<"driveClients"> | null
 ) {
-	return (driveClient: Doc<"driveClients"> | null) => {
-		if (driveClient === null) return err({ reason: "DRIVE_RECORD_NOT_FOUND" as const });
+	if (driveClient === null) return err({ reason: "DRIVE_RECORD_NOT_FOUND" as const });
 
-		return writeClientDrivePermission(ctx, driveClient, args);
-	};
+	return writeClientDrivePermission(ctx, driveClient, args);
 }
 
 export function saveClientDrivePermissionsStatus(
@@ -57,72 +57,70 @@ export function saveClientDrivePermissionsStatus(
 	args: { bookingId: Id<"bookings">; status: "failed" | "ready" | "skipped" }
 ) {
 	return loadDriveSessionRowByBookingId(ctx, args.bookingId).andThen(
-		saveClientDrivePermissionsStatusForLoadedSession(ctx, args)
+		(driveSession: Doc<"driveSessions"> | null) =>
+			saveClientDrivePermissionsStatusForLoadedSession(ctx, args, driveSession)
 	);
 }
 
 function saveClientDrivePermissionsStatusForLoadedSession(
 	ctx: MutationCtx,
-	args: Parameters<typeof saveClientDrivePermissionsStatus>[1]
+	args: Parameters<typeof saveClientDrivePermissionsStatus>[1],
+	driveSession: Doc<"driveSessions"> | null
 ) {
-	return (driveSession: Doc<"driveSessions"> | null) => {
-		if (driveSession === null) return err({ reason: "DRIVE_RECORD_NOT_FOUND" as const });
+	if (driveSession === null) return err({ reason: "DRIVE_RECORD_NOT_FOUND" as const });
 
-		return writeClientDrivePermissionsStatusForSession(ctx, driveSession, args.status);
-	};
+	return writeClientDrivePermissionsStatusForSession(ctx, driveSession, args.status);
 }
 
 export function claimClientAssetsEmail(
 	ctx: MutationCtx,
 	args: { bookingId: Id<"bookings">; attempt: "automatic" | "retry"; now: number }
 ) {
-	return loadBookingRow(ctx, args.bookingId).andThen(claimClientAssetsEmailForBooking(ctx, args));
+	return loadBookingRow(ctx, args.bookingId).andThen((booking: Doc<"bookings"> | null) =>
+		claimClientAssetsEmailForBooking(ctx, args, booking)
+	);
 }
 
 function claimClientAssetsEmailForBooking(
 	ctx: MutationCtx,
-	args: Parameters<typeof claimClientAssetsEmail>[1]
+	args: Parameters<typeof claimClientAssetsEmail>[1],
+	booking: Doc<"bookings"> | null
 ) {
-	return (booking: Doc<"bookings"> | null) => {
-		if (
-			booking === null ||
-			booking.driveClientId === undefined ||
-			!bookingRequiresClientAssetsEmail(booking.addons)
-		) {
-			return err({ reason: "CLIENT_ASSETS_EMAIL_NOT_SENDABLE" as const });
-		}
+	if (
+		booking === null ||
+		booking.driveClientId === undefined ||
+		!bookingRequiresClientAssetsEmail(booking.addons)
+	) {
+		return err({ reason: "CLIENT_ASSETS_EMAIL_NOT_SENDABLE" as const });
+	}
 
-		return loadClientAssetsEmailRows(ctx, {
-			bookingId: args.bookingId,
-			driveClientId: booking.driveClientId
-		}).andThen(claimClientAssetsEmailFromLoadedRows(ctx, args, booking));
-	};
+	return loadClientAssetsEmailRows(ctx, {
+		bookingId: args.bookingId,
+		driveClientId: booking.driveClientId
+	}).andThen((_value) => claimClientAssetsEmailFromLoadedRows(ctx, args, booking, _value));
 }
 
 function claimClientAssetsEmailFromLoadedRows(
 	ctx: MutationCtx,
 	args: Parameters<typeof claimClientAssetsEmail>[1],
-	booking: Doc<"bookings">
+	booking: Doc<"bookings">,
+
+	[driveClient, driveSession]: [Doc<"driveClients"> | null, Doc<"driveSessions"> | null]
 ) {
-	return ([driveClient, driveSession]: [
-		Doc<"driveClients"> | null,
-		Doc<"driveSessions"> | null
-	]) => {
-		const assetsFolder = driveClient?.assetsFolder;
+	const assetsFolder = driveClient?.assetsFolder;
 
-		if (driveSession === null || assetsFolder === undefined) {
-			return err({ reason: "CLIENT_ASSETS_EMAIL_NOT_SENDABLE" as const });
-		}
+	if (driveSession === null || assetsFolder === undefined) {
+		return err({ reason: "CLIENT_ASSETS_EMAIL_NOT_SENDABLE" as const });
+	}
 
-		return claimClientAssetsEmailRecord(ctx, {
-			attempt: args.attempt,
-			assetsFolder,
-			booking,
-			driveClient: driveClient ?? null,
-			driveSession,
-			now: args.now
-		});
-	};
+	return claimClientAssetsEmailRecord(ctx, {
+		attempt: args.attempt,
+		assetsFolder,
+		booking,
+		driveClient: driveClient ?? null,
+		driveSession,
+		now: args.now
+	});
 }
 
 export function saveClientAssetsEmailResult(
@@ -135,14 +133,15 @@ export function saveClientAssetsEmailResult(
 	}
 ) {
 	return loadDriveSessionRowByBookingId(ctx, args.bookingId).andThen(
-		saveClientAssetsEmailResultForLoadedSession(ctx, args)
+		(driveSession: Doc<"driveSessions"> | null) =>
+			saveClientAssetsEmailResultForLoadedSession(ctx, args, driveSession)
 	);
 }
 
 function saveClientAssetsEmailResultForLoadedSession(
 	ctx: MutationCtx,
-	args: Parameters<typeof saveClientAssetsEmailResult>[1]
+	args: Parameters<typeof saveClientAssetsEmailResult>[1],
+	driveSession: Doc<"driveSessions"> | null
 ) {
-	return (driveSession: Doc<"driveSessions"> | null) =>
-		saveClientAssetsEmailResultForSession(ctx, driveSession, args);
+	return saveClientAssetsEmailResultForSession(ctx, driveSession, args);
 }

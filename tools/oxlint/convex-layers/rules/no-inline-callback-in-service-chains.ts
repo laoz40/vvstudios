@@ -3,6 +3,13 @@ import { defineRule } from "@oxlint/plugins";
 import type { ESTree } from "@oxlint/plugins";
 
 import { isConvexServiceFile } from "../shared/paths.ts";
+import {
+	collectLocalFunctions,
+	isCurriedFactoryFunction,
+	isInlineBlockCallback,
+	isPassThroughNamedCall,
+	resolveCalleeToLocal
+} from "../shared/service-chain-callbacks.ts";
 
 const CHAIN_METHOD_NAMES = new Set(["andThen", "asyncAndThen"]);
 
@@ -19,31 +26,36 @@ function isResultChainCall(node: ESTree.CallExpression): boolean {
 	return CHAIN_METHOD_NAMES.has(callee.property.name);
 }
 
-function isInlineCallback(node: ESTree.Expression | ESTree.SpreadElement): boolean {
-	if (node.type === "SpreadElement") {
-		return false;
-	}
+function isCurriedFactoryCall(
+	node: ESTree.CallExpression,
+	locals: Map<string, ReturnType<typeof collectLocalFunctions> extends Map<string, infer V> ? V : never>
+): boolean {
+	const calleeFn = resolveCalleeToLocal(node, locals);
 
-	return node.type === "ArrowFunctionExpression" || node.type === "FunctionExpression";
+	return calleeFn !== null && isCurriedFactoryFunction(calleeFn);
 }
 
-/** Service Result chains must use named steps or curried calls for .andThen / .asyncAndThen, not inline callbacks. */
+/** Service Result chains: named steps or pass-through calls; no block inline callbacks or curried factories. */
 export const noInlineCallbackInServiceChainsRule = defineRule({
 	meta: {
 		type: "problem",
 		docs: {
 			description:
-				"Disallow inline arrow or function callbacks as the first argument to .andThen or .asyncAndThen in convex/services/**."
+				"Disallow inline block callbacks and curried factory calls as the first argument to .andThen or .asyncAndThen in convex/services/**."
 		},
 		messages: {
 			inlineCallback:
-				"Use a named function reference or curried call (foo(ctx, args)), not an inline callback, in service Result chains."
+				"Use a named function reference or a pass-through call like `.andThen((v) => step(ctx, v))`, not an inline block callback, in service Result chains.",
+			curriedFactory:
+				"Prefer a full-arg named step and `.andThen((v) => step(ctx, v))` instead of a curried factory call like `step(ctx)` in service Result chains."
 		}
 	},
 	create(context) {
 		if (!isConvexServiceFile(context.filename)) {
 			return {};
 		}
+
+		const locals = collectLocalFunctions(context.sourceCode.ast);
 
 		return {
 			CallExpression(node: ESTree.CallExpression) {
@@ -56,11 +68,22 @@ export const noInlineCallbackInServiceChainsRule = defineRule({
 					return;
 				}
 
-				if (!isInlineCallback(firstArg)) {
+				if (isInlineBlockCallback(firstArg)) {
+					context.report({ node: firstArg, messageId: "inlineCallback" });
 					return;
 				}
 
-				context.report({ node: firstArg, messageId: "inlineCallback" });
+				if (firstArg.type === "ArrowFunctionExpression" && isPassThroughNamedCall(firstArg)) {
+					return;
+				}
+
+				if (firstArg.type === "Identifier") {
+					return;
+				}
+
+				if (firstArg.type === "CallExpression" && isCurriedFactoryCall(firstArg, locals)) {
+					context.report({ node: firstArg, messageId: "curriedFactory" });
+				}
 			}
 		};
 	}

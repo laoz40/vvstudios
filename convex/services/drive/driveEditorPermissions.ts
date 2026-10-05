@@ -33,63 +33,69 @@ export function runEditorAssignmentEmailRetry(
 	return sendEditorAssignmentEmailForReadyAccess(ctx, args);
 }
 
-function removeFailedEditorWhenPresent(ctx: ActionCtx) {
-	return (removal: FailedEditorRemoval | null) => {
-		if (removal === null) {
-			return errAsync({ reason: "PREVIOUS_EDITOR_REMOVAL_NOT_FOUND" as const });
-		}
+function removeFailedEditorWhenPresent(ctx: ActionCtx, removal: FailedEditorRemoval | null) {
+	if (removal === null) {
+		return errAsync({ reason: "PREVIOUS_EDITOR_REMOVAL_NOT_FOUND" as const });
+	}
 
-		return removeFailedEditorDriveAccess(ctx, removal);
-	};
+	return removeFailedEditorDriveAccess(ctx, removal);
 }
 
 export function retryFailedPreviousEditorRemoval(
 	ctx: ActionCtx,
 	args: { bookingId: Id<"bookings"> }
 ) {
-	return loadFailedEditorRemoval(ctx, args).andThen(removeFailedEditorWhenPresent(ctx));
+	return loadFailedEditorRemoval(ctx, args).andThen((removal: FailedEditorRemoval | null) =>
+		removeFailedEditorWhenPresent(ctx, removal)
+	);
 }
 
 function markPreviousEditorRemovalFailure(
 	ctx: ActionCtx,
 	bookingId: Id<"bookings">,
-	editorTokenIdentifier: string
+	editorTokenIdentifier: string,
+
+	error: DriveEditorPermissionsError
 ) {
-	return (error: DriveEditorPermissionsError) =>
-		markPreviousEditorRemovalFailed(ctx, { bookingId, editorTokenIdentifier }).andThen(
-			rethrowDriveEditorError(error)
-		);
+	return markPreviousEditorRemovalFailed(ctx, { bookingId, editorTokenIdentifier }).andThen(() =>
+		rethrowDriveEditorError(error)
+	);
 }
 
 function rethrowDriveEditorError(error: DriveEditorPermissionsError) {
-	return () => errAsync(error);
+	return errAsync(error);
 }
 
 function setupReplacementEditorAccess(ctx: ActionCtx, bookingId: Id<"bookings">) {
-	return () => setupEditorAccessIfAssigned(ctx, { bookingId });
+	return setupEditorAccessIfAssigned(ctx, { bookingId });
 }
 
 function removePreviousEditorThenSetupReplacement(
 	ctx: ActionCtx,
-	args: { bookingId: Id<"bookings">; previousEditorTokenIdentifier: string }
-) {
-	return (access: EditorDriveAccessToRemove | null) => {
-		const removal =
-			access === null
-				? okAsync(null)
-				: removePreviousEditorDriveAccess(ctx, {
-						access,
-						previousEditorTokenIdentifier: args.previousEditorTokenIdentifier
-					});
+	args: { bookingId: Id<"bookings">; previousEditorTokenIdentifier: string },
 
-		// A removal failure is recorded for manual retry; it never blocks the replacement editor's setup.
-		return removal
-			.orElse(
-				markPreviousEditorRemovalFailure(ctx, args.bookingId, args.previousEditorTokenIdentifier)
+	access: EditorDriveAccessToRemove | null
+) {
+	const removal =
+		access === null
+			? okAsync(null)
+			: removePreviousEditorDriveAccess(ctx, {
+					access,
+					previousEditorTokenIdentifier: args.previousEditorTokenIdentifier
+				});
+
+	// A removal failure is recorded for manual retry; it never blocks the replacement editor's setup.
+	return removal
+		.orElse((error: DriveEditorPermissionsError) =>
+			markPreviousEditorRemovalFailure(
+				ctx,
+				args.bookingId,
+				args.previousEditorTokenIdentifier,
+				error
 			)
-			.orElse(() => okAsync(null))
-			.andThen(setupReplacementEditorAccess(ctx, args.bookingId));
-	};
+		)
+		.orElse(() => okAsync(null))
+		.andThen(() => setupReplacementEditorAccess(ctx, args.bookingId));
 }
 
 export function runEditorDriveAccessUpdate(
@@ -99,5 +105,7 @@ export function runEditorDriveAccessUpdate(
 	return loadEditorDriveAccessToRemove(ctx, {
 		bookingId: args.bookingId,
 		editorTokenIdentifier: args.previousEditorTokenIdentifier
-	}).andThen(removePreviousEditorThenSetupReplacement(ctx, args));
+	}).andThen((access: EditorDriveAccessToRemove | null) =>
+		removePreviousEditorThenSetupReplacement(ctx, args, access)
+	);
 }

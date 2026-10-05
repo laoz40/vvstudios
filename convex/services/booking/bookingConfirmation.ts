@@ -27,13 +27,13 @@ type ClaimBookingConfirmationArgs = {
 	stripeEventId: string;
 };
 
-function completeClaimedBookingConfirmation(ctx: ActionCtx) {
-	return (claim: Extract<BookingClaimOutcome, { outcome: "claimed" }>) =>
-		fromConvexTuple(
-			ctx.runAction(internal.googleCalendar.completeClaimedSession, {
-				bookingId: claim.session._id
-			})
-		).mapErr((error) => ({ kind: "completion_failed" as const, error }));
+function completeClaimedBookingConfirmation(
+	ctx: ActionCtx,
+	claim: Extract<BookingClaimOutcome, { outcome: "claimed" }>
+) {
+	return fromConvexTuple(
+		ctx.runAction(internal.googleCalendar.completeClaimedSession, { bookingId: claim.session._id })
+	).mapErr((error) => ({ kind: "completion_failed" as const, error }));
 }
 
 function checkoutSuccessFromClaimOutcome(ctx: ActionCtx, claim: BookingClaimOutcome) {
@@ -44,14 +44,14 @@ function checkoutSuccessFromClaimOutcome(ctx: ActionCtx, claim: BookingClaimOutc
 		case "already_claimed":
 			return okAsync<CompleteSessionCheckoutSuccess>({ outcome: claim.outcome });
 		case "claimed":
-			return completeClaimedBookingConfirmation(ctx)(claim);
+			return completeClaimedBookingConfirmation(ctx, claim);
 		default:
 			return exhaustiveCheck(claimOutcome);
 	}
 }
 
-function checkoutSuccessAfterClaim(ctx: ActionCtx) {
-	return (claim: BookingClaimOutcome) => checkoutSuccessFromClaimOutcome(ctx, claim);
+function checkoutSuccessAfterClaim(ctx: ActionCtx, claim: BookingClaimOutcome) {
+	return checkoutSuccessFromClaimOutcome(ctx, claim);
 }
 
 export function completeSessionCheckoutService(ctx: ActionCtx, args: ClaimBookingConfirmationArgs) {
@@ -59,5 +59,5 @@ export function completeSessionCheckoutService(ctx: ActionCtx, args: ClaimBookin
 		ctx.runMutation(internal.bookingConfirmation.claimBookingConfirmation, args)
 	)
 		.mapErr((error) => ({ kind: "claim_failed" as const, error }))
-		.andThen(checkoutSuccessAfterClaim(ctx));
+		.andThen((claim: BookingClaimOutcome) => checkoutSuccessAfterClaim(ctx, claim));
 }

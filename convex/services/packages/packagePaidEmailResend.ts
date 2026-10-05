@@ -44,7 +44,7 @@ function paidPackageForEmailResend(packageRecord: Doc<"packages">) {
 }
 
 function loadPackageForEmailResend(ctx: ActionCtx, packageId: Id<"packages">) {
-	return () => getPackageForAction(ctx, packageId);
+	return getPackageForAction(ctx, packageId);
 }
 
 export function loadPaidPackageForEmailResend(
@@ -52,7 +52,7 @@ export function loadPaidPackageForEmailResend(
 	args: { packageId: Id<"packages"> }
 ): ResultAsync<{ paidAt: number; packageRecord: Doc<"packages"> }, ResendPackageEmailError> {
 	return requirePermissionActions(ctx, "send:receipt-emails")
-		.andThen(loadPackageForEmailResend(ctx, args.packageId))
+		.andThen(() => loadPackageForEmailResend(ctx, args.packageId))
 		.andThen(paidPackageForEmailResend);
 }
 
@@ -68,22 +68,23 @@ export function sendPackagePaidScheduleEmail(
 	args: { packageId: Id<"packages">; tokenResult: PaidPackageResult }
 ): ResultAsync<null, ResendPackageEmailError> {
 	return okOrThrow<BookingAvailabilitySettings>(ctx.runQuery(api.bookingSettings.get, {})).andThen(
-		sendPaidScheduleEmailWithSettings(ctx, args)
+		(bookingSettings: BookingAvailabilitySettings) =>
+			sendPaidScheduleEmailWithSettings(ctx, args, bookingSettings)
 	);
 }
 
 function sendPaidScheduleEmailWithSettings(
 	ctx: ActionCtx,
-	args: { packageId: Id<"packages">; tokenResult: PaidPackageResult }
+	args: { packageId: Id<"packages">; tokenResult: PaidPackageResult },
+	bookingSettings: BookingAvailabilitySettings
 ) {
-	return (bookingSettings: BookingAvailabilitySettings) =>
-		sendAndRecordPackagePaidEmail(
-			ctx,
-			args.packageId,
-			buildPackagePaidEmailContext(
-				args.tokenResult,
-				bookingSettings.leadTimeMinutes,
-				new URL(env.STRIPE_CHECKOUT_RETURN_URL).origin
-			)
-		);
+	return sendAndRecordPackagePaidEmail(
+		ctx,
+		args.packageId,
+		buildPackagePaidEmailContext(
+			args.tokenResult,
+			bookingSettings.leadTimeMinutes,
+			new URL(env.STRIPE_CHECKOUT_RETURN_URL).origin
+		)
+	);
 }

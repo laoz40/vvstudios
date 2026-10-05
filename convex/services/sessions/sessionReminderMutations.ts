@@ -26,26 +26,27 @@ function requireSendableUnclaimedReminder(session: Doc<"bookings">) {
 }
 
 function pairClaimedSessionStep(session: Doc<"bookings">) {
-	return () => ({ session });
+	return { session };
 }
 
 function claimReminderAfterSessionStep(
 	ctx: MutationCtx,
-	args: ReminderBookingArgs & { now: number }
+	args: ReminderBookingArgs & { now: number },
+
+	session: Doc<"bookings">
 ) {
-	return (session: Doc<"bookings">) =>
-		patchSessionReminderEmailClaimed(ctx, args).map(pairClaimedSessionStep(session));
+	return patchSessionReminderEmailClaimed(ctx, args).map(() => pairClaimedSessionStep(session));
 }
 
 function patchReminderSentStep(ctx: MutationCtx, args: ReminderBookingArgs & { now: number }) {
-	return () => patchSessionReminderEmailSent(ctx, args);
+	return patchSessionReminderEmailSent(ctx, args);
 }
 
 function patchReminderFailedStep(
 	ctx: MutationCtx,
 	args: ReminderBookingArgs & { failureCode: string }
 ) {
-	return () => patchSessionReminderEmailFailed(ctx, args);
+	return patchSessionReminderEmailFailed(ctx, args);
 }
 
 export function getTomorrowSessionReminderWindow(nowDate: Date) {
@@ -65,19 +66,19 @@ export function claimSessionReminderEmail(
 ) {
 	return getSessionFromDb(ctx, args.bookingId)
 		.andThen(requireSendableUnclaimedReminder)
-		.andThen(claimReminderAfterSessionStep(ctx, args));
+		.andThen((session: Doc<"bookings">) => claimReminderAfterSessionStep(ctx, args, session));
 }
 
 export function writeSessionReminderEmailSent(
 	ctx: MutationCtx,
 	args: ReminderBookingArgs & { now: number }
 ) {
-	return getSessionFromDb(ctx, args.bookingId).andThen(patchReminderSentStep(ctx, args));
+	return getSessionFromDb(ctx, args.bookingId).andThen(() => patchReminderSentStep(ctx, args));
 }
 
 export function writeSessionReminderEmailFailed(
 	ctx: MutationCtx,
 	args: ReminderBookingArgs & { failureCode: string }
 ) {
-	return getSessionFromDb(ctx, args.bookingId).andThen(patchReminderFailedStep(ctx, args));
+	return getSessionFromDb(ctx, args.bookingId).andThen(() => patchReminderFailedStep(ctx, args));
 }

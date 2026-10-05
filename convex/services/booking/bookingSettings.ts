@@ -18,21 +18,29 @@ type BookingSettingsRowValue = BookingAvailabilitySettings & {
 	updatedBy: string;
 };
 
-function upsertBookingAvailabilitySettingsRow(ctx: MutationCtx, value: BookingSettingsRowValue) {
-	return (existing: Doc<"bookingSettings"> | null) =>
-		existing
-			? patchBookingAvailabilitySettingsRow(ctx, existing._id, value)
-			: insertBookingAvailabilitySettingsRow(ctx, value);
+function upsertBookingAvailabilitySettingsRow(
+	ctx: MutationCtx,
+	value: BookingSettingsRowValue,
+	existing: Doc<"bookingSettings"> | null
+) {
+	return existing
+		? patchBookingAvailabilitySettingsRow(ctx, existing._id, value)
+		: insertBookingAvailabilitySettingsRow(ctx, value);
 }
 
 function writeValidatedBookingSettings(ctx: MutationCtx, value: BookingSettingsRowValue) {
 	return lookupBookingAvailabilitySettingsRow(ctx).andThen(
-		upsertBookingAvailabilitySettingsRow(ctx, value)
+		(existing: Doc<"bookingSettings"> | null) =>
+			upsertBookingAvailabilitySettingsRow(ctx, value, existing)
 	);
 }
 
-function persistValidatedBookingSettings(ctx: MutationCtx, value: BookingSettingsRowValue) {
-	return (_settings: BookingAvailabilitySettings) => writeValidatedBookingSettings(ctx, value);
+function persistValidatedBookingSettings(
+	ctx: MutationCtx,
+	value: BookingSettingsRowValue,
+	_settings: BookingAvailabilitySettings
+) {
+	return writeValidatedBookingSettings(ctx, value);
 }
 
 export function loadBookingAvailabilitySettings(ctx: QueryCtx) {
@@ -52,7 +60,7 @@ export function writeBookingAvailabilitySettings(
 ) {
 	const value = { ...settings, key: "main" as const, updatedAt: Date.now(), updatedBy };
 
-	return validateBookingSettings(settings).asyncAndThen(
-		persistValidatedBookingSettings(ctx, value)
+	return validateBookingSettings(settings).asyncAndThen((_settings: BookingAvailabilitySettings) =>
+		persistValidatedBookingSettings(ctx, value, _settings)
 	);
 }

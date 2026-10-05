@@ -15,12 +15,13 @@ function returnNull(): null {
 
 function sendSessionHostDetailsEmailWithHtml(
 	hostEmails: string[],
-	args: SendSessionHostDetailsEmailArgs
+	args: SendSessionHostDetailsEmailArgs,
+
+	html: string
 ) {
-	return (html: string) =>
-		sendEmail({ to: hostEmails, subject: sessionHostDetailsEmailSubject(args), html }).map(
-			returnNull
-		);
+	return sendEmail({ to: hostEmails, subject: sessionHostDetailsEmailSubject(args), html }).map(
+		returnNull
+	);
 }
 
 export function sendSessionHostDetailsEmail(args: SendSessionHostDetailsEmailArgs) {
@@ -30,19 +31,20 @@ export function sendSessionHostDetailsEmail(args: SendSessionHostDetailsEmailArg
 		return okAsync(null);
 	}
 
-	return renderSessionHostDetailsEmailHtml(args).andThen(
-		sendSessionHostDetailsEmailWithHtml(hostEmails, args)
+	return renderSessionHostDetailsEmailHtml(args).andThen((html: string) =>
+		sendSessionHostDetailsEmailWithHtml(hostEmails, args, html)
 	);
 }
 
 function sendPackageHostDetailsEmailWithHtml(
 	hostEmails: string[],
-	args: SendPackageHostDetailsEmailArgs
+	args: SendPackageHostDetailsEmailArgs,
+
+	html: string
 ) {
-	return (html: string) =>
-		sendEmail({ to: hostEmails, subject: packageHostDetailsEmailSubject(args), html }).map(
-			returnNull
-		);
+	return sendEmail({ to: hostEmails, subject: packageHostDetailsEmailSubject(args), html }).map(
+		returnNull
+	);
 }
 
 export function sendPackageHostDetailsEmail(args: SendPackageHostDetailsEmailArgs) {
@@ -52,7 +54,7 @@ export function sendPackageHostDetailsEmail(args: SendPackageHostDetailsEmailArg
 		return okAsync(null);
 	}
 
-	return renderPackageHostDetailsEmailHtml(args).andThen(
-		sendPackageHostDetailsEmailWithHtml(hostEmails, args)
+	return renderPackageHostDetailsEmailHtml(args).andThen((html: string) =>
+		sendPackageHostDetailsEmailWithHtml(hostEmails, args, html)
 	);
 }

@@ -13,15 +13,16 @@ function returnNull(): null {
 
 function sendDeliverablesReviewReadyEmailWithHtml(
 	hostEmails: string[],
-	args: { clientName: string; editorName: string; sessionDate: string; idempotencyKey: string }
+	args: { clientName: string; editorName: string; sessionDate: string; idempotencyKey: string },
+
+	html: string
 ) {
-	return (html: string) =>
-		sendEmail({
-			to: hostEmails,
-			subject: deliverablesReviewReadyHostEmailSubject(args),
-			html,
-			idempotencyKey: args.idempotencyKey
-		}).map(returnNull);
+	return sendEmail({
+		to: hostEmails,
+		subject: deliverablesReviewReadyHostEmailSubject(args),
+		html,
+		idempotencyKey: args.idempotencyKey
+	}).map(returnNull);
 }
 
 export function sendDeliverablesReviewReadyEmail(args: {
@@ -40,5 +41,5 @@ export function sendDeliverablesReviewReadyEmail(args: {
 		clientName: args.clientName,
 		editorName: args.editorName,
 		sessionDate: args.sessionDate
-	}).andThen(sendDeliverablesReviewReadyEmailWithHtml(hostEmails, args));
+	}).andThen((html: string) => sendDeliverablesReviewReadyEmailWithHtml(hostEmails, args, html));
 }

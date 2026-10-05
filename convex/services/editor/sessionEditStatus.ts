@@ -22,7 +22,7 @@ function incrementEditorTotalEditsAfterPatch(
 	ctx: MutationCtx,
 	editor: Doc<"editorProfiles"> | null
 ) {
-	return () => incrementEditorTotalEditsForProfile(ctx, editor);
+	return incrementEditorTotalEditsForProfile(ctx, editor);
 }
 
 function patchEditStatusThenCreditEditor(
@@ -31,7 +31,7 @@ function patchEditStatusThenCreditEditor(
 	editStatus: "to_edit" | "editing" | "review" | "completed",
 	editor: Doc<"editorProfiles"> | null
 ) {
-	return patchSessionEditStatus(ctx, session._id, editStatus).andThen(
+	return patchSessionEditStatus(ctx, session._id, editStatus).andThen(() =>
 		incrementEditorTotalEditsAfterPatch(ctx, editor)
 	);
 }
@@ -39,10 +39,11 @@ function patchEditStatusThenCreditEditor(
 function patchEditStatusAndCreditEditor(
 	ctx: MutationCtx,
 	session: Doc<"bookings">,
-	editStatus: "to_edit" | "editing" | "review" | "completed"
+	editStatus: "to_edit" | "editing" | "review" | "completed",
+
+	editor: Doc<"editorProfiles"> | null
 ) {
-	return (editor: Doc<"editorProfiles"> | null) =>
-		patchEditStatusThenCreditEditor(ctx, session, editStatus, editor);
+	return patchEditStatusThenCreditEditor(ctx, session, editStatus, editor);
 }
 
 export function saveSessionEditStatus(
@@ -64,6 +65,7 @@ export function saveSessionEditStatus(
 	}
 
 	return lookupEditorProfileByToken(ctx, editorTokenIdentifier).andThen(
-		patchEditStatusAndCreditEditor(ctx, session, editStatus)
+		(editor: Doc<"editorProfiles"> | null) =>
+			patchEditStatusAndCreditEditor(ctx, session, editStatus, editor)
 	);
 }

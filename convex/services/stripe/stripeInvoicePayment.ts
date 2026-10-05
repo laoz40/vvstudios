@@ -22,33 +22,35 @@ function toStripeInvoicePaymentCompletionOutcome(claim: {
 
 function completeAdjustmentInvoiceAfterStripePaid(
 	ctx: ActionCtx,
-	args: { stripeInvoiceId: string; adjustmentId?: string; paidAt: number }
+	args: { stripeInvoiceId: string; adjustmentId?: string; paidAt: number },
+
+	stripeInvoiceClaim: { outcome: "completed" | "already_completed" | "not_found" }
 ) {
-	return (stripeInvoiceClaim: { outcome: "completed" | "already_completed" | "not_found" }) =>
-		fromConvexTuple(
-			ctx.runMutation(internal.packageAdjustments.claimPackageAdjustmentInvoicePayment, args)
-		)
-			.map(toStripeInvoicePaymentCompletionOutcome)
-			.orElse(resolveMissingAdjustmentAfterStripePaid(stripeInvoiceClaim));
+	return fromConvexTuple(
+		ctx.runMutation(internal.packageAdjustments.claimPackageAdjustmentInvoicePayment, args)
+	)
+		.map(toStripeInvoicePaymentCompletionOutcome)
+		.orElse((adjustmentError: PackageAdjustmentInvoicePaymentClaimError) =>
+			resolveMissingAdjustmentAfterStripePaid(stripeInvoiceClaim, adjustmentError)
+		);
 }
 
-function resolveMissingAdjustmentAfterStripePaid(stripeInvoiceClaim: {
-	outcome: "completed" | "already_completed" | "not_found";
-}) {
-	return (adjustmentError: PackageAdjustmentInvoicePaymentClaimError) => {
-		if (adjustmentError.reason === "PACKAGE_ADJUSTMENT_NOT_FOUND") {
-			if (
-				stripeInvoiceClaim.outcome === "completed" ||
-				stripeInvoiceClaim.outcome === "already_completed"
-			) {
-				return ok({ outcome: "completed" as const });
-			}
-
-			return err({ kind: "not_found" as const });
+function resolveMissingAdjustmentAfterStripePaid(
+	stripeInvoiceClaim: { outcome: "completed" | "already_completed" | "not_found" },
+	adjustmentError: PackageAdjustmentInvoicePaymentClaimError
+) {
+	if (adjustmentError.reason === "PACKAGE_ADJUSTMENT_NOT_FOUND") {
+		if (
+			stripeInvoiceClaim.outcome === "completed" ||
+			stripeInvoiceClaim.outcome === "already_completed"
+		) {
+			return ok({ outcome: "completed" as const });
 		}
 
-		return err({ kind: "claim_failed" as const, error: adjustmentError });
-	};
+		return err({ kind: "not_found" as const });
+	}
+
+	return err({ kind: "claim_failed" as const, error: adjustmentError });
 }
 
 export function completeStripeInvoicePaymentService(
@@ -60,5 +62,7 @@ export function completeStripeInvoicePaymentService(
 			stripeInvoiceId: args.stripeInvoiceId,
 			paidAt: args.paidAt
 		})
-	).andThen(completeAdjustmentInvoiceAfterStripePaid(ctx, args));
+	).andThen((stripeInvoiceClaim: { outcome: "completed" | "already_completed" | "not_found" }) =>
+		completeAdjustmentInvoiceAfterStripePaid(ctx, args, stripeInvoiceClaim)
+	);
 }

@@ -13,13 +13,14 @@ tester.run("convex-layers/no-inline-callback-in-service-chains", noInlineCallbac
 		{
 			filename: "convex/services/sessions/good.ts",
 			code: `export function load(ctx, id) {
-  return getBookingRow(ctx, id).andThen(validateSession).andThen(patchSession(ctx));
+  return getBookingRow(ctx, id).andThen(validateSession).andThen((session) => patchSession(ctx, session));
 }`
 		},
 		{
-			filename: "convex/services/sessions/good-curried.ts",
-			code: `export function save(ctx, args) {
-  return getBookingRow(ctx, args.id).andThen(saveBookingNotes(ctx, args));
+			filename: "convex/services/sessions/pass-through.ts",
+			code: `function expireCheckoutAfterValidate(ctx, decision) { return ok(decision); }
+export function expire(ctx) {
+  return load(ctx).andThen(validateSession).andThen((decision) => expireCheckoutAfterValidate(ctx, decision));
 }`
 		},
 		{
@@ -33,16 +34,26 @@ tester.run("convex-layers/no-inline-callback-in-service-chains", noInlineCallbac
 		{
 			filename: "convex/services/sessions/bad-and-then.ts",
 			code: `export function bad(ctx) {
-  return getBookingRow(ctx, id).andThen((session) => patchSession(ctx, session));
+  return getBookingRow(ctx, id).andThen((session) => { return patchSession(ctx, session); });
 }`,
 			errors: [{ messageId: "inlineCallback" }]
 		},
 		{
 			filename: "convex/services/sessions/bad-async.ts",
 			code: `export function bad(ctx) {
-  return loadRow(ctx).asyncAndThen(async (row) => sendEmail(row));
+  return loadRow(ctx).asyncAndThen(async (row) => { return sendEmail(row); });
 }`,
 			errors: [{ messageId: "inlineCallback" }]
+		},
+		{
+			filename: "convex/services/sessions/bad-curried.ts",
+			code: `function patchSession(ctx) {
+  return (session) => patchRow(ctx, session);
+}
+export function bad(ctx) {
+  return getBookingRow(ctx, id).andThen(patchSession(ctx));
+}`,
+			errors: [{ messageId: "curriedFactory" }]
 		}
 	]
 });

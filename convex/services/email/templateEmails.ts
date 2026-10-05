@@ -11,34 +11,38 @@ import { formatSessionDateShort } from "#convex/lib/sessions/sessionCalendarTime
 import { formatTimestampDateLong, sendEmail } from "#convex/lib/email/emailSend";
 
 function sendClientAssetsEmailWithHtml(
-	args: SendClientAssetsEmailArgs & { bookingId: Id<"bookings">; email: string }
+	args: SendClientAssetsEmailArgs & { bookingId: Id<"bookings">; email: string },
+
+	html: string
 ) {
-	return (html: string) =>
-		sendEmail({
-			to: [args.email],
-			subject: "Anything you'd like us to use in your video edit?",
-			html,
-			idempotencyKey: `client-assets:${args.bookingId}:${args.assetsUrl}`
-		});
+	return sendEmail({
+		to: [args.email],
+		subject: "Anything you'd like us to use in your video edit?",
+		html,
+		idempotencyKey: `client-assets:${args.bookingId}:${args.assetsUrl}`
+	});
 }
 
 export function sendClientAssetsEmail(
 	args: SendClientAssetsEmailArgs & { bookingId: Id<"bookings">; email: string }
 ) {
-	return renderClientAssetsEmailHtml(args).andThen(sendClientAssetsEmailWithHtml(args));
+	return renderClientAssetsEmailHtml(args).andThen((html: string) =>
+		sendClientAssetsEmailWithHtml(args, html)
+	);
 }
 
 function sendEditorAssignmentEmailWithHtml(
 	args: SendEditorAssignmentEmailArgs & { editorEmail: string },
-	sessionDate: string
+	sessionDate: string,
+
+	html: string
 ) {
-	return (html: string) =>
-		sendEmail({
-			to: [args.editorEmail],
-			subject: `New editing job assigned: ${args.sessionName}, ${sessionDate}`,
-			html,
-			idempotencyKey: `editor-assignment:${args.editorEmail}:${args.sessionStartAt}`
-		});
+	return sendEmail({
+		to: [args.editorEmail],
+		subject: `New editing job assigned: ${args.sessionName}, ${sessionDate}`,
+		html,
+		idempotencyKey: `editor-assignment:${args.editorEmail}:${args.sessionStartAt}`
+	});
 }
 
 export function sendEditorAssignmentEmail(
@@ -46,26 +50,27 @@ export function sendEditorAssignmentEmail(
 ) {
 	const sessionDate = formatTimestampDateLong(args.sessionStartAt);
 
-	return renderEditorAssignmentEmailHtml(args).andThen(
-		sendEditorAssignmentEmailWithHtml(args, sessionDate)
+	return renderEditorAssignmentEmailHtml(args).andThen((html: string) =>
+		sendEditorAssignmentEmailWithHtml(args, sessionDate, html)
 	);
 }
 
 function sendSessionDeliverablesEmailWithHtml(
-	args: SendSessionDeliverablesEmailArgs & { email: string }
+	args: SendSessionDeliverablesEmailArgs & { email: string },
+
+	html: string
 ) {
-	return (html: string) =>
-		sendEmail({
-			to: [args.email],
-			subject: `Your VV Studios Deliverables Folder - ${formatSessionDateShort(args.date)}`,
-			html
-		});
+	return sendEmail({
+		to: [args.email],
+		subject: `Your VV Studios Deliverables Folder - ${formatSessionDateShort(args.date)}`,
+		html
+	});
 }
 
 export function sendSessionDeliverablesEmail(
 	args: SendSessionDeliverablesEmailArgs & { email: string }
 ) {
-	return renderSessionDeliverablesEmailHtml(args).andThen(
-		sendSessionDeliverablesEmailWithHtml(args)
+	return renderSessionDeliverablesEmailHtml(args).andThen((html: string) =>
+		sendSessionDeliverablesEmailWithHtml(args, html)
 	);
 }

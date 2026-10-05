@@ -11,8 +11,8 @@ import {
 
 type EmployeeWorkStatus = "assigned" | "editing" | "unassigned";
 
-function mapEditorWithWorkStatus(editor: Doc<"editorProfiles">) {
-	return (workStatus: EmployeeWorkStatus) => ({
+function mapEditorWithWorkStatus(editor: Doc<"editorProfiles">, workStatus: EmployeeWorkStatus) {
+	return {
 		tokenIdentifier: editor.tokenIdentifier,
 		displayName: editor.displayName,
 		email: editor.email,
@@ -21,24 +21,29 @@ function mapEditorWithWorkStatus(editor: Doc<"editorProfiles">) {
 		notes: editor.notes,
 		totalEdits: editor.totalEdits,
 		workStatus
-	});
+	};
 }
 
 function loadEditorWithWorkStatus(ctx: QueryCtx, editor: Doc<"editorProfiles">) {
-	return getEditorWorkStatus(ctx, editor.tokenIdentifier).map(mapEditorWithWorkStatus(editor));
+	return getEditorWorkStatus(ctx, editor.tokenIdentifier).map((workStatus: EmployeeWorkStatus) =>
+		mapEditorWithWorkStatus(editor, workStatus)
+	);
 }
 
-function loadEachEditorWorkStatus(ctx: QueryCtx) {
-	return (editor: Doc<"editorProfiles">) => loadEditorWithWorkStatus(ctx, editor);
+function loadEachEditorWorkStatus(ctx: QueryCtx, editor: Doc<"editorProfiles">) {
+	return loadEditorWithWorkStatus(ctx, editor);
 }
 
-function combineEditorWorkStatuses(ctx: QueryCtx) {
-	return (editors: Doc<"editorProfiles">[]) =>
-		ResultAsync.combine(editors.map(loadEachEditorWorkStatus(ctx)));
+function combineEditorWorkStatuses(ctx: QueryCtx, editors: Doc<"editorProfiles">[]) {
+	return ResultAsync.combine(
+		editors.map((editor: Doc<"editorProfiles">) => loadEachEditorWorkStatus(ctx, editor))
+	);
 }
 
 export function loadEmployeeRoster(ctx: QueryCtx) {
-	return listEditorProfiles(ctx).andThen(combineEditorWorkStatuses(ctx));
+	return listEditorProfiles(ctx).andThen((editors: Doc<"editorProfiles">[]) =>
+		combineEditorWorkStatuses(ctx, editors)
+	);
 }
 
 function assertEditorProfileFound(editor: Doc<"editorProfiles"> | null) {
@@ -53,20 +58,22 @@ function requireEditorProfileByToken(ctx: MutationCtx, tokenIdentifier: string) 
 	return lookupEditorProfileByToken(ctx, tokenIdentifier).andThen(assertEditorProfileFound);
 }
 
-function patchEmployeeAccess(ctx: MutationCtx, isActive: boolean) {
-	return (editor: Doc<"editorProfiles">) => patchEditorAccess(ctx, editor._id, isActive);
+function patchEmployeeAccess(ctx: MutationCtx, isActive: boolean, editor: Doc<"editorProfiles">) {
+	return patchEditorAccess(ctx, editor._id, isActive);
 }
 
-function patchEmployeeNotes(ctx: MutationCtx, notes: string) {
-	return (editor: Doc<"editorProfiles">) => patchEditorNotes(ctx, editor._id, notes);
+function patchEmployeeNotes(ctx: MutationCtx, notes: string, editor: Doc<"editorProfiles">) {
+	return patchEditorNotes(ctx, editor._id, notes);
 }
 
 export function saveEmployeeAccess(ctx: MutationCtx, tokenIdentifier: string, isActive: boolean) {
 	return requireEditorProfileByToken(ctx, tokenIdentifier).andThen(
-		patchEmployeeAccess(ctx, isActive)
+		(editor: Doc<"editorProfiles">) => patchEmployeeAccess(ctx, isActive, editor)
 	);
 }
 
 export function saveEmployeeNotes(ctx: MutationCtx, tokenIdentifier: string, notes: string) {
-	return requireEditorProfileByToken(ctx, tokenIdentifier).andThen(patchEmployeeNotes(ctx, notes));
+	return requireEditorProfileByToken(ctx, tokenIdentifier).andThen(
+		(editor: Doc<"editorProfiles">) => patchEmployeeNotes(ctx, notes, editor)
+	);
 }

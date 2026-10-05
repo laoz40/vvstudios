@@ -59,7 +59,7 @@ type ReadyBookingDriveFolders = DriveSetupInfo & {
 type ClientDrivePermissionRequirement = { fileId: string; name: "Client folder"; role: "reader" };
 
 function returnSetup(setup: ReadyBookingDriveFolders) {
-	return () => setup;
+	return setup;
 }
 
 function getReadyBookingFolders(setupInfo: DriveSetupInfo) {
@@ -126,20 +126,20 @@ export function loadReadyBookingDriveFolders(
 function createClientDrivePermissionWhenMissing(
 	drive: DriveClient,
 	setup: ReadyBookingDriveFolders,
-	requirement: ClientDrivePermissionRequirement
+	requirement: ClientDrivePermissionRequirement,
+
+	existingPermission: SavedDrivePermission | null
 ) {
-	return (existingPermission: SavedDrivePermission | null) => {
-		if (existingPermission !== null) return ok(existingPermission);
+	if (existingPermission !== null) return ok(existingPermission);
 
-		const clientEmail = setup.driveClient.normalizedEmail;
+	const clientEmail = setup.driveClient.normalizedEmail;
 
-		return createDrivePermission(drive, {
-			email: clientEmail,
-			fileId: requirement.fileId,
-			role: requirement.role,
-			sendNotificationEmail: false
-		});
-	};
+	return createDrivePermission(drive, {
+		email: clientEmail,
+		fileId: requirement.fileId,
+		role: requirement.role,
+		sendNotificationEmail: false
+	});
 }
 
 function requireClientDrivePermission(
@@ -153,7 +153,9 @@ function requireClientDrivePermission(
 		email: clientEmail,
 		fileId: requirement.fileId,
 		role: requirement.role
-	}).andThen(createClientDrivePermissionWhenMissing(drive, setup, requirement));
+	}).andThen((existingPermission: SavedDrivePermission | null) =>
+		createClientDrivePermissionWhenMissing(drive, setup, requirement, existingPermission)
+	);
 }
 
 function saveClientDrivePermission(
@@ -184,12 +186,15 @@ export function saveClientDrivePermissionsStatus(
 	);
 }
 
-function saveAssetsPermissionFromAnyoneGrant(ctx: ActionCtx, setup: ReadyBookingDriveFolders) {
-	return (permission: SavedDrivePermission) =>
-		saveClientDrivePermission(ctx, setup.booking._id, "Assets", {
-			id: permission.id,
-			role: permission.role
-		});
+function saveAssetsPermissionFromAnyoneGrant(
+	ctx: ActionCtx,
+	setup: ReadyBookingDriveFolders,
+	permission: SavedDrivePermission
+) {
+	return saveClientDrivePermission(ctx, setup.booking._id, "Assets", {
+		id: permission.id,
+		role: permission.role
+	});
 }
 
 function saveDismissedClientFolderPermission(ctx: ActionCtx, setup: ReadyBookingDriveFolders) {
@@ -211,26 +216,32 @@ function applySkippedClientDrivePermissions(
 	drive: DriveClient
 ): ResultAsync<ReadyBookingDriveFolders, DriveClientPermissionsError> {
 	return ensureAnyonePermission(drive, setup.driveClient.assetsFolder.id, "writer")
-		.andThen(saveAssetsPermissionFromAnyoneGrant(ctx, setup))
-		.andThen(saveDismissedClientFolderPermissionStep(ctx, setup))
-		.andThen(markClientDrivePermissionsSkippedStep(ctx, setup))
-		.map(returnSetup(setup));
+		.andThen((permission: SavedDrivePermission) =>
+			saveAssetsPermissionFromAnyoneGrant(ctx, setup, permission)
+		)
+		.andThen(() => saveDismissedClientFolderPermissionStep(ctx, setup))
+		.andThen(() => markClientDrivePermissionsSkippedStep(ctx, setup))
+		.map(() => returnSetup(setup));
 }
 
 function saveDismissedClientFolderPermissionStep(ctx: ActionCtx, setup: ReadyBookingDriveFolders) {
-	return () => saveDismissedClientFolderPermission(ctx, setup);
+	return saveDismissedClientFolderPermission(ctx, setup);
 }
 
 function markClientDrivePermissionsSkippedStep(ctx: ActionCtx, setup: ReadyBookingDriveFolders) {
-	return () => markClientDrivePermissionsSkipped(ctx, setup);
+	return markClientDrivePermissionsSkipped(ctx, setup);
 }
 
-function applySkippedPermissionsForSetup(ctx: ActionCtx, setup: ReadyBookingDriveFolders) {
-	return (drive: DriveClient) => applySkippedClientDrivePermissions(ctx, setup, drive);
+function applySkippedPermissionsForSetup(
+	ctx: ActionCtx,
+	setup: ReadyBookingDriveFolders,
+	drive: DriveClient
+) {
+	return applySkippedClientDrivePermissions(ctx, setup, drive);
 }
 
 function rethrowClientPermissionsError(error: DriveClientPermissionsError) {
-	return () => errAsync(error);
+	return errAsync(error);
 }
 
 export function recordClientDrivePermissionsFailure(
@@ -239,20 +250,25 @@ export function recordClientDrivePermissionsFailure(
 	error: DriveClientPermissionsError
 ): ResultAsync<ReadyBookingDriveFolders, DriveClientPermissionsError> {
 	if (error.reason === "GOOGLE_DRIVE_SHARE_TARGET_MISSING") {
-		return loadDriveClient().andThen(applySkippedPermissionsForSetup(ctx, setup));
+		return loadDriveClient().andThen((drive: DriveClient) =>
+			applySkippedPermissionsForSetup(ctx, setup, drive)
+		);
 	}
 
-	return saveClientDrivePermissionsStatus(ctx, setup.booking._id, "failed").andThen(
+	return saveClientDrivePermissionsStatus(ctx, setup.booking._id, "failed").andThen(() =>
 		rethrowClientPermissionsError(error)
 	);
 }
 
-function saveAssetsWriterPermission(ctx: ActionCtx, setup: ReadyBookingDriveFolders) {
-	return (permission: SavedDrivePermission) =>
-		saveClientDrivePermission(ctx, setup.booking._id, "Assets", {
-			id: permission.id,
-			role: permission.role
-		});
+function saveAssetsWriterPermission(
+	ctx: ActionCtx,
+	setup: ReadyBookingDriveFolders,
+	permission: SavedDrivePermission
+) {
+	return saveClientDrivePermission(ctx, setup.booking._id, "Assets", {
+		id: permission.id,
+		role: permission.role
+	});
 }
 
 function requireClientFolderReaderPermission(drive: DriveClient, setup: ReadyBookingDriveFolders) {
@@ -263,9 +279,12 @@ function requireClientFolderReaderPermission(drive: DriveClient, setup: ReadyBoo
 	});
 }
 
-function saveClientFolderReaderPermission(ctx: ActionCtx, setup: ReadyBookingDriveFolders) {
-	return (permission: SavedDrivePermission) =>
-		saveClientDrivePermission(ctx, setup.booking._id, "Client folder", permission);
+function saveClientFolderReaderPermission(
+	ctx: ActionCtx,
+	setup: ReadyBookingDriveFolders,
+	permission: SavedDrivePermission
+) {
+	return saveClientDrivePermission(ctx, setup.booking._id, "Client folder", permission);
 }
 
 function markClientDrivePermissionsReady(ctx: ActionCtx, setup: ReadyBookingDriveFolders) {
@@ -273,21 +292,21 @@ function markClientDrivePermissionsReady(ctx: ActionCtx, setup: ReadyBookingDriv
 }
 
 function markReadyAndReturnSetup(ctx: ActionCtx, setup: ReadyBookingDriveFolders) {
-	return () => markClientDrivePermissionsReady(ctx, setup).map(returnSetup(setup));
+	return markClientDrivePermissionsReady(ctx, setup).map(() => returnSetup(setup));
 }
 
 function applyShareTargetMissingFallback(
 	ctx: ActionCtx,
 	setup: ReadyBookingDriveFolders,
-	drive: DriveClient
-) {
-	return (error: DriveClientPermissionsError) => {
-		if (error.reason !== "GOOGLE_DRIVE_SHARE_TARGET_MISSING") {
-			return errAsync(error);
-		}
+	drive: DriveClient,
 
-		return applySkippedClientDrivePermissions(ctx, setup, drive);
-	};
+	error: DriveClientPermissionsError
+) {
+	if (error.reason !== "GOOGLE_DRIVE_SHARE_TARGET_MISSING") {
+		return errAsync(error);
+	}
+
+	return applySkippedClientDrivePermissions(ctx, setup, drive);
 }
 
 function applyActiveClientDrivePermissions(
@@ -296,35 +315,45 @@ function applyActiveClientDrivePermissions(
 	drive: DriveClient
 ): ResultAsync<ReadyBookingDriveFolders, DriveClientPermissionsError> {
 	return ensureAnyonePermission(drive, setup.driveClient.assetsFolder.id, "writer")
-		.andThen(saveAssetsWriterPermission(ctx, setup))
-		.andThen(requireClientFolderReaderPermissionStep(drive, setup))
-		.andThen(saveClientFolderReaderPermission(ctx, setup))
-		.andThen(markReadyAndReturnSetup(ctx, setup))
-		.orElse(applyShareTargetMissingFallback(ctx, setup, drive));
+		.andThen((permission: SavedDrivePermission) =>
+			saveAssetsWriterPermission(ctx, setup, permission)
+		)
+		.andThen(() => requireClientFolderReaderPermissionStep(drive, setup))
+		.andThen((permission: SavedDrivePermission) =>
+			saveClientFolderReaderPermission(ctx, setup, permission)
+		)
+		.andThen(() => markReadyAndReturnSetup(ctx, setup))
+		.orElse((error: DriveClientPermissionsError) =>
+			applyShareTargetMissingFallback(ctx, setup, drive, error)
+		);
 }
 
 function requireClientFolderReaderPermissionStep(
 	drive: DriveClient,
 	setup: ReadyBookingDriveFolders
 ) {
-	return () => requireClientFolderReaderPermission(drive, setup);
+	return requireClientFolderReaderPermission(drive, setup);
 }
 
-function applyClientDrivePermissionsForDrive(ctx: ActionCtx, setup: ReadyBookingDriveFolders) {
-	return (drive: DriveClient) => {
-		if (isClientFolderSharingDismissed(setup.driveClient.clientFolderPermission)) {
-			return applySkippedClientDrivePermissions(ctx, setup, drive);
-		}
+function applyClientDrivePermissionsForDrive(
+	ctx: ActionCtx,
+	setup: ReadyBookingDriveFolders,
+	drive: DriveClient
+) {
+	if (isClientFolderSharingDismissed(setup.driveClient.clientFolderPermission)) {
+		return applySkippedClientDrivePermissions(ctx, setup, drive);
+	}
 
-		return applyActiveClientDrivePermissions(ctx, setup, drive);
-	};
+	return applyActiveClientDrivePermissions(ctx, setup, drive);
 }
 
 export function requireClientDrivePermissions(
 	ctx: ActionCtx,
 	setup: ReadyBookingDriveFolders
 ): ResultAsync<ReadyBookingDriveFolders, DriveClientPermissionsError> {
-	return loadDriveClient().andThen(applyClientDrivePermissionsForDrive(ctx, setup));
+	return loadDriveClient().andThen((drive: DriveClient) =>
+		applyClientDrivePermissionsForDrive(ctx, setup, drive)
+	);
 }
 
 function saveSentClientAssetsEmailResult(ctx: ActionCtx, claim: ClientAssetsEmailClaim) {
@@ -350,7 +379,7 @@ function saveFailedClientAssetsEmailResult(ctx: ActionCtx, claim: ClientAssetsEm
 }
 
 function rethrowEmailError(emailError: DriveClientPermissionsError) {
-	return () => errAsync(emailError);
+	return errAsync(emailError);
 }
 
 type ClientAssetsEmailClaim = {
@@ -369,32 +398,38 @@ function sendClaimedClientAssetsEmail(ctx: ActionCtx, claim: ClientAssetsEmailCl
 		email: claim.email,
 		name: claim.name
 	})
-		.andThen(saveSentClientAssetsEmailAfterSend(ctx, claim))
-		.orElse(recordFailedClientAssetsEmail(ctx, claim));
+		.andThen(() => saveSentClientAssetsEmailAfterSend(ctx, claim))
+		.orElse((emailError: DriveClientPermissionsError) =>
+			recordFailedClientAssetsEmail(ctx, claim, emailError)
+		);
 }
 
 function saveSentClientAssetsEmailAfterSend(ctx: ActionCtx, claim: ClientAssetsEmailClaim) {
-	return () => saveSentClientAssetsEmailResult(ctx, claim);
+	return saveSentClientAssetsEmailResult(ctx, claim);
 }
 
-function recordFailedClientAssetsEmail(ctx: ActionCtx, claim: ClientAssetsEmailClaim) {
-	return (emailError: DriveClientPermissionsError) =>
-		saveFailedClientAssetsEmailResult(ctx, claim).andThen(rethrowEmailError(emailError));
+function recordFailedClientAssetsEmail(
+	ctx: ActionCtx,
+	claim: ClientAssetsEmailClaim,
+	emailError: DriveClientPermissionsError
+) {
+	return saveFailedClientAssetsEmailResult(ctx, claim).andThen(() => rethrowEmailError(emailError));
 }
 
-function handleClientAssetsEmailClaim(ctx: ActionCtx) {
-	return (claim: ClientAssetsEmailClaim) => sendClaimedClientAssetsEmail(ctx, claim);
+function handleClientAssetsEmailClaim(ctx: ActionCtx, claim: ClientAssetsEmailClaim) {
+	return sendClaimedClientAssetsEmail(ctx, claim);
 }
 
-function ignoreNonSendableClientAssetsEmail(attempt: "automatic" | "retry") {
-	return (error: DriveClientPermissionsError) => {
-		if (error.reason !== "CLIENT_ASSETS_EMAIL_NOT_SENDABLE") {
-			return errAsync(error);
-		}
+function ignoreNonSendableClientAssetsEmail(
+	attempt: "automatic" | "retry",
+	error: DriveClientPermissionsError
+) {
+	if (error.reason !== "CLIENT_ASSETS_EMAIL_NOT_SENDABLE") {
+		return errAsync(error);
+	}
 
-		// Automatic sends may already be done; admin retry should surface a real failure.
-		return attempt === "automatic" ? okAsync(null) : errAsync(error);
-	};
+	// Automatic sends may already be done; admin retry should surface a real failure.
+	return attempt === "automatic" ? okAsync(null) : errAsync(error);
 }
 
 export function sendClientAssetsFolderEmail(
@@ -409,6 +444,8 @@ export function sendClientAssetsFolderEmail(
 			now: Date.now()
 		})
 	)
-		.andThen(handleClientAssetsEmailClaim(ctx))
-		.orElse(ignoreNonSendableClientAssetsEmail(attempt));
+		.andThen((claim: ClientAssetsEmailClaim) => handleClientAssetsEmailClaim(ctx, claim))
+		.orElse((error: DriveClientPermissionsError) =>
+			ignoreNonSendableClientAssetsEmail(attempt, error)
+		);
 }

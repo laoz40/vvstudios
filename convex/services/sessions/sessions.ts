@@ -68,10 +68,11 @@ export function requireConfirmedBookingSession(session: Doc<"bookings">) {
 function patchInstagramHandleStep(
 	ctx: MutationCtx,
 	session: Doc<"bookings">,
-	instagramHandle: string
+	instagramHandle: string,
+
+	searchBlobPatch: BookingSearchBlobPatch
 ) {
-	return (searchBlobPatch: BookingSearchBlobPatch) =>
-		patchBookingInstagramHandle(ctx, session, { instagramHandle, searchBlobPatch });
+	return patchBookingInstagramHandle(ctx, session, { instagramHandle, searchBlobPatch });
 }
 
 export function writeSessionInstagramHandle(
@@ -80,6 +81,7 @@ export function writeSessionInstagramHandle(
 	instagramHandle: string
 ) {
 	return searchBlobPatchForBookingAsync(ctx, session, { instagramHandle }).andThen(
-		patchInstagramHandleStep(ctx, session, instagramHandle)
+		(searchBlobPatch: BookingSearchBlobPatch) =>
+			patchInstagramHandleStep(ctx, session, instagramHandle, searchBlobPatch)
 	);
 }

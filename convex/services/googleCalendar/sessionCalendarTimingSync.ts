@@ -37,44 +37,44 @@ type SessionTimingSyncArgs = {
 	time: string;
 };
 
-function sessionTimingUpdateWithStartAtStep(sessionStartAt: number) {
-	return (calendarUpdate: SessionCalendarTimingUpdateResult) => ({
-		...calendarUpdate,
-		sessionStartAt
-	});
+function sessionTimingUpdateWithStartAtStep(
+	sessionStartAt: number,
+	calendarUpdate: SessionCalendarTimingUpdateResult
+) {
+	return { ...calendarUpdate, sessionStartAt };
 }
 
 function syncSessionTimingAfterValidationStep(
 	args: SessionTimingSyncArgs & { sessionStartAt: number }
 ) {
-	return () =>
-		updateSessionCalendarEventTiming({
-			session: args.session,
-			client: args.client,
-			date: args.date,
-			details: args.details,
-			createMissingEvent: args.createMissingEvent,
-			time: args.time
-		}).map(sessionTimingUpdateWithStartAtStep(args.sessionStartAt));
+	return updateSessionCalendarEventTiming({
+		session: args.session,
+		client: args.client,
+		date: args.date,
+		details: args.details,
+		createMissingEvent: args.createMissingEvent,
+		time: args.time
+	}).map((calendarUpdate: SessionCalendarTimingUpdateResult) =>
+		sessionTimingUpdateWithStartAtStep(args.sessionStartAt, calendarUpdate)
+	);
 }
 
-function validateAndSyncSessionTimingStep(args: SessionTimingSyncArgs) {
-	return (sessionStartAt: number) =>
-		validateSessionTimingEdit({
-			bypassAvailabilitySettings: args.bypassAvailabilitySettings,
-			calendar: args.client.calendar,
-			calendarIds: args.client.calendarIds,
-			existing: {
-				date: args.session.date,
-				duration: args.session.duration,
-				googleCalendarId: args.session.googleCalendarId,
-				googleEventId: args.session.googleEventId,
-				time: args.session.time
-			},
-			next: { date: args.date, duration: args.duration, time: args.time },
-			settings: args.settings,
-			timeZone: args.client.timeZone
-		}).andThen(syncSessionTimingAfterValidationStep({ ...args, sessionStartAt }));
+function validateAndSyncSessionTimingStep(args: SessionTimingSyncArgs, sessionStartAt: number) {
+	return validateSessionTimingEdit({
+		bypassAvailabilitySettings: args.bypassAvailabilitySettings,
+		calendar: args.client.calendar,
+		calendarIds: args.client.calendarIds,
+		existing: {
+			date: args.session.date,
+			duration: args.session.duration,
+			googleCalendarId: args.session.googleCalendarId,
+			googleEventId: args.session.googleEventId,
+			time: args.session.time
+		},
+		next: { date: args.date, duration: args.duration, time: args.time },
+		settings: args.settings,
+		timeZone: args.client.timeZone
+	}).andThen(() => syncSessionTimingAfterValidationStep({ ...args, sessionStartAt }));
 }
 
 export function updateSessionTimingWithGoogleCalendar(
@@ -84,7 +84,7 @@ export function updateSessionTimingWithGoogleCalendar(
 	AdminSessionUpdateError | SessionCalendarTimingUpdateError
 > {
 	return getSessionStartAt(args.date, args.time, args.client.timeZone).asyncAndThen(
-		validateAndSyncSessionTimingStep(args)
+		(sessionStartAt: number) => validateAndSyncSessionTimingStep(args, sessionStartAt)
 	);
 }
 

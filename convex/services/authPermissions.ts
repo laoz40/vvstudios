@@ -37,30 +37,29 @@ function editorUserAccessFromProfile(
 	return ok({ role: "editor" as const, permissions: ROLE_PERMISSIONS.editor });
 }
 
-function verifyPermission(permission: Permission) {
-	return (access: UserAccess) => {
-		if (!hasPermission(access.permissions, permission)) {
-			return err({ reason: "NOT_AUTHORIZED" as const });
-		}
+function verifyPermission(permission: Permission, access: UserAccess) {
+	if (!hasPermission(access.permissions, permission)) {
+		return err({ reason: "NOT_AUTHORIZED" as const });
+	}
 
-		return ok(access);
-	};
+	return ok(access);
 }
 
-function identityAfterPermissionCheck(identity: UserIdentity) {
-	return (_access: UserAccess) => identity;
+function identityAfterPermissionCheck(identity: UserIdentity, _access: UserAccess) {
+	return identity;
 }
 
 function authorizeIdentityForPermission(
 	loadEditor: (
 		token: UserIdentity["tokenIdentifier"]
 	) => ResultAsync<Doc<"editorProfiles"> | null, never>,
-	permission: Permission
+	permission: Permission,
+
+	identity: UserIdentity
 ) {
-	return (identity: UserIdentity) =>
-		getUserRoleAndPermissions(identity, loadEditor)
-			.andThen(verifyPermission(permission))
-			.map(identityAfterPermissionCheck(identity));
+	return getUserRoleAndPermissions(identity, loadEditor)
+		.andThen((access: UserAccess) => verifyPermission(permission, access))
+		.map((_access: UserAccess) => identityAfterPermissionCheck(identity, _access));
 }
 
 function getUserRoleAndPermissions(
@@ -83,7 +82,9 @@ export function requireUserPermission(
 	) => ResultAsync<Doc<"editorProfiles"> | null, never>,
 	permission: Permission
 ) {
-	return requireUser({ auth }).andThen(authorizeIdentityForPermission(loadEditor, permission));
+	return requireUser({ auth }).andThen((identity: UserIdentity) =>
+		authorizeIdentityForPermission(loadEditor, permission, identity)
+	);
 }
 
 export function loadUserAccessForIdentity(ctx: QueryCtx, identity: UserIdentity) {

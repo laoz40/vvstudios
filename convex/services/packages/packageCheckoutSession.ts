@@ -44,7 +44,7 @@ type CloseEmbeddedPackageCheckoutSessionSuccess = {
 };
 
 function keepParsedPackageRequest(packageRequest: ParsedPackageRequest) {
-	return () => packageRequest;
+	return packageRequest;
 }
 
 export function parsePackageCheckoutRequest(args: CreatePackageRequestArgs) {
@@ -55,7 +55,7 @@ export function runPackageCheckoutSubmitRateLimit(
 	ctx: ActionCtx,
 	packageRequest: ParsedPackageRequest
 ): ResultAsync<ParsedPackageRequest, CreatePackageCheckoutSessionError> {
-	return checkPackageSubmitRateLimit(ctx, packageRequest.email).map(
+	return checkPackageSubmitRateLimit(ctx, packageRequest.email).map(() =>
 		keepParsedPackageRequest(packageRequest)
 	);
 }
@@ -65,18 +65,24 @@ type PendingPackageCheckoutDraft = {
 	checkoutLineItems: PackageCheckoutLineItems;
 };
 
-function attachCheckoutLineItems(packageFromDb: PackageInvoiceInput & { _id: Id<"packages"> }) {
-	return (checkoutLineItems: PackageCheckoutLineItems) => ({ packageFromDb, checkoutLineItems });
+function attachCheckoutLineItems(
+	packageFromDb: PackageInvoiceInput & { _id: Id<"packages"> },
+	checkoutLineItems: PackageCheckoutLineItems
+) {
+	return { packageFromDb, checkoutLineItems };
 }
 
 function buildPendingPackageCheckoutDraft(
 	packageFromDb: PackageInvoiceInput & { _id: Id<"packages"> }
 ) {
-	return buildPackageCheckoutLineItems(packageFromDb).map(attachCheckoutLineItems(packageFromDb));
+	return buildPackageCheckoutLineItems(packageFromDb).map(
+		(checkoutLineItems: PackageCheckoutLineItems) =>
+			attachCheckoutLineItems(packageFromDb, checkoutLineItems)
+	);
 }
 
 function createPendingPackageForCheckout(ctx: ActionCtx, validRequest: ParsedPackageRequest) {
-	return () => createPendingPackage(ctx, validRequest).andThen(buildPendingPackageCheckoutDraft);
+	return createPendingPackage(ctx, validRequest).andThen(buildPendingPackageCheckoutDraft);
 }
 
 function createEmbeddedPackageCheckout(stripe: ReturnType<typeof getStripeClient>) {
@@ -91,7 +97,7 @@ export function createPendingPackageForStripeCheckout(
 	ctx: ActionCtx,
 	validRequest: ParsedPackageRequest
 ): ResultAsync<PendingPackageCheckoutDraft, CreatePackageCheckoutSessionError> {
-	return requireValidBookingEmailDomain(validRequest.email).andThen(
+	return requireValidBookingEmailDomain(validRequest.email).andThen(() =>
 		createPendingPackageForCheckout(ctx, validRequest)
 	);
 }
@@ -148,20 +154,15 @@ function mapAbandonPackageOutcomeFromMutation(result: {
 
 function resolveClosedPackageCheckoutSession(
 	ctx: ActionCtx,
-	args: { packageId: Id<"packages">; stripeSessionId: string }
-) {
-	return (
-		session: Stripe.Checkout.Session
-	): ResultAsync<
-		CloseEmbeddedPackageCheckoutSessionSuccess,
-		CloseEmbeddedPackageCheckoutSessionError
-	> => {
-		if (session.status === "complete") {
-			return okAsync({ outcome: "already_complete" as const });
-		}
+	args: { packageId: Id<"packages">; stripeSessionId: string },
 
-		return abandonPackageCheckoutAfterClose(ctx, args);
-	};
+	session: Stripe.Checkout.Session
+) {
+	if (session.status === "complete") {
+		return okAsync({ outcome: "already_complete" as const });
+	}
+
+	return abandonPackageCheckoutAfterClose(ctx, args);
 }
 
 export function closeAbandonedPackageStripeCheckout(
@@ -176,7 +177,9 @@ export function closeAbandonedPackageStripeCheckout(
 	return closeOpenStripeCheckoutSession(stripe, args.stripeSessionId, {
 		packageId: args.packageId,
 		stripeSessionId: args.stripeSessionId
-	}).andThen(resolveClosedPackageCheckoutSession(ctx, args));
+	}).andThen((session: Stripe.Checkout.Session) =>
+		resolveClosedPackageCheckoutSession(ctx, args, session)
+	);
 }
 
 export type CreatePackageRequestArgs = LibCreatePackageRequestArgs;

@@ -12,25 +12,25 @@ import { archiveSessionWhenFullyDone } from "#convex/services/sessions/sessionAr
 type DeliverablesEditAccess = { identity: UserIdentity; session: Doc<"bookings"> };
 
 function archiveAfterDeliverablesEditStep(ctx: MutationCtx, bookingId: Id<"bookings">) {
-	return () => archiveSessionWhenFullyDone(ctx, bookingId);
+	return archiveSessionWhenFullyDone(ctx, bookingId);
 }
 
 function scheduleHostReviewEmailStep(
 	ctx: MutationCtx,
 	session: Doc<"bookings">,
-	identity: UserIdentity
-) {
-	return (editor: Doc<"editorProfiles"> | null) => {
-		const editorName = editor?.displayName ?? identity.name ?? "An editor";
+	identity: UserIdentity,
 
-		return scheduleDeliverablesReviewHostEmail(ctx, {
-			bookingId: session._id,
-			clientName: session.name,
-			editorName,
-			sessionDate: session.date,
-			idempotencyKey: `deliverables-review:${session._id}:${Date.now()}`
-		});
-	};
+	editor: Doc<"editorProfiles"> | null
+) {
+	const editorName = editor?.displayName ?? identity.name ?? "An editor";
+
+	return scheduleDeliverablesReviewHostEmail(ctx, {
+		bookingId: session._id,
+		clientName: session.name,
+		editorName,
+		sessionDate: session.date,
+		idempotencyKey: `deliverables-review:${session._id}:${Date.now()}`
+	});
 }
 
 function notifyHostThenArchiveStep(
@@ -39,8 +39,10 @@ function notifyHostThenArchiveStep(
 	identity: UserIdentity
 ) {
 	return getEditorByToken(ctx, identity.tokenIdentifier)
-		.andThen(scheduleHostReviewEmailStep(ctx, session, identity))
-		.andThen(archiveAfterDeliverablesEditStep(ctx, session._id));
+		.andThen((editor: Doc<"editorProfiles"> | null) =>
+			scheduleHostReviewEmailStep(ctx, session, identity, editor)
+		)
+		.andThen(() => archiveAfterDeliverablesEditStep(ctx, session._id));
 }
 
 function afterEditStatusSavedStep(
@@ -49,13 +51,11 @@ function afterEditStatusSavedStep(
 	shouldNotifyHost: boolean,
 	identity: UserIdentity
 ) {
-	return () => {
-		if (!shouldNotifyHost) {
-			return archiveSessionWhenFullyDone(ctx, session._id);
-		}
+	if (!shouldNotifyHost) {
+		return archiveSessionWhenFullyDone(ctx, session._id);
+	}
 
-		return notifyHostThenArchiveStep(ctx, session, identity);
-	};
+	return notifyHostThenArchiveStep(ctx, session, identity);
 }
 
 export function writeSessionEditStatusWithHostNotification(
@@ -71,7 +71,7 @@ export function writeSessionEditStatusWithHostNotification(
 		nextEditStatus: editStatus
 	});
 
-	return saveSessionEditStatus(ctx, session, editStatus).andThen(
+	return saveSessionEditStatus(ctx, session, editStatus).andThen(() =>
 		afterEditStatusSavedStep(ctx, session, shouldNotifyHost, identity)
 	);
 }

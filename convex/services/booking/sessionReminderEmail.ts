@@ -13,27 +13,29 @@ function reminderClaimFromMutation(claim: ReminderClaim) {
 	return claim;
 }
 
-function markReminderSentAfterEmail(ctx: ActionCtx, bookingId: Id<"bookings">) {
-	return (_value: null) =>
-		fromConvexTuple(
-			ctx.runMutation(internal.sessionReminders.markReminderSent, { bookingId, now: Date.now() })
-		).map(reminderEmailDeliveryComplete);
+function markReminderSentAfterEmail(ctx: ActionCtx, bookingId: Id<"bookings">, _value: null) {
+	return fromConvexTuple(
+		ctx.runMutation(internal.sessionReminders.markReminderSent, { bookingId, now: Date.now() })
+	).map(reminderEmailDeliveryComplete);
 }
 
 function reminderEmailDeliveryComplete() {
 	return null;
 }
 
-function markReminderFailedAfterEmailError(ctx: ActionCtx, bookingId: Id<"bookings">) {
-	return (reminderError: { reason: string }) =>
-		fromConvexTuple(
-			ctx.runMutation(internal.sessionReminders.markReminderFailed, {
-				bookingId,
-				failureCode: reminderError.reason
-			})
-		)
-			.map(reminderEmailDeliveryComplete)
-			.orElse(reminderFailureRecordComplete);
+function markReminderFailedAfterEmailError(
+	ctx: ActionCtx,
+	bookingId: Id<"bookings">,
+	reminderError: { reason: string }
+) {
+	return fromConvexTuple(
+		ctx.runMutation(internal.sessionReminders.markReminderFailed, {
+			bookingId,
+			failureCode: reminderError.reason
+		})
+	)
+		.map(reminderEmailDeliveryComplete)
+		.orElse(reminderFailureRecordComplete);
 }
 
 function reminderFailureRecordComplete() {
@@ -62,8 +64,10 @@ export function deliverClaimedSessionReminderEmail(
 	claim: ReminderClaim
 ): ResultAsync<null, never> {
 	return sendBookingReminderEmailForSession(ctx, claim.session)
-		.andThen(markReminderSentAfterEmail(ctx, bookingId))
-		.orElse(markReminderFailedAfterEmailError(ctx, bookingId));
+		.andThen((_value: null) => markReminderSentAfterEmail(ctx, bookingId, _value))
+		.orElse((reminderError: { reason: string }) =>
+			markReminderFailedAfterEmailError(ctx, bookingId, reminderError)
+		);
 }
 
 export function sendSessionReminderWhenClaimed(

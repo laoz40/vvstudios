@@ -34,29 +34,39 @@ function bookingSettingsWithCheckoutOrigin(bookingSettings: BookingAvailabilityS
 }
 
 function attachPaymentResultToCheckoutContext(
+	context: Omit<ClaimedCheckoutEmailContext, "paymentResult">,
+
+	paymentResult: PaidPackageResult
+) {
+	return { ...context, paymentResult };
+}
+
+function markPackagePaidWithCheckoutContext(
+	ctx: ActionCtx,
+	packageId: Id<"packages">,
 	context: Omit<ClaimedCheckoutEmailContext, "paymentResult">
 ) {
-	return (paymentResult: PaidPackageResult) => ({ ...context, paymentResult });
+	return markPackagePaid(ctx, packageId, Date.now()).map((paymentResult: PaidPackageResult) =>
+		attachPaymentResultToCheckoutContext(context, paymentResult)
+	);
 }
 
-function markPackagePaidWithCheckoutContext(ctx: ActionCtx, packageId: Id<"packages">) {
-	return (context: Omit<ClaimedCheckoutEmailContext, "paymentResult">) =>
-		markPackagePaid(ctx, packageId, Date.now()).map(attachPaymentResultToCheckoutContext(context));
-}
-
-function sendPaidEmailsFromCheckoutContext(ctx: ActionCtx, packageId: Id<"packages">) {
-	return ({ bookingSettings, checkoutReturnOrigin, paymentResult }: ClaimedCheckoutEmailContext) =>
-		sendPackageCheckoutPaidEmails(
-			ctx,
-			packageId,
-			paymentResult,
-			bookingSettings.leadTimeMinutes,
-			checkoutReturnOrigin
-		);
+function sendPaidEmailsFromCheckoutContext(
+	ctx: ActionCtx,
+	packageId: Id<"packages">,
+	{ bookingSettings, checkoutReturnOrigin, paymentResult }: ClaimedCheckoutEmailContext
+) {
+	return sendPackageCheckoutPaidEmails(
+		ctx,
+		packageId,
+		paymentResult,
+		bookingSettings.leadTimeMinutes,
+		checkoutReturnOrigin
+	);
 }
 
 function completedClaimedCheckoutOutcome() {
-	return () => ({ outcome: "completed" as const });
+	return { outcome: "completed" as const };
 }
 
 export function completeClaimedPackageCheckoutAfterPayment(
@@ -65,9 +75,11 @@ export function completeClaimedPackageCheckoutAfterPayment(
 ) {
 	return okOrThrow<BookingAvailabilitySettings>(ctx.runQuery(api.bookingSettings.get, {}))
 		.map(bookingSettingsWithCheckoutOrigin)
-		.andThen(markPackagePaidWithCheckoutContext(ctx, packageId))
-		.andThen(sendPaidEmailsFromCheckoutContext(ctx, packageId))
-		.map(completedClaimedCheckoutOutcome());
+		.andThen((context: Omit<ClaimedCheckoutEmailContext, "paymentResult">) =>
+			markPackagePaidWithCheckoutContext(ctx, packageId, context)
+		)
+		.andThen((_value) => sendPaidEmailsFromCheckoutContext(ctx, packageId, _value))
+		.map(() => completedClaimedCheckoutOutcome());
 }
 
 export type { CompleteClaimedPackageCheckoutError, CompleteClaimedPackageCheckoutSuccess };

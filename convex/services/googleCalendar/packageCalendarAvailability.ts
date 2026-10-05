@@ -45,23 +45,32 @@ type PackageAvailabilityContext = {
 };
 
 function retainValueStep<T>(value: T) {
-	return () => value;
+	return value;
 }
 
-function packageFromDbAfterRateLimitStep(ctx: ActionCtx, rateLimitKey: string) {
-	return (packageFromDb: PackageAvailabilityContext["packageFromDb"]) =>
-		checkGoogleCalendarAvailabilityRateLimit(ctx, rateLimitKey).map(retainValueStep(packageFromDb));
+function packageFromDbAfterRateLimitStep(
+	ctx: ActionCtx,
+	rateLimitKey: string,
+	packageFromDb: PackageAvailabilityContext["packageFromDb"]
+) {
+	return checkGoogleCalendarAvailabilityRateLimit(ctx, rateLimitKey).map(() =>
+		retainValueStep(packageFromDb)
+	);
 }
 
-function pairPackageWithCalendarClient(packageFromDb: PackageAvailabilityContext["packageFromDb"]) {
-	return (client: PackageAvailabilityContext["client"]) => ({ client, packageFromDb });
+function pairPackageWithCalendarClient(
+	packageFromDb: PackageAvailabilityContext["packageFromDb"],
+	client: PackageAvailabilityContext["client"]
+) {
+	return { client, packageFromDb };
 }
 
 function loadPackageCalendarClientForPackageStep(
 	packageFromDb: PackageAvailabilityContext["packageFromDb"]
 ) {
 	return loadGoogleCalendarClient("GOOGLE_CALENDAR_AVAILABILITY_FAILED").map(
-		pairPackageWithCalendarClient(packageFromDb)
+		(client: PackageAvailabilityContext["client"]) =>
+			pairPackageWithCalendarClient(packageFromDb, client)
 	);
 }
 
@@ -76,19 +85,17 @@ function packageAvailabilityContextStep({
 	const endDate = formatDateValue(new Date(packageFromDb.expiresAt));
 
 	return getDateAvailabilityRange(startDate, endDate, client.timeZone).map(
-		packageAvailabilityRangeStep(client, packageFromDb)
+		(availabilityRange: PackageAvailabilityContext["availabilityRange"]) =>
+			packageAvailabilityRangeStep(client, packageFromDb, availabilityRange)
 	);
 }
 
 function packageAvailabilityRangeStep(
 	client: PackageAvailabilityContext["client"],
-	packageFromDb: PackageAvailabilityContext["packageFromDb"]
+	packageFromDb: PackageAvailabilityContext["packageFromDb"],
+	availabilityRange: PackageAvailabilityContext["availabilityRange"]
 ) {
-	return (availabilityRange: PackageAvailabilityContext["availabilityRange"]) => ({
-		availabilityRange,
-		client,
-		packageFromDb
-	});
+	return { availabilityRange, client, packageFromDb };
 }
 
 export function loadValidPackageForCalendarAvailability(
@@ -101,16 +108,18 @@ export function loadValidPackageForCalendarAvailability(
 			token: args.token
 		})
 	)
-		.andThen(packageFromDbAfterRateLimitStep(ctx, args.rateLimitKey))
+		.andThen((packageFromDb: PackageAvailabilityContext["packageFromDb"]) =>
+			packageFromDbAfterRateLimitStep(ctx, args.rateLimitKey, packageFromDb)
+		)
 		.andThen(loadPackageCalendarClientForPackageStep)
 		.andThen(packageAvailabilityContextStep);
 }
 
-function packageBusyWindowsContextStep(context: PackageAvailabilityContext) {
-	return (busyWindows: Awaited<ReturnType<typeof getBusyWindowsInRange>>) => ({
-		...context,
-		busyWindows
-	});
+function packageBusyWindowsContextStep(
+	context: PackageAvailabilityContext,
+	busyWindows: Awaited<ReturnType<typeof getBusyWindowsInRange>>
+) {
+	return { ...context, busyWindows };
 }
 
 export function loadPackageBookableRangeBusyWindows(
@@ -137,19 +146,24 @@ export function loadPackageBookableRangeBusyWindows(
 					: "GOOGLE_CALENDAR_AVAILABILITY_FAILED"
 			};
 		}
-	}).map(packageBusyWindowsContextStep(context));
+	}).map((busyWindows: Awaited<ReturnType<typeof getBusyWindowsInRange>>) =>
+		packageBusyWindowsContextStep(context, busyWindows)
+	);
 }
 
-function groupedPackageBusyWindowsStep(context: {
-	busyWindows: Awaited<ReturnType<typeof getBusyWindowsInRange>>;
-	client: { timeZone: string };
-	packageFromDb: { expiresAt: number };
-}) {
-	return (busyDays: BusyDayWindow[]) => ({
+function groupedPackageBusyWindowsStep(
+	context: {
+		busyWindows: Awaited<ReturnType<typeof getBusyWindowsInRange>>;
+		client: { timeZone: string };
+		packageFromDb: { expiresAt: number };
+	},
+	busyDays: BusyDayWindow[]
+) {
+	return {
 		busyWindowsByMonth: groupBusyDaysByMonth(busyDays),
 		packageExpiresAt: context.packageFromDb.expiresAt,
 		timeZone: context.client.timeZone
-	});
+	};
 }
 
 export function groupPackageBusyWindowsByMonth(context: {
@@ -158,6 +172,6 @@ export function groupPackageBusyWindowsByMonth(context: {
 	packageFromDb: { expiresAt: number };
 }) {
 	return groupBusyWindowsByDay(context.busyWindows, context.client.timeZone).map(
-		groupedPackageBusyWindowsStep(context)
+		(busyDays: BusyDayWindow[]) => groupedPackageBusyWindowsStep(context, busyDays)
 	);
 }

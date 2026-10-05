@@ -18,20 +18,17 @@ function afterCustomerRescheduleEmailStep(
 	booking: Doc<"bookings">,
 	options: { leadTimeMinutes: number; originalDate: string; originalTime: string }
 ) {
-	return () =>
-		sendSessionHostRescheduleEmailForBooking(booking, {
-			leadTimeMinutes: options.leadTimeMinutes,
-			originalDate: options.originalDate,
-			originalTime: options.originalTime
-		}).orElse(logHostRescheduleEmailFailureStep(booking._id));
+	return sendSessionHostRescheduleEmailForBooking(booking, {
+		leadTimeMinutes: options.leadTimeMinutes,
+		originalDate: options.originalDate,
+		originalTime: options.originalTime
+	}).orElse((error: { reason: string }) => logHostRescheduleEmailFailureStep(booking._id, error));
 }
 
-function logHostRescheduleEmailFailureStep(bookingId: Id<"bookings">) {
-	return (error: { reason: string }) => {
-		console.error("Booking reschedule host email send failed", { bookingId, reason: error.reason });
+function logHostRescheduleEmailFailureStep(bookingId: Id<"bookings">, error: { reason: string }) {
+	console.error("Booking reschedule host email send failed", { bookingId, reason: error.reason });
 
-		return okAsync(null);
-	};
+	return okAsync(null);
 }
 
 export function sendBookingRescheduledEmailsForBooking(
@@ -55,7 +52,7 @@ export function sendBookingRescheduledEmailsForBooking(
 		service: booking.service,
 		time: booking.time,
 		...pickBookingAddonQuantities(booking)
-	}).andThen(afterCustomerRescheduleEmailStep(booking, options));
+	}).andThen(() => afterCustomerRescheduleEmailStep(booking, options));
 }
 
 export function sendSessionHostRescheduleEmailForBooking(
@@ -89,46 +86,46 @@ export function sendSessionHostRescheduleEmailForBooking(
 		notes: parsedBooking.notes,
 		reschedule: { originalDate: options.originalDate, originalTime: options.originalTime },
 		...pickBookingAddonQuantities(parsedBooking)
-	}).orElse(logSessionHostRescheduleFailureStep(booking._id));
+	}).orElse((error: { reason: string }) => logSessionHostRescheduleFailureStep(booking._id, error));
 }
 
-function logSessionHostRescheduleFailureStep(bookingId: Id<"bookings">) {
-	return (error: { reason: string }) => {
-		console.error("Session reschedule host email send failed", { bookingId, reason: error.reason });
+function logSessionHostRescheduleFailureStep(bookingId: Id<"bookings">, error: { reason: string }) {
+	console.error("Session reschedule host email send failed", { bookingId, reason: error.reason });
 
-		return errAsync({ reason: "HOST_EMAIL_SEND_FAILED" as const });
-	};
+	return errAsync({ reason: "HOST_EMAIL_SEND_FAILED" as const });
 }
 
-function notifyHostAfterAdminRescheduleStep(args: {
-	leadTimeMinutes: number;
-	originalDate: string;
-	originalTime: string;
-	result: AdminSessionUpdateResult;
-}) {
-	return (updatedSession: Doc<"bookings">) =>
-		sendSessionHostRescheduleEmailForBooking(updatedSession, {
-			leadTimeMinutes: args.leadTimeMinutes,
-			originalDate: args.originalDate,
-			originalTime: args.originalTime
-		})
-			.orElse(logAdminHostRescheduleFailureStep(updatedSession._id))
-			.map(retainAdminSessionUpdateResultStep(args.result));
+function notifyHostAfterAdminRescheduleStep(
+	args: {
+		leadTimeMinutes: number;
+		originalDate: string;
+		originalTime: string;
+		result: AdminSessionUpdateResult;
+	},
+	updatedSession: Doc<"bookings">
+) {
+	return sendSessionHostRescheduleEmailForBooking(updatedSession, {
+		leadTimeMinutes: args.leadTimeMinutes,
+		originalDate: args.originalDate,
+		originalTime: args.originalTime
+	})
+		.orElse((error: { reason: string }) =>
+			logAdminHostRescheduleFailureStep(updatedSession._id, error)
+		)
+		.map(() => retainAdminSessionUpdateResultStep(args.result));
 }
 
-function logAdminHostRescheduleFailureStep(bookingId: Id<"bookings">) {
-	return (error: { reason: string }) => {
-		console.error("Admin session reschedule host email send failed", {
-			bookingId,
-			reason: error.reason
-		});
+function logAdminHostRescheduleFailureStep(bookingId: Id<"bookings">, error: { reason: string }) {
+	console.error("Admin session reschedule host email send failed", {
+		bookingId,
+		reason: error.reason
+	});
 
-		return okAsync(null);
-	};
+	return okAsync(null);
 }
 
 function retainAdminSessionUpdateResultStep(result: AdminSessionUpdateResult) {
-	return () => result;
+	return result;
 }
 
 export function notifyHostOfAdminSessionReschedule(
@@ -141,5 +138,7 @@ export function notifyHostOfAdminSessionReschedule(
 		result: AdminSessionUpdateResult;
 	}
 ): ResultAsync<AdminSessionUpdateResult, { reason: "BOOKING_NOT_FOUND" }> {
-	return getSessionFromQuery(ctx, args.bookingId).andThen(notifyHostAfterAdminRescheduleStep(args));
+	return getSessionFromQuery(ctx, args.bookingId).andThen((updatedSession: Doc<"bookings">) =>
+		notifyHostAfterAdminRescheduleStep(args, updatedSession)
+	);
 }

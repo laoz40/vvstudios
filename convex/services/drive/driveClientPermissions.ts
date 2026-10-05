@@ -45,18 +45,20 @@ export function sendClientAssetsFolderEmail(
 	return sendClientAssetsFolderEmailLib(ctx, bookingId, attempt);
 }
 
-function requireClientPermissionsOrRecordFailure(ctx: ActionCtx) {
-	return (setup: Parameters<typeof requireClientDrivePermissionsLib>[1]) =>
-		requireClientDrivePermissions(ctx, setup).orElse((error) =>
-			recordClientDrivePermissionsFailure(ctx, setup, error)
-		);
+function requireClientPermissionsOrRecordFailure(
+	ctx: ActionCtx,
+	setup: Parameters<typeof requireClientDrivePermissionsLib>[1]
+) {
+	return requireClientDrivePermissions(ctx, setup).orElse((error) =>
+		recordClientDrivePermissionsFailure(ctx, setup, error)
+	);
 }
 
 function sendClientAssetsEmailForBooking(
 	ctx: ActionCtx,
 	args: { bookingId: Id<"bookings">; attempt: "automatic" | "retry" }
 ) {
-	return () => sendClientAssetsFolderEmail(ctx, args.bookingId, args.attempt);
+	return sendClientAssetsFolderEmail(ctx, args.bookingId, args.attempt);
 }
 
 export function requireClientDrivePermissionsAndSendAssetsEmail(
@@ -64,8 +66,10 @@ export function requireClientDrivePermissionsAndSendAssetsEmail(
 	args: { bookingId: Id<"bookings">; attempt: "automatic" | "retry" }
 ): ResultAsync<null, DriveClientPermissionsError> {
 	return loadReadyBookingDriveFolders(ctx, args.bookingId)
-		.andThen(requireClientPermissionsOrRecordFailure(ctx))
-		.andThen(sendClientAssetsEmailForBooking(ctx, args));
+		.andThen((setup: Parameters<typeof requireClientDrivePermissionsLib>[1]) =>
+			requireClientPermissionsOrRecordFailure(ctx, setup)
+		)
+		.andThen(() => sendClientAssetsEmailForBooking(ctx, args));
 }
 
 export function syncBookingDriveClientIdForRetry(

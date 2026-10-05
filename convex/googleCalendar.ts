@@ -174,8 +174,8 @@ export const rescheduleSession = action({
 	handler: (ctx, args) =>
 		loadRescheduleTargetAndValidate(ctx, args)
 			.andThen(({ calendarClient, details, sessionStartAt, settings }) =>
-				lockAndReserve(ctx, details, sessionStartAt, settings).map(
-					attachCalendarClientToLockState(calendarClient)
+				lockAndReserve(ctx, details, sessionStartAt, settings).map((state) =>
+					attachCalendarClientToLockState(calendarClient, state)
 				)
 			)
 			.andThen(({ calendarClient, state }) => syncCalendar(ctx, args, state, calendarClient))
@@ -207,7 +207,7 @@ export const updateSessionFromAdmin = action({
 			.andThen((session) => loadAdminSessionEditDeps(ctx).map((deps) => ({ session, ...deps })))
 			.andThen(({ client, session, settings }) =>
 				syncAdminBookingGoogleCalendarAndDb({ args, session, client, ctx, settings }).map(
-					attachAdminUpdateContext(session, settings)
+					(result) => attachAdminUpdateContext(session, settings, result)
 				)
 			)
 			.andThen(({ result, session, settings }) =>

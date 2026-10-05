@@ -47,27 +47,30 @@ type ClaimPackageAdjustmentInvoiceEmailError =
 
 type PackageAdjustmentInvoiceRow = PackageAdjustmentInvoiceInput["adjustment"];
 
-function attachPackageRecordToAdjustment(adjustment: PackageAdjustmentInvoiceRow) {
-	return (packageRecord: Doc<"packages">) => ({ adjustment, packageRecord });
+function attachPackageRecordToAdjustment(
+	adjustment: PackageAdjustmentInvoiceRow,
+	packageRecord: Doc<"packages">
+) {
+	return { adjustment, packageRecord };
 }
 
-function loadPackageForAdjustment(ctx: MutationCtx) {
-	return (adjustment: PackageAdjustmentInvoiceRow) =>
-		getPackageFromDb(ctx, adjustment.packageId).map(attachPackageRecordToAdjustment(adjustment));
+function loadPackageForAdjustment(ctx: MutationCtx, adjustment: PackageAdjustmentInvoiceRow) {
+	return getPackageFromDb(ctx, adjustment.packageId).map((packageRecord: Doc<"packages">) =>
+		attachPackageRecordToAdjustment(adjustment, packageRecord)
+	);
 }
 
 function scheduleStalledAdjustmentEmailFailure(
 	ctx: MutationCtx,
 	args: ClaimPackageAdjustmentInvoiceEmailArgs
 ) {
-	return () =>
-		okOrThrow(
-			ctx.scheduler.runAfter(
-				PACKAGE_ADJUSTMENT_EMAIL_CLAIM_TIMEOUT_MS,
-				internal.packageAdjustments.markStalledPackageAdjustmentInvoiceEmailFailed,
-				{ adjustmentId: args.adjustmentId, claimedAt: args.now }
-			)
-		);
+	return okOrThrow(
+		ctx.scheduler.runAfter(
+			PACKAGE_ADJUSTMENT_EMAIL_CLAIM_TIMEOUT_MS,
+			internal.packageAdjustments.markStalledPackageAdjustmentInvoiceEmailFailed,
+			{ adjustmentId: args.adjustmentId, claimedAt: args.now }
+		)
+	);
 }
 
 function keepAdjustmentInvoiceClaimPair({
@@ -77,139 +80,143 @@ function keepAdjustmentInvoiceClaimPair({
 	adjustment: PackageAdjustmentInvoiceRow;
 	packageRecord: Doc<"packages">;
 }) {
-	return () => ({ adjustment, packageRecord });
+	return { adjustment, packageRecord };
 }
 
 function claimAdjustmentInvoiceEmail(
 	ctx: MutationCtx,
-	args: ClaimPackageAdjustmentInvoiceEmailArgs
-) {
-	return ({
+	args: ClaimPackageAdjustmentInvoiceEmailArgs,
+
+	{
 		adjustment,
 		packageRecord
-	}: {
-		adjustment: PackageAdjustmentInvoiceRow;
-		packageRecord: Doc<"packages">;
-	}) =>
-		patchPackageAdjustmentInvoiceEmailClaimed(ctx, adjustment._id, args.now)
-			.andThen(scheduleStalledAdjustmentEmailFailure(ctx, args))
-			.map(keepAdjustmentInvoiceClaimPair({ adjustment, packageRecord }));
+	}: { adjustment: PackageAdjustmentInvoiceRow; packageRecord: Doc<"packages"> }
+) {
+	return patchPackageAdjustmentInvoiceEmailClaimed(ctx, adjustment._id, args.now)
+		.andThen(() => scheduleStalledAdjustmentEmailFailure(ctx, args))
+		.map(() => keepAdjustmentInvoiceClaimPair({ adjustment, packageRecord }));
 }
 
-function validateAdjustmentEmailClaim(args: ClaimPackageAdjustmentInvoiceEmailArgs) {
-	return (adjustment: PackageAdjustmentInvoiceRow) =>
-		validatePackageAdjustmentEmailClaim(adjustment, args);
+function validateAdjustmentEmailClaim(
+	args: ClaimPackageAdjustmentInvoiceEmailArgs,
+	adjustment: PackageAdjustmentInvoiceRow
+) {
+	return validatePackageAdjustmentEmailClaim(adjustment, args);
 }
 
 function patchStalledAdjustmentEmailWhenClaimMatches(
 	ctx: MutationCtx,
-	args: ClaimedPackageAdjustmentInvoiceEmailArgs
-) {
-	return (adjustment: PackageAdjustmentInvoiceRow | null) => {
-		if (
-			!adjustment ||
-			adjustment.invoiceEmailStatus !== "pending" ||
-			adjustment.invoiceEmailClaimedAt !== args.claimedAt
-		) {
-			return ok(null);
-		}
+	args: ClaimedPackageAdjustmentInvoiceEmailArgs,
 
-		return patchPackageAdjustmentInvoiceEmailFailed(ctx, adjustment._id);
-	};
+	adjustment: PackageAdjustmentInvoiceRow | null
+) {
+	if (
+		!adjustment ||
+		adjustment.invoiceEmailStatus !== "pending" ||
+		adjustment.invoiceEmailClaimedAt !== args.claimedAt
+	) {
+		return ok(null);
+	}
+
+	return patchPackageAdjustmentInvoiceEmailFailed(ctx, adjustment._id);
 }
 
 function recordAdjustmentStripeInvoiceAfterSent(
 	ctx: MutationCtx,
 	args: ClaimedPackageAdjustmentInvoiceEmailArgs & { stripeInvoiceId: string },
-	adjustment: PackageAdjustmentInvoiceRow
-) {
-	return (result: { updated: boolean }) => {
-		const remotePodcastLabel = getCustomerAddonDisplayLabel("Remote Podcast");
+	adjustment: PackageAdjustmentInvoiceRow,
 
-		return recordPackageAdjustmentStripeInvoice(ctx, {
-			packageId: adjustment.packageId,
-			packageAdjustmentId: adjustment._id,
-			stripeInvoiceId: args.stripeInvoiceId,
-			lineItems: [
-				{
-					description: `${remotePodcastLabel} (package adjustment)`,
-					amount: adjustment.totalAmount
-				}
-			],
-			totalAmount: adjustment.totalAmount
-		}).map(keepValue(result));
-	};
+	result: { updated: boolean }
+) {
+	const remotePodcastLabel = getCustomerAddonDisplayLabel("Remote Podcast");
+
+	return recordPackageAdjustmentStripeInvoice(ctx, {
+		packageId: adjustment.packageId,
+		packageAdjustmentId: adjustment._id,
+		stripeInvoiceId: args.stripeInvoiceId,
+		lineItems: [
+			{ description: `${remotePodcastLabel} (package adjustment)`, amount: adjustment.totalAmount }
+		],
+
+		totalAmount: adjustment.totalAmount
+	}).map(() => keepValue(result));
 }
 
 function keepValue<T>(value: T) {
-	return () => value;
+	return value;
 }
 
 function writeSentAdjustmentInvoiceWhenClaimMatches(
 	ctx: MutationCtx,
-	args: ClaimedPackageAdjustmentInvoiceEmailArgs & { stripeInvoiceId: string }
-) {
-	return (adjustment: PackageAdjustmentInvoiceRow) => {
-		if (adjustment.invoiceEmailClaimedAt !== args.claimedAt) {
-			return ok({ updated: false });
-		}
+	args: ClaimedPackageAdjustmentInvoiceEmailArgs & { stripeInvoiceId: string },
 
-		return patchPackageAdjustmentInvoiceEmailSent(
-			ctx,
-			adjustment._id,
-			args.stripeInvoiceId
-		).andThen(recordAdjustmentStripeInvoiceAfterSent(ctx, args, adjustment));
-	};
+	adjustment: PackageAdjustmentInvoiceRow
+) {
+	if (adjustment.invoiceEmailClaimedAt !== args.claimedAt) {
+		return ok({ updated: false });
+	}
+
+	return patchPackageAdjustmentInvoiceEmailSent(ctx, adjustment._id, args.stripeInvoiceId).andThen(
+		(result: { updated: boolean }) =>
+			recordAdjustmentStripeInvoiceAfterSent(ctx, args, adjustment, result)
+	);
 }
 
 function markAdjustmentInvoiceEmailFailedWhenClaimMatches(
 	ctx: MutationCtx,
-	args: ClaimedPackageAdjustmentInvoiceEmailArgs
-) {
-	return (adjustment: PackageAdjustmentInvoiceRow) => {
-		if (adjustment.invoiceEmailClaimedAt !== args.claimedAt) {
-			return ok({ updated: false });
-		}
+	args: ClaimedPackageAdjustmentInvoiceEmailArgs,
 
-		return patchPackageAdjustmentInvoiceEmailFailed(ctx, adjustment._id).map(
-			toUpdatedAdjustmentInvoiceEmailFailed
-		);
-	};
+	adjustment: PackageAdjustmentInvoiceRow
+) {
+	if (adjustment.invoiceEmailClaimedAt !== args.claimedAt) {
+		return ok({ updated: false });
+	}
+
+	return patchPackageAdjustmentInvoiceEmailFailed(ctx, adjustment._id).map(
+		toUpdatedAdjustmentInvoiceEmailFailed
+	);
 }
 
 function toUpdatedAdjustmentInvoiceEmailFailed() {
 	return { updated: true as const };
 }
 
-function archivePackageAfterCompletedAdjustmentPayment(ctx: MutationCtx, paidAt: number) {
-	return (claim: PackageAdjustmentInvoicePaymentClaim) => {
-		if (claim.outcome !== "completed") {
-			return okAsync(claim);
-		}
+function archivePackageAfterCompletedAdjustmentPayment(
+	ctx: MutationCtx,
+	paidAt: number,
+	claim: PackageAdjustmentInvoicePaymentClaim
+) {
+	if (claim.outcome !== "completed") {
+		return okAsync(claim);
+	}
 
-		return archivePackageWhenFullyDone(ctx, claim.packageId, paidAt).map(keepValue(claim));
-	};
+	return archivePackageWhenFullyDone(ctx, claim.packageId, paidAt).map(() => keepValue(claim));
 }
 
-function patchAdjustmentPaymentStatusForAdmin(ctx: MutationCtx, paid: boolean) {
-	return (adjustment: PackageAdjustmentInvoiceRow) =>
-		patchPackageAdjustmentPaymentStatus(ctx, adjustment._id, paid ? "paid" : "unpaid").map(
-			keepValue(adjustment)
-		);
+function patchAdjustmentPaymentStatusForAdmin(
+	ctx: MutationCtx,
+	paid: boolean,
+	adjustment: PackageAdjustmentInvoiceRow
+) {
+	return patchPackageAdjustmentPaymentStatus(ctx, adjustment._id, paid ? "paid" : "unpaid").map(
+		() => keepValue(adjustment)
+	);
 }
 
-function archivePackageAfterAdminPayment(ctx: MutationCtx, paid: boolean) {
-	return (updatedAdjustment: PackageAdjustmentInvoiceRow) => {
-		if (!paid) {
-			return okAsync(null);
-		}
+function archivePackageAfterAdminPayment(
+	ctx: MutationCtx,
+	paid: boolean,
+	updatedAdjustment: PackageAdjustmentInvoiceRow
+) {
+	if (!paid) {
+		return okAsync(null);
+	}
 
-		return archivePackageWhenFullyDone(ctx, updatedAdjustment.packageId);
-	};
+	return archivePackageWhenFullyDone(ctx, updatedAdjustment.packageId);
 }
 
 function loadAdjustmentInvoiceForAdmin(ctx: MutationCtx, adjustmentId: Id<"packageAdjustments">) {
-	return () => getPackageAdjustmentInvoice(ctx, adjustmentId);
+	return getPackageAdjustmentInvoice(ctx, adjustmentId);
 }
 
 function validateAdjustmentPaymentEligibility(adjustment: PackageAdjustmentInvoiceRow) {
@@ -225,9 +232,11 @@ export function claimPackageAdjustmentInvoiceEmail(
 	args: ClaimPackageAdjustmentInvoiceEmailArgs
 ): ResultAsync<PackageAdjustmentInvoiceInput, ClaimPackageAdjustmentInvoiceEmailError> {
 	return getPackageAdjustmentInvoice(ctx, args.adjustmentId)
-		.andThen(validateAdjustmentEmailClaim(args))
-		.andThen(loadPackageForAdjustment(ctx))
-		.andThen(claimAdjustmentInvoiceEmail(ctx, args));
+		.andThen((adjustment: PackageAdjustmentInvoiceRow) =>
+			validateAdjustmentEmailClaim(args, adjustment)
+		)
+		.andThen((adjustment: PackageAdjustmentInvoiceRow) => loadPackageForAdjustment(ctx, adjustment))
+		.andThen((_value) => claimAdjustmentInvoiceEmail(ctx, args, _value));
 }
 
 export function markStalledPackageAdjustmentInvoiceEmailFailed(
@@ -236,7 +245,9 @@ export function markStalledPackageAdjustmentInvoiceEmailFailed(
 ) {
 	return getPackageAdjustmentInvoice(ctx, args.adjustmentId)
 		.orElse(recoverMissingAdjustmentInvoice)
-		.andThen(patchStalledAdjustmentEmailWhenClaimMatches(ctx, args));
+		.andThen((adjustment: PackageAdjustmentInvoiceRow | null) =>
+			patchStalledAdjustmentEmailWhenClaimMatches(ctx, args, adjustment)
+		);
 }
 
 export function writePackageAdjustmentInvoiceEmailSent(
@@ -244,7 +255,8 @@ export function writePackageAdjustmentInvoiceEmailSent(
 	args: ClaimedPackageAdjustmentInvoiceEmailArgs & { stripeInvoiceId: string }
 ) {
 	return getPackageAdjustmentInvoice(ctx, args.adjustmentId).andThen(
-		writeSentAdjustmentInvoiceWhenClaimMatches(ctx, args)
+		(adjustment: PackageAdjustmentInvoiceRow) =>
+			writeSentAdjustmentInvoiceWhenClaimMatches(ctx, args, adjustment)
 	);
 }
 
@@ -253,7 +265,8 @@ export function writePackageAdjustmentInvoiceEmailFailed(
 	args: ClaimedPackageAdjustmentInvoiceEmailArgs
 ) {
 	return getPackageAdjustmentInvoice(ctx, args.adjustmentId).andThen(
-		markAdjustmentInvoiceEmailFailedWhenClaimMatches(ctx, args)
+		(adjustment: PackageAdjustmentInvoiceRow) =>
+			markAdjustmentInvoiceEmailFailedWhenClaimMatches(ctx, args, adjustment)
 	);
 }
 
@@ -262,7 +275,8 @@ export function claimPackageAdjustmentInvoicePaymentAndArchive(
 	args: { stripeInvoiceId: string; adjustmentId?: string; paidAt: number }
 ) {
 	return claimPackageAdjustmentInvoicePayment(ctx, args).andThen(
-		archivePackageAfterCompletedAdjustmentPayment(ctx, args.paidAt)
+		(claim: PackageAdjustmentInvoicePaymentClaim) =>
+			archivePackageAfterCompletedAdjustmentPayment(ctx, args.paidAt, claim)
 	);
 }
 
@@ -271,8 +285,12 @@ export function updatePackageAdjustmentPaymentStatusFromAdmin(
 	args: MarkPackageAdjustmentPaymentStatusArgs
 ) {
 	return requirePermission(ctx, "update:payment-status")
-		.andThen(loadAdjustmentInvoiceForAdmin(ctx, args.adjustmentId))
+		.andThen(() => loadAdjustmentInvoiceForAdmin(ctx, args.adjustmentId))
 		.andThen(validateAdjustmentPaymentEligibility)
-		.andThen(patchAdjustmentPaymentStatusForAdmin(ctx, args.paid))
-		.andThen(archivePackageAfterAdminPayment(ctx, args.paid));
+		.andThen((adjustment: PackageAdjustmentInvoiceRow) =>
+			patchAdjustmentPaymentStatusForAdmin(ctx, args.paid, adjustment)
+		)
+		.andThen((updatedAdjustment: PackageAdjustmentInvoiceRow) =>
+			archivePackageAfterAdminPayment(ctx, args.paid, updatedAdjustment)
+		);
 }

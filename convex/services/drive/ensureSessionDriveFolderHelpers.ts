@@ -50,12 +50,14 @@ export function getClientIdentity(setupInfo: DriveSetupInfo) {
 	};
 }
 
-function renameDriveFolderWhenNameDiffers(drive: DriveClient, expectedName: string) {
-	return (folder: SavedDriveFolder) => {
-		if (folder.name === expectedName) return ok(folder);
+function renameDriveFolderWhenNameDiffers(
+	drive: DriveClient,
+	expectedName: string,
+	folder: SavedDriveFolder
+) {
+	if (folder.name === expectedName) return ok(folder);
 
-		return renameDriveFolder(drive, { folderId: folder.id, name: expectedName });
-	};
+	return renameDriveFolder(drive, { folderId: folder.id, name: expectedName });
 }
 
 export function verifyAndRenameDriveFolder(
@@ -63,8 +65,8 @@ export function verifyAndRenameDriveFolder(
 	folderId: string,
 	expectedName: string
 ) {
-	return verifyDriveFolder(drive, folderId).andThen(
-		renameDriveFolderWhenNameDiffers(drive, expectedName)
+	return verifyDriveFolder(drive, folderId).andThen((folder: SavedDriveFolder) =>
+		renameDriveFolderWhenNameDiffers(drive, expectedName, folder)
 	);
 }
 
@@ -73,33 +75,38 @@ export function createFolderOrFindCreatedFolder(
 	drive: DriveClient,
 	input: { name: string; parentId: string; marker: string }
 ) {
-	return findDriveFolderByMarker(drive, input).andThen(createFolderWhenMarkerMissing(drive, input));
+	return findDriveFolderByMarker(drive, input).andThen((folder: SavedDriveFolder | null) =>
+		createFolderWhenMarkerMissing(drive, input, folder)
+	);
 }
 
 function createFolderWhenMarkerMissing(
 	drive: DriveClient,
-	input: Parameters<typeof createDriveFolder>[1]
+	input: Parameters<typeof createDriveFolder>[1],
+	folder: SavedDriveFolder | null
 ) {
-	return (folder: SavedDriveFolder | null) => {
-		if (folder !== null) return ok(folder);
+	if (folder !== null) return ok(folder);
 
-		return createDriveFolder(drive, input).orElse(
-			recoverCreatedFolderAfterCreateFailure(drive, input)
-		);
-	};
+	return createDriveFolder(drive, input).orElse((createError: SetupError) =>
+		recoverCreatedFolderAfterCreateFailure(drive, input, createError)
+	);
 }
 
 function recoverCreatedFolderAfterCreateFailure(
 	drive: DriveClient,
-	input: Parameters<typeof createDriveFolder>[1]
+	input: Parameters<typeof createDriveFolder>[1],
+	createError: SetupError
 ) {
-	return (createError: SetupError) =>
-		findDriveFolderByMarker(drive, input).andThen(resolveRecoveredFolderOrCreateError(createError));
+	return findDriveFolderByMarker(drive, input).andThen((foundFolder: SavedDriveFolder | null) =>
+		resolveRecoveredFolderOrCreateError(createError, foundFolder)
+	);
 }
 
-function resolveRecoveredFolderOrCreateError(createError: SetupError) {
-	return (foundFolder: SavedDriveFolder | null) =>
-		foundFolder === null ? err(createError) : ok(foundFolder);
+function resolveRecoveredFolderOrCreateError(
+	createError: SetupError,
+	foundFolder: SavedDriveFolder | null
+) {
+	return foundFolder === null ? err(createError) : ok(foundFolder);
 }
 
 export function shouldReplaceMissingFolder(error: SetupError, replaceMissingFolders: boolean) {

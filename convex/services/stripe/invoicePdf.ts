@@ -109,20 +109,22 @@ type BookingInvoiceArtifactsValue = {
 
 function renderReceiptPdfPayloadFromArtifacts(value: BookingReceiptArtifactsValue) {
 	return renderBookingReceiptPdfInNode(value.artifacts.data).map(
-		toInvoicePdfPayloadFromArtifacts(value)
+		(pdfContent: Parameters<typeof toInvoicePdfPayload>[0]) =>
+			toInvoicePdfPayloadFromArtifacts(value, pdfContent)
 	);
 }
 
-function toInvoicePdfPayloadFromArtifacts(value: {
-	artifacts: { pdf: Parameters<typeof toInvoicePdfPayload>[1] };
-}) {
-	return (pdfContent: Parameters<typeof toInvoicePdfPayload>[0]) =>
-		toInvoicePdfPayload(pdfContent, value.artifacts.pdf);
+function toInvoicePdfPayloadFromArtifacts(
+	value: { artifacts: { pdf: Parameters<typeof toInvoicePdfPayload>[1] } },
+	pdfContent: Parameters<typeof toInvoicePdfPayload>[0]
+) {
+	return toInvoicePdfPayload(pdfContent, value.artifacts.pdf);
 }
 
 function renderInvoicePdfPayloadFromArtifacts(value: BookingInvoiceArtifactsValue) {
 	return renderBookingInvoicePdfInNode(value.artifacts.data).map(
-		toInvoicePdfPayloadFromArtifacts(value)
+		(pdfContent: Parameters<typeof toInvoicePdfPayload>[0]) =>
+			toInvoicePdfPayloadFromArtifacts(value, pdfContent)
 	);
 }
 

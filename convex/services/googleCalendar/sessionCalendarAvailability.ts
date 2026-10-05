@@ -46,18 +46,22 @@ export function loadAvailableBookingTimesForDay(
 	return loadDayAvailableBookingTimes({ date: args.date, duration: args.duration, settings });
 }
 
-function pairRescheduleDetailsWithSettings(details: ValidRescheduleDetails) {
-	return (settings: BookingAvailabilitySettings) => ({ details, settings });
+function pairRescheduleDetailsWithSettings(
+	details: ValidRescheduleDetails,
+	settings: BookingAvailabilitySettings
+) {
+	return { details, settings };
 }
 
-function loadRescheduleBookingSettingsStep(ctx: ActionCtx) {
-	return (details: ValidRescheduleDetails) =>
-		getBookingSettingsService(ctx).map(pairRescheduleDetailsWithSettings(details));
+function loadRescheduleBookingSettingsStep(ctx: ActionCtx, details: ValidRescheduleDetails) {
+	return getBookingSettingsService(ctx).map((settings: BookingAvailabilitySettings) =>
+		pairRescheduleDetailsWithSettings(details, settings)
+	);
 }
 
 export function loadRescheduleSessionAndBookingSettings(ctx: ActionCtx, token: string) {
 	return loadValidRescheduleLinkAndSession(ctx, { now: Date.now(), token }).andThen(
-		loadRescheduleBookingSettingsStep(ctx)
+		(details: ValidRescheduleDetails) => loadRescheduleBookingSettingsStep(ctx, details)
 	);
 }
 
@@ -77,38 +81,35 @@ export function loadRescheduleBookableRangeBusyWindows(
 function availableRescheduleTimesForDayStep(
 	args: { date: string },
 	details: { session: { duration: string; googleCalendarId?: string; googleEventId?: string } },
-	settings: BookingAvailabilitySettings
-) {
-	return ({
+	settings: BookingAvailabilitySettings,
+
+	{
 		busyWindows,
 		timeZone
-	}: {
-		busyWindows: Parameters<typeof getAvailableTimeOptions>[0]["busyWindows"];
-		timeZone: string;
-	}) => {
-		const calendarAvailableTimes = getAvailableTimeOptions({
-			busyWindows,
+	}: { busyWindows: Parameters<typeof getAvailableTimeOptions>[0]["busyWindows"]; timeZone: string }
+) {
+	const calendarAvailableTimes = getAvailableTimeOptions({
+		busyWindows,
+		date: args.date,
+		duration: details.session.duration,
+		eventBufferMinutes: settings.eventBufferMinutes,
+		timeZone
+	});
+
+	const now = Date.now();
+
+	const times = calendarAvailableTimes.filter((time) =>
+		checkSessionMeetsAvailabilitySettings({
 			date: args.date,
 			duration: details.session.duration,
-			eventBufferMinutes: settings.eventBufferMinutes,
+			now,
+			settings,
+			time,
 			timeZone
-		});
+		}).isOk()
+	);
 
-		const now = Date.now();
-
-		const times = calendarAvailableTimes.filter((time) =>
-			checkSessionMeetsAvailabilitySettings({
-				date: args.date,
-				duration: details.session.duration,
-				now,
-				settings,
-				time,
-				timeZone
-			}).isOk()
-		);
-
-		return { timeZone, times };
-	};
+	return { timeZone, times };
 }
 
 export function loadAvailableRescheduleTimesForDay(
@@ -122,5 +123,5 @@ export function loadAvailableRescheduleTimesForDay(
 			calendarId: details.session.googleCalendarId,
 			eventId: details.session.googleEventId
 		}
-	}).map(availableRescheduleTimesForDayStep(args, details, settings));
+	}).map((_value) => availableRescheduleTimesForDayStep(args, details, settings, _value));
 }

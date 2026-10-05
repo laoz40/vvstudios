@@ -5,19 +5,19 @@ import { getValidPackageByToken as findValidPackageByToken } from "#convex/lib/p
 import { patchPackageDefaultRecordingSpace } from "#convex/lib/packages/packageUpdates";
 import { buildPackageTokenCustomerView } from "#convex/lib/packages/packageTokenView";
 
-function buildPackageSchedulingPageView(ctx: QueryCtx) {
-	return (packageRecord: Doc<"packages">) =>
-		getCapacityConsumingPackageSessions(ctx, packageRecord._id, packageRecord.packageSize).map(
-			buildPackageTokenCustomerView.bind(null, packageRecord)
-		);
+function buildPackageSchedulingPageView(ctx: QueryCtx, packageRecord: Doc<"packages">) {
+	return getCapacityConsumingPackageSessions(ctx, packageRecord._id, packageRecord.packageSize).map(
+		buildPackageTokenCustomerView.bind(null, packageRecord)
+	);
 }
 
 function patchDefaultRecordingSpaceForPackage(
 	ctx: MutationCtx,
-	service: NonNullable<Doc<"packages">["defaultSpace"]>
+	service: NonNullable<Doc<"packages">["defaultSpace"]>,
+
+	packageRecord: Doc<"packages">
 ) {
-	return (packageRecord: Doc<"packages">) =>
-		patchPackageDefaultRecordingSpace(ctx, packageRecord._id, service);
+	return patchPackageDefaultRecordingSpace(ctx, packageRecord._id, service);
 }
 
 export function loadPackageSchedulingPageByToken(
@@ -25,7 +25,7 @@ export function loadPackageSchedulingPageByToken(
 	args: { token: string; now: number }
 ) {
 	return findValidPackageByToken(ctx, args.token, args.now).andThen(
-		buildPackageSchedulingPageView(ctx)
+		(packageRecord: Doc<"packages">) => buildPackageSchedulingPageView(ctx, packageRecord)
 	);
 }
 
@@ -34,7 +34,8 @@ export function writePackageDefaultRecordingSpace(
 	args: { token: string; service: NonNullable<Doc<"packages">["defaultSpace"]>; now: number }
 ) {
 	return findValidPackageByToken(ctx, args.token, args.now).andThen(
-		patchDefaultRecordingSpaceForPackage(ctx, args.service)
+		(packageRecord: Doc<"packages">) =>
+			patchDefaultRecordingSpaceForPackage(ctx, args.service, packageRecord)
 	);
 }
 

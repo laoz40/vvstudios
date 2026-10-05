@@ -95,9 +95,11 @@ export function buildSessionCalendarEventPayload({
 	);
 }
 
-export function matchingSessionCalendarEventStep(session: SessionCalendarEventRecord) {
-	return (events: calendar_v3.Schema$Event[]) =>
-		events.find((event) => isMatchingSessionCalendarEvent(event, session)) ?? null;
+export function matchingSessionCalendarEventStep(
+	session: SessionCalendarEventRecord,
+	events: calendar_v3.Schema$Event[]
+) {
+	return events.find((event) => isMatchingSessionCalendarEvent(event, session)) ?? null;
 }
 
 export function isMatchingSessionCalendarEvent(

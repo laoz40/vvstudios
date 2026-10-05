@@ -71,7 +71,7 @@ function findDeclinedSessionCalendarEvent({
 		calendarId,
 		timeMax: endDateTime,
 		timeMin: startDateTime
-	}).map(matchingSessionCalendarEventStep(session));
+	}).map((events) => matchingSessionCalendarEventStep(session, events));
 }
 
 function deleteSessionEventAfterLookup({
@@ -88,7 +88,7 @@ function deleteSessionEventAfterLookup({
 		calendar: client.calendar,
 		calendarId,
 		timeZone: client.timeZone
-	}).andThen(deleteSessionEventAfterLookupStep({ client, calendarId }));
+	}).andThen((foundEvent) => deleteSessionEventAfterLookupStep({ client, calendarId }, foundEvent));
 }
 
 export function deleteSessionCalendarEvent({
@@ -106,7 +106,11 @@ export function deleteSessionCalendarEvent({
 	}
 
 	return deleteGoogleCalendarEventIfFound(client.calendar, calendarId, savedEventId).andThen(
-		deleteSavedEventOrLookupStep({ session, client, calendarId, deleteSessionEventAfterLookup })
+		(wasDeleted) =>
+			deleteSavedEventOrLookupStep(
+				{ session, client, calendarId, deleteSessionEventAfterLookup },
+				wasDeleted
+			)
 	);
 }
 
@@ -161,16 +165,18 @@ function emptySessionCalendarTimingUpdateStep(): SessionCalendarTimingUpdateResu
 	return {};
 }
 
-function recoverMissingEventOnPatchStep(args: {
-	client: GoogleCalendarEventClient;
-	date: string;
-	details: SessionCalendarEventDetails;
-	time: string;
-}) {
-	return (patchError: GoogleCalendarEventMissing | SessionCalendarTimingUpdateError) =>
-		isMissingGoogleCalendarEvent(patchError)
-			? insertSessionCalendarEvent(args)
-			: errAsync(patchError);
+function recoverMissingEventOnPatchStep(
+	args: {
+		client: GoogleCalendarEventClient;
+		date: string;
+		details: SessionCalendarEventDetails;
+		time: string;
+	},
+	patchError: GoogleCalendarEventMissing | SessionCalendarTimingUpdateError
+) {
+	return isMissingGoogleCalendarEvent(patchError)
+		? insertSessionCalendarEvent(args)
+		: errAsync(patchError);
 }
 
 function patchExistingSessionCalendarEvent({
@@ -206,19 +212,23 @@ function patchExistingSessionCalendarEvent({
 		requestBody: payloadResult.value
 	})
 		.map(emptySessionCalendarTimingUpdateStep)
-		.orElse(recoverMissingEventOnPatchStep({ client, date, details, time }));
+		.orElse((patchError: GoogleCalendarEventMissing | SessionCalendarTimingUpdateError) =>
+			recoverMissingEventOnPatchStep({ client, date, details, time }, patchError)
+		);
 }
 
-function recoverMissingEventOnLookupStep(args: {
-	client: GoogleCalendarEventClient;
-	date: string;
-	details: SessionCalendarEventDetails;
-	time: string;
-}) {
-	return (lookupError: GoogleCalendarEventMissing | SessionCalendarTimingUpdateError) =>
-		isMissingGoogleCalendarEvent(lookupError)
-			? insertSessionCalendarEvent(args)
-			: errAsync(lookupError);
+function recoverMissingEventOnLookupStep(
+	args: {
+		client: GoogleCalendarEventClient;
+		date: string;
+		details: SessionCalendarEventDetails;
+		time: string;
+	},
+	lookupError: GoogleCalendarEventMissing | SessionCalendarTimingUpdateError
+) {
+	return isMissingGoogleCalendarEvent(lookupError)
+		? insertSessionCalendarEvent(args)
+		: errAsync(lookupError);
 }
 
 export function updateSessionCalendarEventTiming({
@@ -256,12 +266,13 @@ export function updateSessionCalendarEventTiming({
 		calendarId: googleCalendarId,
 		eventId: googleEventId
 	})
-		.andThen(
-			updateExistingGoogleEventStep({
-				eventUpdateArgs,
-				insertSessionCalendarEvent,
-				patchExistingSessionCalendarEvent
-			})
+		.andThen((existingGoogleEvent) =>
+			updateExistingGoogleEventStep(
+				{ eventUpdateArgs, insertSessionCalendarEvent, patchExistingSessionCalendarEvent },
+				existingGoogleEvent
+			)
 		)
-		.orElse(recoverMissingEventOnLookupStep({ client, date, details, time }));
+		.orElse((lookupError: GoogleCalendarEventMissing | SessionCalendarTimingUpdateError) =>
+			recoverMissingEventOnLookupStep({ client, date, details, time }, lookupError)
+		);
 }

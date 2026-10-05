@@ -56,44 +56,44 @@ function getPackageCalendarSyncErrorReason(reason: string): PackageCalendarSyncE
 	return "GOOGLE_CALENDAR_SYNC_FAILED";
 }
 
-function packageCalendarIdPatchFromUpdateStep(session: SessionCalendarEventRecord) {
-	return (result: { googleCalendarId?: string; googleEventId?: string }) => {
-		const googleCalendarId = result.googleCalendarId ?? session.googleCalendarId;
-		const googleEventId = result.googleEventId ?? session.googleEventId;
-		const patch: PackageCalendarIdPatch = {};
+function packageCalendarIdPatchFromUpdateStep(
+	session: SessionCalendarEventRecord,
+	result: { googleCalendarId?: string; googleEventId?: string }
+) {
+	const googleCalendarId = result.googleCalendarId ?? session.googleCalendarId;
+	const googleEventId = result.googleEventId ?? session.googleEventId;
+	const patch: PackageCalendarIdPatch = {};
 
-		if (googleCalendarId) {
-			patch.googleCalendarId = googleCalendarId;
-		}
+	if (googleCalendarId) {
+		patch.googleCalendarId = googleCalendarId;
+	}
 
-		if (googleEventId) {
-			patch.googleEventId = googleEventId;
-		}
+	if (googleEventId) {
+		patch.googleEventId = googleEventId;
+	}
 
-		return patch;
-	};
+	return patch;
 }
 
-function packageCalendarIdPatchFromCreateStep() {
-	return (result: { googleCalendarId?: string; googleEventId?: string }) => {
-		const patch: PackageCalendarIdPatch = {};
+function packageCalendarIdPatchFromCreateStep(result: {
+	googleCalendarId?: string;
+	googleEventId?: string;
+}) {
+	const patch: PackageCalendarIdPatch = {};
 
-		if (result.googleCalendarId) {
-			patch.googleCalendarId = result.googleCalendarId;
-		}
+	if (result.googleCalendarId) {
+		patch.googleCalendarId = result.googleCalendarId;
+	}
 
-		if (result.googleEventId) {
-			patch.googleEventId = result.googleEventId;
-		}
+	if (result.googleEventId) {
+		patch.googleEventId = result.googleEventId;
+	}
 
-		return patch;
-	};
+	return patch;
 }
 
-function mapPackageCalendarSyncErrorStep(): (error: {
-	reason: string;
-}) => PackageCalendarWriteError {
-	return (error) => ({ reason: getPackageCalendarSyncErrorReason(error.reason) });
+function mapPackageCalendarSyncErrorStep(error: { reason: string }): PackageCalendarWriteError {
+	return { reason: getPackageCalendarSyncErrorReason(error.reason) };
 }
 
 function updatePackageCalendarEvent(
@@ -116,8 +116,10 @@ function updatePackageCalendarEvent(
 		},
 		time: details.time
 	})
-		.mapErr(mapPackageCalendarSyncErrorStep())
-		.map(packageCalendarIdPatchFromUpdateStep(session));
+		.mapErr(mapPackageCalendarSyncErrorStep)
+		.map((result: { googleCalendarId?: string; googleEventId?: string }) =>
+			packageCalendarIdPatchFromUpdateStep(session, result)
+		);
 }
 
 function createPackageCalendarEvent(
@@ -137,57 +139,58 @@ function createPackageCalendarEvent(
 		},
 		time: details.time
 	})
-		.mapErr(mapPackageCalendarSyncErrorStep())
-		.map(packageCalendarIdPatchFromCreateStep());
+		.mapErr(mapPackageCalendarSyncErrorStep)
+		.map((result: { googleCalendarId?: string; googleEventId?: string }) =>
+			packageCalendarIdPatchFromCreateStep(result)
+		);
 }
 
-function openPackageCalendarSlotStep(args: {
-	session: SessionCalendarEventRecord | null;
-	details: PackageCalendarDetails;
-}) {
-	return (client: PackageCalendarClient) => {
-		const ignoredEvent = args.session
-			? { calendarId: args.session.googleCalendarId, eventId: args.session.googleEventId }
-			: undefined;
+function openPackageCalendarSlotStep(
+	args: { session: SessionCalendarEventRecord | null; details: PackageCalendarDetails },
+	client: PackageCalendarClient
+) {
+	const ignoredEvent = args.session
+		? { calendarId: args.session.googleCalendarId, eventId: args.session.googleEventId }
+		: undefined;
 
-		return tryPromise({
-			try: () =>
-				getBusyWindows({
-					calendar: client.calendar,
-					calendarIds: client.calendarIds,
-					date: args.details.date,
-					ignoredEvent,
-					timeZone: client.timeZone
-				}),
-			catch: (error) => {
-				const parsedError = calendarErrorSchema.safeParse(error);
+	return tryPromise({
+		try: () =>
+			getBusyWindows({
+				calendar: client.calendar,
+				calendarIds: client.calendarIds,
+				date: args.details.date,
+				ignoredEvent,
+				timeZone: client.timeZone
+			}),
+		catch: (error) => {
+			const parsedError = calendarErrorSchema.safeParse(error);
 
-				return {
-					reason: parsedError.success
-						? mapCalendarErrorCode(parsedError.data, "GOOGLE_CALENDAR_SYNC_FAILED")
-						: "GOOGLE_CALENDAR_SYNC_FAILED"
-				};
-			}
-		}).andThen(confirmPackageSlotAvailableStep(args.details, client));
-	};
+			return {
+				reason: parsedError.success
+					? mapCalendarErrorCode(parsedError.data, "GOOGLE_CALENDAR_SYNC_FAILED")
+					: "GOOGLE_CALENDAR_SYNC_FAILED"
+			};
+		}
+	}).andThen((busyWindows: Awaited<ReturnType<typeof getBusyWindows>>) =>
+		confirmPackageSlotAvailableStep(args.details, client, busyWindows)
+	);
 }
 
 function confirmPackageSlotAvailableStep(
 	details: PackageCalendarDetails,
-	client: PackageCalendarClient
+	client: PackageCalendarClient,
+	busyWindows: Awaited<ReturnType<typeof getBusyWindows>>
 ) {
-	return (busyWindows: Awaited<ReturnType<typeof getBusyWindows>>) => {
-		const isAvailable = isTimeSlotAvailable({
-			busyWindows,
-			date: details.date,
-			duration: details.duration,
-			eventBufferMinutes: details.eventBufferMinutes,
-			time: details.time,
-			timeZone: client.timeZone
-		});
+	const isAvailable = isTimeSlotAvailable({
+		busyWindows,
+		date: details.date,
+		duration: details.duration,
+		eventBufferMinutes: details.eventBufferMinutes,
+		time: details.time,
+		timeZone: client.timeZone
+	});
 
-		return isAvailable ? ok(client) : err({ reason: "BOOKING_TIME_UNAVAILABLE" as const });
-	};
+	return isAvailable ? ok(client) : err({ reason: "BOOKING_TIME_UNAVAILABLE" as const });
 }
 
 export function loadPackageCalendarClientWhenSlotOpen(args: {
@@ -195,15 +198,15 @@ export function loadPackageCalendarClientWhenSlotOpen(args: {
 	details: PackageCalendarDetails;
 }) {
 	return loadGoogleCalendarClient("GOOGLE_CALENDAR_SYNC_FAILED").andThen(
-		openPackageCalendarSlotStep(args)
+		(client: PackageCalendarClient) => openPackageCalendarSlotStep(args, client)
 	);
 }
 
-function writePackageCalendarForClientStep(args: {
-	session: SessionCalendarEventRecord | null;
-	details: PackageCalendarDetails;
-}) {
-	return (client: PackageCalendarClient) => writePackageSessionGoogleCalendarEvent(client, args);
+function writePackageCalendarForClientStep(
+	args: { session: SessionCalendarEventRecord | null; details: PackageCalendarDetails },
+	client: PackageCalendarClient
+) {
+	return writePackageSessionGoogleCalendarEvent(client, args);
 }
 
 export function writePackageSessionGoogleCalendarEvent(
@@ -219,24 +222,24 @@ export function syncPackageSessionGoogleCalendarEvent(args: {
 	session: SessionCalendarEventRecord | null;
 	details: PackageCalendarDetails;
 }) {
-	return loadPackageCalendarClientWhenSlotOpen(args).andThen(
-		writePackageCalendarForClientStep(args)
+	return loadPackageCalendarClientWhenSlotOpen(args).andThen((client: PackageCalendarClient) =>
+		writePackageCalendarForClientStep(args, client)
 	);
 }
 
-function deletePackageSessionCalendarStep(session: SessionCalendarEventRecord) {
-	return ({
+function deletePackageSessionCalendarStep(
+	session: SessionCalendarEventRecord,
+	{
 		calendar,
 		calendarId,
 		timeZone
-	}: Pick<PackageCalendarClient, "calendar" | "calendarId" | "timeZone"> & {
-		calendarIds: string[];
-	}) =>
-		deleteSessionCalendarEvent({ session, client: { calendar, calendarId, timeZone } }).mapErr(
-			(error): PackageCalendarSyncError => ({
-				reason: getPackageCalendarSyncErrorReason(error.reason)
-			})
-		);
+	}: Pick<PackageCalendarClient, "calendar" | "calendarId" | "timeZone"> & { calendarIds: string[] }
+) {
+	return deleteSessionCalendarEvent({ session, client: { calendar, calendarId, timeZone } }).mapErr(
+		(error): PackageCalendarSyncError => ({
+			reason: getPackageCalendarSyncErrorReason(error.reason)
+		})
+	);
 }
 
 export function removePackageSessionGoogleCalendarEvent(
@@ -245,6 +248,6 @@ export function removePackageSessionGoogleCalendarEvent(
 	return (
 		loadGoogleCalendarClient("GOOGLE_CALENDAR_SYNC_FAILED")
 			// Delete the saved event, including declined invitations found by session details.
-			.andThen(deletePackageSessionCalendarStep(session))
+			.andThen((_value) => deletePackageSessionCalendarStep(session, _value))
 	);
 }

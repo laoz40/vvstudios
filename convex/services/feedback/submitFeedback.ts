@@ -6,11 +6,11 @@ import { parseFeedbackMessage } from "#convex/lib/feedback";
 import { checkFeedbackSubmitRateLimit } from "#convex/lib/rateLimits";
 
 function passthroughValue<T>(value: T) {
-	return () => value;
+	return value;
 }
 
-function passMessageAfterFeedbackRateLimit(ctx: ActionCtx) {
-	return (parsed: string) => checkFeedbackSubmitRateLimit(ctx).map(passthroughValue(parsed));
+function passMessageAfterFeedbackRateLimit(ctx: ActionCtx, parsed: string) {
+	return checkFeedbackSubmitRateLimit(ctx).map(() => passthroughValue(parsed));
 }
 
 function feedbackSubmitComplete() {
@@ -19,7 +19,7 @@ function feedbackSubmitComplete() {
 
 export function submitFeedbackMessage(ctx: ActionCtx, message: string) {
 	return parseFeedbackMessage(message)
-		.asyncAndThen(passMessageAfterFeedbackRateLimit(ctx))
+		.asyncAndThen((parsed: string) => passMessageAfterFeedbackRateLimit(ctx, parsed))
 		.andThen(sendFeedbackEmailForMessage)
 		.map(feedbackSubmitComplete);
 }

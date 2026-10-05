@@ -48,61 +48,62 @@ type AdminSessionDatabasePatch = AdminSessionTimingPatch & {
 	reservationDuration?: undefined;
 };
 
-function adminSessionUpdatePatchPairStep(session: Doc<"bookings">) {
-	return (updatePatch: AdminSessionTimingPatch) => ({ session, updatePatch });
+function adminSessionUpdatePatchPairStep(
+	session: Doc<"bookings">,
+	updatePatch: AdminSessionTimingPatch
+) {
+	return { session, updatePatch };
 }
 
-function adminUpdatePatchForSessionStep(args: SaveAdminSessionUpdateArgs) {
-	return (session: Doc<"bookings">) =>
-		buildAdminSessionUpdatePatch({
-			session,
-			timeZone: env.GOOGLE_CALENDAR_TIMEZONE,
-			values: args
-		}).map(adminSessionUpdatePatchPairStep(session));
+function adminUpdatePatchForSessionStep(
+	args: SaveAdminSessionUpdateArgs,
+	session: Doc<"bookings">
+) {
+	return buildAdminSessionUpdatePatch({
+		session,
+		timeZone: env.GOOGLE_CALENDAR_TIMEZONE,
+		values: args
+	}).map((updatePatch: AdminSessionTimingPatch) =>
+		adminSessionUpdatePatchPairStep(session, updatePatch)
+	);
 }
 
 function retainAdminSessionUpdatePairStep(pair: {
 	session: Doc<"bookings">;
 	updatePatch: AdminSessionTimingPatch;
 }) {
-	return () => pair;
+	return pair;
 }
 
-function requireAdminReservationStep(args: SaveAdminSessionUpdateArgs, now: number) {
-	return ({
-		session,
-		updatePatch
-	}: {
-		session: Doc<"bookings">;
-		updatePatch: AdminSessionTimingPatch;
-	}) =>
-		requireSessionReservation(session, args.reservation, now).map(
-			retainAdminSessionUpdatePairStep({ session, updatePatch })
-		);
+function requireAdminReservationStep(
+	args: SaveAdminSessionUpdateArgs,
+	now: number,
+	{ session, updatePatch }: { session: Doc<"bookings">; updatePatch: AdminSessionTimingPatch }
+) {
+	return requireSessionReservation(session, args.reservation, now).map(() =>
+		retainAdminSessionUpdatePairStep({ session, updatePatch })
+	);
 }
 
-function resolvedAdminSessionUpdateStep(args: SaveAdminSessionUpdateArgs) {
-	return ({
-		session,
-		updatePatch
-	}: {
-		session: Doc<"bookings">;
-		updatePatch: AdminSessionTimingPatch;
-	}) => ({
+function resolvedAdminSessionUpdateStep(
+	args: SaveAdminSessionUpdateArgs,
+	{ session, updatePatch }: { session: Doc<"bookings">; updatePatch: AdminSessionTimingPatch }
+) {
+	return {
 		session,
 		updatePatch,
 		timingChanged:
 			session.sessionStartAt !== updatePatch.sessionStartAt || session.duration !== args.duration
-	});
+	};
 }
 
 export function resolveAdminSessionUpdate(ctx: MutationCtx, args: SaveAdminSessionUpdateArgs) {
 	const now = Date.now();
 
 	return getSessionFromDb(ctx, args.bookingId)
-		.andThen(adminUpdatePatchForSessionStep(args))
-		.andThen(requireAdminReservationStep(args, now))
-		.map(resolvedAdminSessionUpdateStep(args));
+		.andThen((session: Doc<"bookings">) => adminUpdatePatchForSessionStep(args, session))
+		.andThen((_value) => requireAdminReservationStep(args, now, _value))
+		.map((_value) => resolvedAdminSessionUpdateStep(args, _value));
 }
 
 export function writeAdminSessionUpdateWithDriveSetup(
@@ -139,8 +140,11 @@ export function writeAdminSessionUpdateWithDriveSetup(
 	});
 }
 
-function validatedClientRescheduleSearchOverridesStep(args: SaveClientSessionRescheduleArgs) {
-	return (session: Doc<"bookings">) => ({
+function validatedClientRescheduleSearchOverridesStep(
+	args: SaveClientSessionRescheduleArgs,
+	session: Doc<"bookings">
+) {
+	return {
 		session,
 		searchOverrides: {
 			addons: args.addons ?? session.addons,
@@ -149,23 +153,29 @@ function validatedClientRescheduleSearchOverridesStep(args: SaveClientSessionRes
 			service: args.service ?? session.service,
 			time: args.time
 		}
-	});
+	};
 }
 
 function requireClientRescheduleReservationStep(
 	args: SaveClientSessionRescheduleArgs,
-	now: number
+	now: number,
+
+	session: Doc<"bookings">
 ) {
-	return (session: Doc<"bookings">) =>
-		requireSessionReservation(session, args.reservation, now).map(retainSessionStep(session));
+	return requireSessionReservation(session, args.reservation, now).map(() =>
+		retainSessionStep(session)
+	);
 }
 
 function retainSessionStep(session: Doc<"bookings">) {
-	return () => session;
+	return session;
 }
 
-function requirePackageSessionForRescheduleStep(args: SaveClientSessionRescheduleArgs) {
-	return (session: Doc<"bookings">) => requirePackageSessionForReschedule(session, args.packageId);
+function requirePackageSessionForRescheduleStep(
+	args: SaveClientSessionRescheduleArgs,
+	session: Doc<"bookings">
+) {
+	return requirePackageSessionForReschedule(session, args.packageId);
 }
 
 export function validateClientSessionReschedule(
@@ -175,9 +185,11 @@ export function validateClientSessionReschedule(
 	const now = Date.now();
 
 	return getSessionFromDb(ctx, args.bookingId)
-		.andThen(requirePackageSessionForRescheduleStep(args))
-		.andThen(requireClientRescheduleReservationStep(args, now))
-		.map(validatedClientRescheduleSearchOverridesStep(args));
+		.andThen((session: Doc<"bookings">) => requirePackageSessionForRescheduleStep(args, session))
+		.andThen((session: Doc<"bookings">) =>
+			requireClientRescheduleReservationStep(args, now, session)
+		)
+		.map((session: Doc<"bookings">) => validatedClientRescheduleSearchOverridesStep(args, session));
 }
 
 export function patchClientSessionReschedule(

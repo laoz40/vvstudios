@@ -13,12 +13,12 @@ type ListAdminPackagesArgs = {
 };
 
 function listAdminPackagesForArgs(ctx: QueryCtx, args: ListAdminPackagesArgs) {
-	return () => listAdminPackages(ctx, args);
+	return listAdminPackages(ctx, args);
 }
 
 export function listAdminPackagesPage(ctx: QueryCtx, args: ListAdminPackagesArgs) {
 	return requirePermission(ctx, "view:packages")
-		.andThen(listAdminPackagesForArgs(ctx, args))
+		.andThen(() => listAdminPackagesForArgs(ctx, args))
 		.match(
 			(packagesPage) => packagesPage,
 			(error) => {

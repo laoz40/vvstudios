@@ -26,51 +26,54 @@ type ValidatedPackageUpdate = {
 	updatedPackage: Parameters<typeof buildPackageUpdatePatch>[1];
 };
 
-function attachUpdatedPackage(existingPackage: Doc<"packages">) {
-	return (updatedPackage: ValidatedPackageUpdate["updatedPackage"]) => ({
-		existingPackage,
-		updatedPackage
-	});
+function attachUpdatedPackage(
+	existingPackage: Doc<"packages">,
+	updatedPackage: ValidatedPackageUpdate["updatedPackage"]
+) {
+	return { existingPackage, updatedPackage };
 }
 
-function parseAdminPackageUpdate(args: UpdatePackageArgs) {
-	return (existingPackage: Doc<"packages">) =>
-		parsePackageUpdate(args).map(attachUpdatedPackage(existingPackage));
+function parseAdminPackageUpdate(args: UpdatePackageArgs, existingPackage: Doc<"packages">) {
+	return parsePackageUpdate(args).map((updatedPackage: ValidatedPackageUpdate["updatedPackage"]) =>
+		attachUpdatedPackage(existingPackage, updatedPackage)
+	);
 }
 
 function attachActiveSessionsForUpdate(
 	existingPackage: Doc<"packages">,
+	updatedPackage: ValidatedPackageUpdate["updatedPackage"],
+
+	activeBookedSessions: Doc<"bookings">[]
+) {
+	return { activeBookedSessions, existingPackage, updatedPackage };
+}
+
+function loadActiveSessionsForAdminUpdate(
+	ctx: MutationCtx,
+	{
+		existingPackage,
+		updatedPackage
+	}: { existingPackage: Doc<"packages">; updatedPackage: ValidatedPackageUpdate["updatedPackage"] }
+) {
+	return getCapacityConsumingPackageSessions(
+		ctx,
+		existingPackage._id,
+		existingPackage.packageSize
+	).map((activeBookedSessions: Doc<"bookings">[]) =>
+		attachActiveSessionsForUpdate(existingPackage, updatedPackage, activeBookedSessions)
+	);
+}
+
+function toValidatedPackageUpdate(
+	existingPackage: Doc<"packages">,
 	updatedPackage: ValidatedPackageUpdate["updatedPackage"]
 ) {
-	return (activeBookedSessions: Doc<"bookings">[]) => ({
-		activeBookedSessions,
-		existingPackage,
-		updatedPackage
-	});
+	return { existingPackage, updatedPackage };
 }
 
-function loadActiveSessionsForAdminUpdate(ctx: MutationCtx) {
-	return ({
-		existingPackage,
-		updatedPackage
-	}: {
-		existingPackage: Doc<"packages">;
-		updatedPackage: ValidatedPackageUpdate["updatedPackage"];
-	}) =>
-		getCapacityConsumingPackageSessions(ctx, existingPackage._id, existingPackage.packageSize).map(
-			attachActiveSessionsForUpdate(existingPackage, updatedPackage)
-		);
-}
-
-function toValidatedPackageUpdate(existingPackage: Doc<"packages">) {
-	return (updatedPackage: ValidatedPackageUpdate["updatedPackage"]) => ({
-		existingPackage,
-		updatedPackage
-	});
-}
-
-function validateAdminPackageUpdate(args: UpdatePackageArgs) {
-	return ({
+function validateAdminPackageUpdate(
+	args: UpdatePackageArgs,
+	{
 		activeBookedSessions,
 		existingPackage,
 		updatedPackage
@@ -78,14 +81,16 @@ function validateAdminPackageUpdate(args: UpdatePackageArgs) {
 		activeBookedSessions: Doc<"bookings">[];
 		existingPackage: Doc<"packages">;
 		updatedPackage: ValidatedPackageUpdate["updatedPackage"];
-	}) =>
-		validatePackageUpdate(args, updatedPackage, activeBookedSessions.length).map(
-			toValidatedPackageUpdate(existingPackage)
-		);
+	}
+) {
+	return validatePackageUpdate(args, updatedPackage, activeBookedSessions.length).map(
+		(validatedPackage: ValidatedPackageUpdate["updatedPackage"]) =>
+			toValidatedPackageUpdate(existingPackage, validatedPackage)
+	);
 }
 
 function loadPackageAfterEditPermission(ctx: MutationCtx, packageId: Id<"packages">) {
-	return () => getPackageFromDb(ctx, packageId);
+	return getPackageFromDb(ctx, packageId);
 }
 
 function syncContactSearchAfterAdminPatch(
@@ -104,11 +109,11 @@ function syncContactSearchAfterAdminPatch(
 }
 
 function loadPackageAfterArchivePermission(ctx: MutationCtx, packageId: Id<"packages">) {
-	return () => getPackageFromDb(ctx, packageId);
+	return getPackageFromDb(ctx, packageId);
 }
 
 function archivePackageWithPermission(ctx: MutationCtx, args: ArchivePackageArgs) {
-	return () => setPackageArchived(ctx, args.packageId, args.archived);
+	return setPackageArchived(ctx, args.packageId, args.archived);
 }
 
 function syncContactSearchAfterAdminPatchStep(
@@ -117,15 +122,15 @@ function syncContactSearchAfterAdminPatchStep(
 	contactChanged: boolean,
 	contactFields: PackageContactSearchFields
 ) {
-	return () => syncContactSearchAfterAdminPatch(ctx, args, contactChanged, contactFields);
+	return syncContactSearchAfterAdminPatch(ctx, args, contactChanged, contactFields);
 }
 
 export function loadAdminPackageUpdateValidation(ctx: MutationCtx, args: UpdatePackageArgs) {
 	return requirePermission(ctx, "edit:sessions")
-		.andThen(loadPackageAfterEditPermission(ctx, args.packageId))
-		.andThen(parseAdminPackageUpdate(args))
-		.andThen(loadActiveSessionsForAdminUpdate(ctx))
-		.andThen(validateAdminPackageUpdate(args));
+		.andThen(() => loadPackageAfterEditPermission(ctx, args.packageId))
+		.andThen((existingPackage: Doc<"packages">) => parseAdminPackageUpdate(args, existingPackage))
+		.andThen((_value) => loadActiveSessionsForAdminUpdate(ctx, _value))
+		.andThen((_value) => validateAdminPackageUpdate(args, _value));
 }
 
 export function writeAdminPackageFields(
@@ -156,11 +161,11 @@ export function writeAdminPackageFields(
 			notes: updatedPackage.notes,
 			receiptNumber: existingPackage.receiptNumber
 		})
-	}).andThen(syncContactSearchAfterAdminPatchStep(ctx, args, contactChanged, contactFields));
+	}).andThen(() => syncContactSearchAfterAdminPatchStep(ctx, args, contactChanged, contactFields));
 }
 
 export function archivePackageFromAdmin(ctx: MutationCtx, args: ArchivePackageArgs) {
 	return requirePermission(ctx, "archive:sessions")
-		.andThen(loadPackageAfterArchivePermission(ctx, args.packageId))
-		.andThen(archivePackageWithPermission(ctx, args));
+		.andThen(() => loadPackageAfterArchivePermission(ctx, args.packageId))
+		.andThen(() => archivePackageWithPermission(ctx, args));
 }

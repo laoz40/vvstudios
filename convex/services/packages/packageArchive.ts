@@ -28,34 +28,37 @@ function toPackageAdjustmentArchiveState(
 	return { outcome: "invoice_required", paymentStatus: adjustment.paymentStatus };
 }
 
-function buildPackageAutoArchiveContext(packageRecord: Doc<"packages">) {
-	return ([sessions, adjustment, stripeInvoices]: [
+function buildPackageAutoArchiveContext(
+	packageRecord: Doc<"packages">,
+	[sessions, adjustment, stripeInvoices]: [
 		Doc<"bookings">[],
 		Doc<"packageAdjustments"> | null,
 		Doc<"stripeInvoices">[]
-	]) => ({
+	]
+) {
+	return {
 		packageRecord,
 		sessions,
 		adjustment: toPackageAdjustmentArchiveState(adjustment),
 		customStripeSummary: summarizeCustomPackageStripeInvoices(stripeInvoices)
-	});
+	};
 }
 
 function loadPackageAutoArchiveContextForRow(
 	ctx: QueryCtx | MutationCtx,
-	packageId: Id<"packages">
-) {
-	return (packageRecord: Doc<"packages"> | null) => {
-		if (!packageRecord) {
-			return okAsync(null);
-		}
+	packageId: Id<"packages">,
 
-		return ResultAsync.combine([
-			getCapacityConsumingPackageSessions(ctx, packageId, packageRecord.packageSize),
-			lookupPackageAdjustmentByPackageId(ctx, packageId),
-			listStripeInvoicesForPackage(ctx, packageId)
-		]).map(buildPackageAutoArchiveContext(packageRecord));
-	};
+	packageRecord: Doc<"packages"> | null
+) {
+	if (!packageRecord) {
+		return okAsync(null);
+	}
+
+	return ResultAsync.combine([
+		getCapacityConsumingPackageSessions(ctx, packageId, packageRecord.packageSize),
+		lookupPackageAdjustmentByPackageId(ctx, packageId),
+		listStripeInvoicesForPackage(ctx, packageId)
+	]).map((_value) => buildPackageAutoArchiveContext(packageRecord, _value));
 }
 
 function loadPackageAutoArchiveContext(
@@ -70,44 +73,40 @@ function loadPackageAutoArchiveContext(
 	} | null,
 	never
 > {
-	return lookupPackageRow(ctx, packageId).andThen(
-		loadPackageAutoArchiveContextForRow(ctx, packageId)
+	return lookupPackageRow(ctx, packageId).andThen((packageRecord: Doc<"packages"> | null) =>
+		loadPackageAutoArchiveContextForRow(ctx, packageId, packageRecord)
 	);
 }
 
-function archivePackageWhenEligible(ctx: MutationCtx, packageId: Id<"packages">, now: number) {
-	return (
-		context: {
-			packageRecord: Doc<"packages">;
-			sessions: Doc<"bookings">[];
-			adjustment: PackageAdjustmentArchiveState | null;
-			customStripeSummary: ReturnType<typeof summarizeCustomPackageStripeInvoices>;
-		} | null
-	) => {
-		if (!context) {
-			return okAsync(null);
-		}
+function archivePackageWhenEligible(
+	ctx: MutationCtx,
+	packageId: Id<"packages">,
+	now: number,
 
-		const { packageRecord, sessions, adjustment, customStripeSummary } = context;
+	context: {
+		packageRecord: Doc<"packages">;
+		sessions: Doc<"bookings">[];
+		adjustment: PackageAdjustmentArchiveState | null;
+		customStripeSummary: ReturnType<typeof summarizeCustomPackageStripeInvoices>;
+	} | null
+) {
+	if (!context) {
+		return okAsync(null);
+	}
 
-		if (isPackageArchived(packageRecord)) {
-			return okAsync(null);
-		}
+	const { packageRecord, sessions, adjustment, customStripeSummary } = context;
 
-		if (
-			!isPackageEligibleForAutoArchive(
-				packageRecord,
-				sessions,
-				adjustment,
-				customStripeSummary,
-				now
-			)
-		) {
-			return okAsync(null);
-		}
+	if (isPackageArchived(packageRecord)) {
+		return okAsync(null);
+	}
 
-		return setPackageArchived(ctx, packageId, true);
-	};
+	if (
+		!isPackageEligibleForAutoArchive(packageRecord, sessions, adjustment, customStripeSummary, now)
+	) {
+		return okAsync(null);
+	}
+
+	return setPackageArchived(ctx, packageId, true);
 }
 
 export function archivePackageWhenFullyDone(
@@ -116,6 +115,13 @@ export function archivePackageWhenFullyDone(
 	now = Date.now()
 ) {
 	return loadPackageAutoArchiveContext(ctx, packageId).andThen(
-		archivePackageWhenEligible(ctx, packageId, now)
+		(
+			context: {
+				packageRecord: Doc<"packages">;
+				sessions: Doc<"bookings">[];
+				adjustment: PackageAdjustmentArchiveState | null;
+				customStripeSummary: ReturnType<typeof summarizeCustomPackageStripeInvoices>;
+			} | null
+		) => archivePackageWhenEligible(ctx, packageId, now, context)
 	);
 }

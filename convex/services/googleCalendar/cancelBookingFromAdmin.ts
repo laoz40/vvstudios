@@ -17,16 +17,17 @@ export function requireCancelSessionsPermission(ctx: ActionCtx) {
 	return requirePermissionActions(ctx, "cancel:sessions");
 }
 
-function adminCancelCalendarClientWithSessionStep(session: Doc<"bookings">) {
-	return (client: Parameters<typeof deleteSessionCalendarEvent>[0]["client"]) => ({
-		client,
-		session
-	});
+function adminCancelCalendarClientWithSessionStep(
+	session: Doc<"bookings">,
+	client: Parameters<typeof deleteSessionCalendarEvent>[0]["client"]
+) {
+	return { client, session };
 }
 
 function adminCancelCalendarClientWithSession(session: Doc<"bookings">) {
 	return loadGoogleCalendarClient("GOOGLE_CALENDAR_DELETE_FAILED").map(
-		adminCancelCalendarClientWithSessionStep(session)
+		(client: Parameters<typeof deleteSessionCalendarEvent>[0]["client"]) =>
+			adminCancelCalendarClientWithSessionStep(session, client)
 	);
 }
 

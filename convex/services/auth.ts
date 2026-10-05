@@ -16,8 +16,12 @@ import {
 	requireUserPermission
 } from "#convex/services/authPermissions";
 
-function persistEditorForIdentity(ctx: MutationCtx, identity: UserIdentity) {
-	return (editor: Doc<"editorProfiles"> | null) => saveEditorDetails(ctx, identity, editor);
+function persistEditorForIdentity(
+	ctx: MutationCtx,
+	identity: UserIdentity,
+	editor: Doc<"editorProfiles"> | null
+) {
+	return saveEditorDetails(ctx, identity, editor);
 }
 
 export function requirePermission(ctx: QueryCtx | MutationCtx, permission: Permission) {
@@ -30,14 +34,16 @@ export function saveSignedInEditorProfile(ctx: MutationCtx, identity: UserIdenti
 	}
 
 	return getEditorByTokenLib(ctx, identity.tokenIdentifier).andThen(
-		persistEditorForIdentity(ctx, identity)
+		(editor: Doc<"editorProfiles"> | null) => persistEditorForIdentity(ctx, identity, editor)
 	);
 }
 
 export function saveAdminEditorEnrollment(ctx: MutationCtx, identity: UserIdentity) {
 	return getEditorByTokenLib(ctx, identity.tokenIdentifier)
 		.andThen(requireEnrollableEditorProfile)
-		.andThen(persistEditorForIdentity(ctx, identity));
+		.andThen((editor: Doc<"editorProfiles"> | null) =>
+			persistEditorForIdentity(ctx, identity, editor)
+		);
 }
 
 export function getEditorByToken(ctx: QueryCtx | MutationCtx, token: string) {

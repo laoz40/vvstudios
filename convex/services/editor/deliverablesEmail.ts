@@ -40,17 +40,17 @@ function returnNull(): null {
 }
 
 function mapFolderAfterGuestReadLink(folder: DeliverablesFolder) {
-	return () => folder;
+	return folder;
 }
 
-function ensureAnyoneReaderPermissionForFolder(folderId: string) {
-	return (drive: DriveClient) => ensureAnyoneReaderPermission(drive, folderId);
+function ensureAnyoneReaderPermissionForFolder(folderId: string, drive: DriveClient) {
+	return ensureAnyoneReaderPermission(drive, folderId);
 }
 
 function grantGuestViewerLink(folder: DeliverablesFolder) {
 	return loadDriveClient()
-		.andThen(ensureAnyoneReaderPermissionForFolder(folder.id))
-		.map(mapFolderAfterGuestReadLink(folder));
+		.andThen((drive: DriveClient) => ensureAnyoneReaderPermissionForFolder(folder.id, drive))
+		.map(() => mapFolderAfterGuestReadLink(folder));
 }
 
 function parseSavedDeliverablesFolderFromSetup(setupInfo: DriveSetupInfo | null) {
@@ -69,24 +69,25 @@ function requireSavedDeliverablesFolder(bookingId: Id<"bookings">, ctx: ActionCt
 	).andThen(parseSavedDeliverablesFolderFromSetup);
 }
 
-function requireNonEmptyDeliverablesFolder(folder: DeliverablesFolder) {
-	return (children: ListedDriveChild[]) => {
-		if (children.length === 0) {
-			return errAsync({ reason: "DELIVERABLES_FOLDER_EMPTY" as const });
-		}
+function requireNonEmptyDeliverablesFolder(
+	folder: DeliverablesFolder,
+	children: ListedDriveChild[]
+) {
+	if (children.length === 0) {
+		return errAsync({ reason: "DELIVERABLES_FOLDER_EMPTY" as const });
+	}
 
-		return okAsync(folder);
-	};
+	return okAsync(folder);
 }
 
-function listDeliverablesFolderChildren(folder: DeliverablesFolder) {
-	return (drive: DriveClient) => listDriveFolderChildren(drive, folder.id);
+function listDeliverablesFolderChildren(folder: DeliverablesFolder, drive: DriveClient) {
+	return listDriveFolderChildren(drive, folder.id);
 }
 
 function requireDeliverablesFolderContents(folder: DeliverablesFolder) {
 	return loadDriveClient()
-		.andThen(listDeliverablesFolderChildren(folder))
-		.andThen(requireNonEmptyDeliverablesFolder(folder));
+		.andThen((drive: DriveClient) => listDeliverablesFolderChildren(folder, drive))
+		.andThen((children: ListedDriveChild[]) => requireNonEmptyDeliverablesFolder(folder, children));
 }
 
 export function skipWhenDeliverablesEditAlreadyCompleted(
@@ -108,31 +109,30 @@ export function loadDeliverablesFolderGuestReadLink(
 		.andThen(grantGuestViewerLink);
 }
 
-function logDeliverablesEmailFailure(bookingId: Id<"bookings">) {
-	return (emailError: SendDeliverablesError) => {
-		console.error("Manual session deliverables email send failed", {
-			bookingId,
-			reason: emailError.reason
-		});
+function logDeliverablesEmailFailure(bookingId: Id<"bookings">, emailError: SendDeliverablesError) {
+	console.error("Manual session deliverables email send failed", {
+		bookingId,
+		reason: emailError.reason
+	});
 
-		return emailError;
-	};
+	return emailError;
 }
 
 function sendDeliverablesEmailForSessionVariant(
 	session: Doc<"bookings">,
 	folderUrl: string,
-	editorNotes: string | undefined
+	editorNotes: string | undefined,
+
+	emailVariant: DeliverablesCustomerType
 ) {
-	return (emailVariant: DeliverablesCustomerType) =>
-		sendDeliverablesEmail({
-			date: session.date,
-			driveLink: folderUrl,
-			editorNotes,
-			email: session.email,
-			emailVariant,
-			name: session.name
-		});
+	return sendDeliverablesEmail({
+		date: session.date,
+		driveLink: folderUrl,
+		editorNotes,
+		email: session.email,
+		emailVariant,
+		name: session.name
+	});
 }
 
 export function sendDeliverablesEmailForSession(
@@ -144,7 +144,9 @@ export function sendDeliverablesEmailForSession(
 	return fromConvexTuple<Promise<ConvexResult<DeliverablesCustomerType, SendDeliverablesError>>>(
 		ctx.runQuery(internal.sessions.detectDeliverablesCustomerType, { bookingId: session._id })
 	)
-		.andThen(sendDeliverablesEmailForSessionVariant(session, folderUrl, editorNotes))
+		.andThen((emailVariant: DeliverablesCustomerType) =>
+			sendDeliverablesEmailForSessionVariant(session, folderUrl, editorNotes, emailVariant)
+		)
 		.map(returnNull)
-		.mapErr(logDeliverablesEmailFailure(session._id));
+		.mapErr((emailError) => logDeliverablesEmailFailure(session._id, emailError));
 }

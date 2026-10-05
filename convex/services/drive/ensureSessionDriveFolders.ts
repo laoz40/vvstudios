@@ -21,12 +21,20 @@ export function ensureSessionDriveFolders(
 	replaceMissingFolders = false
 ): ResultAsync<null, SetupError> {
 	return loadDriveClient()
-		.andThen(getOrCreateClientFolderStep(ctx, setupInfo, replaceMissingFolders))
-		.andThen(linkBookingDriveClientStep(ctx, setupInfo))
-		.andThen(allocateSessionFolderNumberStep(ctx, setupInfo))
-		.andThen(getOrCreateClientAssetsFolderStep(ctx, setupInfo, replaceMissingFolders))
-		.andThen(getOrCreateSessionParentFolderStep(ctx, setupInfo, replaceMissingFolders))
-		.andThen(getOrCreateSessionFolderStep(ctx, setupInfo, replaceMissingFolders))
-		.andThen(getOrCreateChildFoldersStep(ctx, setupInfo, replaceMissingFolders))
+		.andThen((drive) => getOrCreateClientFolderStep(ctx, setupInfo, replaceMissingFolders, drive))
+		.andThen((client) => linkBookingDriveClientStep(ctx, setupInfo, client))
+		.andThen((client) => allocateSessionFolderNumberStep(ctx, setupInfo, client))
+		.andThen((numbered) =>
+			getOrCreateClientAssetsFolderStep(ctx, setupInfo, replaceMissingFolders, numbered)
+		)
+		.andThen((withAssets) =>
+			getOrCreateSessionParentFolderStep(ctx, setupInfo, replaceMissingFolders, withAssets)
+		)
+		.andThen((withParent) =>
+			getOrCreateSessionFolderStep(ctx, setupInfo, replaceMissingFolders, withParent)
+		)
+		.andThen((sessionFolder) =>
+			getOrCreateChildFoldersStep(ctx, setupInfo, replaceMissingFolders, sessionFolder)
+		)
 		.map(returnNull);
 }

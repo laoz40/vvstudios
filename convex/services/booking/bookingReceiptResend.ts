@@ -24,66 +24,71 @@ function validateConfirmedSessionForReceiptResend(session: Doc<"bookings">) {
 }
 
 function loadSessionForReceiptResend(ctx: ActionCtx, bookingId: Id<"bookings">) {
-	return () => getSessionFromQuery(ctx, bookingId);
+	return getSessionFromQuery(ctx, bookingId);
 }
 
 function returnSameSession(session: Doc<"bookings">) {
-	return () => session;
+	return session;
 }
 
-function sendCustomerReceiptWithSettings(ctx: ActionCtx, session: Doc<"bookings">) {
-	return (settings: BookingAvailabilitySettings) =>
-		getSessionFromQuery(ctx, session._id).andThen(
-			sendCustomerReceiptForLoadedSession(ctx, settings)
-		);
+function sendCustomerReceiptWithSettings(
+	ctx: ActionCtx,
+	session: Doc<"bookings">,
+	settings: BookingAvailabilitySettings
+) {
+	return getSessionFromQuery(ctx, session._id).andThen((sessionFromDb: Doc<"bookings">) =>
+		sendCustomerReceiptForLoadedSession(ctx, settings, sessionFromDb)
+	);
 }
 
 function sendCustomerReceiptForLoadedSession(
 	ctx: ActionCtx,
-	settings: BookingAvailabilitySettings
+	settings: BookingAvailabilitySettings,
+	sessionFromDb: Doc<"bookings">
 ) {
-	return (sessionFromDb: Doc<"bookings">) =>
-		createRescheduleUrlForSession(ctx, sessionFromDb).andThen(
-			sendReceiptEmailsForRescheduleUrl(sessionFromDb, settings)
-		);
+	return createRescheduleUrlForSession(ctx, sessionFromDb).andThen((rescheduleUrl: string) =>
+		sendReceiptEmailsForRescheduleUrl(sessionFromDb, settings, rescheduleUrl)
+	);
 }
 
 function sendReceiptEmailsForRescheduleUrl(
 	sessionFromDb: Doc<"bookings">,
-	settings: BookingAvailabilitySettings
+	settings: BookingAvailabilitySettings,
+	rescheduleUrl: string
 ) {
-	return (rescheduleUrl: string) =>
-		sendBookingReceiptEmailsForBooking(sessionFromDb, {
-			leadTimeMinutes: settings.leadTimeMinutes,
-			rescheduleUrl,
-			skipHostEmail: true
-		}).map(receiptResendResultForSession(sessionFromDb));
+	return sendBookingReceiptEmailsForBooking(sessionFromDb, {
+		leadTimeMinutes: settings.leadTimeMinutes,
+		rescheduleUrl,
+		skipHostEmail: true
+	}).map((_value) => receiptResendResultForSession(sessionFromDb, _value));
 }
 
-function receiptResendResultForSession(sessionFromDb: Doc<"bookings">) {
-	return ({ receiptNumber }: { receiptNumber: string }) => ({
-		session: sessionFromDb,
-		receiptNumber
-	});
+function receiptResendResultForSession(
+	sessionFromDb: Doc<"bookings">,
+	{ receiptNumber }: { receiptNumber: string }
+) {
+	return { session: sessionFromDb, receiptNumber };
 }
 
 function markReceiptResendSent(ctx: ActionCtx, session: Doc<"bookings">) {
-	return () =>
-		fromConvexTuple(
-			ctx.runMutation(internal.bookingConfirmation.markSessionInvoiceEmailRetrySent, {
-				bookingId: session._id
-			})
-		);
+	return fromConvexTuple(
+		ctx.runMutation(internal.bookingConfirmation.markSessionInvoiceEmailRetrySent, {
+			bookingId: session._id
+		})
+	);
 }
 
-function recordReceiptNumberBeforeResendSent(ctx: ActionCtx, session: Doc<"bookings">) {
-	return (receiptNumber: string) =>
-		fromConvexTuple(
-			ctx.runMutation(internal.bookingConfirmation.recordBookingReceiptNumber, {
-				bookingId: session._id,
-				receiptNumber
-			})
-		).andThen(markReceiptResendSent(ctx, session));
+function recordReceiptNumberBeforeResendSent(
+	ctx: ActionCtx,
+	session: Doc<"bookings">,
+	receiptNumber: string
+) {
+	return fromConvexTuple(
+		ctx.runMutation(internal.bookingConfirmation.recordBookingReceiptNumber, {
+			bookingId: session._id,
+			receiptNumber
+		})
+	).andThen(() => markReceiptResendSent(ctx, session));
 }
 
 export function loadConfirmedSessionForReceiptResend(
@@ -91,7 +96,7 @@ export function loadConfirmedSessionForReceiptResend(
 	args: { bookingId: Id<"bookings"> }
 ): ResultAsync<Doc<"bookings">, { reason: string }> {
 	return requirePermissionActions(ctx, "send:receipt-emails")
-		.andThen(loadSessionForReceiptResend(ctx, args.bookingId))
+		.andThen(() => loadSessionForReceiptResend(ctx, args.bookingId))
 		.andThen(validateConfirmedSessionForReceiptResend);
 }
 
@@ -103,7 +108,7 @@ export function writeStandaloneBookingReceiptNumber(
 		ctx.runMutation(internal.bookingConfirmation.ensureStandaloneBookingReceiptNumber, {
 			bookingId: session._id
 		})
-	).map(returnSameSession(session));
+	).map(() => returnSameSession(session));
 }
 
 export function sendBookingReceiptEmailToCustomer(
@@ -111,7 +116,8 @@ export function sendBookingReceiptEmailToCustomer(
 	session: Doc<"bookings">
 ): ResultAsync<{ receiptNumber: string; session: Doc<"bookings"> }, { reason: string }> {
 	return okOrThrow<BookingAvailabilitySettings>(ctx.runQuery(api.bookingSettings.get, {})).andThen(
-		sendCustomerReceiptWithSettings(ctx, session)
+		(settings: BookingAvailabilitySettings) =>
+			sendCustomerReceiptWithSettings(ctx, session, settings)
 	);
 }
 
@@ -119,5 +125,5 @@ export function recordBookingReceiptResendOutcome(
 	ctx: ActionCtx,
 	args: { receiptNumber: string; session: Doc<"bookings"> }
 ): ResultAsync<null, { reason: string }> {
-	return recordReceiptNumberBeforeResendSent(ctx, args.session)(args.receiptNumber);
+	return recordReceiptNumberBeforeResendSent(ctx, args.session, args.receiptNumber);
 }

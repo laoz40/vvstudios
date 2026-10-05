@@ -5,16 +5,14 @@ import { REMINDER_BATCH_SIZE } from "#convex/lib/reminderScheduleTime";
 import { sendDuePackageReminders } from "#convex/services/packages/packageReminders";
 import { getTomorrowSessionReminderWindow } from "#convex/services/sessions/sessionReminderMutations";
 
-function sendSessionReminderEmailStep(ctx: ActionCtx) {
-	return async (booking: Doc<"bookings">) => {
-		try {
-			await ctx.runAction(internal.googleCalendar.sendSessionReminderEmail, {
-				bookingId: booking._id
-			});
-		} catch (error) {
-			console.error(`Failed to process session reminder for booking ${booking._id}`, error);
-		}
-	};
+async function sendSessionReminderEmailStep(ctx: ActionCtx, booking: Doc<"bookings">) {
+	try {
+		await ctx.runAction(internal.googleCalendar.sendSessionReminderEmail, {
+			bookingId: booking._id
+		});
+	} catch (error) {
+		console.error(`Failed to process session reminder for booking ${booking._id}`, error);
+	}
 }
 
 export async function sendDueSessionAndPackageReminders(ctx: ActionCtx, nowDate: Date) {
@@ -28,7 +26,9 @@ export async function sendDueSessionAndPackageReminders(ctx: ActionCtx, nowDate:
 		limit: REMINDER_BATCH_SIZE
 	});
 
-	await Promise.all(bookings.map(sendSessionReminderEmailStep(ctx)));
+	await Promise.all(
+		bookings.map((booking: Doc<"bookings">) => sendSessionReminderEmailStep(ctx, booking))
+	);
 
 	return null;
 }

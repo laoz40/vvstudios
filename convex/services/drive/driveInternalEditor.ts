@@ -22,25 +22,28 @@ import {
 import { getDriveSetup } from "#convex/services/drive/driveSetupQuery";
 
 export function getEditorDriveSetup(ctx: QueryCtx, bookingId: Id<"bookings">) {
-	return getDriveSetup(ctx, bookingId).andThen(loadEditorDriveSetupFromDriveSetup(ctx));
+	return getDriveSetup(ctx, bookingId).andThen((setup: DriveSetupInfo | null) =>
+		loadEditorDriveSetupFromDriveSetup(ctx, setup)
+	);
 }
 
-function loadEditorDriveSetupFromDriveSetup(ctx: QueryCtx) {
-	return (setup: DriveSetupInfo | null) => {
-		const editorTokenIdentifier = setup?.booking.assignedEditorTokenIdentifier;
+function loadEditorDriveSetupFromDriveSetup(ctx: QueryCtx, setup: DriveSetupInfo | null) {
+	const editorTokenIdentifier = setup?.booking.assignedEditorTokenIdentifier;
 
-		if (editorTokenIdentifier === undefined) {
-			return editorDriveSetupFromLoaded(setup, null);
-		}
+	if (editorTokenIdentifier === undefined) {
+		return editorDriveSetupFromLoaded(setup, null);
+	}
 
-		return loadEditorProfileByToken(ctx, editorTokenIdentifier).andThen(
-			editorDriveSetupFromLoadedStep(setup)
-		);
-	};
+	return loadEditorProfileByToken(ctx, editorTokenIdentifier).andThen(
+		(editor: Doc<"editorProfiles"> | null) => editorDriveSetupFromLoadedStep(setup, editor)
+	);
 }
 
-function editorDriveSetupFromLoadedStep(setup: DriveSetupInfo | null) {
-	return (editor: Doc<"editorProfiles"> | null) => editorDriveSetupFromLoaded(setup, editor);
+function editorDriveSetupFromLoadedStep(
+	setup: DriveSetupInfo | null,
+	editor: Doc<"editorProfiles"> | null
+) {
+	return editorDriveSetupFromLoaded(setup, editor);
 }
 
 export function getEditorDriveAccessToRemove(
@@ -48,16 +51,17 @@ export function getEditorDriveAccessToRemove(
 	args: { bookingId: Id<"bookings">; editorTokenIdentifier: string }
 ) {
 	return loadDriveSessionRowByBookingId(ctx, args.bookingId).andThen(
-		editorDriveAccessToRemoveForLoadedSession(ctx, args)
+		(driveSession: Doc<"driveSessions"> | null) =>
+			editorDriveAccessToRemoveForLoadedSession(ctx, args, driveSession)
 	);
 }
 
 function editorDriveAccessToRemoveForLoadedSession(
 	ctx: QueryCtx,
-	args: Parameters<typeof getEditorDriveAccessToRemove>[1]
+	args: Parameters<typeof getEditorDriveAccessToRemove>[1],
+	driveSession: Doc<"driveSessions"> | null
 ) {
-	return (driveSession: Doc<"driveSessions"> | null) =>
-		editorDriveAccessToRemoveForSession(ctx, driveSession, args);
+	return editorDriveAccessToRemoveForSession(ctx, driveSession, args);
 }
 
 export function clearPreviousEditorDriveAccess(
@@ -69,16 +73,17 @@ export function clearPreviousEditorDriveAccess(
 	}
 ) {
 	return loadDriveSessionRow(ctx, args.driveSessionId).andThen(
-		clearPreviousEditorDriveAccessForLoadedSession(ctx, args)
+		(driveSession: Doc<"driveSessions"> | null) =>
+			clearPreviousEditorDriveAccessForLoadedSession(ctx, args, driveSession)
 	);
 }
 
 function clearPreviousEditorDriveAccessForLoadedSession(
 	ctx: MutationCtx,
-	args: Parameters<typeof clearPreviousEditorDriveAccess>[1]
+	args: Parameters<typeof clearPreviousEditorDriveAccess>[1],
+	driveSession: Doc<"driveSessions"> | null
 ) {
-	return (driveSession: Doc<"driveSessions"> | null) =>
-		clearPreviousEditorDriveAccessForSession(ctx, driveSession, args);
+	return clearPreviousEditorDriveAccessForSession(ctx, driveSession, args);
 }
 
 export function markPreviousEditorRemovalFailed(
@@ -86,63 +91,77 @@ export function markPreviousEditorRemovalFailed(
 	args: { bookingId: Id<"bookings">; editorTokenIdentifier: string }
 ) {
 	return loadDriveSessionRowByBookingId(ctx, args.bookingId).andThen(
-		markPreviousEditorRemovalFailedForLoadedSession(ctx, args)
+		(driveSession: Doc<"driveSessions"> | null) =>
+			markPreviousEditorRemovalFailedForLoadedSession(ctx, args, driveSession)
 	);
 }
 
 function markPreviousEditorRemovalFailedForLoadedSession(
 	ctx: MutationCtx,
-	args: Parameters<typeof markPreviousEditorRemovalFailed>[1]
+	args: Parameters<typeof markPreviousEditorRemovalFailed>[1],
+	driveSession: Doc<"driveSessions"> | null
 ) {
-	return (driveSession: Doc<"driveSessions"> | null) =>
-		markPreviousEditorRemovalFailedForSession(ctx, driveSession, args);
+	return markPreviousEditorRemovalFailedForSession(ctx, driveSession, args);
 }
 
 export function getFailedEditorRemoval(ctx: QueryCtx, bookingId: Id<"bookings">) {
 	return loadDriveSessionRowByBookingId(ctx, bookingId).andThen(
-		loadFailedEditorRemovalForSession(ctx, bookingId)
+		(driveSession: Doc<"driveSessions"> | null) =>
+			loadFailedEditorRemovalForSession(ctx, bookingId, driveSession)
 	);
 }
 
-function loadFailedEditorRemovalForSession(ctx: QueryCtx, bookingId: Id<"bookings">) {
-	return (driveSession: Doc<"driveSessions"> | null) => {
-		const editorTokenIdentifier = driveSession?.failedRemovalEditorTokenIdentifier;
+function loadFailedEditorRemovalForSession(
+	ctx: QueryCtx,
+	bookingId: Id<"bookings">,
+	driveSession: Doc<"driveSessions"> | null
+) {
+	const editorTokenIdentifier = driveSession?.failedRemovalEditorTokenIdentifier;
 
-		if (driveSession === null || editorTokenIdentifier === undefined) {
-			return okAsync(null);
-		}
+	if (driveSession === null || editorTokenIdentifier === undefined) {
+		return okAsync(null);
+	}
 
-		return loadEditorClientDriveData(ctx, driveSession, editorTokenIdentifier).andThen(
-			loadFailedEditorRemovalWithProfile(ctx, driveSession, bookingId, editorTokenIdentifier)
-		);
-	};
+	return loadEditorClientDriveData(ctx, driveSession, editorTokenIdentifier).andThen(
+		(
+			clientData: Awaited<
+				ReturnType<typeof loadEditorClientDriveData> extends ResultAsync<infer T, infer _E>
+					? T
+					: never
+			>
+		) =>
+			loadFailedEditorRemovalWithProfile(
+				ctx,
+				driveSession,
+				bookingId,
+				editorTokenIdentifier,
+				clientData
+			)
+	);
 }
 
 function loadFailedEditorRemovalWithProfile(
 	ctx: QueryCtx,
 	driveSession: Doc<"driveSessions">,
 	bookingId: Id<"bookings">,
-	editorTokenIdentifier: string
+	editorTokenIdentifier: string,
+	clientData: Awaited<
+		ReturnType<typeof loadEditorClientDriveData> extends ResultAsync<infer T, infer _E> ? T : never
+	>
 ) {
-	return (
-		clientData: Awaited<
-			ReturnType<typeof loadEditorClientDriveData> extends ResultAsync<infer T, infer _E>
-				? T
-				: never
-		>
-	) =>
-		loadEditorProfileByToken(ctx, editorTokenIdentifier).map(
-			mapFailedEditorRemoval(driveSession, bookingId, clientData)
-		);
+	return loadEditorProfileByToken(ctx, editorTokenIdentifier).map(
+		(editor: Doc<"editorProfiles"> | null) =>
+			mapFailedEditorRemoval(driveSession, bookingId, clientData, editor)
+	);
 }
 
 function mapFailedEditorRemoval(
 	driveSession: Doc<"driveSessions">,
 	bookingId: Id<"bookings">,
-	clientData: Parameters<typeof failedEditorRemovalForSession>[3]
+	clientData: Parameters<typeof failedEditorRemovalForSession>[3],
+	editor: Doc<"editorProfiles"> | null
 ) {
-	return (editor: Doc<"editorProfiles"> | null) =>
-		failedEditorRemovalForSession(driveSession, bookingId, editor, clientData);
+	return failedEditorRemovalForSession(driveSession, bookingId, editor, clientData);
 }
 
 export function saveEditorDrivePermission(
@@ -154,97 +173,99 @@ export function saveEditorDrivePermission(
 		permission: Parameters<typeof writeEditorDrivePermission>[2]["permission"];
 	}
 ) {
-	return getDriveSetup(ctx, args.bookingId).andThen(writeEditorDrivePermissionFromSetup(ctx, args));
+	return getDriveSetup(ctx, args.bookingId).andThen((setup: DriveSetupInfo | null) =>
+		writeEditorDrivePermissionFromSetup(ctx, args, setup)
+	);
 }
 
 function writeEditorDrivePermissionFromSetup(
 	ctx: MutationCtx,
-	args: Parameters<typeof saveEditorDrivePermission>[1]
+	args: Parameters<typeof saveEditorDrivePermission>[1],
+	setup: DriveSetupInfo | null
 ) {
-	return (setup: DriveSetupInfo | null) => {
-		if (
-			setup === null ||
-			setup.driveClient === null ||
-			setup.driveSession === null ||
-			setup.booking.assignedEditorTokenIdentifier !== args.editorTokenIdentifier
-		) {
-			return err({ reason: "DRIVE_RECORD_NOT_FOUND" as const });
-		}
+	if (
+		setup === null ||
+		setup.driveClient === null ||
+		setup.driveSession === null ||
+		setup.booking.assignedEditorTokenIdentifier !== args.editorTokenIdentifier
+	) {
+		return err({ reason: "DRIVE_RECORD_NOT_FOUND" as const });
+	}
 
-		return writeEditorDrivePermission(
-			ctx,
-			{ driveClient: setup.driveClient, driveSession: setup.driveSession },
-			args
-		);
-	};
+	return writeEditorDrivePermission(
+		ctx,
+		{ driveClient: setup.driveClient, driveSession: setup.driveSession },
+		args
+	);
 }
 
 export function saveEditorDrivePermissionsStatus(
 	ctx: MutationCtx,
 	args: { bookingId: Id<"bookings">; editorTokenIdentifier: string; status: "failed" | "ready" }
 ) {
-	return getDriveSetup(ctx, args.bookingId).andThen(
-		writeEditorDrivePermissionsStatusFromSetup(ctx, args)
+	return getDriveSetup(ctx, args.bookingId).andThen((setup: DriveSetupInfo | null) =>
+		writeEditorDrivePermissionsStatusFromSetup(ctx, args, setup)
 	);
 }
 
 function writeEditorDrivePermissionsStatusFromSetup(
 	ctx: MutationCtx,
-	args: Parameters<typeof saveEditorDrivePermissionsStatus>[1]
+	args: Parameters<typeof saveEditorDrivePermissionsStatus>[1],
+	setup: DriveSetupInfo | null
 ) {
-	return (setup: DriveSetupInfo | null) => {
-		if (
-			setup?.driveSession === null ||
-			setup?.driveSession === undefined ||
-			setup.booking.assignedEditorTokenIdentifier !== args.editorTokenIdentifier
-		) {
-			return err({ reason: "DRIVE_RECORD_NOT_FOUND" as const });
-		}
+	if (
+		setup?.driveSession === null ||
+		setup?.driveSession === undefined ||
+		setup.booking.assignedEditorTokenIdentifier !== args.editorTokenIdentifier
+	) {
+		return err({ reason: "DRIVE_RECORD_NOT_FOUND" as const });
+	}
 
-		return writeEditorDrivePermissionsStatus(ctx, setup.driveSession, args);
-	};
+	return writeEditorDrivePermissionsStatus(ctx, setup.driveSession, args);
 }
 
 export function claimEditorAssignmentEmail(
 	ctx: MutationCtx,
 	args: { bookingId: Id<"bookings">; editorTokenIdentifier: string; now: number }
 ) {
-	return getDriveSetup(ctx, args.bookingId).andThen(claimEditorAssignmentEmailFromSetup(ctx, args));
+	return getDriveSetup(ctx, args.bookingId).andThen((setup: DriveSetupInfo | null) =>
+		claimEditorAssignmentEmailFromSetup(ctx, args, setup)
+	);
 }
 
 function claimEditorAssignmentEmailFromSetup(
 	ctx: MutationCtx,
-	args: Parameters<typeof claimEditorAssignmentEmail>[1]
+	args: Parameters<typeof claimEditorAssignmentEmail>[1],
+	setup: DriveSetupInfo | null
 ) {
-	return (setup: DriveSetupInfo | null) => {
-		if (setup === null) {
-			return err({ reason: "EDITOR_ASSIGNMENT_EMAIL_NOT_SENDABLE" as const });
-		}
+	if (setup === null) {
+		return err({ reason: "EDITOR_ASSIGNMENT_EMAIL_NOT_SENDABLE" as const });
+	}
 
-		const driveSession = setup.driveSession;
+	const driveSession = setup.driveSession;
 
-		if (
-			driveSession === null ||
-			setup.booking.assignedEditorTokenIdentifier !== args.editorTokenIdentifier ||
-			driveSession.editorDrivePermissionsStatus !== "ready" ||
-			driveSession.editorDrivePermissionsTokenIdentifier !== args.editorTokenIdentifier
-		) {
-			return err({ reason: "EDITOR_ASSIGNMENT_EMAIL_NOT_SENDABLE" as const });
-		}
+	if (
+		driveSession === null ||
+		setup.booking.assignedEditorTokenIdentifier !== args.editorTokenIdentifier ||
+		driveSession.editorDrivePermissionsStatus !== "ready" ||
+		driveSession.editorDrivePermissionsTokenIdentifier !== args.editorTokenIdentifier
+	) {
+		return err({ reason: "EDITOR_ASSIGNMENT_EMAIL_NOT_SENDABLE" as const });
+	}
 
-		return loadEditorProfileByToken(ctx, args.editorTokenIdentifier).andThen(
-			claimEditorAssignmentEmailForEditorStep(ctx, { ...setup, driveSession }, args)
-		);
-	};
+	return loadEditorProfileByToken(ctx, args.editorTokenIdentifier).andThen(
+		(editor: Doc<"editorProfiles"> | null) =>
+			claimEditorAssignmentEmailForEditorStep(ctx, { ...setup, driveSession }, args, editor)
+	);
 }
 
 function claimEditorAssignmentEmailForEditorStep(
 	ctx: MutationCtx,
 	setup: DriveSetupInfo & { driveSession: Doc<"driveSessions"> },
-	args: Parameters<typeof claimEditorAssignmentEmail>[1]
+	args: Parameters<typeof claimEditorAssignmentEmail>[1],
+	editor: Doc<"editorProfiles"> | null
 ) {
-	return (editor: Doc<"editorProfiles"> | null) =>
-		claimEditorAssignmentEmailForEditor(ctx, setup, args, editor);
+	return claimEditorAssignmentEmailForEditor(ctx, setup, args, editor);
 }
 
 export function saveEditorAssignmentEmailResult(
@@ -257,14 +278,15 @@ export function saveEditorAssignmentEmailResult(
 	}
 ) {
 	return loadDriveSessionRowByBookingId(ctx, args.bookingId).andThen(
-		saveEditorAssignmentEmailResultForLoadedSession(ctx, args)
+		(driveSession: Doc<"driveSessions"> | null) =>
+			saveEditorAssignmentEmailResultForLoadedSession(ctx, args, driveSession)
 	);
 }
 
 function saveEditorAssignmentEmailResultForLoadedSession(
 	ctx: MutationCtx,
-	args: Parameters<typeof saveEditorAssignmentEmailResult>[1]
+	args: Parameters<typeof saveEditorAssignmentEmailResult>[1],
+	driveSession: Doc<"driveSessions"> | null
 ) {
-	return (driveSession: Doc<"driveSessions"> | null) =>
-		saveEditorAssignmentEmailResultForSession(ctx, driveSession, args);
+	return saveEditorAssignmentEmailResultForSession(ctx, driveSession, args);
 }

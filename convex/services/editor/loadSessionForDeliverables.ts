@@ -20,8 +20,8 @@ export type LoadSessionForDeliverablesError =
 	| { reason: "SESSION_NOT_CONFIRMED" }
 	| { reason: "SESSION_NOT_IN_PAST" };
 
-function attachIdentityToSession(identity: UserIdentity) {
-	return (session: Doc<"bookings">) => ({ identity, session });
+function attachIdentityToSession(identity: UserIdentity, session: Doc<"bookings">) {
+	return { identity, session };
 }
 
 function withDeliverablesAccess(
@@ -29,7 +29,7 @@ function withDeliverablesAccess(
 	session: ResultAsync<Doc<"bookings">, { reason: "BOOKING_NOT_FOUND" }>
 ): ResultAsync<Doc<"bookings">, LoadSessionForDeliverablesError> {
 	return session
-		.map(attachIdentityToSession(identity))
+		.map((bookingRow: Doc<"bookings">) => attachIdentityToSession(identity, bookingRow))
 		.andThen(requireDeliverablesOwnership)
 		.andThen(requireDeliverablesEligibility);
 }
@@ -42,29 +42,33 @@ function loadDeliverablesSessionWithIdentity(
 	return withDeliverablesAccess(identity, getSessionFromDb(ctx, bookingId));
 }
 
-function loadDeliverablesSessionForIdentity(ctx: QueryCtx, bookingId: Id<"bookings">) {
-	return (identity: UserIdentity) => loadDeliverablesSessionWithIdentity(ctx, identity, bookingId);
+function loadDeliverablesSessionForIdentity(
+	ctx: QueryCtx,
+	bookingId: Id<"bookings">,
+	identity: UserIdentity
+) {
+	return loadDeliverablesSessionWithIdentity(ctx, identity, bookingId);
 }
 
 export function loadSessionForDeliverables(
 	ctx: QueryCtx,
 	bookingId: Id<"bookings">
 ): ResultAsync<Doc<"bookings">, LoadSessionForDeliverablesError> {
-	return requirePermission(ctx, "send:deliverables-email").andThen(
-		loadDeliverablesSessionForIdentity(ctx, bookingId)
+	return requirePermission(ctx, "send:deliverables-email").andThen((identity: UserIdentity) =>
+		loadDeliverablesSessionForIdentity(ctx, bookingId, identity)
 	);
 }
 
-function detectDeliverablesCustomerTypeForSession(ctx: QueryCtx) {
-	return (session: Doc<"bookings">) => detectDeliverablesCustomerType(ctx, session);
+function detectDeliverablesCustomerTypeForSession(ctx: QueryCtx, session: Doc<"bookings">) {
+	return detectDeliverablesCustomerType(ctx, session);
 }
 
 export function loadDeliverablesCustomerTypeForBooking(
 	ctx: QueryCtx,
 	bookingId: Id<"bookings">
 ): ResultAsync<DeliverablesCustomerType, LoadSessionForDeliverablesError> {
-	return loadSessionForDeliverables(ctx, bookingId).andThen(
-		detectDeliverablesCustomerTypeForSession(ctx)
+	return loadSessionForDeliverables(ctx, bookingId).andThen((session: Doc<"bookings">) =>
+		detectDeliverablesCustomerTypeForSession(ctx, session)
 	);
 }
 
@@ -76,9 +80,12 @@ function loadDeliverablesSessionWithIdentityFromAction(
 	return withDeliverablesAccess(identity, getSessionFromQuery(ctx, bookingId));
 }
 
-function loadDeliverablesSessionForIdentityFromAction(ctx: ActionCtx, bookingId: Id<"bookings">) {
-	return (identity: UserIdentity) =>
-		loadDeliverablesSessionWithIdentityFromAction(ctx, identity, bookingId);
+function loadDeliverablesSessionForIdentityFromAction(
+	ctx: ActionCtx,
+	bookingId: Id<"bookings">,
+	identity: UserIdentity
+) {
+	return loadDeliverablesSessionWithIdentityFromAction(ctx, identity, bookingId);
 }
 
 export function loadSessionForDeliverablesFromAction(
@@ -86,6 +93,7 @@ export function loadSessionForDeliverablesFromAction(
 	bookingId: Id<"bookings">
 ): ResultAsync<Doc<"bookings">, LoadSessionForDeliverablesError> {
 	return requirePermissionActions(ctx, "send:deliverables-email").andThen(
-		loadDeliverablesSessionForIdentityFromAction(ctx, bookingId)
+		(identity: UserIdentity) =>
+			loadDeliverablesSessionForIdentityFromAction(ctx, bookingId, identity)
 	);
 }

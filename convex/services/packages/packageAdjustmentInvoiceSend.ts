@@ -23,24 +23,25 @@ type PackageAdjustmentInvoiceSendFailure =
 	| { reason: string };
 
 function failAfterInvoiceEmailFailure<T extends PackageAdjustmentInvoiceSendFailure>(failure: T) {
-	return () => err(failure);
+	return err(failure);
 }
 
 function recordSentPackageAdjustmentInvoice(
 	ctx: ActionCtx,
 	args: SendPackageAdjustmentInvoiceArgs,
-	claimedAt: number
+	claimedAt: number,
+
+	{ stripeInvoiceId }: { stripeInvoiceId: string }
 ) {
-	return ({ stripeInvoiceId }: { stripeInvoiceId: string }) =>
-		fromConvexTuple<
-			Promise<ConvexResult<{ updated: boolean }, { reason: "PACKAGE_ADJUSTMENT_NOT_FOUND" }>>
-		>(
-			ctx.runMutation(internal.packageAdjustments.markPackageAdjustmentInvoiceEmailSent, {
-				adjustmentId: args.adjustmentId,
-				claimedAt,
-				stripeInvoiceId
-			})
-		).map(() => null);
+	return fromConvexTuple<
+		Promise<ConvexResult<{ updated: boolean }, { reason: "PACKAGE_ADJUSTMENT_NOT_FOUND" }>>
+	>(
+		ctx.runMutation(internal.packageAdjustments.markPackageAdjustmentInvoiceEmailSent, {
+			adjustmentId: args.adjustmentId,
+			claimedAt,
+			stripeInvoiceId
+		})
+	).map(() => null);
 }
 
 export type SendPackageAdjustmentInvoiceError =
@@ -58,7 +59,7 @@ function writePackageAdjustmentInvoiceEmailFailedOnSend<
 		ctx.runMutation(internal.packageAdjustments.markPackageAdjustmentInvoiceEmailFailed, args)
 	)
 		.orElse(okNullAsync)
-		.andThen(failAfterInvoiceEmailFailure(failure));
+		.andThen(() => failAfterInvoiceEmailFailure(failure));
 }
 
 function okNullAsync() {
@@ -111,5 +112,5 @@ export function createSendAndRecordPackageAdjustmentInvoice(
 				stripeFailure
 			)
 		)
-		.andThen(recordSentPackageAdjustmentInvoice(ctx, args, claimedAt));
+		.andThen((_value) => recordSentPackageAdjustmentInvoice(ctx, args, claimedAt, _value));
 }

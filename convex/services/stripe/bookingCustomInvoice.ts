@@ -30,18 +30,20 @@ export type CreateBookingCustomInvoiceArgs = CustomInvoiceDetails & {
 type StaffIdentity = { email?: string };
 
 function listCustomInvoicesForBookingId(ctx: QueryCtx, bookingId: Id<"bookings">) {
-	return () => listCustomInvoicesByBookingId(ctx, bookingId);
+	return listCustomInvoicesByBookingId(ctx, bookingId);
 }
 
 export function listCustomInvoicesForBooking(ctx: QueryCtx, args: { bookingId: Id<"bookings"> }) {
-	return requirePermission(ctx, "view:sensitive-booking-data").andThen(
+	return requirePermission(ctx, "view:sensitive-booking-data").andThen(() =>
 		listCustomInvoicesForBookingId(ctx, args.bookingId)
 	);
 }
 
-function customInvoiceForBooking(bookingId: Id<"bookings">) {
-	return (customInvoice: Doc<"customInvoices"> | null) =>
-		customInvoice?.bookingId === bookingId ? customInvoice : null;
+function customInvoiceForBooking(
+	bookingId: Id<"bookings">,
+	customInvoice: Doc<"customInvoices"> | null
+) {
+	return customInvoice?.bookingId === bookingId ? customInvoice : null;
 }
 
 export function loadBookingCustomInvoiceInput(
@@ -49,22 +51,28 @@ export function loadBookingCustomInvoiceInput(
 	args: { bookingId: Id<"bookings">; customInvoiceId: Id<"customInvoices"> }
 ) {
 	return getCustomInvoiceRow(ctx, args.customInvoiceId).map(
-		customInvoiceForBooking(args.bookingId)
+		(customInvoice: Doc<"customInvoices"> | null) =>
+			customInvoiceForBooking(args.bookingId, customInvoice)
 	);
 }
 
 function keepIdentity(identity: StaffIdentity) {
-	return () => identity;
+	return identity;
 }
 
-function validateCustomTotalDueAmountForArgs(args: CreateBookingCustomInvoiceArgs) {
-	return (identity: StaffIdentity) =>
-		validateCustomTotalDueAmount(args.customTotalDueAmount).map(keepIdentity(identity));
+function validateCustomTotalDueAmountForArgs(
+	args: CreateBookingCustomInvoiceArgs,
+	identity: StaffIdentity
+) {
+	return validateCustomTotalDueAmount(args.customTotalDueAmount).map(() => keepIdentity(identity));
 }
 
-function loadSessionForCustomInvoiceArgs(ctx: MutationCtx, args: CreateBookingCustomInvoiceArgs) {
-	return (identity: StaffIdentity) =>
-		getSessionFromDb(ctx, args.bookingId).map(keepIdentity(identity));
+function loadSessionForCustomInvoiceArgs(
+	ctx: MutationCtx,
+	args: CreateBookingCustomInvoiceArgs,
+	identity: StaffIdentity
+) {
+	return getSessionFromDb(ctx, args.bookingId).map(() => keepIdentity(identity));
 }
 
 function toCreatedCustomInvoiceResult(
@@ -72,44 +80,40 @@ function toCreatedCustomInvoiceResult(
 	invoiceNumber: string,
 	createdAt: number
 ) {
-	return () => ({ customInvoiceId, invoiceNumber, createdAt });
+	return { customInvoiceId, invoiceNumber, createdAt };
 }
 
-function numberCustomInvoiceAfterInsert(ctx: MutationCtx) {
-	return ({
-		customInvoiceId,
-		createdAt
-	}: {
-		customInvoiceId: Id<"customInvoices">;
-		createdAt: number;
-	}) => {
-		const invoiceNumber = formatBookingInvoiceNumber(customInvoiceId, createdAt);
+function numberCustomInvoiceAfterInsert(
+	ctx: MutationCtx,
+	{ customInvoiceId, createdAt }: { customInvoiceId: Id<"customInvoices">; createdAt: number }
+) {
+	const invoiceNumber = formatBookingInvoiceNumber(customInvoiceId, createdAt);
 
-		return patchCustomInvoiceNumber(ctx, customInvoiceId, invoiceNumber).map(
-			toCreatedCustomInvoiceResult(customInvoiceId, invoiceNumber, createdAt)
-		);
-	};
+	return patchCustomInvoiceNumber(ctx, customInvoiceId, invoiceNumber).map(() =>
+		toCreatedCustomInvoiceResult(customInvoiceId, invoiceNumber, createdAt)
+	);
 }
 
 function insertCustomInvoiceFromAdminIdentity(
 	ctx: MutationCtx,
-	args: CreateBookingCustomInvoiceArgs
+	args: CreateBookingCustomInvoiceArgs,
+
+	identity: StaffIdentity
 ) {
-	return (identity: StaffIdentity) =>
-		insertPendingCustomInvoice(ctx, {
-			bookingId: args.bookingId,
-			dueDate: args.dueDate,
-			service: args.service,
-			duration: args.duration,
-			addons: args.addons,
-			essentialEditQuantity: args.essentialEditQuantity,
-			completeEditQuantity: args.completeEditQuantity,
-			clipsPackageQuantity: args.clipsPackageQuantity,
-			handcraftedClipsQuantity: args.handcraftedClipsQuantity,
-			includeDepositLineItem: args.includeDepositLineItem,
-			customTotalDueAmount: args.customTotalDueAmount,
-			createdBy: identity.email
-		}).andThen(numberCustomInvoiceAfterInsert(ctx));
+	return insertPendingCustomInvoice(ctx, {
+		bookingId: args.bookingId,
+		dueDate: args.dueDate,
+		service: args.service,
+		duration: args.duration,
+		addons: args.addons,
+		essentialEditQuantity: args.essentialEditQuantity,
+		completeEditQuantity: args.completeEditQuantity,
+		clipsPackageQuantity: args.clipsPackageQuantity,
+		handcraftedClipsQuantity: args.handcraftedClipsQuantity,
+		includeDepositLineItem: args.includeDepositLineItem,
+		customTotalDueAmount: args.customTotalDueAmount,
+		createdBy: identity.email
+	}).andThen((_value) => numberCustomInvoiceAfterInsert(ctx, _value));
 }
 
 export function createBookingCustomInvoiceFromAdmin(
@@ -117,7 +121,9 @@ export function createBookingCustomInvoiceFromAdmin(
 	args: CreateBookingCustomInvoiceArgs
 ) {
 	return requirePermission(ctx, "create:invoices")
-		.andThen(validateCustomTotalDueAmountForArgs(args))
-		.andThen(loadSessionForCustomInvoiceArgs(ctx, args))
-		.andThen(insertCustomInvoiceFromAdminIdentity(ctx, args));
+		.andThen((identity: StaffIdentity) => validateCustomTotalDueAmountForArgs(args, identity))
+		.andThen((identity: StaffIdentity) => loadSessionForCustomInvoiceArgs(ctx, args, identity))
+		.andThen((identity: StaffIdentity) =>
+			insertCustomInvoiceFromAdminIdentity(ctx, args, identity)
+		);
 }

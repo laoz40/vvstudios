@@ -6,25 +6,29 @@ import type { DriveSetupInfo } from "#convex/lib/drive/driveLookup";
 import { resolveSessionFolderDisplayName } from "#convex/lib/drive/sessionFolders/resolveFolderNames";
 import { getDriveSetup } from "#convex/services/drive/driveInternal";
 
-function mapSessionFolderNameToDriveStatus(setupInfo: DriveSetupInfo | null) {
-	return (sessionFolderName: string | undefined) =>
-		buildDriveStatusFromSetup(setupInfo, sessionFolderName);
+function mapSessionFolderNameToDriveStatus(
+	setupInfo: DriveSetupInfo | null,
+	sessionFolderName: string | undefined
+) {
+	return buildDriveStatusFromSetup(setupInfo, sessionFolderName);
 }
 
-function resolveDriveStatusWithFolderName(ctx: QueryCtx) {
-	return (setupInfo: DriveSetupInfo | null) => {
-		const { booking, driveSession } = getDriveSetupEntities(setupInfo);
+function resolveDriveStatusWithFolderName(ctx: QueryCtx, setupInfo: DriveSetupInfo | null) {
+	const { booking, driveSession } = getDriveSetupEntities(setupInfo);
 
-		if (booking === null) {
-			return okAsync(buildDriveStatusFromSetup(setupInfo, undefined));
-		}
+	if (booking === null) {
+		return okAsync(buildDriveStatusFromSetup(setupInfo, undefined));
+	}
 
-		return ResultAsync.fromSafePromise(
-			resolveSessionFolderDisplayName(ctx, booking, driveSession)
-		).map(mapSessionFolderNameToDriveStatus(setupInfo));
-	};
+	return ResultAsync.fromSafePromise(
+		resolveSessionFolderDisplayName(ctx, booking, driveSession)
+	).map((sessionFolderName: string | undefined) =>
+		mapSessionFolderNameToDriveStatus(setupInfo, sessionFolderName)
+	);
 }
 
 export function getDriveStatus(ctx: QueryCtx, bookingId: Id<"bookings">) {
-	return getDriveSetup(ctx, bookingId).andThen(resolveDriveStatusWithFolderName(ctx));
+	return getDriveSetup(ctx, bookingId).andThen((setupInfo: DriveSetupInfo | null) =>
+		resolveDriveStatusWithFolderName(ctx, setupInfo)
+	);
 }

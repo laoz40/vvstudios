@@ -20,14 +20,13 @@ export type SetupError = LibSetupError;
 
 type DriveSetupLoadArgs = { bookingId: Id<"bookings">; sessionStartAt?: number; duration?: string };
 
-function validateLoadedDriveSetup(args: DriveSetupLoadArgs) {
-	return (setupInfo: DriveSetupInfo | null) =>
-		validateDriveSetup(
-			setupInfo,
-			args.sessionStartAt !== undefined && args.duration !== undefined
-				? { sessionStartAt: args.sessionStartAt, duration: args.duration }
-				: undefined
-		);
+function validateLoadedDriveSetup(args: DriveSetupLoadArgs, setupInfo: DriveSetupInfo | null) {
+	return validateDriveSetup(
+		setupInfo,
+		args.sessionStartAt !== undefined && args.duration !== undefined
+			? { sessionStartAt: args.sessionStartAt, duration: args.duration }
+			: undefined
+	);
 }
 
 function loadValidatedSetup(
@@ -36,7 +35,7 @@ function loadValidatedSetup(
 ): ResultAsync<DriveSetupInfo, LibSetupError> {
 	return fromConvexTuple(
 		ctx.runQuery(internal.sessionsDriveInternal.getDriveSetup, { bookingId: args.bookingId })
-	).andThen(validateLoadedDriveSetup(args));
+	).andThen((setupInfo: DriveSetupInfo | null) => validateLoadedDriveSetup(args, setupInfo));
 }
 
 function saveSetupFailure(ctx: ActionCtx, bookingId: Id<"bookings">, failureCode: string) {
@@ -47,10 +46,11 @@ function saveSetupFailure(ctx: ActionCtx, bookingId: Id<"bookings">, failureCode
 
 function ensureDriveFoldersForSetup(
 	ctx: ActionCtx,
-	args: DriveSetupLoadArgs & { replaceMissingFolders: boolean }
+	args: DriveSetupLoadArgs & { replaceMissingFolders: boolean },
+
+	setupInfo: DriveSetupInfo
 ) {
-	return (setupInfo: DriveSetupInfo) =>
-		ensureSessionDriveFolders(ctx, setupInfo, args.replaceMissingFolders);
+	return ensureSessionDriveFolders(ctx, setupInfo, args.replaceMissingFolders);
 }
 
 function requireSavedDriveFolders(setupInfo: DriveSetupInfo) {
@@ -76,34 +76,36 @@ function setupEditorAccessAfterClientEmail(ctx: ActionCtx, bookingId: Id<"bookin
 	return setupEditorAccess(ctx, { bookingId }).orElse(() => okAsync(null));
 }
 
-function recordSetupFailureThenRethrow(ctx: ActionCtx, bookingId: Id<"bookings">) {
-	return (setupError: LibSetupError) => {
-		if (!shouldRecordDriveSetupFailure(setupError)) return errAsync(setupError);
+function recordSetupFailureThenRethrow(
+	ctx: ActionCtx,
+	bookingId: Id<"bookings">,
+	setupError: LibSetupError
+) {
+	if (!shouldRecordDriveSetupFailure(setupError)) return errAsync(setupError);
 
-		return saveSetupFailure(ctx, bookingId, setupError.reason).andThen(
-			rethrowSetupError(setupError)
-		);
-	};
+	return saveSetupFailure(ctx, bookingId, setupError.reason).andThen(() =>
+		rethrowSetupError(setupError)
+	);
 }
 
 function rethrowSetupError(setupError: LibSetupError) {
-	return () => errAsync(setupError);
+	return errAsync(setupError);
 }
 
 function reloadValidatedSetup(ctx: ActionCtx, loadArgs: DriveSetupLoadArgs) {
-	return () => loadValidatedSetup(ctx, loadArgs);
+	return loadValidatedSetup(ctx, loadArgs);
 }
 
 function runAfterSavedDriveFolders(ctx: ActionCtx, bookingId: Id<"bookings">) {
-	return () => saveSuccessfulDriveSetup(ctx, bookingId);
+	return saveSuccessfulDriveSetup(ctx, bookingId);
 }
 
 function runClientAssetsEmailStep(ctx: ActionCtx, bookingId: Id<"bookings">) {
-	return () => sendClientAssetsEmailAfterSetup(ctx, bookingId);
+	return sendClientAssetsEmailAfterSetup(ctx, bookingId);
 }
 
 function runEditorAccessStep(ctx: ActionCtx, bookingId: Id<"bookings">) {
-	return () => setupEditorAccessAfterClientEmail(ctx, bookingId);
+	return setupEditorAccessAfterClientEmail(ctx, bookingId);
 }
 
 export function createSessionDriveFoldersAndCompleteSetup(
@@ -124,16 +126,18 @@ export function createSessionDriveFoldersAndCompleteSetup(
 	return (
 		// Create or recover every folder, then mark the folder setup as complete.
 		loadValidatedSetup(ctx, loadArgs)
-			.andThen(ensureDriveFoldersForSetup(ctx, args))
-			.andThen(reloadValidatedSetup(ctx, loadArgs))
+			.andThen((setupInfo: DriveSetupInfo) => ensureDriveFoldersForSetup(ctx, args, setupInfo))
+			.andThen(() => reloadValidatedSetup(ctx, loadArgs))
 			.andThen(requireSavedDriveFolders)
-			.andThen(runAfterSavedDriveFolders(ctx, args.bookingId))
+			.andThen(() => runAfterSavedDriveFolders(ctx, args.bookingId))
 			// Client access and its email fail independently from folder setup.
-			.andThen(runClientAssetsEmailStep(ctx, args.bookingId))
+			.andThen(() => runClientAssetsEmailStep(ctx, args.bookingId))
 			// Editor access also fails independently and has its own admin retry.
-			.andThen(runEditorAccessStep(ctx, args.bookingId))
+			.andThen(() => runEditorAccessStep(ctx, args.bookingId))
 			// Only folder setup errors are saved on the booking here.
-			.orElse(recordSetupFailureThenRethrow(ctx, args.bookingId))
+			.orElse((setupError: LibSetupError) =>
+				recordSetupFailureThenRethrow(ctx, args.bookingId, setupError)
+			)
 	);
 }
 

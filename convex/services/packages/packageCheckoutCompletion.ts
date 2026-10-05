@@ -29,24 +29,22 @@ function mapPackageCheckoutClaimFailed(error: {
 	return { kind: "claim_failed" as const, error };
 }
 
-function completePackageCheckoutFromClaim(ctx: ActionCtx) {
-	return (claim: PackageCheckoutClaim) => {
-		const claimOutcome = claim.outcome;
+function completePackageCheckoutFromClaim(ctx: ActionCtx, claim: PackageCheckoutClaim) {
+	const claimOutcome = claim.outcome;
 
-		switch (claimOutcome) {
-			case "already_completed":
-			case "already_claimed":
-				return okAsync({ outcome: "already_completed" as const });
-			case "claimed":
-				return fromConvexTuple(
-					ctx.runAction(internal.packageCheckoutCompletionHandlers.completeClaimedPackageCheckout, {
-						packageId: claim.packageId
-					})
-				).mapErr(mapPackageCheckoutCompletionFailed);
-			default:
-				return exhaustiveCheck(claimOutcome);
-		}
-	};
+	switch (claimOutcome) {
+		case "already_completed":
+		case "already_claimed":
+			return okAsync({ outcome: "already_completed" as const });
+		case "claimed":
+			return fromConvexTuple(
+				ctx.runAction(internal.packageCheckoutCompletionHandlers.completeClaimedPackageCheckout, {
+					packageId: claim.packageId
+				})
+			).mapErr(mapPackageCheckoutCompletionFailed);
+		default:
+			return exhaustiveCheck(claimOutcome);
+	}
 }
 
 function mapPackageCheckoutCompletionFailed(
@@ -72,5 +70,5 @@ export function completePackageCheckoutService(
 		ctx.runMutation(internal.packageCheckout.claimPackageCheckoutPayment, args)
 	)
 		.mapErr(mapPackageCheckoutClaimFailed)
-		.andThen(completePackageCheckoutFromClaim(ctx));
+		.andThen((claim: PackageCheckoutClaim) => completePackageCheckoutFromClaim(ctx, claim));
 }
