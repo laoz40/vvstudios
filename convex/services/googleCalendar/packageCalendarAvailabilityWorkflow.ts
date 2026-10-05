@@ -18,9 +18,9 @@ import {
 	groupBusyWindowsByDay,
 	type BusyDayWindow
 } from "#convex/lib/sessions/sessionCalendarTime";
+import { formatDateValue, startOfToday } from "#studio/lib/bookingdatetime";
 
 export type { BusyDayWindow };
-import { formatDateValue, startOfToday } from "#studio/lib/bookingdatetime";
 
 export type PackageAvailabilityError =
 	| ValidPackageByTokenError

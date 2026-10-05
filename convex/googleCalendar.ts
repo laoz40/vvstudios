@@ -57,7 +57,7 @@ import {
 	syncBookingDriveClientIdForRetry,
 	type DriveClientPermissionsError
 } from "#convex/services/drive/driveClientPermissions";
-import { requirePermissionActions } from "#convex/services/auth";
+import { requirePermissionActions } from "#convex/services/requirePermissionActions";
 import {
 	claimSessionReminderSend,
 	sendSessionReminderWhenClaimed

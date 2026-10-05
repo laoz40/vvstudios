@@ -3,7 +3,7 @@
 import { v } from "convex/values";
 import { tupleErr, tupleOk, type Result } from "#/lib/result";
 import { action } from "#convex/_generated/server";
-import { requirePermissionActions } from "#convex/services/auth";
+import { requirePermissionActions } from "#convex/services/requirePermissionActions";
 import { inviteEmployeeByEmail } from "#convex/services/employees/employeeInvitationWorkflow";
 
 type InviteUserError =

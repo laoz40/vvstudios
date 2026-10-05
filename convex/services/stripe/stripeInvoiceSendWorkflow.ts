@@ -4,7 +4,11 @@ import { err, ok, type ResultAsync } from "neverthrow";
 import { internal } from "#convex/_generated/api";
 import type { Id } from "#convex/_generated/dataModel";
 import type { ActionCtx } from "#convex/_generated/server";
-import { requirePermissionActions } from "#convex/services/auth";
+import {
+	requirePermissionActions,
+	type PermissionActionError
+} from "#convex/services/requirePermissionActions";
+import type { StripeInvoiceBillingUrls } from "#convex/lib/stripe/stripeInvoiceBillingUrls";
 import { getPackageForAction } from "#convex/lib/packages/packageLookup";
 import { fromConvexTuple } from "#convex/lib/result";
 import { getSessionFromQuery } from "#convex/lib/sessions/sessionLookup";
@@ -63,7 +67,10 @@ export function loadPackageStripeCustomerId(
 export function loadStripeInvoiceBillingUrlsForStaff(
 	ctx: ActionCtx,
 	stripeInvoiceId: string
-): ResultAsync<Awaited<ReturnType<typeof fetchStripeInvoiceBillingUrls>>, { reason: string }> {
+): ResultAsync<
+	StripeInvoiceBillingUrls,
+	PermissionActionError | { reason: "STRIPE_INVOICE_LOOKUP_FAILED" }
+> {
 	return requirePermissionActions(ctx, "view:sensitive-booking-data").andThen(() =>
 		fetchStripeInvoiceBillingUrls(getStripeClient(), stripeInvoiceId)
 	);

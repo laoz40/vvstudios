@@ -44,7 +44,7 @@ export function claimPackageAdjustmentInvoiceEmailForSend(
 	ctx: ActionCtx,
 	args: SendPackageAdjustmentInvoiceArgs,
 	claimedAt: number
-) {
+): NeverthrowResultAsync<PackageAdjustmentInvoiceInput, PackageAdjustmentClaimError> {
 	return fromConvexTuple<
 		Promise<ConvexResult<PackageAdjustmentInvoiceInput, PackageAdjustmentClaimError>>
 	>(

@@ -32,7 +32,7 @@ export type ClaimBookingConfirmationArgs = {
 	stripeEventId: string;
 };
 
-type BookingClaimOutcome =
+export type BookingClaimOutcome =
 	| { outcome: "already_confirmed" }
 	| { outcome: "already_claimed" }
 	| { outcome: "claimed"; session: ReturnType<typeof buildClaimedBookingSession> };

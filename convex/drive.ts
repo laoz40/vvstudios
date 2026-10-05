@@ -4,7 +4,7 @@ import { okAsync } from "neverthrow";
 import { v } from "convex/values";
 import { tupleErr, tupleOk, type Result } from "#/lib/result";
 import { action, internalAction } from "#convex/_generated/server";
-import { requirePermissionActions } from "#convex/services/auth";
+import { requirePermissionActions } from "#convex/services/requirePermissionActions";
 import {
 	retryFailedPreviousEditorRemoval,
 	runEditorAccessSetup,

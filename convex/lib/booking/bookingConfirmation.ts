@@ -68,42 +68,49 @@ export function saveConfirmedBooking(
 		})
 	)
 		.map(() => true)
-		.orElse((error) => {
-			const reason = error.reason;
+		.orElse(
+			(
+				error:
+					| { reason: "BOOKING_NOT_FOUND" }
+					| { reason: "BOOKING_RESERVATION_MISMATCH" }
+					| { reason: "BOOKING_INVALID_DURATION" }
+			) => {
+				const reason = error.reason;
 
-			switch (reason) {
-				case "BOOKING_NOT_FOUND":
-					console.error("Booking disappeared before confirmation completed", {
-						bookingId: session._id
-					});
-					break;
-				case "BOOKING_RESERVATION_MISMATCH":
-					console.error("Booking reservation changed before confirmation completed", {
-						bookingId: session._id
-					});
-					break;
-				case "BOOKING_INVALID_DURATION":
-					console.error("Booking duration was invalid before Drive setup could be scheduled", {
-						bookingId: session._id
-					});
-					break;
-				default:
-					exhaustiveCheck(reason);
+				switch (reason) {
+					case "BOOKING_NOT_FOUND":
+						console.error("Booking disappeared before confirmation completed", {
+							bookingId: session._id
+						});
+						break;
+					case "BOOKING_RESERVATION_MISMATCH":
+						console.error("Booking reservation changed before confirmation completed", {
+							bookingId: session._id
+						});
+						break;
+					case "BOOKING_INVALID_DURATION":
+						console.error("Booking duration was invalid before Drive setup could be scheduled", {
+							bookingId: session._id
+						});
+						break;
+					default:
+						exhaustiveCheck(reason);
+				}
+
+				if (!googleEventId) {
+					return okAsync(false);
+				}
+
+				return removeOrphanedSessionCalendarEvent({
+					bookingId: session._id,
+					calendar: calendarClient.calendar,
+					calendarId: calendarClient.calendarId,
+					googleEventId
+				})
+					.map(() => false)
+					.orElse(() => okAsync(false));
 			}
-
-			if (!googleEventId) {
-				return okAsync(false);
-			}
-
-			return removeOrphanedSessionCalendarEvent({
-				bookingId: session._id,
-				calendar: calendarClient.calendar,
-				calendarId: calendarClient.calendarId,
-				googleEventId
-			})
-				.map(() => false)
-				.orElse(() => okAsync(false));
-		});
+		);
 }
 
 function recordInvoiceEmailFailure(

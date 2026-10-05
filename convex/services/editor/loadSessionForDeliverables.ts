@@ -2,7 +2,8 @@ import type { UserIdentity } from "convex/server";
 import { type ResultAsync } from "neverthrow";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { ActionCtx, QueryCtx } from "#convex/_generated/server";
-import { requirePermission, requirePermissionActions } from "#convex/services/auth";
+import { requirePermission } from "#convex/services/auth";
+import { requirePermissionActions } from "#convex/services/requirePermissionActions";
 import {
 	requireDeliverablesEligibility,
 	requireDeliverablesOwnership

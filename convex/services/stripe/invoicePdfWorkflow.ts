@@ -1,6 +1,6 @@
 "use node";
 
-import { err, ok, type ResultAsync } from "neverthrow";
+import { err, errAsync, ok, type ResultAsync } from "neverthrow";
 import { api, internal } from "#convex/_generated/api";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { ActionCtx } from "#convex/_generated/server";
@@ -114,11 +114,17 @@ export function renderBookingReceiptPdfPayload(
 	receiptCreatedAt: number,
 	bookingSettings: BookingSettingsSnapshot
 ): ResultAsync<InvoicePdfPayload, BookingReceiptPdfError> {
-	return createBookingReceiptArtifactsForBooking(booking, receiptCreatedAt, {
+	const artifactsResult = createBookingReceiptArtifactsForBooking(booking, receiptCreatedAt, {
 		leadTimeMinutes: bookingSettings.leadTimeMinutes
-	}).andThen((artifactsResult) =>
-		renderBookingReceiptPdfInNode(artifactsResult.artifacts.data).map((pdfContent) =>
-			toInvoicePdfPayload(pdfContent, artifactsResult.artifacts.pdf)
+	});
+
+	if (artifactsResult.isErr()) {
+		return errAsync(artifactsResult.error);
+	}
+
+	return artifactsResult.asyncAndThen((value) =>
+		renderBookingReceiptPdfInNode(value.artifacts.data).map((pdfContent) =>
+			toInvoicePdfPayload(pdfContent, value.artifacts.pdf)
 		)
 	);
 }
@@ -128,11 +134,17 @@ export function renderBookingInvoicePdfPayload(
 	invoiceCreatedAt: number,
 	bookingSettings: BookingSettingsSnapshot
 ): ResultAsync<InvoicePdfPayload, BookingInvoicePdfError> {
-	return createBookingInvoiceArtifactsForBooking(booking, invoiceCreatedAt, {
+	const artifactsResult = createBookingInvoiceArtifactsForBooking(booking, invoiceCreatedAt, {
 		leadTimeMinutes: bookingSettings.leadTimeMinutes
-	}).andThen((artifactsResult) =>
-		renderBookingInvoicePdfInNode(artifactsResult.artifacts.data).map((pdfContent) =>
-			toInvoicePdfPayload(pdfContent, artifactsResult.artifacts.pdf)
+	});
+
+	if (artifactsResult.isErr()) {
+		return errAsync(artifactsResult.error);
+	}
+
+	return artifactsResult.asyncAndThen((value) =>
+		renderBookingInvoicePdfInNode(value.artifacts.data).map((pdfContent) =>
+			toInvoicePdfPayload(pdfContent, value.artifacts.pdf)
 		)
 	);
 }
@@ -154,11 +166,17 @@ export function renderPackageReceiptPdfPayload(
 	receiptCreatedAt: number,
 	bookingSettings: BookingSettingsSnapshot
 ): ResultAsync<InvoicePdfPayload, BookingReceiptPdfError> {
-	return createPackageReceiptArtifacts(packageRecord, receiptCreatedAt, {
+	const artifactsResult = createPackageReceiptArtifacts(packageRecord, receiptCreatedAt, {
 		leadTimeMinutes: bookingSettings.leadTimeMinutes
-	}).andThen((artifactsResult) =>
-		renderBookingReceiptPdfInNode(artifactsResult.artifacts.data).map((pdfContent) =>
-			toInvoicePdfPayload(pdfContent, artifactsResult.artifacts.pdf)
+	});
+
+	if (artifactsResult.isErr()) {
+		return errAsync(artifactsResult.error);
+	}
+
+	return artifactsResult.asyncAndThen((value) =>
+		renderBookingReceiptPdfInNode(value.artifacts.data).map((pdfContent) =>
+			toInvoicePdfPayload(pdfContent, value.artifacts.pdf)
 		)
 	);
 }

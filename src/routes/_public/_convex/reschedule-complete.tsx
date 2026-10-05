@@ -1,6 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "convex/react";
-import type { FunctionReturnType } from "convex/server";
 import { api } from "#convex/_generated/api";
 import type { Result } from "#/lib/result";
 import { buildNoIndexHead } from "#/lib/seo";
@@ -12,20 +11,16 @@ import {
 	type DevRescheduleCompleteScenario
 } from "#studio/components/booking/RescheduleCompleteDevScenarioPanel";
 import { rescheduleCompleteSearchSchema } from "#studio/features/reschedule-complete/lib/reschedule-complete-search";
+import type { buildPublicSessionStatusResponse } from "#convex/services/sessions/sessions";
 
-type GetPublicRescheduleCompleteSessionResult = FunctionReturnType<
-	typeof api.sessions.getPublicRescheduleCompleteSession
->;
+type PublicRescheduleSession = ReturnType<typeof buildPublicSessionStatusResponse>;
 
 // Dev scenarios use a readable fake string ID, while live Convex results retain their branded booking ID.
-type RescheduleCompleteBooking = Omit<
-	NonNullable<GetPublicRescheduleCompleteSessionResult[1]>,
-	"_id"
-> & { _id: string };
+type RescheduleCompleteBooking = Omit<PublicRescheduleSession, "_id"> & { _id: string };
 
 type RescheduleCompletePageResult = Result<
 	RescheduleCompleteBooking,
-	NonNullable<GetPublicRescheduleCompleteSessionResult[0]>
+	{ reason: "BOOKING_NOT_FOUND" }
 >;
 
 export const Route = createFileRoute("/_public/_convex/reschedule-complete")({
@@ -42,12 +37,12 @@ function RescheduleCompletePage() {
 	const { booking_id: bookingId, dev_scenario: devScenario } = Route.useSearch();
 	const activeDevScenario = import.meta.env.DEV ? devScenario : undefined;
 
-	const liveBookingResult: GetPublicRescheduleCompleteSessionResult | undefined = useQuery(
+	const liveBookingResult: RescheduleCompletePageResult | undefined = useQuery(
 		api.sessions.getPublicRescheduleCompleteSession,
 		bookingId && !activeDevScenario ? { bookingId } : "skip"
 	);
 
-	const bookingResult = activeDevScenario
+	const bookingResult: RescheduleCompletePageResult | undefined = activeDevScenario
 		? buildDevRescheduleCompleteBookingResult(activeDevScenario)
 		: liveBookingResult;
 

@@ -89,8 +89,8 @@ export const listEditorSessions = query({
 
 export const getPublicRescheduleCompleteSession = query({
 	args: { bookingId: v.string() },
-	handler: (ctx, args) =>
-		loadPublicRescheduleCompleteSession(ctx, args.bookingId).match(tupleOk, tupleErr)
+	handler: async (ctx, args) =>
+		await loadPublicRescheduleCompleteSession(ctx, args.bookingId).match(tupleOk, tupleErr)
 });
 
 export const getSessionStatusByStripeSessionId = query({

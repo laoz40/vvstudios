@@ -19,7 +19,7 @@ export function getSelectedBookingCustomInvoice(
 		return okAsync(undefined);
 	}
 
-	return okOrThrow(
+	return okOrThrow<Doc<"customInvoices"> | null>(
 		ctx.runQuery(internal.customInvoices.getBookingCustomInvoiceInput, {
 			bookingId,
 			customInvoiceId

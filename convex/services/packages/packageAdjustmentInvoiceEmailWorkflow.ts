@@ -1,4 +1,5 @@
-import { ok, okAsync } from "neverthrow";
+import { ok, okAsync, type ResultAsync } from "neverthrow";
+import type { PackageAdjustmentInvoiceInput } from "#studio/features/booking-invoice/lib/booking-artifacts";
 import { internal } from "#convex/_generated/api";
 import type { Id } from "#convex/_generated/dataModel";
 import type { MutationCtx } from "#convex/_generated/server";
@@ -32,10 +33,15 @@ type MarkPackageAdjustmentPaymentStatusArgs = {
 	paid: boolean;
 };
 
+type ClaimPackageAdjustmentInvoiceEmailError =
+	| { reason: "PACKAGE_ADJUSTMENT_NOT_FOUND" }
+	| { reason: "PACKAGE_ADJUSTMENT_EMAIL_NOT_SENDABLE" }
+	| { reason: "PACKAGE_NOT_FOUND" };
+
 export function claimPackageAdjustmentInvoiceEmail(
 	ctx: MutationCtx,
 	args: ClaimPackageAdjustmentInvoiceEmailArgs
-) {
+): ResultAsync<PackageAdjustmentInvoiceInput, ClaimPackageAdjustmentInvoiceEmailError> {
 	return getPackageAdjustmentInvoice(ctx, args.adjustmentId)
 		.andThen((adjustment) => validatePackageAdjustmentEmailClaim(adjustment, args))
 		.andThen((adjustment) =>
@@ -46,17 +52,18 @@ export function claimPackageAdjustmentInvoiceEmail(
 		)
 		.andThen(({ adjustment, packageRecord }) =>
 			okOrThrow(
-				ctx.db
-					.patch("packageAdjustments", adjustment._id, { invoiceEmailClaimedAt: args.now })
-					.then(() =>
+				ctx.db.patch("packageAdjustments", adjustment._id, { invoiceEmailClaimedAt: args.now })
+			)
+				.andThen(() =>
+					okOrThrow(
 						ctx.scheduler.runAfter(
 							PACKAGE_ADJUSTMENT_EMAIL_CLAIM_TIMEOUT_MS,
 							internal.packageAdjustments.markStalledPackageAdjustmentInvoiceEmailFailed,
 							{ adjustmentId: args.adjustmentId, claimedAt: args.now }
 						)
 					)
-					.then(() => ({ adjustment, packageRecord }))
-			)
+				)
+				.map(() => ({ adjustment, packageRecord }))
 		);
 }
 

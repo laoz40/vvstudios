@@ -3,7 +3,7 @@
 import { internal } from "#convex/_generated/api";
 import type { Id } from "#convex/_generated/dataModel";
 import type { ActionCtx } from "#convex/_generated/server";
-import { requirePermissionActions } from "#convex/services/auth";
+import { requirePermissionActions } from "#convex/services/requirePermissionActions";
 import { clearCancelledSessionDriveFields } from "#convex/services/drive/cleanupCancelledSessionDrive";
 import { loadGoogleCalendarClient } from "#convex/lib/googleCalendar/googleCalendarClient";
 import { deleteSessionCalendarEvent } from "#convex/services/googleCalendar/sessionCalendarEventWorkflow";

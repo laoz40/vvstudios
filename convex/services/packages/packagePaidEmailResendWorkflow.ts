@@ -5,7 +5,7 @@ import { api } from "#convex/_generated/api";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { ActionCtx } from "#convex/_generated/server";
 import { env } from "#convex/env";
-import { requirePermissionActions } from "#convex/services/auth";
+import { requirePermissionActions } from "#convex/services/requirePermissionActions";
 import {
 	buildPackagePaidEmailContext,
 	type PaidPackageResult,

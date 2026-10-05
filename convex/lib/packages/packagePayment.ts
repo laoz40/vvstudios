@@ -8,7 +8,7 @@ import { createPackageInvoiceLineItemSnapshot } from "#studio/features/booking-i
 import type { PackageInvoiceInput } from "#studio/features/booking-invoice/lib/booking-artifacts";
 import { sendPackageReceiptEmailsForPackage } from "#convex/lib/booking/bookingDocumentEmails";
 import type { ParsedPackageRequest } from "#convex/lib/packages/packageUpdates";
-import { fromConvexTuple, okOrThrow } from "#convex/lib/result";
+import { fromConvexTuple } from "#convex/lib/result";
 
 export type PaidPackageResult = {
 	expiresAt: number;
@@ -54,7 +54,7 @@ export function createPendingPackage(
 		packageSize: args.packageSize
 	});
 
-	return okOrThrow(
+	return fromConvexTuple(
 		ctx.runMutation(internal.packages.createPendingPackage, {
 			...args,
 			abn: args.abn || undefined,

@@ -7,7 +7,7 @@ import type { ActionCtx } from "#convex/_generated/server";
 import { loadBookingAvailabilitySettings } from "#convex/lib/booking/bookingConfirmationActionBoundaries";
 import { loadGoogleCalendarClient } from "#convex/lib/googleCalendar/googleCalendarClient";
 import { getSessionFromQuery } from "#convex/lib/sessions/sessionLookup";
-import { requirePermissionActions } from "#convex/services/auth";
+import { requirePermissionActions } from "#convex/services/requirePermissionActions";
 import {
 	clearSessionSlotReservation,
 	reserveSessionSlot,

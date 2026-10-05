@@ -1,4 +1,4 @@
-import { err, ok, type ResultAsync } from "neverthrow";
+import { err, ok, ResultAsync, type ResultAsync as ResultAsyncType } from "neverthrow";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
 import {
@@ -49,7 +49,7 @@ export function insertPendingPackageRecord(ctx: MutationCtx, args: CreatePending
 export function markPackagePaidWithScheduleToken(
 	ctx: MutationCtx,
 	args: { packageId: Id<"packages">; paidAt: number }
-): ResultAsync<PaidPackageResult, PackageLookupError | { reason: "PACKAGE_ALREADY_PAID" }> {
+): ResultAsyncType<PaidPackageResult, PackageLookupError | { reason: "PACKAGE_ALREADY_PAID" }> {
 	return getPackageFromDb(ctx, args.packageId)
 		.andThen(rejectAlreadyPaidPackage)
 		.andThen((packageFromDb) => createPackageSchedulingDetails(packageFromDb, args.paidAt))
@@ -192,11 +192,9 @@ export function savePackageInstagramHandle(
 	};
 
 	return patchPackageRowInstagramHandle(ctx, args).andThen(() =>
-		okOrThrow(
-			patchPackageSessionBookingsContactSearch(ctx, args.packageFromDb._id, contactFields).then(
-				() => null
-			)
-		)
+		ResultAsync.fromSafePromise(
+			patchPackageSessionBookingsContactSearch(ctx, args.packageFromDb._id, contactFields)
+		).map(() => null)
 	);
 }
 

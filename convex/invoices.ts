@@ -3,7 +3,7 @@
 import { v } from "convex/values";
 import { tupleErr, tupleOk } from "#/lib/result";
 import { action } from "#convex/_generated/server";
-import { requirePermissionActions } from "#convex/services/auth";
+import { requirePermissionActions } from "#convex/services/requirePermissionActions";
 import {
 	loadAdminBookingForReceiptPdf,
 	loadAdminPackageForReceiptPdf,

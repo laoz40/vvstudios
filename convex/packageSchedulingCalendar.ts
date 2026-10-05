@@ -65,31 +65,34 @@ export const createPackageSessionCalendarEvent = internalAction({
 		session: v.union(v.null(), packageCalendarBookingValidator),
 		details: packageCalendarDetailsValidator
 	},
-	handler: (_ctx, args) =>
-		syncPackageSessionGoogleCalendarEvent(
-			args as {
-				session: SessionCalendarEventRecord | null;
-				details: Parameters<typeof syncPackageSessionGoogleCalendarEvent>[0]["details"];
-			}
-		).match(tupleOk, tupleErr)
+	handler: (_ctx, args) => {
+		// SAFETY: Convex validators accept the same session and details fields required by calendar sync.
+		const syncArgs = args as {
+			session: SessionCalendarEventRecord | null;
+			details: Parameters<typeof syncPackageSessionGoogleCalendarEvent>[0]["details"];
+		};
+
+		return syncPackageSessionGoogleCalendarEvent(syncArgs).match(tupleOk, tupleErr);
+	}
 });
 
 export const updatePackageSessionCalendarEvent = internalAction({
 	args: { session: packageCalendarBookingValidator, details: packageCalendarDetailsValidator },
-	handler: (_ctx, args) =>
-		syncPackageSessionGoogleCalendarEvent({
-			session: args.session as SessionCalendarEventRecord,
-			details: args.details as Parameters<
-				typeof syncPackageSessionGoogleCalendarEvent
-			>[0]["details"]
-		}).match(tupleOk, tupleErr)
+	handler: (_ctx, args) => {
+		// SAFETY: Validated calendar details match the sync helper's expected details shape.
+		const details = args.details as Parameters<
+			typeof syncPackageSessionGoogleCalendarEvent
+		>[0]["details"];
+
+		return syncPackageSessionGoogleCalendarEvent({ session: args.session, details }).match(
+			tupleOk,
+			tupleErr
+		);
+	}
 });
 
 export const deletePackageSessionCalendarEvent = internalAction({
 	args: { session: packageCalendarBookingValidator },
 	handler: (_ctx, args) =>
-		removePackageSessionGoogleCalendarEvent(args.session as SessionCalendarEventRecord).match(
-			tupleOk,
-			tupleErr
-		)
+		removePackageSessionGoogleCalendarEvent(args.session).match(tupleOk, tupleErr)
 });

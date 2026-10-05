@@ -1,4 +1,5 @@
 import { internal } from "#convex/_generated/api";
+import type { Doc } from "#convex/_generated/dataModel";
 import type { ActionCtx, QueryCtx } from "#convex/_generated/server";
 import { sendPackageExpiryReminderEmail } from "#convex/lib/email/email";
 import { getCapacityConsumingPackageSessions } from "#convex/lib/packages/packageScheduling";
@@ -15,10 +16,12 @@ const MAX_PACKAGE_SESSIONS = 12;
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
+export type PackageExpiryReminderCandidate = Doc<"packages"> & { remainingSessions: number };
+
 export async function listPackagesPotentiallyDueForExpiryReminderService(
 	ctx: QueryCtx,
 	args: { expiresAfter: number; expiresBefore: number; limit?: number }
-) {
+): Promise<PackageExpiryReminderCandidate[]> {
 	const limit = args.limit ?? REMINDER_BATCH_SIZE;
 
 	const packagesByStatus = await Promise.all(
@@ -80,7 +83,7 @@ async function sendPackageExpiryRemindersDueToday(ctx: ActionCtx, nowDate: Date)
 
 	// Reminders are non-critical, so isolate each package to ensure one failure does not block the rest.
 	await Promise.all(
-		expiryPackages.map(async (packageRecord) => {
+		expiryPackages.map(async (packageRecord: PackageExpiryReminderCandidate) => {
 			try {
 				const { expiresAt, remainingSessions } = packageRecord;
 
