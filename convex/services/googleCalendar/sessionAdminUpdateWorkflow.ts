@@ -129,7 +129,10 @@ function insertFailedSessionGoogleEvent({
 	});
 }
 
-export function authorizeAdminSessionEdit(ctx: ActionCtx, bookingId: Id<"bookings">) {
+export function requireEditSessionsPermissionAndLoadBooking(
+	ctx: ActionCtx,
+	bookingId: Id<"bookings">
+) {
 	return requirePermissionActions(ctx, "edit:sessions").andThen(() =>
 		getSessionFromQuery(ctx, bookingId)
 	);
@@ -380,7 +383,7 @@ function withReservationCompensation(
 	);
 }
 
-export function persistAdminSessionGoogleUpdate({
+export function syncAdminBookingGoogleCalendarAndDb({
 	args,
 	session,
 	client,

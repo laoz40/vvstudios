@@ -10,7 +10,7 @@ export function getBookingSettingsService(
 	return okOrThrow(ctx.runQuery(api.bookingSettings.get, {}));
 }
 
-export function persistBookingAvailabilitySettings(
+export function writeBookingAvailabilitySettings(
 	ctx: MutationCtx,
 	settings: BookingAvailabilitySettings,
 	updatedBy: string

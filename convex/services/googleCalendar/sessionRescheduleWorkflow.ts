@@ -236,7 +236,7 @@ function saveReschedule(
 		.orElse((error) => clearReservationThenUnlock(ctx, state).andThen(() => err(error)));
 }
 
-export function persistRescheduleAfterCalendar(
+export function saveClientRescheduleAndUnlockLink(
 	ctx: ActionCtx,
 	args: RescheduleSessionArgs,
 	state: RescheduleState & { timingUpdate: RescheduledSessionTimingUpdate }

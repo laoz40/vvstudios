@@ -71,7 +71,7 @@ function requireDeliverablesFolderContents(folder: { id: string; url: string }) 
 		});
 }
 
-export function assertDeliverablesEmailPending(
+export function skipWhenDeliverablesEditAlreadyCompleted(
 	session: Doc<"bookings">
 ): ResultAsync<Doc<"bookings"> | null, never> {
 	if (session.editStatus === "completed") {
@@ -81,7 +81,7 @@ export function assertDeliverablesEmailPending(
 	return okAsync(session);
 }
 
-export function prepareDeliverablesFolderForSend(
+export function loadDeliverablesFolderGuestReadLink(
 	ctx: ActionCtx,
 	bookingId: Id<"bookings">
 ): ResultAsync<{ id: string; url: string }, SendDeliverablesError> {

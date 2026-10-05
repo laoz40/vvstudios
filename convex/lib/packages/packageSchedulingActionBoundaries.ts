@@ -11,7 +11,7 @@ import type {
 	PackageSessionRequestDetails,
 	PackageUnscheduleRequestDetails,
 	SaveCreatedPackageSessionArgs
-} from "#convex/services/packages/packageScheduling";
+} from "#convex/services/packages/packageSessionMutationWorkflow";
 import {
 	toPackageCalendarDetails,
 	type CreatePackageSessionError,

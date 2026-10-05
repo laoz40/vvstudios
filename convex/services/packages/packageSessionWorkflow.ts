@@ -34,7 +34,7 @@ import type {
 	PackageSessionRequestDetails,
 	PackageUnscheduleRequestDetails,
 	SaveCreatedPackageSessionArgs
-} from "#convex/services/packages/packageScheduling";
+} from "#convex/services/packages/packageSessionMutationWorkflow";
 import { getPackageSessionAddons } from "#studio/features/booking-form/lib/booking-form-model";
 import type { SessionReservation } from "#convex/lib/sessions/sessionReservations";
 import type { BookingFormValues } from "#studio/features/booking-form/lib/booking-form-model";
@@ -54,7 +54,7 @@ export type ReschedulePackageSessionArgs = PackageSessionArgs & { bookingId: Id<
 
 export type UnschedulePackageSessionArgs = { bookingId: Id<"bookings">; token: string };
 
-export function authorizePackageSessionCreate(
+export function loadPackageCreateRequestAndCheckRateLimit(
 	ctx: ActionCtx,
 	args: PackageSessionArgs,
 	now: number
@@ -86,7 +86,7 @@ export function syncNewPackageSessionCalendar(
 	}).map((calendar) => ({ calendar, details }));
 }
 
-export function persistNewPackageSession(
+export function saveCreatedPackageSessionAfterCalendar(
 	ctx: ActionCtx,
 	args: PackageSessionArgs,
 	now: number,
@@ -185,7 +185,7 @@ export function syncPackageRescheduleCalendar(
 		);
 }
 
-export function persistPackageReschedule(
+export function savePackageSessionRescheduleAfterCalendar(
 	ctx: ActionCtx,
 	args: ReschedulePackageSessionArgs,
 	details: PackageRescheduleRequestDetails,

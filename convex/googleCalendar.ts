@@ -6,32 +6,37 @@ import { tupleErr, tupleOk, type Result } from "#/lib/result";
 import { action, internalAction } from "#convex/_generated/server";
 import { type BusyDayWindow } from "#convex/lib/sessions/sessionCalendarTime";
 import {
-	getAvailableBookingTimesService,
-	getAvailableRescheduleTimesService,
-	getBookableRangeBusyWindowsService,
-	getRescheduleBookableRangeBusyWindowsService,
 	type GetAvailableRescheduleTimesError,
 	type RescheduleSessionError,
 	type UpdateSessionFromAdminError
 } from "#convex/services/googleCalendar/sessionCalendar";
 import {
-	authorizeAdminSessionEdit,
+	loadAvailableBookingTimesForDay,
+	loadAvailableRescheduleTimesForDay,
+	loadBookableRangeBusyWindows,
+	loadRescheduleBookableRangeBusyWindows,
+	loadRescheduleSessionAndBookingSettings,
+	loadBookingAvailabilitySettingsForAction
+} from "#convex/services/googleCalendar/sessionCalendarAvailabilityWorkflow";
+import { checkGoogleCalendarAvailabilityRateLimit } from "#convex/lib/rateLimits";
+import {
+	requireEditSessionsPermissionAndLoadBooking,
 	loadAdminSessionEditDeps,
 	notifyHostIfNeeded,
-	persistAdminSessionGoogleUpdate
+	syncAdminBookingGoogleCalendarAndDb
 } from "#convex/services/googleCalendar/sessionAdminUpdateWorkflow";
 import {
-	authorizeAdminBookingCancel,
+	requireCancelSessionsPermission,
 	cleanupAdminCancelledBookingDrive,
 	deleteAdminBookingCalendarEvent,
 	loadAdminCancelSession,
-	persistAdminBookingCalendarDeletion
+	markBookingSessionCalendarDeleted
 } from "#convex/services/googleCalendar/cancelBookingFromAdminWorkflow";
 import {
 	finishReschedule,
 	loadRescheduleTargetAndValidate,
 	lockAndReserve,
-	persistRescheduleAfterCalendar,
+	saveClientRescheduleAndUnlockLink,
 	syncCalendar
 } from "#convex/services/googleCalendar/sessionRescheduleWorkflow";
 import type { CancelBookingFromAdminError } from "#convex/services/googleCalendar/sessionCalendar";
@@ -52,9 +57,14 @@ import {
 	type DriveClientPermissionsError
 } from "#convex/services/drive/driveClientPermissions";
 import { sendSessionReminderEmailService } from "#convex/services/booking/bookingConfirmationActions";
+import { loadBookingAvailabilitySettings } from "#convex/lib/booking/bookingConfirmationActionBoundaries";
+import { getGoogleCalendarClient } from "#convex/lib/googleCalendar/googleCalendarClient";
 import {
+	saveConfirmedClaimedBookingAndSendInvoice,
+	createClaimedBookingCalendarEvent,
 	loadClaimedSession,
-	runCompletion,
+	reserveClaimedBookingSlot,
+	verifyClaimedBookingSchedule,
 	type CompleteClaimedSessionError
 } from "#convex/services/booking/bookingClaimedSessionWorkflow";
 import type { CompleteClaimedSessionSuccess } from "#convex/services/booking/bookingConfirmation";
@@ -94,13 +104,18 @@ export const runScheduledDriveSetup = internalAction({
 export const getBookableRangeBusyWindows = action({
 	args: { rateLimitKey: v.string() },
 	handler: async (ctx, args) =>
-		await getBookableRangeBusyWindowsService(ctx, args).match(tupleOk, tupleErr)
+		await checkGoogleCalendarAvailabilityRateLimit(ctx, args.rateLimitKey)
+			.andThen(() => loadBookingAvailabilitySettingsForAction(ctx))
+			.andThen((settings) => loadBookableRangeBusyWindows(settings))
+			.match(tupleOk, tupleErr)
 });
 
 export const getAvailableBookingTimes = action({
 	args: { date: v.string(), duration: v.string() },
 	handler: async (ctx, args) =>
-		await getAvailableBookingTimesService(ctx, args).match(tupleOk, tupleErr)
+		await loadBookingAvailabilitySettingsForAction(ctx)
+			.andThen((settings) => loadAvailableBookingTimesForDay(args, settings))
+			.match(tupleOk, tupleErr)
 });
 
 export const getRescheduleBookableRangeBusyWindows = action({
@@ -113,7 +128,11 @@ export const getRescheduleBookableRangeBusyWindows = action({
 			{ busyWindowsByMonth: Record<string, BusyDayWindow[]>; timeZone: string },
 			GetAvailableRescheduleTimesError
 		>
-	> => await getRescheduleBookableRangeBusyWindowsService(ctx, args).match(tupleOk, tupleErr)
+	> =>
+		await checkGoogleCalendarAvailabilityRateLimit(ctx, args.rateLimitKey)
+			.andThen(() => loadRescheduleSessionAndBookingSettings(ctx, args.token))
+			.andThen(({ details, settings }) => loadRescheduleBookableRangeBusyWindows(settings, details))
+			.match(tupleOk, tupleErr)
 });
 
 export const getAvailableRescheduleTimes = action({
@@ -122,7 +141,11 @@ export const getAvailableRescheduleTimes = action({
 		ctx,
 		args
 	): Promise<Result<{ timeZone: string; times: string[] }, GetAvailableRescheduleTimesError>> =>
-		await getAvailableRescheduleTimesService(ctx, args).match(tupleOk, tupleErr)
+		await loadRescheduleSessionAndBookingSettings(ctx, args.token)
+			.andThen(({ details, settings }) =>
+				loadAvailableRescheduleTimesForDay(args, details, settings)
+			)
+			.match(tupleOk, tupleErr)
 });
 
 export const rescheduleSession = action({
@@ -144,7 +167,7 @@ export const rescheduleSession = action({
 				}))
 			)
 			.andThen(({ calendarClient, state }) => syncCalendar(ctx, args, state, calendarClient))
-			.andThen((state) => persistRescheduleAfterCalendar(ctx, args, state))
+			.andThen((state) => saveClientRescheduleAndUnlockLink(ctx, args, state))
 			.andThen(({ session, settings, timingUpdate }) =>
 				finishReschedule(session, args, timingUpdate, settings)
 			)
@@ -168,14 +191,12 @@ export const updateSessionFromAdmin = action({
 		notes: v.optional(v.string())
 	},
 	handler: (ctx, args): Promise<Result<AdminSessionUpdateResult, UpdateSessionFromAdminError>> =>
-		authorizeAdminSessionEdit(ctx, args.bookingId)
+		requireEditSessionsPermissionAndLoadBooking(ctx, args.bookingId)
 			.andThen((session) => loadAdminSessionEditDeps(ctx).map((deps) => ({ session, ...deps })))
 			.andThen(({ client, session, settings }) =>
-				persistAdminSessionGoogleUpdate({ args, session, client, ctx, settings }).map((result) => ({
-					result,
-					session,
-					settings
-				}))
+				syncAdminBookingGoogleCalendarAndDb({ args, session, client, ctx, settings }).map(
+					(result) => ({ result, session, settings })
+				)
 			)
 			.andThen(({ result, session, settings }) =>
 				notifyHostIfNeeded(ctx, args, session, settings, result)
@@ -186,10 +207,10 @@ export const updateSessionFromAdmin = action({
 export const cancelBookingFromAdmin = action({
 	args: { bookingId: v.id("bookings") },
 	handler: (ctx, args): Promise<Result<{ cancelled: boolean }, CancelBookingFromAdminError>> =>
-		authorizeAdminBookingCancel(ctx)
+		requireCancelSessionsPermission(ctx)
 			.andThen(() => loadAdminCancelSession(ctx, args.bookingId))
 			.andThen(deleteAdminBookingCalendarEvent)
-			.andThen(() => persistAdminBookingCalendarDeletion(ctx, args.bookingId))
+			.andThen(() => markBookingSessionCalendarDeleted(ctx, args.bookingId))
 			.andThen(() => cleanupAdminCancelledBookingDrive(ctx, args.bookingId))
 			.match(tupleOk, tupleErr)
 });
@@ -207,9 +228,50 @@ export const completeClaimedSession = internalAction({
 		args
 	): Promise<Result<CompleteClaimedSessionSuccess, CompleteClaimedSessionError>> =>
 		loadClaimedSession(ctx, args.bookingId)
-			.andThen((loaded) =>
-				loaded.kind === "done" ? okAsync(loaded.outcome) : runCompletion(ctx, loaded.session)
-			)
+			.andThen((loaded) => {
+				if (loaded.kind === "done") {
+					return okAsync(loaded.outcome);
+				}
+
+				const session = loaded.session;
+				const calendarClient = getGoogleCalendarClient();
+
+				return loadBookingAvailabilitySettings(ctx).andThen((settings) =>
+					verifyClaimedBookingSchedule(ctx, session, settings, calendarClient).andThen(
+						(schedule) => {
+							if (schedule.kind === "done") {
+								return okAsync(schedule.outcome);
+							}
+
+							return reserveClaimedBookingSlot(ctx, session, settings).andThen((hold) => {
+								if (hold.kind === "done") {
+									return okAsync(hold.outcome);
+								}
+
+								return createClaimedBookingCalendarEvent(
+									ctx,
+									session,
+									calendarClient,
+									hold.reservation
+								).andThen((calendar) => {
+									if (calendar.kind === "done") {
+										return okAsync(calendar.outcome);
+									}
+
+									return saveConfirmedClaimedBookingAndSendInvoice(
+										ctx,
+										session,
+										settings,
+										calendarClient,
+										hold.reservation,
+										calendar.googleEventId
+									);
+								});
+							});
+						}
+					)
+				);
+			})
 			.match(tupleOk, tupleErr)
 });
 

@@ -20,21 +20,30 @@ import {
 	getPackageByTokenService,
 	processPackageAdjustmentAtExpiryService,
 	processPackageAdjustmentWhenSessionsCompleteService,
-	saveCreatedPackageSessionService,
-	setPackageDefaultSpaceService,
-	validatePackageRescheduleRequestService,
-	validatePackageSessionRequestService,
-	validatePackageUnscheduleRequestService
+	setPackageDefaultSpaceService
 } from "#convex/services/packages/packageScheduling";
 import {
-	authorizePackageSessionCreate,
+	rejectFullPackageAndParseSessionStartTime,
+	rejectPackageCreateWhenUnavailableOrFull,
+	parsePackageRescheduleStartTime,
+	parsePackageSessionCreateStartTime,
+	clearPackageExpiryReminderStateWhenPending,
+	insertPackageSessionBookingRow,
+	loadEditablePackageSessionForReschedule,
+	loadValidPackageAndBookingSettings,
+	loadEditablePackageSessionForUnschedule,
+	loadValidPackageAndCapacityConsumingSessions,
+	schedulePackageAdjustmentWhenAllSessionsBooked
+} from "#convex/services/packages/packageSessionMutationWorkflow";
+import {
+	loadPackageCreateRequestAndCheckRateLimit,
 	cleanupCancelledPackageDrive,
 	clearPackageSessionCalendar,
 	loadPackageRescheduleTarget,
 	loadPackageUnscheduleTarget,
 	markPackageSessionCancelled,
-	persistNewPackageSession,
-	persistPackageReschedule,
+	saveCreatedPackageSessionAfterCalendar,
+	savePackageSessionRescheduleAfterCalendar,
 	reservePackageRescheduleSlot,
 	syncNewPackageSessionCalendar,
 	syncPackageRescheduleCalendar
@@ -69,10 +78,10 @@ export const createPackageSession = action({
 	): Promise<Result<{ bookingId: Id<"bookings"> }, CreatePackageSessionError>> => {
 		const now = Date.now();
 
-		return authorizePackageSessionCreate(ctx, args, now)
+		return loadPackageCreateRequestAndCheckRateLimit(ctx, args, now)
 			.andThen((details) => syncNewPackageSessionCalendar(ctx, args, details))
 			.andThen(({ calendar, details }) =>
-				persistNewPackageSession(ctx, args, now, calendar, details)
+				saveCreatedPackageSessionAfterCalendar(ctx, args, now, calendar, details)
 			)
 			.match(tupleOk, tupleErr);
 	}
@@ -97,7 +106,7 @@ export const reschedulePackageSession = action({
 				syncPackageRescheduleCalendar(ctx, args, details, reservation)
 			)
 			.andThen(({ calendar, details, reservation }) =>
-				persistPackageReschedule(ctx, args, details, calendar, reservation)
+				savePackageSessionRescheduleAfterCalendar(ctx, args, details, calendar, reservation)
 			)
 			.match(tupleOk, tupleErr);
 	}
@@ -141,19 +150,29 @@ const requestArgs = { token: v.string(), date: v.string(), time: v.string(), now
 
 export const validatePackageSessionRequest = internalQuery({
 	args: requestArgs,
-	handler: (ctx, args) => validatePackageSessionRequestService(ctx, args).match(tupleOk, tupleErr)
+	handler: (ctx, args) =>
+		loadValidPackageAndBookingSettings(ctx, args)
+			.andThen(({ packageRecord, settings }) =>
+				rejectPackageCreateWhenUnavailableOrFull(ctx, args, packageRecord, settings)
+			)
+			.andThen(({ packageRecord, settings }) =>
+				parsePackageSessionCreateStartTime(args, packageRecord, settings)
+			)
+			.match(tupleOk, tupleErr)
 });
 
 export const validatePackageRescheduleRequest = internalQuery({
 	args: { ...requestArgs, bookingId: v.id("bookings") },
 	handler: (ctx, args) =>
-		validatePackageRescheduleRequestService(ctx, args).match(tupleOk, tupleErr)
+		loadEditablePackageSessionForReschedule(ctx, args)
+			.andThen((details) => parsePackageRescheduleStartTime(args, details))
+			.match(tupleOk, tupleErr)
 });
 
 export const validatePackageUnscheduleRequest = internalQuery({
 	args: { token: v.string(), bookingId: v.id("bookings"), now: v.number() },
 	handler: (ctx, args) =>
-		validatePackageUnscheduleRequestService(ctx, args).match(tupleOk, tupleErr)
+		loadEditablePackageSessionForUnschedule(ctx, args).match(tupleOk, tupleErr)
 });
 
 export const saveCreatedPackageSession = internalMutation({
@@ -163,7 +182,21 @@ export const saveCreatedPackageSession = internalMutation({
 		googleCalendarId: v.optional(v.string()),
 		googleEventId: v.optional(v.string())
 	},
-	handler: (ctx, args) => saveCreatedPackageSessionService(ctx, args).match(tupleOk, tupleErr)
+	handler: (ctx, args) =>
+		loadValidPackageAndCapacityConsumingSessions(ctx, args)
+			.andThen(({ packageFromDb, packageSessions }) =>
+				rejectFullPackageAndParseSessionStartTime(args, packageFromDb, packageSessions)
+			)
+			.andThen(({ packageFromDb, sessionStartAt }) =>
+				insertPackageSessionBookingRow(ctx, args, packageFromDb, sessionStartAt)
+			)
+			.andThen(({ bookingId, packageFromDb }) =>
+				clearPackageExpiryReminderStateWhenPending(ctx, packageFromDb, bookingId)
+			)
+			.andThen(({ bookingId, packageFromDb }) =>
+				schedulePackageAdjustmentWhenAllSessionsBooked(ctx, packageFromDb._id, bookingId)
+			)
+			.match(tupleOk, tupleErr)
 });
 
 export const cancelPackageSession = internalMutation({

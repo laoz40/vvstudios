@@ -13,7 +13,7 @@ import { getSessionFromQuery } from "#convex/lib/sessions/sessionLookup";
 import { fromConvexTuple } from "#convex/lib/result";
 import type { CancelBookingFromAdminError } from "#convex/services/googleCalendar/sessionCalendar";
 
-export function authorizeAdminBookingCancel(ctx: ActionCtx) {
+export function requireCancelSessionsPermission(ctx: ActionCtx) {
 	return requirePermissionActions(ctx, "cancel:sessions");
 }
 
@@ -33,7 +33,7 @@ export function deleteAdminBookingCalendarEvent({
 	return deleteSessionCalendarEvent({ session, client });
 }
 
-export function persistAdminBookingCalendarDeletion(ctx: ActionCtx, bookingId: Id<"bookings">) {
+export function markBookingSessionCalendarDeleted(ctx: ActionCtx, bookingId: Id<"bookings">) {
 	return fromConvexTuple(
 		ctx.runMutation(internal.sessions.markSessionCalendarEventDeleted, { bookingId })
 	);
