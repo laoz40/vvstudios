@@ -6,12 +6,18 @@ import { getDriveStatus } from "#convex/lib/drive/driveStatus";
 import {
 	getBookingRow,
 	getSessionFromDb,
-	lookupBookingByStripeSessionId
+	lookupBookingByStripeSessionId,
+	normalizeBookingId
 } from "#convex/lib/sessions/sessionLookup";
 import { buildPublicSessionStatusResponse } from "#convex/services/sessions/sessions";
 
-export { getBookingRow };
-export { getDriveStatus as loadSensitiveBookingDriveStatus };
+export function loadSensitiveBookingDriveStatus(ctx: QueryCtx, bookingId: Id<"bookings">) {
+	return getDriveStatus(ctx, bookingId);
+}
+
+export function loadBookingRowForInternal(ctx: QueryCtx, bookingId: Id<"bookings">) {
+	return getBookingRow(ctx, bookingId);
+}
 
 export function loadInternalDeliverablesCustomerType(ctx: QueryCtx, bookingId: Id<"bookings">) {
 	return getSessionFromDb(ctx, bookingId).andThen((session) =>
@@ -26,19 +32,15 @@ export function loadPublicRescheduleCompleteSession(
 	ReturnType<typeof buildPublicSessionStatusResponse>,
 	{ reason: "BOOKING_NOT_FOUND" }
 > {
-	const normalizedBookingId = ctx.db.normalizeId("bookings", bookingId);
+	return normalizeBookingId(ctx, bookingId).asyncAndThen((normalizedBookingId) =>
+		getBookingRow(ctx, normalizedBookingId).andThen((session) => {
+			if (!session) {
+				return errAsync({ reason: "BOOKING_NOT_FOUND" as const });
+			}
 
-	if (normalizedBookingId === null) {
-		return errAsync({ reason: "BOOKING_NOT_FOUND" as const });
-	}
-
-	return getBookingRow(ctx, normalizedBookingId).andThen((session) => {
-		if (!session) {
-			return errAsync({ reason: "BOOKING_NOT_FOUND" as const });
-		}
-
-		return okAsync(buildPublicSessionStatusResponse(session));
-	});
+			return okAsync(buildPublicSessionStatusResponse(session));
+		})
+	);
 }
 
 export function loadSessionStatusByStripeSessionId(ctx: QueryCtx, stripeSessionId: string) {

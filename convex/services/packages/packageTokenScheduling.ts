@@ -2,7 +2,7 @@ import type { Doc } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
 import { getCapacityConsumingPackageSessions } from "#convex/lib/packages/packageScheduling";
 import { getValidPackageByToken as findValidPackageByToken } from "#convex/lib/packages/packageLookup";
-import { okOrThrow } from "#convex/lib/result";
+import { patchPackageDefaultRecordingSpace } from "#convex/lib/packages/packageUpdates";
 import { buildPackageTokenCustomerView } from "#convex/lib/packages/packageTokenView";
 
 export function loadPackageSchedulingPageByToken(
@@ -21,11 +21,7 @@ export function writePackageDefaultRecordingSpace(
 	args: { token: string; service: NonNullable<Doc<"packages">["defaultSpace"]>; now: number }
 ) {
 	return findValidPackageByToken(ctx, args.token, args.now).andThen((packageRecord) =>
-		okOrThrow(
-			ctx.db
-				.patch("packages", packageRecord._id, { defaultSpace: args.service })
-				.then(() => ({ defaultSpace: args.service }))
-		)
+		patchPackageDefaultRecordingSpace(ctx, packageRecord._id, args.service)
 	);
 }
 

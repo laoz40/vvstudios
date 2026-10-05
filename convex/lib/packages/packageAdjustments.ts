@@ -302,3 +302,53 @@ async function savePackageAdjustment(
 
 	return null;
 }
+
+export function patchPackageAdjustmentInvoiceEmailClaimed(
+	ctx: MutationCtx,
+	adjustmentId: Id<"packageAdjustments">,
+	claimedAt: number
+) {
+	return okOrThrow(
+		ctx.db.patch("packageAdjustments", adjustmentId, { invoiceEmailClaimedAt: claimedAt })
+	);
+}
+
+export function patchPackageAdjustmentInvoiceEmailFailed(
+	ctx: MutationCtx,
+	adjustmentId: Id<"packageAdjustments">
+) {
+	return okOrThrow(
+		ctx.db
+			.patch("packageAdjustments", adjustmentId, {
+				invoiceEmailStatus: "failed",
+				invoiceEmailClaimedAt: undefined
+			})
+			.then(() => null)
+	);
+}
+
+export function patchPackageAdjustmentInvoiceEmailSent(
+	ctx: MutationCtx,
+	adjustmentId: Id<"packageAdjustments">,
+	stripeInvoiceId: string
+) {
+	return okOrThrow(
+		ctx.db
+			.patch("packageAdjustments", adjustmentId, {
+				invoiceEmailStatus: "sent",
+				invoiceEmailClaimedAt: undefined,
+				stripeInvoiceId
+			})
+			.then(() => ({ updated: true }))
+	);
+}
+
+export function patchPackageAdjustmentPaymentStatus(
+	ctx: MutationCtx,
+	adjustmentId: Id<"packageAdjustments">,
+	paymentStatus: "paid" | "unpaid"
+) {
+	return okOrThrow(
+		ctx.db.patch("packageAdjustments", adjustmentId, { paymentStatus }).then(() => null)
+	);
+}

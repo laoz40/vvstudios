@@ -51,7 +51,10 @@ export function summarizeCustomPackageStripeInvoices(
 	return summarizeStripeInvoices(customInvoices);
 }
 
-function getStripeInvoiceByStripeInvoiceId(ctx: QueryCtx | MutationCtx, stripeInvoiceId: string) {
+export function getStripeInvoiceByStripeInvoiceId(
+	ctx: QueryCtx | MutationCtx,
+	stripeInvoiceId: string
+) {
 	return okOrThrow(
 		ctx.db
 			.query("stripeInvoices")

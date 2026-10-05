@@ -3,7 +3,8 @@ import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
 import { getBookingAvailabilitySettings } from "#convex/lib/booking/bookingSettings";
 import { getOrCreateDriveClientId } from "#convex/lib/drive/driveFolders";
-import { buildBookingSearchBlob } from "#convex/lib/adminSearch/adminSearchBlob";
+import { insertPackageSessionBookingRow as persistPackageSessionBookingRow } from "#convex/lib/packages/packageSessionBookings";
+import { patchPackageExpiryReminderStateCleared } from "#convex/lib/packages/packageUpdates";
 import { scheduleDriveSetup } from "#convex/lib/drive/driveScheduling";
 import { formatDriveClientFolderName } from "#studio/lib/bookingdatetime";
 import { schedulePackageAdjustmentWhenSessionsComplete } from "#convex/lib/packages/packageAdjustmentScheduling";
@@ -18,7 +19,6 @@ import {
 	type ValidPackage,
 	type ValidPackageByTokenError
 } from "#convex/lib/packages/packageLookup";
-import { okOrThrow } from "#convex/lib/result";
 import { getSessionStartAt } from "#convex/lib/sessions/sessionAdminEdit";
 import { env } from "#convex/env";
 import { getPackageSessionAddons } from "#studio/features/booking-form/lib/booking-form-model";
@@ -232,12 +232,7 @@ export function insertPackageSessionBookingRow(
 			driveClientId
 		};
 
-		return okOrThrow(
-			ctx.db.insert("bookings", {
-				...bookingFields,
-				searchBlob: buildBookingSearchBlob(bookingFields)
-			})
-		).andThen((bookingId) =>
+		return persistPackageSessionBookingRow(ctx, bookingFields).andThen((bookingId) =>
 			scheduleDriveSetup(ctx, {
 				bookingId,
 				sessionStartAt,
@@ -257,11 +252,10 @@ export function clearPackageExpiryReminderStateWhenPending(
 		return okAsync({ bookingId, packageFromDb });
 	}
 
-	return okOrThrow(
-		ctx.db
-			.patch("packages", packageFromDb._id, { packageReminderState: undefined })
-			.then(() => ({ bookingId, packageFromDb }))
-	);
+	return patchPackageExpiryReminderStateCleared(ctx, packageFromDb._id).map(() => ({
+		bookingId,
+		packageFromDb
+	}));
 }
 
 export function schedulePackageAdjustmentWhenAllSessionsBooked(

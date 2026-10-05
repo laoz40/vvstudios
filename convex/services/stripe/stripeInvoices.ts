@@ -6,7 +6,7 @@ import {
 	unarchivePackageForNewUnpaidInvoice
 } from "#convex/lib/packages/packageArchive";
 import { getPackageFromDb } from "#convex/lib/packages/packageLookup";
-import { okOrThrow } from "#convex/lib/result";
+import { getStripeInvoiceByStripeInvoiceId } from "#convex/lib/stripe/stripeInvoices";
 import { getSessionFromDb } from "#convex/lib/sessions/sessionLookup";
 import {
 	archiveSessionWhenFullyDone,
@@ -49,14 +49,7 @@ export function archiveBookingWhenStripeInvoicePaid(
 	stripeInvoiceId: string,
 	paidAt: number
 ) {
-	return okOrThrow(
-		ctx.db
-			.query("stripeInvoices")
-			.withIndex("by_stripeInvoiceId", (indexQuery) =>
-				indexQuery.eq("stripeInvoiceId", stripeInvoiceId)
-			)
-			.unique()
-	).andThen((stripeInvoice) => {
+	return getStripeInvoiceByStripeInvoiceId(ctx, stripeInvoiceId).andThen((stripeInvoice) => {
 		if (stripeInvoice?.bookingId !== undefined) {
 			return archiveSessionWhenFullyDone(ctx, stripeInvoice.bookingId, paidAt).map(() => null);
 		}

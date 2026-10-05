@@ -4,10 +4,11 @@ import type { BookingAddonQuantitiesArgs } from "#convex/lib/booking/bookingAddo
 import type { BookingAddon } from "#studio/features/booking-form/lib/booking-form-model";
 import { requirePermission } from "#convex/services/auth";
 import {
+	getCustomInvoiceRow,
+	listCustomInvoicesByBookingId,
 	saveNumberedCustomInvoice,
 	validateCustomTotalDueAmount
 } from "#convex/lib/stripe/customInvoices";
-import { okOrThrow } from "#convex/lib/result";
 import { getSessionFromDb } from "#convex/lib/sessions/sessionLookup";
 
 type CustomInvoiceDetails = {
@@ -25,13 +26,7 @@ export type CreateBookingCustomInvoiceArgs = CustomInvoiceDetails & {
 
 export function listCustomInvoicesForBooking(ctx: QueryCtx, args: { bookingId: Id<"bookings"> }) {
 	return requirePermission(ctx, "view:sensitive-booking-data").andThen(() =>
-		okOrThrow(
-			ctx.db
-				.query("customInvoices")
-				.withIndex("by_bookingId", (query) => query.eq("bookingId", args.bookingId))
-				.order("desc")
-				.collect()
-		)
+		listCustomInvoicesByBookingId(ctx, args.bookingId)
 	);
 }
 
@@ -39,7 +34,7 @@ export function loadBookingCustomInvoiceInput(
 	ctx: QueryCtx,
 	args: { bookingId: Id<"bookings">; customInvoiceId: Id<"customInvoices"> }
 ) {
-	return okOrThrow(ctx.db.get("customInvoices", args.customInvoiceId)).map((customInvoice) =>
+	return getCustomInvoiceRow(ctx, args.customInvoiceId).map((customInvoice) =>
 		customInvoice?.bookingId === args.bookingId ? customInvoice : null
 	);
 }

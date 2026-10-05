@@ -3,7 +3,10 @@ import type { Doc } from "#convex/_generated/dataModel";
 import type { ActionCtx, QueryCtx } from "#convex/_generated/server";
 import { sendPackageExpiryReminderEmail } from "#convex/lib/email/email";
 import { getCapacityConsumingPackageSessions } from "#convex/lib/packages/packageScheduling";
-import { hasSentPackageReminder } from "#convex/lib/packages/packageReminders";
+import {
+	hasSentPackageReminder,
+	listPackagesInExpiryReminderWindow
+} from "#convex/lib/packages/packageReminders";
 import {
 	getTimeZoneDate,
 	getTimeZoneDayRange,
@@ -24,22 +27,9 @@ export async function listPackagesPotentiallyDueForExpiryReminderService(
 ): Promise<PackageExpiryReminderCandidate[]> {
 	const limit = args.limit ?? REMINDER_BATCH_SIZE;
 
-	const packagesByStatus = await Promise.all(
-		(["paid", "schedule_email_failed"] as const).map((status) =>
-			ctx.db
-				.query("packages")
-				.withIndex("by_status_and_expiresAt", (query) =>
-					query
-						.eq("status", status)
-						.gt("expiresAt", args.expiresAfter)
-						.lt("expiresAt", args.expiresBefore)
-				)
-				.take(limit)
-		)
-	);
+	const packagesInWindow = await listPackagesInExpiryReminderWindow(ctx, args);
 
-	const eligiblePackages = packagesByStatus
-		.flat()
+	const eligiblePackages = packagesInWindow
 		.filter(
 			(packageFromDb) => !hasSentPackageReminder(packageFromDb.packageReminderState, "expiry")
 		)

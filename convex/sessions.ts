@@ -1,3 +1,4 @@
+import { ConvexError } from "convex/values";
 import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
 import { tupleErr, tupleOk } from "#/lib/result";
@@ -8,8 +9,7 @@ import { runArchivePastDeadCheckoutBatch } from "#convex/services/sessions/sessi
 import { listSessionsService } from "#convex/services/sessions/sessions";
 import {
 	listActiveEditorsForAdmin,
-	listEditorSessionsForAssignee,
-	throwConvexErrorOnAuthFailure
+	listEditorSessionsForAssignee
 } from "#convex/services/sessions/sessionsEditor";
 import {
 	assignSessionEditorFromAdmin,
@@ -21,7 +21,7 @@ import {
 	writeSessionEditorNotesFromEditor
 } from "#convex/services/sessions/sessionMutations";
 import {
-	getBookingRow,
+	loadBookingRowForInternal,
 	loadInternalDeliverablesCustomerType,
 	loadPublicRescheduleCompleteSession,
 	loadSensitiveBookingDriveStatus,
@@ -37,7 +37,7 @@ export const detectDeliverablesCustomerType = internalQuery({
 export const getSessionById = internalQuery({
 	args: { bookingId: v.id("bookings") },
 	handler: async (ctx, args) =>
-		(await getBookingRow(ctx, args.bookingId)).match(
+		(await loadBookingRowForInternal(ctx, args.bookingId)).match(
 			(session) => session,
 			() => null
 		)
@@ -71,16 +71,23 @@ export const listSessions = query({
 
 export const listActiveEditors = query({
 	args: {},
-	handler: (ctx) =>
-		listActiveEditorsForAdmin(ctx).match((editors) => editors, throwConvexErrorOnAuthFailure)
+	handler: async (ctx) =>
+		(await listActiveEditorsForAdmin(ctx)).match(
+			(editors) => editors,
+			(authError) => {
+				throw new ConvexError(authError);
+			}
+		)
 });
 
 export const listEditorSessions = query({
 	args: { paginationOpts: paginationOptsValidator },
-	handler: (ctx, args) =>
-		listEditorSessionsForAssignee(ctx, args.paginationOpts).match(
+	handler: async (ctx, args) =>
+		(await listEditorSessionsForAssignee(ctx, args.paginationOpts)).match(
 			(sessionsPage) => sessionsPage,
-			throwConvexErrorOnAuthFailure
+			(authError) => {
+				throw new ConvexError(authError);
+			}
 		)
 });
 

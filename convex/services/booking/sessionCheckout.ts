@@ -1,8 +1,8 @@
 import { ok, type ResultAsync as NeverthrowResultAsync } from "neverthrow";
 import type { Id } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
+import { patchBookingStripeCheckoutIds } from "#convex/lib/booking/bookingConfirmationSessionPatches";
 import { env } from "#convex/env";
-import { okOrThrow } from "#convex/lib/result";
 import { archiveDeadCheckoutBooking } from "#convex/lib/sessions/sessionArchive";
 import { getSessionStartAt } from "#convex/lib/sessions/sessionAdminEdit";
 import {
@@ -11,7 +11,7 @@ import {
 	validatePendingSessionDeletion,
 	validateSessionExpiry
 } from "#convex/lib/sessions/sessionCheckout";
-import { lookupBookingByStripeSessionId } from "#convex/lib/sessions/sessionLookup";
+import { getBookingRow, lookupBookingByStripeSessionId } from "#convex/lib/sessions/sessionLookup";
 import {
 	type CreatePendingCheckoutSessionArgs,
 	buildPendingPaymentBookingFields,
@@ -66,14 +66,7 @@ export function writeBookingStripeCheckoutIds(
 	ctx: MutationCtx,
 	args: { bookingId: Id<"bookings">; stripeSessionId: string; stripeCustomerId: string }
 ) {
-	return okOrThrow(
-		ctx.db
-			.patch("bookings", args.bookingId, {
-				stripeSessionId: args.stripeSessionId,
-				stripeCustomerId: args.stripeCustomerId
-			})
-			.then(() => null)
-	);
+	return patchBookingStripeCheckoutIds(ctx, args);
 }
 
 export function expirePendingCheckoutByStripeSessionId(
@@ -97,7 +90,7 @@ export function abandonPendingCheckoutBooking(
 	ctx: MutationCtx,
 	args: { bookingId: Id<"bookings">; stripeSessionId: string }
 ): NeverthrowResultAsync<DeletePendingSessionSuccess, { reason: "STRIPE_SESSION_MISMATCH" }> {
-	return okOrThrow(ctx.db.get("bookings", args.bookingId))
+	return getBookingRow(ctx, args.bookingId)
 		.andThen((booking) => validatePendingSessionDeletion(booking, args.stripeSessionId))
 		.andThen((decision) => {
 			if (decision.kind === "complete") {

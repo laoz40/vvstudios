@@ -3,10 +3,10 @@ import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
 import {
 	patchPackageSessionBookingsContactSearch,
-	searchBlobPatchForBooking,
 	searchBlobPatchForPackage
 } from "#convex/lib/adminSearch/adminSearchBlob";
 import { checkBookingSubmitRateLimit } from "#convex/lib/rateLimits";
+import { patchPackageBookingsReceiptNumber } from "#convex/lib/packages/packageBookingsReceiptSync";
 import { getPackageFromDb, type PackageLookupError } from "#convex/lib/packages/packageLookup";
 import type { PaidPackageResult } from "#convex/lib/packages/packagePayment";
 import {
@@ -23,9 +23,12 @@ import {
 import {
 	buildPendingPackageRecord,
 	type CreatePendingPackageArgs,
-	patchPackageRowInstagramHandle
+	insertPendingPackageRow,
+	patchPackageReceiptEmailAttempt,
+	patchPackageRowInstagramHandle,
+	patchPackageScheduleEmailStatus,
+	patchPackageScheduleTokenRefresh
 } from "#convex/lib/packages/packageUpdates";
-import { okOrThrow } from "#convex/lib/result";
 
 export function enforcePackageSubmitRateLimit(ctx: MutationCtx, submitRateLimitKey: string) {
 	return checkBookingSubmitRateLimit(ctx, submitRateLimitKey);
@@ -39,11 +42,7 @@ export function insertPendingPackageRecord(ctx: MutationCtx, args: CreatePending
 		createdAt
 	);
 
-	return okOrThrow(
-		ctx.db
-			.insert("packages", packageRecord)
-			.then((packageId) => ({ packageRecord: { _id: packageId, ...packageRecord } }))
-	);
+	return insertPendingPackageRow(ctx, packageRecord);
 }
 
 export function markPackagePaidWithScheduleToken(
@@ -80,20 +79,16 @@ export function refreshPaidPackageScheduleToken(ctx: MutationCtx, packageId: Id<
 			createPackageScheduleToken().map((scheduleToken) => ({ packageFromDb, ...scheduleToken }))
 		)
 		.andThen(({ packageFromDb, scheduleTokenHash, token }) =>
-			okOrThrow(
-				ctx.db
-					.patch("packages", packageId, { scheduleLinkStatus: "active", scheduleTokenHash })
-					.then(() => ({
-						expiresAt: packageFromDb.expiresAt,
-						paidAt: packageFromDb.paidAt,
-						packageRecord: {
-							...packageFromDb,
-							scheduleLinkStatus: "active" as const,
-							scheduleTokenHash
-						},
-						token
-					}))
-			)
+			patchPackageScheduleTokenRefresh(ctx, packageId, scheduleTokenHash).map(() => ({
+				expiresAt: packageFromDb.expiresAt,
+				paidAt: packageFromDb.paidAt,
+				packageRecord: {
+					...packageFromDb,
+					scheduleLinkStatus: "active" as const,
+					scheduleTokenHash
+				},
+				token
+			}))
 		);
 }
 
@@ -102,13 +97,7 @@ export function writePackageScheduleEmailAttempt(
 	args: { packageId: Id<"packages">; status: "sent" | "failed" }
 ) {
 	return getPackageFromDb(ctx, args.packageId).andThen(() =>
-		okOrThrow(
-			ctx.db
-				.patch("packages", args.packageId, {
-					status: args.status === "sent" ? "paid" : "schedule_email_failed"
-				})
-				.then(() => null)
-		)
+		patchPackageScheduleEmailStatus(ctx, args.packageId, args.status)
 	);
 }
 
@@ -140,31 +129,13 @@ export function writePackageReceiptEmailAttempt(
 						lastReceiptEmailAttemptAt: now
 					};
 
-		return okOrThrow(
-			ctx.db.patch("packages", args.packageId, sentPatch).then(async () => {
-				if (args.status === "sent" && args.receiptNumber) {
-					const bookings = await ctx.db
-						.query("bookings")
-						.withIndex("by_packageId_and_status_and_sessionStartAt", (indexQuery) =>
-							indexQuery.eq("packageId", args.packageId)
-						)
-						.collect();
+		return patchPackageReceiptEmailAttempt(ctx, args.packageId, sentPatch).andThen(() => {
+			if (args.status !== "sent" || !args.receiptNumber) {
+				return ok(null);
+			}
 
-					await Promise.all(
-						bookings.map(async (booking) =>
-							ctx.db.patch("bookings", booking._id, {
-								receiptNumber: args.receiptNumber,
-								...(await searchBlobPatchForBooking(ctx, booking, {
-									receiptNumber: args.receiptNumber
-								}))
-							})
-						)
-					);
-				}
-
-				return null;
-			})
-		);
+			return patchPackageBookingsReceiptNumber(ctx, args.packageId, args.receiptNumber);
+		});
 	});
 }
 

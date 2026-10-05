@@ -1,4 +1,3 @@
-import { ConvexError } from "convex/values";
 import { ResultAsync } from "neverthrow";
 import type { PaginationOptions } from "convex/server";
 import type { QueryCtx } from "#convex/_generated/server";
@@ -8,10 +7,10 @@ import {
 } from "#convex/lib/editor/editorAssignments";
 import {
 	buildEditorSessionProjection,
-	isEditorVisibleSession
+	isEditorVisibleSession,
+	paginateBookingsForAssigneeEditor
 } from "#convex/lib/editor/editorSessions";
 import { getEditorSessionDriveFolders } from "#convex/lib/drive/driveStatus";
-import { okOrThrow } from "#convex/lib/result";
 import { requirePermission } from "#convex/services/auth";
 
 export function listActiveEditorsForAdmin(ctx: QueryCtx) {
@@ -25,15 +24,7 @@ export function listActiveEditorsForAdmin(ctx: QueryCtx) {
 export function listEditorSessionsForAssignee(ctx: QueryCtx, paginationOpts: PaginationOptions) {
 	return requirePermission(ctx, "view:sessions")
 		.andThen((identity) =>
-			okOrThrow(
-				ctx.db
-					.query("bookings")
-					.withIndex("by_assignedEditorTokenIdentifier_and_driveClientId", (indexQuery) =>
-						indexQuery.eq("assignedEditorTokenIdentifier", identity.tokenIdentifier)
-					)
-					.order("desc")
-					.paginate(paginationOpts)
-			)
+			paginateBookingsForAssigneeEditor(ctx, identity.tokenIdentifier, paginationOpts)
 		)
 		.andThen((bookingsPage) => {
 			const visibleSessions = bookingsPage.page.filter(isEditorVisibleSession);
@@ -46,8 +37,4 @@ export function listEditorSessionsForAssignee(ctx: QueryCtx, paginationOpts: Pag
 				)
 			).map((page) => ({ ...bookingsPage, page }));
 		});
-}
-
-export function throwConvexErrorOnAuthFailure(error: { reason: string } | null): never {
-	throw new ConvexError(error ?? { reason: "NOT_AUTHORIZED" });
 }

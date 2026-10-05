@@ -1,4 +1,5 @@
 import type { UserIdentity } from "convex/server";
+import type { PaginationOptions } from "convex/server";
 import { err, ok, okAsync } from "neverthrow";
 import type { Doc } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
@@ -29,6 +30,22 @@ export function detectDeliverablesCustomerType(ctx: QueryCtx, session: Doc<"book
 
 		return hasCompletedPriorSession ? "recurring" : "first-time";
 	});
+}
+
+export function paginateBookingsForAssigneeEditor(
+	ctx: QueryCtx,
+	assignedEditorTokenIdentifier: string,
+	paginationOpts: PaginationOptions
+) {
+	return okOrThrow(
+		ctx.db
+			.query("bookings")
+			.withIndex("by_assignedEditorTokenIdentifier_and_driveClientId", (indexQuery) =>
+				indexQuery.eq("assignedEditorTokenIdentifier", assignedEditorTokenIdentifier)
+			)
+			.order("desc")
+			.paginate(paginationOpts)
+	);
 }
 
 export function isEditorVisibleSession(session: Doc<"bookings">): boolean {

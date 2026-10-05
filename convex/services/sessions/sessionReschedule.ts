@@ -1,15 +1,22 @@
 import { err, ok, type ResultAsync as NeverthrowResultAsync } from "neverthrow";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
-import { okOrThrow, tryPromise } from "#convex/lib/result";
-import { getSessionByStripeSessionId, getSessionFromDb } from "#convex/lib/sessions/sessionLookup";
+import { tryPromise } from "#convex/lib/result";
+import {
+	getBookingRow,
+	getSessionByStripeSessionId,
+	getSessionFromDb
+} from "#convex/lib/sessions/sessionLookup";
 import {
 	createActiveRescheduleLinkForSession,
+	getRescheduleLinkRow,
 	getRescheduleUrlForToken,
 	hashRescheduleTokenAsync,
 	isRescheduleLinkExpired,
 	isSessionReschedulable,
+	lookupRescheduleLinkByTokenHash,
 	markExistingActiveSessionRescheduleLinksUsed,
+	patchRescheduleLinkRow,
 	validateActiveRescheduleLink,
 	validateAdminSessionForReschedule,
 	validatePublicFailedSessionForReschedule
@@ -77,14 +84,7 @@ export function loadValidRescheduleLinkAndSession(
 	args: { now: number; token: string }
 ): NeverthrowResultAsync<ValidRescheduleLinkAndSession, RescheduleLinkLookupError> {
 	return hashRescheduleTokenAsync(args.token)
-		.andThen((tokenHash) =>
-			okOrThrow(
-				ctx.db
-					.query("bookingRescheduleLinks")
-					.withIndex("by_tokenHash", (query) => query.eq("tokenHash", tokenHash))
-					.unique()
-			)
-		)
+		.andThen((tokenHash) => lookupRescheduleLinkByTokenHash(ctx, tokenHash))
 		.andThen((link) => {
 			if (link === null) return err({ reason: "RESCHEDULE_LINK_NOT_FOUND" as const });
 
@@ -94,9 +94,7 @@ export function loadValidRescheduleLinkAndSession(
 
 			return ok(link);
 		})
-		.andThen((link) =>
-			okOrThrow(ctx.db.get("bookings", link.bookingId)).map((session) => ({ link, session }))
-		)
+		.andThen((link) => getBookingRow(ctx, link.bookingId).map((session) => ({ link, session })))
 		.andThen(({ link, session }) => {
 			if (session === null) return err({ reason: "BOOKING_NOT_FOUND" as const });
 
@@ -123,15 +121,9 @@ export function lockRescheduleLinkAt(
 	ctx: MutationCtx,
 	args: { linkId: Doc<"bookingRescheduleLinks">["_id"]; now: number }
 ) {
-	return okOrThrow(ctx.db.get("bookingRescheduleLinks", args.linkId))
+	return getRescheduleLinkRow(ctx, args.linkId)
 		.andThen(validateActiveRescheduleLink)
-		.andThen(() =>
-			okOrThrow(
-				ctx.db
-					.patch("bookingRescheduleLinks", args.linkId, { status: "used", usedAt: args.now })
-					.then(() => null)
-			)
-		);
+		.andThen(() => patchRescheduleLinkRow(ctx, args.linkId, { status: "used", usedAt: args.now }));
 }
 
 type UnlockRescheduleLinkError =
@@ -144,7 +136,7 @@ export function reopenRescheduleLink(
 	ctx: MutationCtx,
 	args: { linkId: Doc<"bookingRescheduleLinks">["_id"]; lockedAt: number; expiresAt?: number }
 ) {
-	return okOrThrow(ctx.db.get("bookingRescheduleLinks", args.linkId)).andThen((link) => {
+	return getRescheduleLinkRow(ctx, args.linkId).andThen((link) => {
 		if (link === null) {
 			return err<never, UnlockRescheduleLinkError>({ reason: "RESCHEDULE_LINK_NOT_FOUND" });
 		}
@@ -161,6 +153,6 @@ export function reopenRescheduleLink(
 			patch.expiresAt = args.expiresAt;
 		}
 
-		return okOrThrow(ctx.db.patch("bookingRescheduleLinks", args.linkId, patch).then(() => null));
+		return patchRescheduleLinkRow(ctx, args.linkId, patch);
 	});
 }

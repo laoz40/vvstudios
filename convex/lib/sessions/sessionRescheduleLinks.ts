@@ -1,7 +1,7 @@
 import { err, ok, ResultAsync } from "neverthrow";
 import { internal } from "#convex/_generated/api";
 import type { Doc, Id } from "#convex/_generated/dataModel";
-import type { ActionCtx, MutationCtx } from "#convex/_generated/server";
+import type { ActionCtx, MutationCtx, QueryCtx } from "#convex/_generated/server";
 import { env } from "#convex/env";
 import { fromConvexTuple, okOrThrow } from "#convex/lib/result";
 
@@ -227,4 +227,28 @@ export async function markExistingActiveSessionRescheduleLinksUsed(args: {
 	};
 
 	await invalidateNextBatch();
+}
+
+export function lookupRescheduleLinkByTokenHash(ctx: QueryCtx, tokenHash: string) {
+	return okOrThrow(
+		ctx.db
+			.query("bookingRescheduleLinks")
+			.withIndex("by_tokenHash", (query) => query.eq("tokenHash", tokenHash))
+			.unique()
+	);
+}
+
+export function getRescheduleLinkRow(
+	ctx: QueryCtx | MutationCtx,
+	linkId: Id<"bookingRescheduleLinks">
+) {
+	return okOrThrow(ctx.db.get("bookingRescheduleLinks", linkId));
+}
+
+export function patchRescheduleLinkRow(
+	ctx: MutationCtx,
+	linkId: Id<"bookingRescheduleLinks">,
+	patch: Partial<Pick<Doc<"bookingRescheduleLinks">, "status" | "usedAt" | "expiresAt">>
+) {
+	return okOrThrow(ctx.db.patch("bookingRescheduleLinks", linkId, patch).then(() => null));
 }

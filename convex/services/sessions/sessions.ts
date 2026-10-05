@@ -3,8 +3,8 @@ import { err, ok } from "neverthrow";
 import { searchBlobPatchForBookingAsync } from "#convex/lib/adminSearch/adminSearchBlob";
 import type { Doc } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
+import { patchBookingInstagramHandle } from "#convex/lib/booking/bookingConfirmationSessionPatches";
 import { requirePermission } from "#convex/services/auth";
-import { okOrThrow } from "#convex/lib/result";
 import { listAdminSessions, type AdminSessionsView } from "#convex/lib/listAdminSessions";
 
 type PaginationArgs = { paginationOpts: { numItems: number; cursor: string | null } };
@@ -69,10 +69,6 @@ export function writeSessionInstagramHandle(
 ) {
 	return searchBlobPatchForBookingAsync(ctx, session, { instagramHandle }).andThen(
 		(searchBlobPatch) =>
-			okOrThrow(
-				ctx.db
-					.patch("bookings", session._id, { instagramHandle, ...searchBlobPatch })
-					.then(() => null)
-			)
+			patchBookingInstagramHandle(ctx, session, { instagramHandle, searchBlobPatch })
 	);
 }

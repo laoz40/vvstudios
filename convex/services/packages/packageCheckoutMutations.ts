@@ -1,4 +1,4 @@
-import { err, errAsync, ok, okAsync } from "neverthrow";
+import { errAsync, ok, okAsync } from "neverthrow";
 import type { Id } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
 import { archiveDeadPackage } from "#convex/lib/packages/packageArchive";
@@ -12,34 +12,29 @@ import {
 	getPackageCheckoutClaimStatus,
 	validatePackageClaimStripeSession
 } from "#convex/lib/packages/packageCheckoutClaim";
-import { getPackageFromDb } from "#convex/lib/packages/packageLookup";
-import { okOrThrow } from "#convex/lib/result";
+import {
+	getPackageFromDb,
+	lookupPackageByStripeSessionId,
+	normalizePackageId
+} from "#convex/lib/packages/packageLookup";
+import {
+	patchPackageCheckoutClaimed,
+	patchPackageStripeCheckoutIds
+} from "#convex/lib/packages/packageUpdates";
 
 export function writePackageStripeCheckoutIds(
 	ctx: MutationCtx,
 	args: { packageId: Id<"packages">; stripeSessionId: string; stripeCustomerId: string }
 ) {
-	return okOrThrow(
-		ctx.db
-			.patch("packages", args.packageId, {
-				stripeSessionId: args.stripeSessionId,
-				stripeCustomerId: args.stripeCustomerId
-			})
-			.then(() => null)
-	);
+	return patchPackageStripeCheckoutIds(ctx, args);
 }
 
 export function claimPackageCheckoutPayment(
 	ctx: MutationCtx,
 	args: { packageId: string; stripeSessionId: string; stripePaymentIntentId?: string }
 ) {
-	const normalizedPackageId = ctx.db.normalizeId("packages", args.packageId);
-
-	if (!normalizedPackageId) {
-		return errAsync({ reason: "PACKAGE_NOT_FOUND" as const });
-	}
-
-	return getPackageFromDb(ctx, normalizedPackageId)
+	return normalizePackageId(ctx, args.packageId)
+		.asyncAndThen((normalizedPackageId) => getPackageFromDb(ctx, normalizedPackageId))
 		.andThen((packageFromDb) =>
 			validatePackageClaimStripeSession(packageFromDb, args.stripeSessionId).map(
 				() => packageFromDb
@@ -64,14 +59,10 @@ export function claimPackageCheckoutPayment(
 
 			const now = Date.now();
 
-			return okOrThrow(
-				ctx.db
-					.patch("packages", packageFromDb._id, {
-						packageCheckoutClaimedAt: now,
-						stripePaymentIntentId: args.stripePaymentIntentId
-					})
-					.then(() => ({ outcome: "claimed" as const, packageId }))
-			);
+			return patchPackageCheckoutClaimed(ctx, packageFromDb._id, {
+				packageCheckoutClaimedAt: now,
+				stripePaymentIntentId: args.stripePaymentIntentId
+			}).map(() => ({ outcome: "claimed" as const, packageId }));
 		});
 }
 
@@ -93,19 +84,12 @@ export function abandonPendingPackageCheckout(
 			);
 		})
 		.orElse((error) =>
-			error.reason === "PACKAGE_NOT_FOUND" ? ok({ outcome: "not_found" as const }) : err(error)
+			error.reason === "PACKAGE_NOT_FOUND" ? ok({ outcome: "not_found" as const }) : errAsync(error)
 		);
 }
 
 export function expirePendingPackageByStripeSessionId(ctx: MutationCtx, stripeSessionId: string) {
-	return okOrThrow(
-		ctx.db
-			.query("packages")
-			.withIndex("by_stripeSessionId", (indexQuery) =>
-				indexQuery.eq("stripeSessionId", stripeSessionId)
-			)
-			.unique()
-	)
+	return lookupPackageByStripeSessionId(ctx, stripeSessionId)
 		.andThen(validatePackageExpiry)
 		.andThen((expireDecision) => {
 			if (expireDecision.kind === "complete") {
@@ -119,14 +103,7 @@ export function expirePendingPackageByStripeSessionId(ctx: MutationCtx, stripeSe
 }
 
 export function loadPackageRowByStripeSessionId(ctx: QueryCtx, stripeSessionId: string) {
-	return okOrThrow(
-		ctx.db
-			.query("packages")
-			.withIndex("by_stripeSessionId", (indexQuery) =>
-				indexQuery.eq("stripeSessionId", stripeSessionId)
-			)
-			.unique()
-	);
+	return lookupPackageByStripeSessionId(ctx, stripeSessionId);
 }
 
 export function loadPublicPackageStatusByStripeSessionId(ctx: QueryCtx, stripeSessionId: string) {

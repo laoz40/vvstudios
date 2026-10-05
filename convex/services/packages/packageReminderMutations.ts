@@ -1,7 +1,11 @@
-import { okOrThrow } from "#convex/lib/result";
 import type { Doc } from "#convex/_generated/dataModel";
 import type { MutationCtx } from "#convex/_generated/server";
 import { getPackageFromDb } from "#convex/lib/packages/packageLookup";
+import {
+	patchPackageReminderEmailClaimed,
+	patchPackageReminderEmailFailed,
+	patchPackageReminderEmailSent
+} from "#convex/lib/packages/packageReminderDb";
 import {
 	validatePackageReminderClaim,
 	type PackageReminderType
@@ -15,19 +19,7 @@ export function claimPackageReminderEmail(
 ) {
 	return getPackageFromDb(ctx, args.packageId)
 		.andThen((packageFromDb) => validatePackageReminderClaim(packageFromDb, args.reminderType))
-		.andThen(() =>
-			okOrThrow(
-				ctx.db
-					.patch("packages", args.packageId, {
-						packageReminderState: {
-							type: args.reminderType,
-							status: "claimed",
-							claimedAt: args.now
-						}
-					})
-					.then(() => null)
-			)
-		);
+		.andThen(() => patchPackageReminderEmailClaimed(ctx, args));
 }
 
 export function writePackageReminderEmailSent(
@@ -35,13 +27,7 @@ export function writePackageReminderEmailSent(
 	args: PackageReminderArgs & { now: number }
 ) {
 	return getPackageFromDb(ctx, args.packageId).andThen(() =>
-		okOrThrow(
-			ctx.db
-				.patch("packages", args.packageId, {
-					packageReminderState: { type: args.reminderType, status: "sent", sentAt: args.now }
-				})
-				.then(() => null)
-		)
+		patchPackageReminderEmailSent(ctx, args)
 	);
 }
 
@@ -50,16 +36,6 @@ export function writePackageReminderEmailFailed(
 	args: PackageReminderArgs & { failureCode: string }
 ) {
 	return getPackageFromDb(ctx, args.packageId).andThen(() =>
-		okOrThrow(
-			ctx.db
-				.patch("packages", args.packageId, {
-					packageReminderState: {
-						type: args.reminderType,
-						status: "failed",
-						failureCode: args.failureCode
-					}
-				})
-				.then(() => null)
-		)
+		patchPackageReminderEmailFailed(ctx, args)
 	);
 }

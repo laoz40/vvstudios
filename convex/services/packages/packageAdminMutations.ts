@@ -8,6 +8,7 @@ import { getCapacityConsumingPackageSessions } from "#convex/lib/packages/packag
 import {
 	buildPackageUpdatePatch,
 	parsePackageUpdate,
+	patchAdminPackageRow,
 	type UpdatePackageArgs,
 	validatePackageUpdate
 } from "#convex/lib/packages/packageUpdates";
@@ -16,7 +17,7 @@ import {
 	searchBlobPatchForPackage,
 	type PackageContactSearchFields
 } from "#convex/lib/adminSearch/adminSearchBlob";
-import { okOrThrow } from "#convex/lib/result";
+import { okAsync, ResultAsync } from "neverthrow";
 
 type ArchivePackageArgs = { packageId: Id<"packages">; archived: boolean };
 
@@ -60,31 +61,29 @@ export function writeAdminPackageFields(
 		instagramHandle: existingPackage.instagramHandle
 	};
 
-	return okOrThrow(
-		ctx.db
-			.patch("packages", args.packageId, {
-				...buildPackageUpdatePatch(args, updatedPackage),
-				...searchBlobPatchForPackage(existingPackage, {
-					...contactFields,
-					notes: updatedPackage.notes,
-					receiptNumber: existingPackage.receiptNumber
-				})
-			})
-			.then(async () => {
-				const contactChanged =
-					existingPackage.name !== contactFields.name ||
-					existingPackage.phone !== contactFields.phone ||
-					existingPackage.accountName !== contactFields.accountName ||
-					existingPackage.abn !== contactFields.abn ||
-					existingPackage.email !== contactFields.email;
+	const contactChanged =
+		existingPackage.name !== contactFields.name ||
+		existingPackage.phone !== contactFields.phone ||
+		existingPackage.accountName !== contactFields.accountName ||
+		existingPackage.abn !== contactFields.abn ||
+		existingPackage.email !== contactFields.email;
 
-				if (contactChanged) {
-					await patchPackageSessionBookingsContactSearch(ctx, args.packageId, contactFields);
-				}
+	return patchAdminPackageRow(ctx, args.packageId, {
+		...buildPackageUpdatePatch(args, updatedPackage),
+		...searchBlobPatchForPackage(existingPackage, {
+			...contactFields,
+			notes: updatedPackage.notes,
+			receiptNumber: existingPackage.receiptNumber
+		})
+	}).andThen(() => {
+		if (!contactChanged) {
+			return okAsync(null);
+		}
 
-				return null;
-			})
-	);
+		return ResultAsync.fromSafePromise(
+			patchPackageSessionBookingsContactSearch(ctx, args.packageId, contactFields)
+		).map(() => null);
+	});
 }
 
 export function archivePackageFromAdmin(ctx: MutationCtx, args: ArchivePackageArgs) {

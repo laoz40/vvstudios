@@ -1,13 +1,6 @@
-import { err, ok } from "neverthrow";
+import { err, ok, okAsync, type ResultAsync } from "neverthrow";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { MutationCtx } from "#convex/_generated/server";
-import { searchBlobPatchForBookingAsync } from "#convex/lib/adminSearch/adminSearchBlob";
-import { okOrThrow } from "#convex/lib/result";
-import {
-	bookingReceiptPaidAt,
-	resolveBookingReceiptNumber
-} from "#studio/features/booking-invoice/lib/receipt-number";
-import { getSessionFromDb } from "#convex/lib/sessions/sessionLookup";
 import {
 	getBookingClaimStatus,
 	type BookingClaimStatus,
@@ -20,7 +13,19 @@ import {
 	scheduleDriveSetupForConfirmedBooking
 } from "#convex/lib/booking/bookingConfirmationSave";
 import {
-	clearedSessionReservationPatch,
+	patchBookingInvoiceEmailFailed,
+	patchBookingInvoiceEmailFailureCleared,
+	patchBookingReceiptNumber,
+	patchBookingStripeConfirmationClaim,
+	patchPendingBookingConfirmationFailed
+} from "#convex/lib/booking/bookingConfirmationSessionPatches";
+import { searchBlobPatchForBookingAsync } from "#convex/lib/adminSearch/adminSearchBlob";
+import {
+	bookingReceiptPaidAt,
+	resolveBookingReceiptNumber
+} from "#studio/features/booking-invoice/lib/receipt-number";
+import { getSessionFromDb, normalizeBookingId } from "#convex/lib/sessions/sessionLookup";
+import {
 	sessionHasReservation,
 	type SessionReservation
 } from "#convex/lib/sessions/sessionReservations";
@@ -36,14 +41,6 @@ export type BookingClaimOutcome =
 	| { outcome: "already_confirmed" }
 	| { outcome: "already_claimed" }
 	| { outcome: "claimed"; session: ReturnType<typeof buildClaimedBookingSession> };
-
-function normalizeBookingId(ctx: MutationCtx, bookingId: string) {
-	const normalizedBookingId = ctx.db.normalizeId("bookings", bookingId);
-
-	return normalizedBookingId
-		? ok(normalizedBookingId)
-		: err({ reason: "BOOKING_NOT_FOUND" as const });
-}
 
 function buildClaimedBookingSession(session: Doc<"bookings">) {
 	return {
@@ -76,25 +73,21 @@ export function writeBookingStripeConfirmationClaim(
 	ctx: MutationCtx,
 	args: ClaimBookingConfirmationArgs,
 	claimStatus: BookingClaimStatus<Doc<"bookings">>
-) {
+): ResultAsync<BookingClaimOutcome, never> {
 	if (claimStatus.kind !== "pending") {
-		return ok<BookingClaimOutcome>({ outcome: claimStatus.kind });
+		return okAsync<BookingClaimOutcome>({ outcome: claimStatus.kind });
 	}
 
 	const { session } = claimStatus;
 	const now = Date.now();
 
-	return okOrThrow<BookingClaimOutcome>(
-		ctx.db
-			.patch("bookings", session._id, {
-				paymentCompletedAt: now,
-				bookingConfirmationClaimedAt: now,
-				bookingConfirmationEventId: args.stripeEventId,
-				stripeSessionId: args.stripeSessionId,
-				stripePaymentIntentId: args.stripePaymentIntentId
-			})
-			.then(() => ({ outcome: "claimed", session: buildClaimedBookingSession(session) }))
-	);
+	return patchBookingStripeConfirmationClaim(ctx, session._id, {
+		paymentCompletedAt: now,
+		bookingConfirmationClaimedAt: now,
+		bookingConfirmationEventId: args.stripeEventId,
+		stripeSessionId: args.stripeSessionId,
+		stripePaymentIntentId: args.stripePaymentIntentId
+	}).map(() => ({ outcome: "claimed", session: buildClaimedBookingSession(session) }));
 }
 
 export function writeStandaloneBookingReceiptNumberIfMissing(
@@ -131,14 +124,11 @@ export function writeBookingReceiptNumberOnSession(
 		return searchBlobPatchForBookingAsync(ctx, session, {
 			receiptNumber: args.receiptNumber
 		}).andThen((searchBlobPatch) =>
-			okOrThrow(
-				ctx.db
-					.patch("bookings", args.bookingId, {
-						receiptNumber: args.receiptNumber,
-						...searchBlobPatch
-					})
-					.then(() => null)
-			)
+			patchBookingReceiptNumber(ctx, {
+				bookingId: args.bookingId,
+				receiptNumber: args.receiptNumber,
+				searchBlobPatch
+			})
 		);
 	});
 }
@@ -153,15 +143,7 @@ export function markBookingInvoiceEmailFailedOnSession(
 		}
 
 		return writeStandaloneBookingReceiptNumberIfMissing(ctx, { bookingId: session._id }).andThen(
-			() =>
-				okOrThrow(
-					ctx.db
-						.patch("bookings", args.bookingId, {
-							status: "email_failed",
-							bookingFailureCode: "BOOKING_INVOICE_EMAIL_FAILED"
-						})
-						.then(() => null)
-				)
+			() => patchBookingInvoiceEmailFailed(ctx, args.bookingId)
 		);
 	});
 }
@@ -175,11 +157,7 @@ export function clearBookingInvoiceEmailFailureOnSession(
 			return ok(null);
 		}
 
-		return okOrThrow(
-			ctx.db
-				.patch("bookings", args.bookingId, { status: "confirmed", bookingFailureCode: undefined })
-				.then(() => null)
-		);
+		return patchBookingInvoiceEmailFailureCleared(ctx, args.bookingId);
 	});
 }
 
@@ -196,23 +174,7 @@ export function markPendingBookingConfirmationFailed(
 			return err({ reason: "BOOKING_RESERVATION_MISMATCH" as const });
 		}
 
-		return okOrThrow(
-			ctx.db
-				.patch(
-					"bookings",
-					args.bookingId,
-					(() => {
-						const patch = { status: "failed" as const, bookingFailureCode: args.failureCode };
-
-						if (args.reservation) {
-							return { ...patch, ...clearedSessionReservationPatch };
-						}
-
-						return patch;
-					})()
-				)
-				.then(() => null)
-		);
+		return patchPendingBookingConfirmationFailed(ctx, args);
 	});
 }
 

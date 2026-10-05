@@ -9,15 +9,27 @@ import {
 	markPreviousEditorRemovalFailed,
 	removeFailedEditorDriveAccess,
 	removePreviousEditorDriveAccess,
-	setupEditorAccessIfAssigned
+	sendEditorAssignmentEmailForReadyAccess,
+	setupEditorAccess,
+	setupEditorAccessIfAssigned,
+	type DriveEditorPermissionsError
 } from "#convex/lib/drive/driveEditorPermissions";
 
-export type { DriveEditorPermissionsError } from "#convex/lib/drive/driveEditorPermissions";
+export type { DriveEditorPermissionsError };
 
-export {
-	setupEditorAccess as runEditorAccessSetup,
-	sendEditorAssignmentEmailForReadyAccess as runEditorAssignmentEmailRetry
-} from "#convex/lib/drive/driveEditorPermissions";
+export function runEditorAccessSetup(
+	ctx: ActionCtx,
+	args: Parameters<typeof setupEditorAccess>[1]
+) {
+	return setupEditorAccess(ctx, args);
+}
+
+export function runEditorAssignmentEmailRetry(
+	ctx: ActionCtx,
+	args: Parameters<typeof sendEditorAssignmentEmailForReadyAccess>[1]
+) {
+	return sendEditorAssignmentEmailForReadyAccess(ctx, args);
+}
 
 export function retryFailedPreviousEditorRemoval(
 	ctx: ActionCtx,

@@ -5,6 +5,10 @@ import type { Id } from "#convex/_generated/dataModel";
 import type { MutationCtx } from "#convex/_generated/server";
 import {
 	getPackageAdjustmentInvoice,
+	patchPackageAdjustmentInvoiceEmailClaimed,
+	patchPackageAdjustmentInvoiceEmailFailed,
+	patchPackageAdjustmentInvoiceEmailSent,
+	patchPackageAdjustmentPaymentStatus,
 	requirePackageAdjustmentPaymentEligibility,
 	validatePackageAdjustmentEmailClaim,
 	PACKAGE_ADJUSTMENT_EMAIL_CLAIM_TIMEOUT_MS,
@@ -51,9 +55,7 @@ export function claimPackageAdjustmentInvoiceEmail(
 			}))
 		)
 		.andThen(({ adjustment, packageRecord }) =>
-			okOrThrow(
-				ctx.db.patch("packageAdjustments", adjustment._id, { invoiceEmailClaimedAt: args.now })
-			)
+			patchPackageAdjustmentInvoiceEmailClaimed(ctx, adjustment._id, args.now)
 				.andThen(() =>
 					okOrThrow(
 						ctx.scheduler.runAfter(
@@ -82,14 +84,7 @@ export function markStalledPackageAdjustmentInvoiceEmailFailed(
 				return ok(null);
 			}
 
-			return okOrThrow(
-				ctx.db
-					.patch("packageAdjustments", adjustment._id, {
-						invoiceEmailStatus: "failed",
-						invoiceEmailClaimedAt: undefined
-					})
-					.then(() => null)
-			);
+			return patchPackageAdjustmentInvoiceEmailFailed(ctx, adjustment._id);
 		});
 }
 
@@ -102,14 +97,10 @@ export function writePackageAdjustmentInvoiceEmailSent(
 			return ok({ updated: false });
 		}
 
-		return okOrThrow(
-			ctx.db
-				.patch("packageAdjustments", adjustment._id, {
-					invoiceEmailStatus: "sent",
-					invoiceEmailClaimedAt: undefined,
-					stripeInvoiceId: args.stripeInvoiceId
-				})
-				.then(() => ({ updated: true }))
+		return patchPackageAdjustmentInvoiceEmailSent(
+			ctx,
+			adjustment._id,
+			args.stripeInvoiceId
 		).andThen((result) => {
 			const remotePodcastLabel = getCustomerAddonDisplayLabel("Remote Podcast");
 
@@ -138,14 +129,9 @@ export function writePackageAdjustmentInvoiceEmailFailed(
 			return ok({ updated: false });
 		}
 
-		return okOrThrow(
-			ctx.db
-				.patch("packageAdjustments", adjustment._id, {
-					invoiceEmailStatus: "failed",
-					invoiceEmailClaimedAt: undefined
-				})
-				.then(() => ({ updated: true }))
-		);
+		return patchPackageAdjustmentInvoiceEmailFailed(ctx, adjustment._id).map(() => ({
+			updated: true
+		}));
 	});
 }
 
@@ -170,18 +156,15 @@ export function updatePackageAdjustmentPaymentStatusFromAdmin(
 		.andThen(() => getPackageAdjustmentInvoice(ctx, args.adjustmentId))
 		.andThen((adjustment) => requirePackageAdjustmentPaymentEligibility(adjustment, Date.now()))
 		.andThen((adjustment) =>
-			okOrThrow(
-				ctx.db
-					.patch("packageAdjustments", adjustment._id, {
-						paymentStatus: args.paid ? "paid" : "unpaid"
-					})
-					.then(() => adjustment)
-			).andThen((updatedAdjustment) => {
-				if (!args.paid) {
-					return okAsync(null);
-				}
+			patchPackageAdjustmentPaymentStatus(ctx, adjustment._id, args.paid ? "paid" : "unpaid").map(
+				() => adjustment
+			)
+		)
+		.andThen((updatedAdjustment) => {
+			if (!args.paid) {
+				return okAsync(null);
+			}
 
-				return archivePackageWhenFullyDone(ctx, updatedAdjustment.packageId);
-			})
-		);
+			return archivePackageWhenFullyDone(ctx, updatedAdjustment.packageId);
+		});
 }

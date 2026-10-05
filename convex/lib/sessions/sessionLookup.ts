@@ -8,6 +8,14 @@ export function getBookingRow(ctx: QueryCtx | MutationCtx, bookingId: Id<"bookin
 	return okOrThrow(ctx.db.get("bookings", bookingId));
 }
 
+export function normalizeBookingId(ctx: QueryCtx | MutationCtx, bookingId: string) {
+	const normalizedBookingId = ctx.db.normalizeId("bookings", bookingId);
+
+	return normalizedBookingId
+		? ok(normalizedBookingId)
+		: err({ reason: "BOOKING_NOT_FOUND" as const });
+}
+
 export function getSessionFromDb(ctx: QueryCtx | MutationCtx, bookingId: Id<"bookings">) {
 	return getBookingRow(ctx, bookingId).andThen((session) => {
 		if (!session) {
