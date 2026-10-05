@@ -2,6 +2,7 @@ import { err, ok, type ResultAsync } from "neverthrow";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
 import {
+	patchPackageSessionBookingsContactSearch,
 	searchBlobPatchForBooking,
 	searchBlobPatchForPackage
 } from "#convex/lib/adminSearch/adminSearchBlob";
@@ -22,7 +23,7 @@ import {
 import {
 	buildPendingPackageRecord,
 	type CreatePendingPackageArgs,
-	patchPackageInstagramHandle
+	patchPackageRowInstagramHandle
 } from "#convex/lib/packages/packageUpdates";
 import { okOrThrow } from "#convex/lib/result";
 
@@ -181,9 +182,32 @@ export function savePackageInstagramHandle(
 	ctx: MutationCtx,
 	args: { packageFromDb: Doc<"packages">; instagramHandle: string }
 ) {
-	return patchPackageInstagramHandle(ctx, args);
+	const contactFields = {
+		name: args.packageFromDb.name,
+		phone: args.packageFromDb.phone,
+		accountName: args.packageFromDb.accountName,
+		abn: args.packageFromDb.abn,
+		email: args.packageFromDb.email,
+		instagramHandle: args.instagramHandle
+	};
+
+	return patchPackageRowInstagramHandle(ctx, args).andThen(() =>
+		okOrThrow(
+			patchPackageSessionBookingsContactSearch(ctx, args.packageFromDb._id, contactFields).then(
+				() => null
+			)
+		)
+	);
 }
 
-export function loadPackageRowById(ctx: QueryCtx, packageId: Id<"packages">) {
-	return getPackageFromDb(ctx, packageId);
+export async function queryPackageByIdOrNull(
+	ctx: QueryCtx,
+	packageId: Id<"packages">
+): Promise<Doc<"packages"> | null> {
+	const packageFromDbResult = await getPackageFromDb(ctx, packageId);
+
+	return packageFromDbResult.match(
+		(packageFromDb) => packageFromDb,
+		() => null
+	);
 }

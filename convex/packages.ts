@@ -16,7 +16,7 @@ import {
 	enforcePackageSubmitRateLimit,
 	insertPendingPackageRecord,
 	loadPackageEligibleForInstagramUpdate,
-	loadPackageRowById,
+	queryPackageByIdOrNull,
 	markPackagePaidWithScheduleToken,
 	refreshPaidPackageScheduleToken,
 	savePackageInstagramHandle as applyPackageInstagramHandleUpdate,
@@ -137,9 +137,5 @@ export const savePackageInstagramHandle = mutation({
 
 export const getPackageById = internalQuery({
 	args: { packageId: v.id("packages") },
-	handler: (ctx, args) =>
-		loadPackageRowById(ctx, args.packageId).match(
-			(packageFromDb) => packageFromDb,
-			() => null
-		)
+	handler: (ctx, args) => queryPackageByIdOrNull(ctx, args.packageId)
 });

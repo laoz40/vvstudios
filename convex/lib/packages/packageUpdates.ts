@@ -11,7 +11,6 @@ import type { BookingAddon } from "#studio/features/booking-form/lib/booking-for
 import { getPackageUpdateValidationError } from "#convex/lib/packages/packageScheduling";
 import {
 	buildPackageSearchBlob,
-	patchPackageSessionBookingsContactSearch,
 	searchBlobPatchForPackage
 } from "#convex/lib/adminSearch/adminSearchBlob";
 import { normalizePhone } from "#convex/lib/contactNormalization";
@@ -246,7 +245,7 @@ export function buildPackageUpdatePatch(args: UpdatePackageArgs, updatedPackage:
 	return patch;
 }
 
-export function patchPackageInstagramHandle(
+export function patchPackageRowInstagramHandle(
 	ctx: MutationCtx,
 	args: { packageFromDb: Doc<"packages">; instagramHandle: string }
 ) {
@@ -256,17 +255,6 @@ export function patchPackageInstagramHandle(
 				instagramHandle: args.instagramHandle,
 				...searchBlobPatchForPackage(args.packageFromDb, { instagramHandle: args.instagramHandle })
 			})
-			.then(async () => {
-				await patchPackageSessionBookingsContactSearch(ctx, args.packageFromDb._id, {
-					name: args.packageFromDb.name,
-					phone: args.packageFromDb.phone,
-					accountName: args.packageFromDb.accountName,
-					abn: args.packageFromDb.abn,
-					email: args.packageFromDb.email,
-					instagramHandle: args.instagramHandle
-				});
-
-				return null;
-			})
+			.then(() => null)
 	);
 }
