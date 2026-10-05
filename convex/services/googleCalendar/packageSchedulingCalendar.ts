@@ -18,7 +18,7 @@ import {
 	createSessionCalendarEvent,
 	deleteSessionCalendarEvent,
 	updateSessionCalendarEventTiming
-} from "#convex/services/googleCalendar/sessionCalendarEventWorkflow";
+} from "#convex/services/googleCalendar/sessionCalendarEvent";
 import { pickBookingAddonQuantities } from "#studio/features/booking-form/lib/booking-form-model";
 
 export type PackageCalendarDetails = SessionCalendarEventDetails & {

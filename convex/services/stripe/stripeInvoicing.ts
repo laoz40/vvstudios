@@ -4,4 +4,4 @@ export {
 	loadBookingStripeCustomerId,
 	loadPackageStripeCustomerId,
 	requireSendReceiptEmailsAndValidateLineItems
-} from "#convex/services/stripe/stripeInvoiceSendWorkflow";
+} from "#convex/services/stripe/stripeInvoiceSend";

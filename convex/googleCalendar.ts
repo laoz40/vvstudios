@@ -13,7 +13,7 @@ import {
 	loadRescheduleBookableRangeBusyWindows,
 	loadRescheduleSessionAndBookingSettings,
 	loadBookingAvailabilitySettingsForAction
-} from "#convex/services/googleCalendar/sessionCalendarAvailabilityWorkflow";
+} from "#convex/services/googleCalendar/sessionCalendarAvailability";
 import {
 	type RescheduleSessionError,
 	type UpdateSessionFromAdminError
@@ -23,27 +23,27 @@ import {
 	loadAdminSessionEditDeps,
 	notifyHostIfNeeded,
 	syncAdminBookingGoogleCalendarAndDb
-} from "#convex/services/googleCalendar/sessionAdminUpdateWorkflow";
+} from "#convex/services/googleCalendar/sessionAdminUpdate";
 import {
 	requireCancelSessionsPermission,
 	cleanupAdminCancelledBookingDrive,
 	deleteAdminBookingCalendarEvent,
 	loadAdminCancelSession,
 	markBookingSessionCalendarDeleted
-} from "#convex/services/googleCalendar/cancelBookingFromAdminWorkflow";
+} from "#convex/services/googleCalendar/cancelBookingFromAdmin";
 import {
 	finishReschedule,
 	loadRescheduleTargetAndValidate,
 	lockAndReserve,
 	saveClientRescheduleAndUnlockLink,
 	syncCalendar
-} from "#convex/services/googleCalendar/sessionRescheduleWorkflow";
+} from "#convex/services/googleCalendar/sessionCalendarReschedule";
 import type { CancelBookingFromAdminError } from "#convex/services/googleCalendar/sessionCalendar";
 import {
 	bookingAddonQuantitiesValidator,
 	bookingAddonsValidator
 } from "#convex/services/booking/bookingFormValidators";
-import type { AdminSessionUpdateResult } from "#convex/services/googleCalendar/sessionAdminUpdateWorkflow";
+import type { AdminSessionUpdateResult } from "#convex/services/googleCalendar/sessionAdminUpdate";
 import {
 	createSessionDriveFoldersAndCompleteSetup,
 	runScheduledSessionDriveFolderSetup,
@@ -61,11 +61,11 @@ import { requirePermissionActions } from "#convex/services/requirePermissionActi
 import {
 	claimSessionReminderSend,
 	sendSessionReminderWhenClaimed
-} from "#convex/services/booking/sessionReminderEmailWorkflow";
+} from "#convex/services/booking/sessionReminderEmail";
 import {
 	runCompleteClaimedSession,
 	type CompleteClaimedSessionError
-} from "#convex/services/booking/bookingClaimedSessionWorkflow";
+} from "#convex/services/booking/bookingClaimedSession";
 import type { CompleteClaimedSessionSuccess } from "#convex/services/booking/bookingConfirmation";
 import type { Id } from "#convex/_generated/dataModel";
 import { clearCancelledSessionDriveFields } from "#convex/services/drive/cleanupCancelledSessionDrive";

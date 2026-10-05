@@ -4,7 +4,7 @@ import { exhaustiveCheck } from "#/lib/result";
 import { internal } from "#convex/_generated/api";
 import type { ActionCtx } from "#convex/_generated/server";
 import { fromConvexTuple } from "#convex/lib/result";
-import type { BookingClaimOutcome } from "#convex/services/booking/bookingConfirmationMutationWorkflow";
+import type { BookingClaimOutcome } from "#convex/services/booking/bookingConfirmationMutations";
 
 export type CompleteClaimedSessionSuccess = {
 	outcome:

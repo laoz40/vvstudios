@@ -3,7 +3,7 @@ import type { Doc } from "#convex/_generated/dataModel";
 import type { ActionCtx } from "#convex/_generated/server";
 import { REMINDER_BATCH_SIZE } from "#convex/lib/reminderScheduleTime";
 import { sendDuePackageReminders } from "#convex/services/packages/packageReminders";
-import { getTomorrowSessionReminderWindow } from "#convex/services/sessions/sessionReminderMutationWorkflow";
+import { getTomorrowSessionReminderWindow } from "#convex/services/sessions/sessionReminderMutations";
 
 export async function sendDueSessionAndPackageReminders(ctx: ActionCtx, nowDate: Date) {
 	await sendDuePackageReminders(ctx, nowDate);

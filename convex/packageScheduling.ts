@@ -17,7 +17,7 @@ import { SERVICES } from "#studio/features/booking-form/lib/booking-form-model";
 import {
 	cancelPackageSessionBooking,
 	loadPackageSessionOwnedByToken
-} from "#convex/services/packages/packageSessionCancelWorkflow";
+} from "#convex/services/packages/packageSessionCancel";
 import {
 	rejectFullPackageAndParseSessionStartTime,
 	rejectPackageCreateWhenUnavailableOrFull,
@@ -30,7 +30,7 @@ import {
 	loadEditablePackageSessionForUnschedule,
 	loadValidPackageAndCapacityConsumingSessions,
 	schedulePackageAdjustmentWhenAllSessionsBooked
-} from "#convex/services/packages/packageSessionMutationWorkflow";
+} from "#convex/services/packages/packageSessionMutations";
 import {
 	loadPackageCreateRequestAndCheckRateLimit,
 	cleanupCancelledPackageDrive,
@@ -43,16 +43,16 @@ import {
 	reservePackageRescheduleSlot,
 	syncNewPackageSessionCalendar,
 	syncPackageRescheduleCalendar
-} from "#convex/services/packages/packageSessionWorkflow";
+} from "#convex/services/packages/packageSessionScheduling";
 import {
 	runPackageAdjustmentWhenAllSessionsBooked,
 	runPackageAdjustmentWhenExpired
-} from "#convex/services/packages/packageAdjustmentCronWorkflow";
+} from "#convex/services/packages/packageAdjustmentCron";
 import {
 	loadPackageSchedulingPageByToken,
 	loadPaidPackageByScheduleToken,
 	writePackageDefaultRecordingSpace
-} from "#convex/services/packages/packageTokenSchedulingWorkflow";
+} from "#convex/services/packages/packageTokenScheduling";
 
 export const getPackageByToken = query({
 	args: { token: v.string() },

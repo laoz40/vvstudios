@@ -8,7 +8,7 @@ import {
 	loadPackageRowByStripeSessionId,
 	loadPublicPackageStatusByStripeSessionId,
 	writePackageStripeCheckoutIds
-} from "#convex/services/packages/packageCheckoutMutationWorkflow";
+} from "#convex/services/packages/packageCheckoutMutations";
 
 export const setPackageStripeSessionId = internalMutation({
 	args: { packageId: v.id("packages"), stripeSessionId: v.string(), stripeCustomerId: v.string() },

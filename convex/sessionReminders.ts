@@ -1,13 +1,13 @@
 import { v } from "convex/values";
 import { tupleErr, tupleOk } from "#/lib/result";
 import { internalAction, internalMutation, internalQuery } from "#convex/_generated/server";
-import { sendDueSessionAndPackageReminders } from "#convex/services/sessions/sessionReminderCronWorkflow";
+import { sendDueSessionAndPackageReminders } from "#convex/services/sessions/sessionReminderCron";
 import {
 	claimSessionReminderEmail,
 	listConfirmedSessionsDueForReminderEmail,
 	writeSessionReminderEmailFailed,
 	writeSessionReminderEmailSent
-} from "#convex/services/sessions/sessionReminderMutationWorkflow";
+} from "#convex/services/sessions/sessionReminderMutations";
 
 export const listSessionsDueForReminderEmail = internalQuery({
 	args: { dayStart: v.number(), dayEnd: v.number(), limit: v.optional(v.number()) },

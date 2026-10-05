@@ -14,6 +14,7 @@
 - Each exported function is **one abstraction**: a meaningful, reusable unit of work (get item, parse item, validate item, save item).
 - Composed from **lib** functions (and other services when needed).
 - One service **file** groups related abstractions for one domain concept.
+- **File layout:** name modules for what they do (`packageCheckoutMutations.ts`, `sessionQueries.ts`, `stripeInvoiceSend.ts`). No `Workflow`, `MutationWorkflow`, or layer jargon in filenames; the folder is the feature (`services/packages/`). Internal Convex entrypoints live next to the feature (e.g. `sessionsDriveInternal.ts`), not under a generic `convex/internal/` folder.
 - Handlers chain several service functions together.
 - Policy and invariants live here, not in handlers or lib.
 - Mutation/query services do not use `ctx.runQuery` / `ctx.runMutation`.

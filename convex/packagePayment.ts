@@ -13,12 +13,12 @@ import {
 	openEmbeddedPackageStripeCheckout,
 	parsePackageCheckoutRequest,
 	runPackageCheckoutSubmitRateLimit
-} from "#convex/services/packages/packageCheckoutSessionWorkflow";
+} from "#convex/services/packages/packageCheckoutSession";
 import {
 	loadPaidPackageForEmailResend,
 	refreshPackageScheduleLinkForResend,
 	sendPackagePaidScheduleEmail
-} from "#convex/services/packages/packagePaidEmailResendWorkflow";
+} from "#convex/services/packages/packagePaidEmailResend";
 
 export const createPackageCheckoutSession = action({
 	args: {

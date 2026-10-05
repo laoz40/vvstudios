@@ -7,7 +7,7 @@ import {
 	completeClaimedPackageCheckoutAfterPayment,
 	type CompleteClaimedPackageCheckoutError,
 	type CompleteClaimedPackageCheckoutSuccess
-} from "#convex/services/packages/packageCheckoutCompletionWorkflow";
+} from "#convex/services/packages/claimedPackageCheckoutCompletion";
 
 export const completeClaimedPackageCheckout = internalAction({
 	args: { packageId: v.id("packages") },

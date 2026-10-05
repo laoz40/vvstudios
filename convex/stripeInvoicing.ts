@@ -10,7 +10,7 @@ import {
 	loadPackageStripeCustomerId,
 	loadStripeInvoiceBillingUrlsForStaff,
 	requireSendReceiptEmailsAndValidateLineItems
-} from "#convex/services/stripe/stripeInvoiceSendWorkflow";
+} from "#convex/services/stripe/stripeInvoiceSend";
 
 const stripeInvoiceLineItemValidator = v.object({ description: v.string(), amount: v.number() });
 

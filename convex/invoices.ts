@@ -13,7 +13,7 @@ import {
 	renderBookingInvoicePdfPayload,
 	renderBookingReceiptPdfPayload,
 	renderPackageReceiptPdfPayload
-} from "#convex/services/stripe/invoicePdfWorkflow";
+} from "#convex/services/stripe/invoicePdf";
 
 export const getBookingReceiptPdfByStripeSessionId = action({
 	args: { stripeSessionId: v.string() },

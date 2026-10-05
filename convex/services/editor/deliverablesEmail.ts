@@ -36,7 +36,7 @@ function grantGuestViewerLink(folder: { id: string; url: string }) {
 
 function requireSavedDeliverablesFolder(bookingId: Id<"bookings">, ctx: ActionCtx) {
 	return fromConvexTuple(
-		ctx.runQuery(internal.internal.sessionsDrive.getDriveSetup, { bookingId })
+		ctx.runQuery(internal.sessionsDriveInternal.getDriveSetup, { bookingId })
 	).andThen((setupInfo) => {
 		const deliverablesFolder = setupInfo?.driveSession?.deliverablesFolder;
 

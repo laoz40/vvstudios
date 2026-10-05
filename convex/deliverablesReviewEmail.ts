@@ -3,7 +3,7 @@
 import { v } from "convex/values";
 import { tupleErr, tupleOk } from "#/lib/result";
 import { internalAction } from "#convex/_generated/server";
-import { sendDeliverablesReviewReadyEmail as sendDeliverablesReviewReadyEmailStep } from "#convex/services/editor/deliverablesReviewEmailWorkflow";
+import { sendDeliverablesReviewReadyEmail as sendDeliverablesReviewReadyEmailStep } from "#convex/services/editor/deliverablesReviewReadyEmail";
 
 export const sendDeliverablesReviewReadyEmail = internalAction({
 	args: {

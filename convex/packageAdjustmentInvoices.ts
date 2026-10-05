@@ -10,7 +10,7 @@ import {
 	claimPackageAdjustmentInvoiceEmailForSend,
 	createSendAndRecordPackageAdjustmentInvoice,
 	type SendPackageAdjustmentInvoiceError
-} from "#convex/services/packages/packageAdjustmentInvoiceSendWorkflow";
+} from "#convex/services/packages/packageAdjustmentInvoiceSend";
 
 export const sendPackageAdjustmentInvoice = internalAction({
 	args: {

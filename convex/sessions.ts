@@ -4,13 +4,13 @@ import { tupleErr, tupleOk } from "#/lib/result";
 import { loadSessionForDeliverables } from "#convex/services/editor/loadSessionForDeliverables";
 import { internalMutation, internalQuery, mutation, query } from "#convex/_generated/server";
 import { requirePermission } from "#convex/services/auth";
-import { runArchivePastDeadCheckoutBatch } from "#convex/services/sessions/sessionArchiveWorkflow";
+import { runArchivePastDeadCheckoutBatch } from "#convex/services/sessions/sessionArchive";
 import { listSessionsService } from "#convex/services/sessions/sessions";
 import {
 	listActiveEditorsForAdmin,
 	listEditorSessionsForAssignee,
 	throwConvexErrorOnAuthFailure
-} from "#convex/services/sessions/sessionsEditorWorkflow";
+} from "#convex/services/sessions/sessionsEditor";
 import {
 	assignSessionEditorFromAdmin,
 	archiveSessionFromAdmin,
@@ -19,15 +19,15 @@ import {
 	writeSessionAdminNotesFromAdmin,
 	writeSessionEditStatusFromEditor,
 	writeSessionEditorNotesFromEditor
-} from "#convex/services/sessions/sessionsMutationWorkflow";
+} from "#convex/services/sessions/sessionMutations";
 import {
 	loadDriveStatusForSensitiveBooking,
 	loadInternalDeliverablesCustomerType,
 	loadPublicRescheduleCompleteSession,
 	loadSessionRowById,
 	loadSessionStatusByStripeSessionId
-} from "#convex/services/sessions/sessionsQueryWorkflow";
-import { resolveDeliverablesCustomerTypeForSession } from "#convex/services/sessions/sessionsQueryWorkflow";
+} from "#convex/services/sessions/sessionQueries";
+import { resolveDeliverablesCustomerTypeForSession } from "#convex/services/sessions/sessionQueries";
 
 export const detectDeliverablesCustomerType = internalQuery({
 	args: { bookingId: v.id("bookings") },

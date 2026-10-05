@@ -11,7 +11,7 @@ import {
 import { archiveDeadCheckoutBooking } from "#convex/lib/sessions/sessionArchive";
 import { getSessionByStripeSessionId, getSessionFromDb } from "#convex/lib/sessions/sessionLookup";
 import { requirePermission } from "#convex/services/auth";
-import { writeSessionEditStatusWithHostNotification } from "#convex/services/sessions/sessionDeliverablesWorkflow";
+import { writeSessionEditStatusWithHostNotification } from "#convex/services/sessions/sessionDeliverables";
 import {
 	requireConfirmedBookingSession,
 	writeSessionInstagramHandle

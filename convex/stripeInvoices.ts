@@ -8,7 +8,7 @@ import {
 	recordBookingStripeInvoiceWithUnarchive,
 	recordPackageAdjustmentStripeInvoiceWithUnarchive,
 	recordPackageStripeInvoiceWithUnarchive
-} from "#convex/services/stripe/stripeInvoiceMutationWorkflow";
+} from "#convex/services/stripe/stripeInvoiceMutations";
 
 const stripeInvoiceLineItemValidator = v.object({ description: v.string(), amount: v.number() });
 

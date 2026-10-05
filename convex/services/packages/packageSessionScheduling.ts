@@ -34,7 +34,7 @@ import type {
 	PackageSessionRequestDetails,
 	PackageUnscheduleRequestDetails,
 	SaveCreatedPackageSessionArgs
-} from "#convex/services/packages/packageSessionMutationWorkflow";
+} from "#convex/services/packages/packageSessionMutations";
 import { getPackageSessionAddons } from "#studio/features/booking-form/lib/booking-form-model";
 import type { SessionReservation } from "#convex/lib/sessions/sessionReservations";
 import type { BookingFormValues } from "#studio/features/booking-form/lib/booking-form-model";

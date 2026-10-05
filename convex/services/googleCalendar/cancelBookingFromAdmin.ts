@@ -6,7 +6,7 @@ import type { ActionCtx } from "#convex/_generated/server";
 import { requirePermissionActions } from "#convex/services/requirePermissionActions";
 import { clearCancelledSessionDriveFields } from "#convex/services/drive/cleanupCancelledSessionDrive";
 import { loadGoogleCalendarClient } from "#convex/lib/googleCalendar/googleCalendarClient";
-import { deleteSessionCalendarEvent } from "#convex/services/googleCalendar/sessionCalendarEventWorkflow";
+import { deleteSessionCalendarEvent } from "#convex/services/googleCalendar/sessionCalendarEvent";
 import type { GoogleCalendarEventClient } from "#convex/lib/sessions/sessionCalendarEventPayload";
 import type { Doc } from "#convex/_generated/dataModel";
 import { getSessionFromQuery } from "#convex/lib/sessions/sessionLookup";

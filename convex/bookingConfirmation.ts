@@ -11,7 +11,7 @@ import {
 	writeBookingReceiptNumberOnSession,
 	writeBookingStripeConfirmationClaim,
 	writeStandaloneBookingReceiptNumberIfMissing
-} from "#convex/services/booking/bookingConfirmationMutationWorkflow";
+} from "#convex/services/booking/bookingConfirmationMutations";
 
 export const claimBookingConfirmation = internalMutation({
 	args: {

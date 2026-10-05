@@ -96,7 +96,7 @@ export function loadReadyBookingDriveFolders(
 	ctx: ActionCtx,
 	bookingId: Id<"bookings">
 ): ResultAsync<ReadyBookingDriveFolders, DriveClientPermissionsError> {
-	return fromConvexTuple(ctx.runQuery(internal.internal.sessionsDrive.getDriveSetup, { bookingId }))
+	return fromConvexTuple(ctx.runQuery(internal.sessionsDriveInternal.getDriveSetup, { bookingId }))
 		.andThen((setupInfo) => validateDriveSetup(setupInfo))
 		.andThen((setupInfo) => {
 			const readyFolders = getReadyBookingFolders(setupInfo);
@@ -139,7 +139,7 @@ function saveClientDrivePermission(
 	permission: SavedDrivePermission
 ) {
 	return fromConvexTuple(
-		ctx.runMutation(internal.internal.sessionsDrive.saveClientDrivePermission, {
+		ctx.runMutation(internal.sessionsDriveInternal.saveClientDrivePermission, {
 			bookingId,
 			name,
 			permission
@@ -153,7 +153,7 @@ export function saveClientDrivePermissionsStatus(
 	status: "failed" | "ready" | "skipped"
 ) {
 	return fromConvexTuple(
-		ctx.runMutation(internal.internal.sessionsDrive.saveClientDrivePermissionsStatus, {
+		ctx.runMutation(internal.sessionsDriveInternal.saveClientDrivePermissionsStatus, {
 			bookingId,
 			status
 		})
@@ -244,7 +244,7 @@ export function sendClientAssetsFolderEmail(
 	attempt: "automatic" | "retry"
 ): ResultAsync<null, DriveClientPermissionsError> {
 	return fromConvexTuple(
-		ctx.runMutation(internal.internal.sessionsDrive.claimClientAssetsEmail, {
+		ctx.runMutation(internal.sessionsDriveInternal.claimClientAssetsEmail, {
 			bookingId,
 			attempt,
 			now: Date.now()
@@ -259,7 +259,7 @@ export function sendClientAssetsFolderEmail(
 			})
 				.andThen(() =>
 					fromConvexTuple(
-						ctx.runMutation(internal.internal.sessionsDrive.saveClientAssetsEmailResult, {
+						ctx.runMutation(internal.sessionsDriveInternal.saveClientAssetsEmailResult, {
 							assetsFolderId: claim.assetsFolderId,
 							bookingId: claim.bookingId,
 							claimedAt: claim.claimedAt,
@@ -269,7 +269,7 @@ export function sendClientAssetsFolderEmail(
 				)
 				.orElse((emailError) =>
 					fromConvexTuple(
-						ctx.runMutation(internal.internal.sessionsDrive.saveClientAssetsEmailResult, {
+						ctx.runMutation(internal.sessionsDriveInternal.saveClientAssetsEmailResult, {
 							assetsFolderId: claim.assetsFolderId,
 							bookingId: claim.bookingId,
 							claimedAt: claim.claimedAt,

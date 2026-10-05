@@ -11,7 +11,7 @@ import {
 	loadValidPackageForCalendarAvailability,
 	type BusyDayWindow,
 	type PackageAvailabilityError
-} from "#convex/services/googleCalendar/packageCalendarAvailabilityWorkflow";
+} from "#convex/services/googleCalendar/packageCalendarAvailability";
 import {
 	removePackageSessionGoogleCalendarEvent,
 	syncPackageSessionGoogleCalendarEvent,

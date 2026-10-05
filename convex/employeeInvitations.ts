@@ -4,7 +4,7 @@ import { v } from "convex/values";
 import { tupleErr, tupleOk, type Result } from "#/lib/result";
 import { action } from "#convex/_generated/server";
 import { requirePermissionActions } from "#convex/services/requirePermissionActions";
-import { inviteEmployeeByEmail } from "#convex/services/employees/employeeInvitationWorkflow";
+import { inviteEmployeeByEmail } from "#convex/services/employees/employeeInvitation";
 
 type InviteUserError =
 	| { reason: "INVALID_EMAIL" }

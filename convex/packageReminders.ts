@@ -6,7 +6,7 @@ import {
 	claimPackageReminderEmail,
 	writePackageReminderEmailFailed,
 	writePackageReminderEmailSent
-} from "#convex/services/packages/packageReminderMutationWorkflow";
+} from "#convex/services/packages/packageReminderMutations";
 
 export { sendDuePackageReminders } from "#convex/services/packages/packageReminders";
 

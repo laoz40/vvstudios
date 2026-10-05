@@ -4,7 +4,7 @@ import { v } from "convex/values";
 import { action } from "#convex/_generated/server";
 import { tupleErr, tupleOk, type Result } from "#/lib/result";
 import type { Id } from "#convex/_generated/dataModel";
-import type { CreateEmbeddedCheckoutSessionError } from "#convex/services/stripe/stripeCheckoutSessionWorkflow";
+import type { CreateEmbeddedCheckoutSessionError } from "#convex/services/stripe/stripeCheckoutSession";
 import {
 	bookingAddonQuantitiesValidator,
 	bookingAddonsValidator
@@ -15,7 +15,7 @@ import {
 	openEmbeddedBookingStripeCheckout,
 	parsePublicBookingForCheckout,
 	runSessionCheckoutSubmitRateLimit
-} from "#convex/services/stripe/stripeCheckoutSessionWorkflow";
+} from "#convex/services/stripe/stripeCheckoutSession";
 
 // Creates a pending booking, opens a Stripe checkout session, then links both records.
 export const createEmbeddedCheckoutSession = action({

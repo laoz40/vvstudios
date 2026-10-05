@@ -16,7 +16,7 @@ export function clearSessionDriveDb(
 	bookingId: Id<"bookings">
 ): ResultAsync<null, never> {
 	return fromConvexTuple(
-		ctx.runMutation(internal.internal.sessionsDrive.clearSessionDriveDb, { bookingId })
+		ctx.runMutation(internal.sessionsDriveInternal.clearSessionDriveDb, { bookingId })
 	).orElse(() => okAsync(null));
 }
 

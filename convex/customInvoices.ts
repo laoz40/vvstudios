@@ -9,7 +9,7 @@ import {
 	createBookingCustomInvoiceFromAdmin,
 	listCustomInvoicesForBooking as listCustomInvoicesForBookingStep,
 	loadBookingCustomInvoiceInput
-} from "#convex/services/stripe/bookingCustomInvoiceWorkflow";
+} from "#convex/services/stripe/bookingCustomInvoice";
 
 export const createCustomInvoice = mutation({
 	args: {

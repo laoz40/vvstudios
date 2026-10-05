@@ -8,7 +8,7 @@ import {
 	updateSessionCalendarEventTiming,
 	type SessionCalendarTimingUpdateResult,
 	type SessionCalendarTimingUpdateError
-} from "#convex/services/googleCalendar/sessionCalendarEventWorkflow";
+} from "#convex/services/googleCalendar/sessionCalendarEvent";
 import type { SessionAvailabilitySettings } from "#convex/lib/sessions/sessionCalendarTime";
 import {
 	getSessionStartAt,

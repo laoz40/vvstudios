@@ -10,8 +10,8 @@ import {
 	archivePackageFromAdmin,
 	loadAdminPackageUpdateValidation,
 	writeAdminPackageFields
-} from "#convex/services/packages/packageAdminMutationWorkflow";
-import { listAdminPackagesPage } from "#convex/services/packages/packageAdminQueryWorkflow";
+} from "#convex/services/packages/packageAdminMutations";
+import { listAdminPackagesPage } from "#convex/services/packages/packageAdminQueries";
 import {
 	enforcePackageSubmitRateLimit,
 	insertPendingPackageRecord,
@@ -22,7 +22,7 @@ import {
 	savePackageInstagramHandle as applyPackageInstagramHandleUpdate,
 	writePackageReceiptEmailAttempt,
 	writePackageScheduleEmailAttempt
-} from "#convex/services/packages/packageInternalMutationWorkflow";
+} from "#convex/services/packages/packageInternalMutations";
 
 const packageInvoiceLineItemValidator = v.object({
 	amount: v.number(),

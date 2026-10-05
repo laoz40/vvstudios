@@ -2,9 +2,9 @@
 
 import type { AdminSessionUpdateError } from "#convex/lib/sessions/sessionAdminEdit";
 
-export type { GetAvailableRescheduleTimesError } from "#convex/services/googleCalendar/sessionCalendarAvailabilityWorkflow";
+export type { GetAvailableRescheduleTimesError } from "#convex/services/googleCalendar/sessionCalendarAvailability";
 
-export type { RescheduleSessionError } from "#convex/services/googleCalendar/sessionRescheduleWorkflow";
+export type { RescheduleSessionError } from "#convex/services/googleCalendar/sessionCalendarReschedule";
 
 export type CancelBookingFromAdminError = {
 	reason:

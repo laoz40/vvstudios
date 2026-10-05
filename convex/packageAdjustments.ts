@@ -8,7 +8,7 @@ import {
 	updatePackageAdjustmentPaymentStatusFromAdmin,
 	writePackageAdjustmentInvoiceEmailFailed,
 	writePackageAdjustmentInvoiceEmailSent
-} from "#convex/services/packages/packageAdjustmentInvoiceEmailWorkflow";
+} from "#convex/services/packages/packageAdjustmentInvoiceEmail";
 
 const adjustmentEmailAttemptValidator = v.union(v.literal("automatic"), v.literal("retry"));
 
