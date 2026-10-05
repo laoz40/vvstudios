@@ -1,7 +1,6 @@
-import { err, ok, ResultAsync } from "neverthrow";
-import { internal } from "#convex/_generated/api";
+import { err, ok, type ResultAsync } from "neverthrow";
 import type { Doc, Id } from "#convex/_generated/dataModel";
-import type { ActionCtx, MutationCtx, QueryCtx } from "#convex/_generated/server";
+import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
 import { getBookingAvailabilitySettings } from "#convex/lib/booking/bookingSettings";
 import { getOrCreateDriveClientId } from "#convex/lib/drive/driveFolders";
 import { buildBookingSearchBlob } from "#convex/lib/adminSearch/adminSearchBlob";
@@ -15,8 +14,6 @@ import {
 	getEditablePackageSession,
 	getPackageSessionForToken,
 	sessionConsumesPackageCapacity,
-	toPackageCalendarDetails,
-	toPackageCalendarSession,
 	type CreatePackageSessionError,
 	type ReschedulePackageSessionError,
 	type UnschedulePackageSessionError
@@ -26,7 +23,7 @@ import {
 	type ValidPackage,
 	type ValidPackageByTokenError
 } from "#convex/lib/packages/packageLookup";
-import { fromConvexTuple, okOrThrow } from "#convex/lib/result";
+import { okOrThrow } from "#convex/lib/result";
 import { archivePackageWhenFullyDone } from "#convex/lib/packages/packageArchive";
 import { archiveDeadCheckoutBooking } from "#convex/lib/sessions/sessionArchive";
 import { getSessionStartAt } from "#convex/lib/sessions/sessionAdminEdit";
@@ -47,15 +44,11 @@ type PackageSessionArgs = {
 	remotePodcast: boolean;
 };
 
-type ReschedulePackageSessionArgs = PackageSessionArgs & { bookingId: Id<"bookings"> };
-
-type UnschedulePackageSessionArgs = { bookingId: Id<"bookings">; token: string };
-
 type PackageSessionRequestArgs = { token: string; date: string; time: string; now: number };
 
 type PackageRescheduleRequestArgs = PackageSessionRequestArgs & { bookingId: Id<"bookings"> };
 
-type PackageUnscheduleRequestArgs = UnschedulePackageSessionArgs & { now: number };
+type PackageUnscheduleRequestArgs = { bookingId: Id<"bookings">; token: string; now: number };
 
 export type PackageSessionRequestDetails = {
 	packageRecord: ValidPackage;
@@ -128,210 +121,6 @@ export function setPackageDefaultSpaceService(
 				.patch("packages", packageRecord._id, { defaultSpace: args.service })
 				.then(() => ({ defaultSpace: args.service }))
 		)
-	);
-}
-
-export function createPackageSessionService(
-	ctx: ActionCtx,
-	args: PackageSessionArgs
-): ResultAsync<{ bookingId: Id<"bookings"> }, CreatePackageSessionError> {
-	const now = Date.now();
-
-	return (
-		fromConvexTuple(
-			ctx.runQuery(internal.packageScheduling.validatePackageSessionRequest, {
-				token: args.token,
-				date: args.date,
-				time: args.time,
-				now
-			})
-		)
-			// Apply the package-scoped submit limit before creating an external Calendar event.
-			.andThen((details) =>
-				fromConvexTuple(
-					ctx.runMutation(internal.packages.checkPackageSubmitRateLimit, {
-						submitRateLimitKey: `package:${details.packageRecord._id}`
-					})
-				).map(() => details)
-			)
-			// Create the Calendar event before persisting its identifiers with the booking.
-			.andThen((details) =>
-				fromConvexTuple(
-					ctx.runAction(internal.packageSchedulingCalendar.createPackageSessionCalendarEvent, {
-						session: null,
-						details: toPackageCalendarDetails(
-							args,
-							details.packageRecord,
-							details.eventBufferMinutes
-						)
-					})
-				).map((calendar) => ({ calendar, details }))
-			)
-			// Save the booking, deleting an orphaned Calendar event if an expected save check loses a race.
-			.andThen(({ calendar, details }) => {
-				const saveArgs: SaveCreatedPackageSessionArgs = { ...args, now };
-
-				if (calendar.googleCalendarId) {
-					saveArgs.googleCalendarId = calendar.googleCalendarId;
-				}
-
-				if (calendar.googleEventId) {
-					saveArgs.googleEventId = calendar.googleEventId;
-				}
-
-				return fromConvexTuple(
-					ctx.runMutation(internal.packageScheduling.saveCreatedPackageSession, saveArgs)
-				).orElse((saveError) => {
-					if (!calendar.googleEventId || !calendar.googleCalendarId) {
-						return err(saveError);
-					}
-
-					return fromConvexTuple(
-						ctx.runAction(internal.packageSchedulingCalendar.deletePackageSessionCalendarEvent, {
-							session: {
-								date: args.date,
-								duration: details.packageRecord.duration,
-								email: details.packageRecord.email,
-								googleCalendarId: calendar.googleCalendarId,
-								googleEventId: calendar.googleEventId,
-								name: details.packageRecord.name,
-								time: args.time
-							}
-						})
-					)
-						.mapErr((cleanupError) => {
-							console.error("Failed to compensate orphan package Calendar event", cleanupError);
-
-							return saveError;
-						})
-						.andThen(() => err(saveError));
-				});
-			})
-	);
-}
-
-export function reschedulePackageSessionService(
-	ctx: ActionCtx,
-	args: ReschedulePackageSessionArgs
-): ResultAsync<{ bookingId: Id<"bookings"> }, ReschedulePackageSessionError> {
-	const now = Date.now();
-
-	return (
-		fromConvexTuple(
-			ctx.runQuery(internal.packageScheduling.validatePackageRescheduleRequest, {
-				token: args.token,
-				bookingId: args.bookingId,
-				date: args.date,
-				time: args.time,
-				now
-			})
-		)
-			// Reserve the requested time before updating the external Calendar event.
-			.andThen((details) =>
-				fromConvexTuple(
-					ctx.runMutation(internal.sessionScheduling.reserveSessionReservation, {
-						bookingId: args.bookingId,
-						duration: details.packageRecord.duration,
-						eventBufferMinutes: details.eventBufferMinutes,
-						now: Date.now(),
-						sessionStartAt: details.sessionStartAt
-					})
-				).andThen((reservationResult) => {
-					return reservationResult.outcome === "unavailable"
-						? err({ reason: "BOOKING_TIME_UNAVAILABLE" as const })
-						: ok({ details, reservation: reservationResult.reservation });
-				})
-			)
-			// Update Calendar while holding the reservation; release it on an expected provider failure.
-			.andThen(({ details, reservation }) =>
-				fromConvexTuple(
-					ctx.runAction(internal.packageSchedulingCalendar.updatePackageSessionCalendarEvent, {
-						session: toPackageCalendarSession(details.session),
-						details: toPackageCalendarDetails(
-							args,
-							details.packageRecord,
-							details.eventBufferMinutes
-						)
-					})
-				)
-					.map((calendar) => ({ calendar, details, reservation }))
-					.orElse((calendarError) =>
-						fromConvexTuple(
-							ctx.runMutation(internal.sessionScheduling.clearSessionReservation, {
-								bookingId: args.bookingId,
-								reservation
-							})
-						).andThen(() => err(calendarError))
-					)
-			)
-			// Persist the new booking details and release the reservation if the save is rejected.
-			.andThen(({ calendar, details, reservation }) =>
-				fromConvexTuple(
-					ctx.runMutation(internal.sessionScheduling.saveClientSessionReschedule, {
-						bookingId: args.bookingId,
-						date: args.date,
-						time: args.time,
-						service: args.service,
-						notes: args.notes,
-						addons: getPackageSessionAddons(details.packageRecord.addons, args.remotePodcast),
-						sessionStartAt: details.sessionStartAt,
-						googleCalendarId: calendar.googleCalendarId,
-						googleEventId: calendar.googleEventId,
-						packageId: details.packageRecord._id,
-						reservation
-					})
-				)
-					.map(() => ({ bookingId: args.bookingId }))
-					// TODO: If Calendar updates but this Convex save fails, Calendar keeps the new time
-					// while the booking keeps the old time. Mark the booking with a Calendar sync
-					// warning so an admin can compare it with Calendar and update it manually.
-					.orElse((saveError) =>
-						fromConvexTuple(
-							ctx.runMutation(internal.sessionScheduling.clearSessionReservation, {
-								bookingId: args.bookingId,
-								reservation
-							})
-						).andThen(() => err(saveError))
-					)
-			)
-	);
-}
-
-export function unschedulePackageSessionService(
-	ctx: ActionCtx,
-	args: UnschedulePackageSessionArgs
-): ResultAsync<{ cancelled: true; bookingId: Id<"bookings"> }, UnschedulePackageSessionError> {
-	const now = Date.now();
-
-	return (
-		fromConvexTuple(
-			ctx.runQuery(internal.packageScheduling.validatePackageUnscheduleRequest, { ...args, now })
-		)
-			// Delete the Calendar event before marking the booking cancelled.
-			.andThen((details) =>
-				fromConvexTuple(
-					ctx.runAction(internal.packageSchedulingCalendar.deletePackageSessionCalendarEvent, {
-						session: toPackageCalendarSession(details.session)
-					})
-				)
-			)
-			// Persist cancellation only after Calendar deletion succeeds or reports the event missing.
-			.andThen(() =>
-				fromConvexTuple(
-					ctx.runMutation(internal.packageScheduling.cancelPackageSession, {
-						bookingId: args.bookingId,
-						now,
-						token: args.token
-					})
-				)
-			)
-			.andThen((cancelled) =>
-				fromConvexTuple(
-					ctx.runAction(internal.googleCalendar.cleanupCancelledSessionDrive, {
-						bookingId: args.bookingId
-					})
-				).map(() => cancelled)
-			)
 	);
 }
 

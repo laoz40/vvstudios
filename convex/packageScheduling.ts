@@ -1,5 +1,11 @@
 import { v } from "convex/values";
-import { tupleErr, tupleOk } from "#/lib/result";
+import { tupleErr, tupleOk, type Result } from "#/lib/result";
+import type { Id } from "#convex/_generated/dataModel";
+import type {
+	CreatePackageSessionError,
+	ReschedulePackageSessionError,
+	UnschedulePackageSessionError
+} from "#convex/lib/packages/packageScheduling";
 import {
 	action,
 	internalMutation,
@@ -11,18 +17,28 @@ import { SERVICES } from "#studio/features/booking-form/lib/booking-form-model";
 import { getValidPackageByToken as findValidPackageByToken } from "#convex/lib/packages/packageLookup";
 import {
 	cancelPackageSessionService,
-	createPackageSessionService,
 	getPackageByTokenService,
 	processPackageAdjustmentAtExpiryService,
 	processPackageAdjustmentWhenSessionsCompleteService,
-	reschedulePackageSessionService,
 	saveCreatedPackageSessionService,
 	setPackageDefaultSpaceService,
-	unschedulePackageSessionService,
 	validatePackageRescheduleRequestService,
 	validatePackageSessionRequestService,
 	validatePackageUnscheduleRequestService
 } from "#convex/services/packages/packageScheduling";
+import {
+	authorizePackageSessionCreate,
+	cleanupCancelledPackageDrive,
+	clearPackageSessionCalendar,
+	loadPackageRescheduleTarget,
+	loadPackageUnscheduleTarget,
+	markPackageSessionCancelled,
+	persistNewPackageSession,
+	persistPackageReschedule,
+	reservePackageRescheduleSlot,
+	syncNewPackageSessionCalendar,
+	syncPackageRescheduleCalendar
+} from "#convex/services/packages/packageSessionWorkflow";
 
 export const getPackageByToken = query({
 	args: { token: v.string() },
@@ -47,17 +63,62 @@ const packageSessionInput = {
 
 export const createPackageSession = action({
 	args: packageSessionInput,
-	handler: (ctx, args) => createPackageSessionService(ctx, args).match(tupleOk, tupleErr)
+	handler: (
+		ctx,
+		args
+	): Promise<Result<{ bookingId: Id<"bookings"> }, CreatePackageSessionError>> => {
+		const now = Date.now();
+
+		return authorizePackageSessionCreate(ctx, args, now)
+			.andThen((details) => syncNewPackageSessionCalendar(ctx, args, details))
+			.andThen(({ calendar, details }) =>
+				persistNewPackageSession(ctx, args, now, calendar, details)
+			)
+			.match(tupleOk, tupleErr);
+	}
 });
 
 export const reschedulePackageSession = action({
 	args: { bookingId: v.id("bookings"), ...packageSessionInput },
-	handler: (ctx, args) => reschedulePackageSessionService(ctx, args).match(tupleOk, tupleErr)
+	handler: (
+		ctx,
+		args
+	): Promise<Result<{ bookingId: Id<"bookings"> }, ReschedulePackageSessionError>> => {
+		const now = Date.now();
+
+		return loadPackageRescheduleTarget(ctx, args, now)
+			.andThen((details) =>
+				reservePackageRescheduleSlot(ctx, args, details).map((reservation) => ({
+					details,
+					reservation
+				}))
+			)
+			.andThen(({ details, reservation }) =>
+				syncPackageRescheduleCalendar(ctx, args, details, reservation)
+			)
+			.andThen(({ calendar, details, reservation }) =>
+				persistPackageReschedule(ctx, args, details, calendar, reservation)
+			)
+			.match(tupleOk, tupleErr);
+	}
 });
 
 export const unschedulePackageSession = action({
 	args: { bookingId: v.id("bookings"), token: v.string() },
-	handler: (ctx, args) => unschedulePackageSessionService(ctx, args).match(tupleOk, tupleErr)
+	handler: (
+		ctx,
+		args
+	): Promise<
+		Result<{ cancelled: true; bookingId: Id<"bookings"> }, UnschedulePackageSessionError>
+	> => {
+		const now = Date.now();
+
+		return loadPackageUnscheduleTarget(ctx, args, now)
+			.andThen((details) => clearPackageSessionCalendar(ctx, details).map(() => details))
+			.andThen(() => markPackageSessionCancelled(ctx, args, now))
+			.andThen((cancelled) => cleanupCancelledPackageDrive(ctx, cancelled))
+			.match(tupleOk, tupleErr);
+	}
 });
 
 export const getValidPackageByToken = internalQuery({
