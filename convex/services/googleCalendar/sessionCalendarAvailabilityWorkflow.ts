@@ -14,11 +14,13 @@ import {
 } from "#convex/lib/sessions/sessionCalendarAvailabilityLoad";
 import { getBookingSettingsService } from "#convex/services/booking/bookingSettings";
 import type { RescheduleLinkLookupError } from "#convex/services/sessions/sessionReschedule";
+import type { SessionAvailabilityValidationError } from "#convex/lib/sessions/sessionCalendarTime";
 import type { BookingAvailabilitySettings } from "#studio/lib/bookingAvailabilitySettings";
 
 export type GetAvailableRescheduleTimesError =
 	| RescheduleLinkLookupError
-	| GoogleCalendarAvailabilityError;
+	| GoogleCalendarAvailabilityError
+	| SessionAvailabilityValidationError;
 
 export function loadBookingAvailabilitySettingsForAction(ctx: ActionCtx) {
 	return getBookingSettingsService(ctx);

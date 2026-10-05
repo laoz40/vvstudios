@@ -1,18 +1,22 @@
 "use node";
 
-import { okAsync, ResultAsync } from "neverthrow";
+import { okAsync, type ResultAsync } from "neverthrow";
 import { internal } from "#convex/_generated/api";
 import type { Id } from "#convex/_generated/dataModel";
 import type { ActionCtx } from "#convex/_generated/server";
 import { checkPackageSubmitRateLimit } from "#convex/lib/booking/bookingSubmission";
 import { createPendingPackage } from "#convex/lib/packages/packagePayment";
 import {
-	parsePackageRequest,
-	type CreatePackageRequestArgs
+	type CreatePackageRequestArgs,
+	type ParsedPackageRequest
 } from "#convex/lib/packages/packageUpdates";
 import { fromConvexTuple } from "#convex/lib/result";
 import { getStripeClient, type StripeClient } from "#convex/lib/stripe/stripeClient";
-import { buildPackageCheckoutLineItems } from "#studio/features/booking-invoice/lib/stripe-checkout-line-items";
+import type { PackageInvoiceInput } from "#studio/features/booking-invoice/lib/booking-artifacts";
+import {
+	buildPackageCheckoutLineItems,
+	type PackageCheckoutLineItems
+} from "#studio/features/booking-invoice/lib/stripe-checkout-line-items";
 import {
 	closeOpenStripeCheckoutSession,
 	createEmbeddedStripePackageCheckoutSession,
@@ -36,40 +40,50 @@ type CloseEmbeddedPackageCheckoutSessionSuccess = {
 	outcome: "already_complete" | "abandoned" | "not_found" | "not_pending";
 };
 
-export function createPackageCheckoutSessionService(
+export function runPackageCheckoutSubmitRateLimit(
 	ctx: ActionCtx,
-	args: CreatePackageRequestArgs,
-	stripe: StripeClient = getStripeClient()
-): ResultAsync<
-	{ packageId: Id<"packages">; clientSecret: string; stripeSessionId: string },
-	CreatePackageCheckoutSessionError
-> {
-	return parsePackageRequest(args)
-		.andThen((packageRequest) =>
-			checkPackageSubmitRateLimit(ctx, packageRequest.email).map(() => packageRequest)
-		)
-		.andThen((validRequest) =>
-			requireValidBookingEmailDomain(validRequest.email).map(() => validRequest)
-		)
-		.andThen((validRequest) => createPendingPackage(ctx, validRequest))
+	packageRequest: ParsedPackageRequest
+): ResultAsync<ParsedPackageRequest, CreatePackageCheckoutSessionError> {
+	return checkPackageSubmitRateLimit(ctx, packageRequest.email).map(() => packageRequest);
+}
+
+type PendingPackageCheckoutDraft = {
+	packageFromDb: PackageInvoiceInput & { _id: Id<"packages"> };
+	checkoutLineItems: PackageCheckoutLineItems;
+};
+
+export function createPendingPackageForStripeCheckout(
+	ctx: ActionCtx,
+	validRequest: ParsedPackageRequest
+): ResultAsync<PendingPackageCheckoutDraft, CreatePackageCheckoutSessionError> {
+	return requireValidBookingEmailDomain(validRequest.email)
+		.andThen(() => createPendingPackage(ctx, validRequest))
 		.andThen((packageFromDb) =>
 			buildPackageCheckoutLineItems(packageFromDb).map((checkoutLineItems) => ({
 				packageFromDb,
 				checkoutLineItems
 			}))
-		)
-		.andThen(({ packageFromDb, checkoutLineItems }) =>
-			createStripeCheckoutCustomer(stripe, packageFromDb, {
-				packageId: packageFromDb._id,
-				lineItems: checkoutLineItems.lineItems,
-				discount: checkoutLineItems.discount
-			})
-		)
-		.andThen((checkoutDraft) => createEmbeddedStripePackageCheckoutSession(stripe, checkoutDraft))
-		.andThen((checkoutDraft) => linkStripeCheckoutToPendingPackage(ctx, checkoutDraft));
+		);
 }
 
-export function closeEmbeddedPackageCheckoutSessionService(
+export function openEmbeddedPackageStripeCheckout(
+	ctx: ActionCtx,
+	stripe: StripeClient,
+	checkoutDraft: PendingPackageCheckoutDraft
+): ResultAsync<
+	{ packageId: Id<"packages">; clientSecret: string; stripeSessionId: string },
+	CreatePackageCheckoutSessionError
+> {
+	return createStripeCheckoutCustomer(stripe, checkoutDraft.packageFromDb, {
+		packageId: checkoutDraft.packageFromDb._id,
+		lineItems: checkoutDraft.checkoutLineItems.lineItems,
+		discount: checkoutDraft.checkoutLineItems.discount
+	})
+		.andThen((draft) => createEmbeddedStripePackageCheckoutSession(stripe, draft))
+		.andThen((draft) => linkStripeCheckoutToPendingPackage(ctx, draft));
+}
+
+export function closeAbandonedPackageStripeCheckout(
 	ctx: ActionCtx,
 	args: { packageId: Id<"packages">; stripeSessionId: string },
 	stripe: StripeClient = getStripeClient()
@@ -90,3 +104,5 @@ export function closeEmbeddedPackageCheckoutSessionService(
 		).map(({ outcome }) => ({ outcome }));
 	});
 }
+
+export type { CreatePackageRequestArgs };

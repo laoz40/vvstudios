@@ -1,16 +1,18 @@
 "use node";
 
+import { errAsync, okAsync } from "neverthrow";
 import { v } from "convex/values";
 import { tupleErr, tupleOk, type Result } from "#/lib/result";
 import { action, internalAction } from "#convex/_generated/server";
+import { requirePermissionActions } from "#convex/services/auth";
 import {
-	retryEditorAssignmentEmailService,
-	retryEditorAccessService,
-	retryPreviousEditorRemovalService,
-	runEditorAccessSetupService,
-	runEditorDriveAccessUpdateService,
-	type DriveEditorPermissionsError
-} from "#convex/services/drive/driveEditorPermissions";
+	loadFailedEditorRemoval,
+	removeFailedEditorDriveAccess,
+	sendEditorAssignmentEmailForReadyAccess,
+	setupEditorAccess as runEditorAccessSetup
+} from "#convex/lib/drive/driveEditorPermissions";
+import type { DriveEditorPermissionsError } from "#convex/lib/drive/driveEditorPermissions";
+import { runEditorDriveAccessUpdate } from "#convex/services/drive/driveEditorPermissions";
 
 type RetryEditorAccessError =
 	| DriveEditorPermissionsError
@@ -19,29 +21,45 @@ type RetryEditorAccessError =
 export const retryEditorAccess = action({
 	args: { bookingId: v.id("bookings") },
 	handler: (ctx, args): Promise<Result<null, RetryEditorAccessError>> =>
-		retryEditorAccessService(ctx, args).match(tupleOk, tupleErr)
+		requirePermissionActions(ctx, "edit:sessions")
+			.andThen(() => runEditorAccessSetup(ctx, args))
+			.match(tupleOk, tupleErr)
 });
 
 export const retryEditorAssignmentEmail = action({
 	args: { bookingId: v.id("bookings") },
 	handler: (ctx, args): Promise<Result<null, RetryEditorAccessError>> =>
-		retryEditorAssignmentEmailService(ctx, args).match(tupleOk, tupleErr)
+		requirePermissionActions(ctx, "edit:sessions")
+			.andThen(() => sendEditorAssignmentEmailForReadyAccess(ctx, args))
+			.match(tupleOk, tupleErr)
 });
 
 export const setupEditorAccess = internalAction({
 	args: { bookingId: v.id("bookings") },
 	handler: (ctx, args): Promise<Result<null, never>> =>
-		runEditorAccessSetupService(ctx, args).match(tupleOk, tupleErr)
+		runEditorAccessSetup(ctx, args)
+			.orElse(() => okAsync(null))
+			.match(tupleOk, tupleErr)
 });
 
 export const updateEditorDriveAccess = internalAction({
 	args: { bookingId: v.id("bookings"), previousEditorTokenIdentifier: v.string() },
 	handler: (ctx, args): Promise<Result<null, DriveEditorPermissionsError>> =>
-		runEditorDriveAccessUpdateService(ctx, args).match(tupleOk, tupleErr)
+		runEditorDriveAccessUpdate(ctx, args).match(tupleOk, tupleErr)
 });
 
 export const retryPreviousEditorRemoval = action({
 	args: { bookingId: v.id("bookings") },
 	handler: (ctx, args): Promise<Result<null, RetryEditorAccessError>> =>
-		retryPreviousEditorRemovalService(ctx, args).match(tupleOk, tupleErr)
+		requirePermissionActions(ctx, "edit:sessions")
+			.andThen(() =>
+				loadFailedEditorRemoval(ctx, args).andThen((removal) => {
+					if (removal === null) {
+						return errAsync({ reason: "PREVIOUS_EDITOR_REMOVAL_NOT_FOUND" as const });
+					}
+
+					return removeFailedEditorDriveAccess(ctx, removal);
+				})
+			)
+			.match(tupleOk, tupleErr)
 });

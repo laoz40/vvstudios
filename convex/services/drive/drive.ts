@@ -4,7 +4,6 @@ import { errAsync, okAsync, type ResultAsync } from "neverthrow";
 import { internal } from "#convex/_generated/api";
 import type { Id } from "#convex/_generated/dataModel";
 import type { ActionCtx } from "#convex/_generated/server";
-import { requirePermissionActions } from "#convex/services/auth";
 import {
 	areDriveSetupFoldersSaved,
 	shouldRecordDriveSetupFailure,
@@ -44,7 +43,7 @@ function saveSetupFailure(ctx: ActionCtx, bookingId: Id<"bookings">, failureCode
 	);
 }
 
-function setupFoldersAndRecordResult(
+export function createSessionDriveFoldersAndCompleteSetup(
 	ctx: ActionCtx,
 	args: {
 		bookingId: Id<"bookings">;
@@ -92,24 +91,13 @@ function setupFoldersAndRecordResult(
 	);
 }
 
-export function setupDriveService(ctx: ActionCtx, args: { bookingId: Id<"bookings"> }) {
-	return requirePermissionActions(ctx, "edit:sessions").andThen(() =>
-		setupFoldersAndRecordResult(ctx, { ...args, replaceMissingFolders: true })
-	);
-}
-
-export function retryDriveSetupService(ctx: ActionCtx, args: { bookingId: Id<"bookings"> }) {
-	return requirePermissionActions(ctx, "edit:sessions").andThen(() =>
-		setupFoldersAndRecordResult(ctx, { ...args, replaceMissingFolders: true })
-	);
-}
-
-export function runScheduledDriveSetupService(
+export function runScheduledSessionDriveFolderSetup(
 	ctx: ActionCtx,
 	args: { bookingId: Id<"bookings">; sessionStartAt: number; duration: string }
 ): ResultAsync<null, never> {
 	// Scheduled jobs resume partial setup only; admins recreate missing folders from the dialog.
-	return setupFoldersAndRecordResult(ctx, { ...args, replaceMissingFolders: false }).orElse(() =>
-		okAsync(null)
-	);
+	return createSessionDriveFoldersAndCompleteSetup(ctx, {
+		...args,
+		replaceMissingFolders: false
+	}).orElse(() => okAsync(null));
 }

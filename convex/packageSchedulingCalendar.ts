@@ -6,8 +6,9 @@ import { DURATION_OPTIONS, SERVICES } from "#studio/features/booking-form/lib/bo
 import { action, internalAction } from "#convex/_generated/server";
 import type { SessionCalendarEventRecord } from "#convex/lib/sessions/sessionCalendarEventPayload";
 import {
-	deletePackageSessionCalendarEventService,
-	savePackageSessionCalendarEventService,
+	loadPackageCalendarClientWhenSlotOpen,
+	removePackageSessionGoogleCalendarEvent,
+	writePackageSessionGoogleCalendarEvent,
 	type PackageCalendarWriteError
 } from "#convex/services/googleCalendar/packageSchedulingCalendar";
 import {
@@ -61,6 +62,21 @@ export const getPackageBusyWindows = action({
 			.match(tupleOk, tupleErr)
 });
 
+type SavePackageSessionCalendarEventArgs = {
+	session: SessionCalendarEventRecord | null;
+	details: Parameters<typeof writePackageSessionGoogleCalendarEvent>[1]["details"];
+};
+
+async function savePackageSessionCalendarEventHandler(
+	args: SavePackageSessionCalendarEventArgs
+): Promise<
+	Result<{ googleCalendarId?: string; googleEventId?: string }, PackageCalendarWriteError>
+> {
+	return await loadPackageCalendarClientWhenSlotOpen(args)
+		.andThen((client) => writePackageSessionGoogleCalendarEvent(client, args))
+		.match(tupleOk, tupleErr);
+}
+
 export const createPackageSessionCalendarEvent = internalAction({
 	args: {
 		session: v.union(v.null(), packageCalendarBookingValidator),
@@ -68,15 +84,6 @@ export const createPackageSessionCalendarEvent = internalAction({
 	},
 	handler: (_ctx, args) => savePackageSessionCalendarEventHandler(args)
 });
-
-async function savePackageSessionCalendarEventHandler(args: {
-	session: SessionCalendarEventRecord | null;
-	details: Parameters<typeof savePackageSessionCalendarEventService>[0]["details"];
-}): Promise<
-	Result<{ googleCalendarId?: string; googleEventId?: string }, PackageCalendarWriteError>
-> {
-	return await savePackageSessionCalendarEventService(args).match(tupleOk, tupleErr);
-}
 
 export const updatePackageSessionCalendarEvent = internalAction({
 	args: { session: packageCalendarBookingValidator, details: packageCalendarDetailsValidator },
@@ -86,5 +93,5 @@ export const updatePackageSessionCalendarEvent = internalAction({
 export const deletePackageSessionCalendarEvent = internalAction({
 	args: { session: packageCalendarBookingValidator },
 	handler: (_ctx, args) =>
-		deletePackageSessionCalendarEventService(args.session).match(tupleOk, tupleErr)
+		removePackageSessionGoogleCalendarEvent(args.session).match(tupleOk, tupleErr)
 });

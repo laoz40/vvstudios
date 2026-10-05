@@ -39,7 +39,7 @@ export function buildPackageScheduleUrl(baseUrl: string, token: string) {
 export function createPendingPackage(
 	ctx: ActionCtx,
 	args: ParsedPackageRequest
-): ResultAsync<PackageInvoiceInput, never> {
+): ResultAsync<PackageInvoiceInput & { _id: Id<"packages"> }, never> {
 	const amounts = calculatePackageAmounts(args);
 
 	const invoiceLineItems = createPackageInvoiceLineItemSnapshot({

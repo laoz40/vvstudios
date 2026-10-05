@@ -1,11 +1,4 @@
-import {
-	err,
-	errAsync,
-	ok,
-	okAsync,
-	ResultAsync,
-	type ResultAsync as ResultAsyncType
-} from "neverthrow";
+import { err, errAsync, ok, okAsync, type ResultAsync as ResultAsyncType } from "neverthrow";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
 import { getBookingAvailabilitySettings } from "#convex/lib/booking/bookingSettings";

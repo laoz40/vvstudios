@@ -133,7 +133,7 @@ function createPackageCalendarEvent(
 		});
 }
 
-function checkPackageSlotAvailable(args: {
+export function loadPackageCalendarClientWhenSlotOpen(args: {
 	session: SessionCalendarEventRecord | null;
 	details: PackageCalendarDetails;
 }) {
@@ -175,18 +175,16 @@ function checkPackageSlotAvailable(args: {
 	});
 }
 
-export function savePackageSessionCalendarEventService(args: {
-	session: SessionCalendarEventRecord | null;
-	details: PackageCalendarDetails;
-}): ResultAsync<{ googleCalendarId?: string; googleEventId?: string }, PackageCalendarWriteError> {
-	return checkPackageSlotAvailable(args).andThen((client) =>
-		args.session
-			? updatePackageCalendarEvent(client, args.session, args.details)
-			: createPackageCalendarEvent(client, args.details)
-	);
+export function writePackageSessionGoogleCalendarEvent(
+	client: PackageCalendarClient,
+	args: { session: SessionCalendarEventRecord | null; details: PackageCalendarDetails }
+): ResultAsync<{ googleCalendarId?: string; googleEventId?: string }, PackageCalendarWriteError> {
+	return args.session
+		? updatePackageCalendarEvent(client, args.session, args.details)
+		: createPackageCalendarEvent(client, args.details);
 }
 
-export function deletePackageSessionCalendarEventService(
+export function removePackageSessionGoogleCalendarEvent(
 	session: SessionCalendarEventRecord
 ): ResultAsync<{ calendarEventDeleted: boolean }, PackageCalendarSyncError> {
 	return (

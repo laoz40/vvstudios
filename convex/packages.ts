@@ -23,12 +23,19 @@ import {
 } from "#convex/services/packages/packageAdminMutationWorkflow";
 import {
 	createPendingPackageService,
-	listPackagesService,
-	markPackageReceiptEmailAttemptService,
-	markPackageScheduleEmailAttemptService,
-	refreshPackageScheduleTokenService,
-	savePackageInstagramHandleService
+	listPackagesService
 } from "#convex/services/packages/packages";
+import {
+	createPackageScheduleToken,
+	validatePackageScheduleTokenRefresh
+} from "#convex/lib/packages/packageScheduling";
+import {
+	patchPackageSessionBookingsContactSearch,
+	searchBlobPatchForBooking,
+	searchBlobPatchForPackage
+} from "#convex/lib/adminSearch/adminSearchBlob";
+import { okOrThrow } from "#convex/lib/result";
+import { err, ok } from "neverthrow";
 
 const bookingInvoiceLineItemValidator = v.object({
 	amount: v.number(),
@@ -140,12 +147,45 @@ export const markPackagePaidAndCreateScheduleToken = internalMutation({
 
 export const refreshPackageScheduleToken = internalMutation({
 	args: { packageId: v.id("packages") },
-	handler: (ctx, args) => refreshPackageScheduleTokenService(ctx, args).match(tupleOk, tupleErr)
+	handler: (ctx, args) =>
+		getPackageFromDb(ctx, args.packageId)
+			.andThen(validatePackageScheduleTokenRefresh)
+			.andThen((packageFromDb) =>
+				createPackageScheduleToken().map((scheduleToken) => ({ packageFromDb, ...scheduleToken }))
+			)
+			.andThen(({ packageFromDb, scheduleTokenHash, token }) =>
+				okOrThrow(
+					ctx.db
+						.patch("packages", args.packageId, { scheduleLinkStatus: "active", scheduleTokenHash })
+						.then(() => ({
+							expiresAt: packageFromDb.expiresAt,
+							paidAt: packageFromDb.paidAt,
+							packageRecord: {
+								...packageFromDb,
+								scheduleLinkStatus: "active" as const,
+								scheduleTokenHash
+							},
+							token
+						}))
+				)
+			)
+			.match(tupleOk, tupleErr)
 });
 
 export const markPackageScheduleEmailAttempt = internalMutation({
 	args: { packageId: v.id("packages"), status: v.union(v.literal("sent"), v.literal("failed")) },
-	handler: (ctx, args) => markPackageScheduleEmailAttemptService(ctx, args).match(tupleOk, tupleErr)
+	handler: (ctx, args) =>
+		getPackageFromDb(ctx, args.packageId)
+			.andThen(() =>
+				okOrThrow(
+					ctx.db
+						.patch("packages", args.packageId, {
+							status: args.status === "sent" ? "paid" : "schedule_email_failed"
+						})
+						.then(() => null)
+				)
+			)
+			.match(tupleOk, tupleErr)
 });
 
 export const markPackageReceiptEmailAttempt = internalMutation({
@@ -155,12 +195,89 @@ export const markPackageReceiptEmailAttempt = internalMutation({
 		receiptNumber: v.optional(v.string()),
 		failureCode: v.optional(v.string())
 	},
-	handler: (ctx, args) => markPackageReceiptEmailAttemptService(ctx, args).match(tupleOk, tupleErr)
+	handler: (ctx, args) =>
+		getPackageFromDb(ctx, args.packageId)
+			.andThen((packageFromDb) => {
+				const now = Date.now();
+
+				const sentPatch =
+					args.status === "sent"
+						? {
+								receiptEmailFailureCode: undefined,
+								receiptEmailSentAt: now,
+								receiptEmailStatus: "sent" as const,
+								receiptNumber: args.receiptNumber,
+								lastReceiptEmailAttemptAt: now,
+								...searchBlobPatchForPackage(packageFromDb, { receiptNumber: args.receiptNumber })
+							}
+						: {
+								receiptEmailFailureCode: args.failureCode,
+								receiptEmailStatus: "failed" as const,
+								lastReceiptEmailAttemptAt: now
+							};
+
+				return okOrThrow(
+					ctx.db.patch("packages", args.packageId, sentPatch).then(async () => {
+						if (args.status === "sent" && args.receiptNumber) {
+							const bookings = await ctx.db
+								.query("bookings")
+								.withIndex("by_packageId_and_status_and_sessionStartAt", (indexQuery) =>
+									indexQuery.eq("packageId", args.packageId)
+								)
+								.collect();
+
+							await Promise.all(
+								bookings.map(async (booking) =>
+									ctx.db.patch("bookings", booking._id, {
+										receiptNumber: args.receiptNumber,
+										...(await searchBlobPatchForBooking(ctx, booking, {
+											receiptNumber: args.receiptNumber
+										}))
+									})
+								)
+							);
+						}
+
+						return null;
+					})
+				);
+			})
+			.match(tupleOk, tupleErr)
 });
 
 export const savePackageInstagramHandle = mutation({
 	args: { packageId: v.id("packages"), instagramHandle: v.string() },
-	handler: (ctx, args) => savePackageInstagramHandleService(ctx, args).match(tupleOk, tupleErr)
+	handler: (ctx, args) =>
+		getPackageFromDb(ctx, args.packageId)
+			.andThen((packageFromDb) => {
+				if (packageFromDb.status !== "pending_payment" && packageFromDb.status !== "paid") {
+					return err({ reason: "PACKAGE_NOT_ACTIVE" as const });
+				}
+
+				return ok(packageFromDb);
+			})
+			.andThen((packageFromDb) =>
+				okOrThrow(
+					ctx.db
+						.patch("packages", packageFromDb._id, {
+							instagramHandle: args.instagramHandle,
+							...searchBlobPatchForPackage(packageFromDb, { instagramHandle: args.instagramHandle })
+						})
+						.then(async () => {
+							await patchPackageSessionBookingsContactSearch(ctx, packageFromDb._id, {
+								name: packageFromDb.name,
+								phone: packageFromDb.phone,
+								accountName: packageFromDb.accountName,
+								abn: packageFromDb.abn,
+								email: packageFromDb.email,
+								instagramHandle: args.instagramHandle
+							});
+
+							return null;
+						})
+				)
+			)
+			.match(tupleOk, tupleErr)
 });
 
 export const getPackageById = internalQuery({

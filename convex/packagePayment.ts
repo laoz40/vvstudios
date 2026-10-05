@@ -7,10 +7,14 @@ import {
 	bookingAddonQuantitiesValidator,
 	bookingAddonsValidator
 } from "#convex/lib/booking/bookingAddonQuantities";
+import { parsePackageRequest } from "#convex/lib/packages/packageUpdates";
+import { getStripeClient } from "#convex/lib/stripe/stripeClient";
 import {
-	closeEmbeddedPackageCheckoutSessionService,
-	createPackageCheckoutSessionService
-} from "#convex/services/packages/packageCheckoutActions";
+	closeAbandonedPackageStripeCheckout,
+	createPendingPackageForStripeCheckout,
+	openEmbeddedPackageStripeCheckout,
+	runPackageCheckoutSubmitRateLimit
+} from "#convex/services/packages/packageCheckoutSessionWorkflow";
 import {
 	loadPaidPackageForEmailResend,
 	refreshPackageScheduleLinkForResend,
@@ -30,13 +34,21 @@ export const createPackageCheckoutSession = action({
 		notes: v.optional(v.string()),
 		packageSize: v.union(v.literal(4), v.literal(8), v.literal(12))
 	},
-	handler: (ctx, args) => createPackageCheckoutSessionService(ctx, args).match(tupleOk, tupleErr)
+	handler: async (ctx, args) => {
+		const stripe = getStripeClient();
+
+		return await parsePackageRequest(args)
+			.andThen((packageRequest) => runPackageCheckoutSubmitRateLimit(ctx, packageRequest))
+			.andThen((validRequest) => createPendingPackageForStripeCheckout(ctx, validRequest))
+			.andThen((checkoutDraft) => openEmbeddedPackageStripeCheckout(ctx, stripe, checkoutDraft))
+			.match(tupleOk, tupleErr);
+	}
 });
 
 export const closeEmbeddedPackageCheckoutSession = action({
 	args: { packageId: v.id("packages"), stripeSessionId: v.string() },
-	handler: (ctx, args) =>
-		closeEmbeddedPackageCheckoutSessionService(ctx, args).match(tupleOk, tupleErr)
+	handler: async (ctx, args) =>
+		await closeAbandonedPackageStripeCheckout(ctx, args).match(tupleOk, tupleErr)
 });
 
 export const resendPackageEmail = action({

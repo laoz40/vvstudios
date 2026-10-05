@@ -73,30 +73,28 @@ export function isRescheduleBusyWindowsLoadError(
 	return z.object({ reason: z.string() }).safeParse(error).success;
 }
 
+function isRescheduleLinkLookupError(
+	error: RescheduleBusyWindowsLoadError
+): error is RescheduleLinkLookupError {
+	const reason = error.reason;
+
+	return (
+		reason === "RESCHEDULE_LINK_NOT_FOUND" ||
+		reason === "RESCHEDULE_LINK_USED" ||
+		reason === "RESCHEDULE_LINK_EXPIRED" ||
+		reason === "BOOKING_NOT_FOUND" ||
+		reason === "BOOKING_NOT_RESCHEDULABLE"
+	);
+}
+
 export function resolveRescheduleBusyWindowsLoadError(
 	error: RescheduleBusyWindowsLoadError
 ): RescheduleBusyWindowsLoadOutcome {
-	const reason = error.reason;
-
-	switch (reason) {
-		case "RESCHEDULE_LINK_NOT_FOUND":
-		case "RESCHEDULE_LINK_USED":
-		case "RESCHEDULE_LINK_EXPIRED":
-		case "BOOKING_NOT_FOUND":
-		case "BOOKING_NOT_RESCHEDULABLE":
-			return { kind: "invalidLink", content: getInvalidMessage(error) };
-
-		case "BOOKING_INVALID_DATE":
-		case "BOOKING_INVALID_TIME":
-		case "GOOGLE_CALENDAR_AUTH_FAILED":
-		case "GOOGLE_CALENDAR_AVAILABILITY_FAILED":
-		case "GOOGLE_CALENDAR_RATE_LIMITED":
-		case "INVALID_ZONED_TIME":
-		case "UNEXPECTED_ERROR":
-			return { kind: "availabilityError", message: getAvailabilityErrorMessage(error) };
-		default:
-			return exhaustiveCheck(reason);
+	if (isRescheduleLinkLookupError(error)) {
+		return { kind: "invalidLink", content: getInvalidMessage(error) };
 	}
+
+	return { kind: "availabilityError", message: getAvailabilityErrorMessage(error) };
 }
 
 export function getAvailabilityErrorMessage(error: RescheduleAvailabilityError): string {
@@ -105,9 +103,19 @@ export function getAvailabilityErrorMessage(error: RescheduleAvailabilityError):
 	switch (reason) {
 		case "BOOKING_INVALID_DATE":
 			return "Please choose a valid date.";
+		case "BOOKING_INVALID_DURATION":
+			return "This booking has an invalid session duration.";
 		case "BOOKING_INVALID_TIME":
 		case "INVALID_ZONED_TIME":
 			return "Please choose a valid time.";
+		case "BOOKING_OUTSIDE_OPENING_HOURS":
+			return "Please choose a time within opening hours.";
+		case "BOOKING_TIME_UNAVAILABLE":
+			return "That time is no longer available. Please choose another time.";
+		case "BOOKING_TOO_FAR_AHEAD":
+			return "Please choose a date before your package expiry date.";
+		case "BOOKING_TOO_SOON":
+			return "Please choose a later time.";
 		case "GOOGLE_CALENDAR_AUTH_FAILED":
 		case "GOOGLE_CALENDAR_AVAILABILITY_FAILED":
 			return "Availability could not load right now. Please contact us and we’ll help you find a time.";

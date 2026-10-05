@@ -11,7 +11,7 @@ import {
 import { loadDriveClient } from "#convex/lib/drive/googleDrive";
 import { fromConvexTuple } from "#convex/lib/result";
 
-export function cleanupCancelledSessionDriveService(
+export function clearCancelledSessionDriveFields(
 	ctx: ActionCtx,
 	args: { bookingId: Id<"bookings"> }
 ): ResultAsync<null, never> {

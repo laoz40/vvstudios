@@ -4,7 +4,7 @@ import { internal } from "#convex/_generated/api";
 import type { Id } from "#convex/_generated/dataModel";
 import type { ActionCtx } from "#convex/_generated/server";
 import { requirePermissionActions } from "#convex/services/auth";
-import { cleanupCancelledSessionDriveService } from "#convex/services/drive/cleanupCancelledSessionDrive";
+import { clearCancelledSessionDriveFields } from "#convex/services/drive/cleanupCancelledSessionDrive";
 import { loadGoogleCalendarClient } from "#convex/lib/googleCalendar/googleCalendarClient";
 import { deleteSessionCalendarEvent } from "#convex/services/googleCalendar/sessionCalendarEventWorkflow";
 import type { GoogleCalendarEventClient } from "#convex/lib/sessions/sessionCalendarEventPayload";
@@ -40,7 +40,7 @@ export function markBookingSessionCalendarDeleted(ctx: ActionCtx, bookingId: Id<
 }
 
 export function cleanupAdminCancelledBookingDrive(ctx: ActionCtx, bookingId: Id<"bookings">) {
-	return cleanupCancelledSessionDriveService(ctx, { bookingId }).map(() => ({
+	return clearCancelledSessionDriveFields(ctx, { bookingId }).map(() => ({
 		cancelled: true as const
 	}));
 }
