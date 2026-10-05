@@ -11,7 +11,7 @@ import {
 	type ParsedPackageRequest
 } from "#convex/lib/packages/packageUpdates";
 import { fromConvexTuple } from "#convex/lib/result";
-import { getStripeClient, type StripeClient } from "#convex/lib/stripe/stripeClient";
+import { getStripeClient } from "#convex/lib/stripe/stripeClient";
 import type { PackageInvoiceInput } from "#studio/features/booking-invoice/lib/booking-artifacts";
 import {
 	buildPackageCheckoutLineItems,
@@ -68,12 +68,13 @@ export function createPendingPackageForStripeCheckout(
 
 export function openEmbeddedPackageStripeCheckout(
 	ctx: ActionCtx,
-	stripe: StripeClient,
 	checkoutDraft: PendingPackageCheckoutDraft
 ): ResultAsync<
 	{ packageId: Id<"packages">; clientSecret: string; stripeSessionId: string },
 	CreatePackageCheckoutSessionError
 > {
+	const stripe = getStripeClient();
+
 	return createStripeCheckoutCustomer(stripe, checkoutDraft.packageFromDb, {
 		packageId: checkoutDraft.packageFromDb._id,
 		lineItems: checkoutDraft.checkoutLineItems.lineItems,
@@ -85,12 +86,13 @@ export function openEmbeddedPackageStripeCheckout(
 
 export function closeAbandonedPackageStripeCheckout(
 	ctx: ActionCtx,
-	args: { packageId: Id<"packages">; stripeSessionId: string },
-	stripe: StripeClient = getStripeClient()
+	args: { packageId: Id<"packages">; stripeSessionId: string }
 ): ResultAsync<
 	CloseEmbeddedPackageCheckoutSessionSuccess,
 	CloseEmbeddedPackageCheckoutSessionError
 > {
+	const stripe = getStripeClient();
+
 	return closeOpenStripeCheckoutSession(stripe, args.stripeSessionId, {
 		packageId: args.packageId,
 		stripeSessionId: args.stripeSessionId

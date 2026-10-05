@@ -3,14 +3,12 @@
 import { v } from "convex/values";
 import { tupleErr, tupleOk } from "#/lib/result";
 import { action } from "#convex/_generated/server";
-import { getStripeInvoiceBillingUrls as fetchStripeInvoiceBillingUrls } from "#convex/lib/stripe/stripeInvoiceBillingUrls";
-import { getStripeClient } from "#convex/lib/stripe/stripeClient";
-import { requirePermissionActions } from "#convex/services/auth";
 import {
 	createAndRecordBookingStripeInvoice,
 	createAndRecordPackageStripeInvoice,
 	loadBookingStripeCustomerId,
 	loadPackageStripeCustomerId,
+	loadStripeInvoiceBillingUrlsForStaff,
 	requireSendReceiptEmailsAndValidateLineItems
 } from "#convex/services/stripe/stripeInvoiceSendWorkflow";
 
@@ -71,7 +69,5 @@ export const sendPackageStripeInvoice = action({
 export const getStripeInvoiceBillingUrls = action({
 	args: { stripeInvoiceId: v.string() },
 	handler: async (ctx, args) =>
-		await requirePermissionActions(ctx, "view:sensitive-booking-data")
-			.andThen(() => fetchStripeInvoiceBillingUrls(getStripeClient(), args.stripeInvoiceId))
-			.match(tupleOk, tupleErr)
+		await loadStripeInvoiceBillingUrlsForStaff(ctx, args.stripeInvoiceId).match(tupleOk, tupleErr)
 });

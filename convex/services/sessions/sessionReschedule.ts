@@ -1,16 +1,18 @@
 import { err, ok, type ResultAsync as NeverthrowResultAsync } from "neverthrow";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
-import { okOrThrow } from "#convex/lib/result";
-import { getSessionFromDb } from "#convex/lib/sessions/sessionLookup";
+import { okOrThrow, tryPromise } from "#convex/lib/result";
+import { getSessionByStripeSessionId, getSessionFromDb } from "#convex/lib/sessions/sessionLookup";
 import {
 	createActiveRescheduleLinkForSession,
 	getRescheduleUrlForToken,
 	hashRescheduleTokenAsync,
 	isRescheduleLinkExpired,
 	isSessionReschedulable,
+	markExistingActiveSessionRescheduleLinksUsed,
 	validateActiveRescheduleLink,
-	validateAdminSessionForReschedule
+	validateAdminSessionForReschedule,
+	validatePublicFailedSessionForReschedule
 } from "#convex/lib/sessions/sessionRescheduleLinks";
 import { requirePermission } from "#convex/services/auth";
 
@@ -36,6 +38,38 @@ export function issueRescheduleLink(
 		expiresAt: session.sessionStartAt,
 		now: Date.now()
 	}).map((link) => ({ rescheduleUrl: getRescheduleUrlForToken(link.token) }));
+}
+
+export function loadPublicFailedSessionByStripeId(ctx: MutationCtx, stripeSessionId: string) {
+	return getSessionByStripeSessionId(ctx, stripeSessionId).andThen(
+		validatePublicFailedSessionForReschedule
+	);
+}
+
+export function writeActiveRescheduleLinkForBooking(
+	ctx: MutationCtx,
+	args: { bookingId: Id<"bookings">; expiresAt: number; now: number }
+) {
+	return getSessionFromDb(ctx, args.bookingId).andThen((session) =>
+		createActiveRescheduleLinkForSession({ session, ctx, expiresAt: args.expiresAt, now: args.now })
+	);
+}
+
+export function markActiveRescheduleLinksUsedForBooking(
+	ctx: MutationCtx,
+	args: { bookingId: Id<"bookings">; now: number }
+) {
+	return getSessionFromDb(ctx, args.bookingId).andThen(() =>
+		tryPromise({
+			try: () =>
+				markExistingActiveSessionRescheduleLinksUsed({
+					ctx,
+					bookingId: args.bookingId,
+					now: args.now
+				}).then(() => null),
+			catch: () => ({ reason: "RESCHEDULE_LINK_UPDATE_FAILED" as const })
+		})
+	);
 }
 
 export function loadValidRescheduleLinkAndSession(

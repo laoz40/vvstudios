@@ -13,7 +13,8 @@ import {
 	type StripeInvoiceLineItem,
 	validateStripeInvoiceLineItems
 } from "#convex/lib/stripe/stripeInvoice";
-import { getStripeClient, type StripeClient } from "#convex/lib/stripe/stripeClient";
+import { getStripeInvoiceBillingUrls as fetchStripeInvoiceBillingUrls } from "#convex/lib/stripe/stripeInvoiceBillingUrls";
+import { getStripeClient } from "#convex/lib/stripe/stripeClient";
 
 type StripeInvoiceSenderIdentity = { email?: string };
 
@@ -32,11 +33,12 @@ export function requireSendReceiptEmailsAndValidateLineItems(
 	{ identity: { email?: string }; lineItems: StripeInvoiceLineItem[] },
 	{ reason: string }
 > {
-	return requirePermissionActions(ctx, "send:receipt-emails").andThen((identity) =>
-		validateStripeInvoiceLineItems(lineItems).map((validatedLineItems) => ({
-			identity,
-			lineItems: validatedLineItems
-		}))
+	return requirePermissionActions(ctx, "send:receipt-emails").andThen(
+		(identity: StripeInvoiceSenderIdentity) =>
+			validateStripeInvoiceLineItems(lineItems).map((validatedLineItems) => ({
+				identity,
+				lineItems: validatedLineItems
+			}))
 	);
 }
 
@@ -58,14 +60,24 @@ export function loadPackageStripeCustomerId(
 	);
 }
 
+export function loadStripeInvoiceBillingUrlsForStaff(
+	ctx: ActionCtx,
+	stripeInvoiceId: string
+): ResultAsync<Awaited<ReturnType<typeof fetchStripeInvoiceBillingUrls>>, { reason: string }> {
+	return requirePermissionActions(ctx, "view:sensitive-booking-data").andThen(() =>
+		fetchStripeInvoiceBillingUrls(getStripeClient(), stripeInvoiceId)
+	);
+}
+
 export function createAndRecordBookingStripeInvoice(
 	ctx: ActionCtx,
 	args: { bookingId: Id<"bookings">; lineItems: StripeInvoiceLineItem[]; requestId: string },
 	identity: StripeInvoiceSenderIdentity,
-	stripeCustomerId: string,
-	stripe?: StripeClient
+	stripeCustomerId: string
 ): ResultAsync<{ stripeInvoiceId: string }, { reason: string }> {
-	return createAndSendStripeInvoice(stripe ?? getStripeClient(), {
+	const stripe = getStripeClient();
+
+	return createAndSendStripeInvoice(stripe, {
 		stripeCustomerId,
 		lineItems: args.lineItems,
 		metadata: { kind: "booking", bookingId: args.bookingId, requestId: args.requestId }
@@ -86,10 +98,11 @@ export function createAndRecordPackageStripeInvoice(
 	ctx: ActionCtx,
 	args: { packageId: Id<"packages">; lineItems: StripeInvoiceLineItem[]; requestId: string },
 	identity: StripeInvoiceSenderIdentity,
-	stripeCustomerId: string,
-	stripe?: StripeClient
+	stripeCustomerId: string
 ): ResultAsync<{ stripeInvoiceId: string }, { reason: string }> {
-	return createAndSendStripeInvoice(stripe ?? getStripeClient(), {
+	const stripe = getStripeClient();
+
+	return createAndSendStripeInvoice(stripe, {
 		stripeCustomerId,
 		lineItems: args.lineItems,
 		metadata: { kind: "package", packageId: args.packageId, requestId: args.requestId }

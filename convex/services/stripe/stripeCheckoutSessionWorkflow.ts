@@ -8,7 +8,7 @@ import type { BookingAddonQuantitiesArgs } from "#convex/lib/booking/bookingAddo
 import type { BookingAddon } from "#studio/features/booking-form/lib/booking-form-model";
 import { getBookingSubmitRateLimitKey } from "#convex/lib/booking/bookingSubmission";
 import { fromConvexTuple } from "#convex/lib/result";
-import { getStripeClient, type StripeClient } from "#convex/lib/stripe/stripeClient";
+import { getStripeClient } from "#convex/lib/stripe/stripeClient";
 import { buildSessionCheckoutLineItems } from "#studio/features/booking-invoice/lib/stripe-checkout-line-items";
 import {
 	closeOpenStripeCheckoutSession,
@@ -104,7 +104,6 @@ export function createPendingBookingForStripeCheckout(
 
 export function openEmbeddedBookingStripeCheckout(
 	ctx: ActionCtx,
-	stripe: StripeClient,
 	checkoutDraft: {
 		booking: BookingFormValues;
 		bookingId: Id<"bookings">;
@@ -114,6 +113,8 @@ export function openEmbeddedBookingStripeCheckout(
 	{ bookingId: Id<"bookings">; clientSecret: string; stripeSessionId: string },
 	CreateEmbeddedCheckoutSessionError
 > {
+	const stripe = getStripeClient();
+
 	return createStripeCheckoutCustomer(stripe, checkoutDraft.booking, {
 		bookingId: checkoutDraft.bookingId,
 		lineItems: checkoutDraft.lineItems
@@ -124,9 +125,10 @@ export function openEmbeddedBookingStripeCheckout(
 
 export function closeAbandonedBookingStripeCheckout(
 	ctx: ActionCtx,
-	args: { bookingId: Id<"bookings">; stripeSessionId: string },
-	stripe: StripeClient = getStripeClient()
+	args: { bookingId: Id<"bookings">; stripeSessionId: string }
 ): ResultAsync<CloseEmbeddedCheckoutSessionSuccess, CloseEmbeddedCheckoutSessionError> {
+	const stripe = getStripeClient();
+
 	return closeOpenStripeCheckoutSession(stripe, args.stripeSessionId, {
 		bookingId: args.bookingId,
 		stripeSessionId: args.stripeSessionId

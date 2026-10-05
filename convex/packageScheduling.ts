@@ -14,12 +14,6 @@ import {
 	query
 } from "#convex/_generated/server";
 import { SERVICES } from "#studio/features/booking-form/lib/booking-form-model";
-import { getCapacityConsumingPackageSessions } from "#convex/lib/packages/packageScheduling";
-import { getValidPackageByToken as findValidPackageByToken } from "#convex/lib/packages/packageLookup";
-import { processPackageAdjustment } from "#convex/lib/packages/packageAdjustments";
-import { archivePackageWhenFullyDone } from "#convex/lib/packages/packageArchive";
-import { okOrThrow } from "#convex/lib/result";
-import { buildPackageTokenCustomerView } from "#convex/lib/packages/packageTokenView";
 import {
 	cancelPackageSessionBooking,
 	loadPackageSessionOwnedByToken
@@ -50,17 +44,23 @@ import {
 	syncNewPackageSessionCalendar,
 	syncPackageRescheduleCalendar
 } from "#convex/services/packages/packageSessionWorkflow";
+import {
+	runPackageAdjustmentWhenAllSessionsBooked,
+	runPackageAdjustmentWhenExpired
+} from "#convex/services/packages/packageAdjustmentCronWorkflow";
+import {
+	loadPackageSchedulingPageByToken,
+	loadPaidPackageByScheduleToken,
+	writePackageDefaultRecordingSpace
+} from "#convex/services/packages/packageTokenSchedulingWorkflow";
 
 export const getPackageByToken = query({
 	args: { token: v.string() },
 	handler: (ctx, args) =>
-		findValidPackageByToken(ctx, args.token, Date.now())
-			.andThen((packageRecord) =>
-				getCapacityConsumingPackageSessions(ctx, packageRecord._id, packageRecord.packageSize).map(
-					(sessions) => buildPackageTokenCustomerView(packageRecord, sessions)
-				)
-			)
-			.match(tupleOk, tupleErr)
+		loadPackageSchedulingPageByToken(ctx, { token: args.token, now: Date.now() }).match(
+			tupleOk,
+			tupleErr
+		)
 });
 
 const recordingSpaceValidator = v.union(...SERVICES.map((service) => v.literal(service)));
@@ -68,15 +68,11 @@ const recordingSpaceValidator = v.union(...SERVICES.map((service) => v.literal(s
 export const setDefaultSpace = mutation({
 	args: { service: recordingSpaceValidator, token: v.string() },
 	handler: (ctx, args) =>
-		findValidPackageByToken(ctx, args.token, Date.now())
-			.andThen((packageRecord) =>
-				okOrThrow(
-					ctx.db
-						.patch("packages", packageRecord._id, { defaultSpace: args.service })
-						.then(() => ({ defaultSpace: args.service }))
-				)
-			)
-			.match(tupleOk, tupleErr)
+		writePackageDefaultRecordingSpace(ctx, {
+			service: args.service,
+			token: args.token,
+			now: Date.now()
+		}).match(tupleOk, tupleErr)
 });
 
 const packageSessionInput = {
@@ -150,23 +146,20 @@ export const unschedulePackageSession = action({
 
 export const getValidPackageByToken = internalQuery({
 	args: { now: v.number(), token: v.string() },
-	handler: (ctx, args) =>
-		findValidPackageByToken(ctx, args.token, args.now).match(tupleOk, tupleErr)
+	handler: (ctx, args) => loadPaidPackageByScheduleToken(ctx, args).match(tupleOk, tupleErr)
 });
 
 export const processPackageAdjustmentAtExpiry = internalMutation({
 	args: { packageId: v.id("packages"), expectedExpiresAt: v.number() },
 	handler: async (ctx, args) => {
-		await processPackageAdjustment(ctx, { ...args, trigger: "package_expired" });
-		await archivePackageWhenFullyDone(ctx, args.packageId);
+		await runPackageAdjustmentWhenExpired(ctx, args);
 	}
 });
 
 export const processPackageAdjustmentWhenSessionsComplete = internalMutation({
 	args: { packageId: v.id("packages") },
 	handler: async (ctx, args) => {
-		await processPackageAdjustment(ctx, { ...args, trigger: "all_sessions_completed" });
-		await archivePackageWhenFullyDone(ctx, args.packageId);
+		await runPackageAdjustmentWhenAllSessionsBooked(ctx, args);
 	}
 });
 
@@ -226,7 +219,7 @@ export const saveCreatedPackageSession = internalMutation({
 export const cancelPackageSession = internalMutation({
 	args: { bookingId: v.id("bookings"), token: v.string(), now: v.number() },
 	handler: (ctx, args) =>
-		findValidPackageByToken(ctx, args.token, args.now)
+		loadPaidPackageByScheduleToken(ctx, args)
 			.andThen((packageFromDb) =>
 				loadPackageSessionOwnedByToken(ctx, packageFromDb, args.bookingId)
 			)

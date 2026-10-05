@@ -6,20 +6,15 @@ import {
 	bookingAddonQuantitiesValidator,
 	bookingAddonsValidator
 } from "#convex/lib/booking/bookingAddonQuantities";
-import { env } from "#convex/env";
-import { okOrThrow } from "#convex/lib/result";
-import { archiveDeadCheckoutBooking } from "#convex/lib/sessions/sessionArchive";
 import {
-	validatePendingSessionDeletion,
-	validateSessionExpiry,
-	type DeletePendingSessionSuccess
-} from "#convex/lib/sessions/sessionCheckout";
-import { getSessionStartAt } from "#convex/lib/sessions/sessionAdminEdit";
-import {
-	assertCheckoutSessionAvailable,
-	createPendingCheckoutBooking
+	abandonPendingCheckoutBooking,
+	createPendingCheckoutBooking,
+	expirePendingCheckoutByStripeSessionId,
+	loadBookingRowByStripeSessionId,
+	parseCheckoutSessionStartTime,
+	rejectCheckoutSlotUnavailable,
+	writeBookingStripeCheckoutIds
 } from "#convex/services/booking/sessionCheckout";
-import { ok } from "neverthrow";
 
 export const checkSessionSubmitRateLimit = internalMutation({
 	args: { submitRateLimitKey: v.string() },
@@ -43,71 +38,33 @@ export const createPendingSession = internalMutation({
 		notes: v.optional(v.string())
 	},
 	handler: (ctx, args) =>
-		assertCheckoutSessionAvailable(ctx, args)
-			.andThen(() => getSessionStartAt(args.date, args.time, env.GOOGLE_CALENDAR_TIMEZONE))
+		rejectCheckoutSlotUnavailable(ctx, args)
+			.andThen(() => parseCheckoutSessionStartTime(args))
 			.andThen((sessionStartAt) => createPendingCheckoutBooking(ctx, args, sessionStartAt))
 			.match(tupleOk, tupleErr)
 });
 
 export const getSessionByStripeSessionId = internalQuery({
 	args: { stripeSessionId: v.string() },
-	handler: async (ctx, args) => {
-		return await ctx.db
-			.query("bookings")
-			.withIndex("by_stripeSessionId", (indexQuery) =>
-				indexQuery.eq("stripeSessionId", args.stripeSessionId)
-			)
-			.unique();
-	}
+	handler: async (ctx, args) =>
+		(await loadBookingRowByStripeSessionId(ctx, args.stripeSessionId)).match(
+			(booking) => booking,
+			() => null
+		)
 });
 
 export const setSessionStripeSessionId = internalMutation({
 	args: { bookingId: v.id("bookings"), stripeSessionId: v.string(), stripeCustomerId: v.string() },
-	handler: async (ctx, args) => {
-		return await ctx.db.patch("bookings", args.bookingId, {
-			stripeSessionId: args.stripeSessionId,
-			stripeCustomerId: args.stripeCustomerId
-		});
-	}
+	handler: async (ctx, args) => await writeBookingStripeCheckoutIds(ctx, args)
 });
 
 export const markSessionExpiredByStripeSessionId = internalMutation({
 	args: { stripeSessionId: v.string() },
 	handler: (ctx, args) =>
-		okOrThrow(
-			ctx.db
-				.query("bookings")
-				.withIndex("by_stripeSessionId", (indexQuery) =>
-					indexQuery.eq("stripeSessionId", args.stripeSessionId)
-				)
-				.unique()
-		)
-			.andThen(validateSessionExpiry)
-			.andThen((decision) => {
-				if (decision.kind === "complete") {
-					return ok<{ alreadyExpired: boolean }>({ alreadyExpired: decision.alreadyExpired });
-				}
-
-				return archiveDeadCheckoutBooking(ctx, decision.bookingId, { status: "expired" }).map(
-					() => ({ alreadyExpired: false })
-				);
-			})
-			.match(tupleOk, tupleErr)
+		expirePendingCheckoutByStripeSessionId(ctx, args.stripeSessionId).match(tupleOk, tupleErr)
 });
 
 export const deletePendingSession = internalMutation({
 	args: { bookingId: v.id("bookings"), stripeSessionId: v.string() },
-	handler: (ctx, args) =>
-		okOrThrow(ctx.db.get("bookings", args.bookingId))
-			.andThen((booking) => validatePendingSessionDeletion(booking, args.stripeSessionId))
-			.andThen((decision) => {
-				if (decision.kind === "complete") {
-					return ok<DeletePendingSessionSuccess>(decision.value);
-				}
-
-				return archiveDeadCheckoutBooking(ctx, args.bookingId, { status: "abandoned" }).map(
-					(): DeletePendingSessionSuccess => ({ outcome: "abandoned" })
-				);
-			})
-			.match(tupleOk, tupleErr)
+	handler: (ctx, args) => abandonPendingCheckoutBooking(ctx, args).match(tupleOk, tupleErr)
 });

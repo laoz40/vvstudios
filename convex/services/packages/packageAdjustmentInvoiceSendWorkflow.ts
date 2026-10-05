@@ -6,7 +6,7 @@ import type { ActionCtx } from "#convex/_generated/server";
 import type { PackageAdjustmentInvoiceInput } from "#studio/features/booking-invoice/lib/booking-artifacts";
 import { fromConvexTuple } from "#convex/lib/result";
 import { createAndSendPackageAdjustmentStripeInvoice } from "#convex/lib/stripe/stripeAdjustmentInvoice";
-import { getStripeClient, type StripeClient } from "#convex/lib/stripe/stripeClient";
+import { getStripeClient } from "#convex/lib/stripe/stripeClient";
 
 export type SendPackageAdjustmentInvoiceArgs = {
 	adjustmentId: Id<"packageAdjustments">;
@@ -60,9 +60,9 @@ export function createSendAndRecordPackageAdjustmentInvoice(
 	ctx: ActionCtx,
 	args: SendPackageAdjustmentInvoiceArgs,
 	claimedAt: number,
-	invoiceInput: PackageAdjustmentInvoiceInput,
-	stripe: StripeClient = getStripeClient()
+	invoiceInput: PackageAdjustmentInvoiceInput
 ): NeverthrowResultAsync<null, SendPackageAdjustmentInvoiceError> {
+	const stripe = getStripeClient();
 	const { adjustment, packageRecord } = invoiceInput;
 
 	if (!packageRecord.stripeCustomerId) {

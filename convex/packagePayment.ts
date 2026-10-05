@@ -8,7 +8,6 @@ import {
 	bookingAddonsValidator
 } from "#convex/lib/booking/bookingAddonQuantities";
 import { parsePackageRequest } from "#convex/lib/packages/packageUpdates";
-import { getStripeClient } from "#convex/lib/stripe/stripeClient";
 import {
 	closeAbandonedPackageStripeCheckout,
 	createPendingPackageForStripeCheckout,
@@ -35,12 +34,10 @@ export const createPackageCheckoutSession = action({
 		packageSize: v.union(v.literal(4), v.literal(8), v.literal(12))
 	},
 	handler: async (ctx, args) => {
-		const stripe = getStripeClient();
-
 		return await parsePackageRequest(args)
 			.andThen((packageRequest) => runPackageCheckoutSubmitRateLimit(ctx, packageRequest))
 			.andThen((validRequest) => createPendingPackageForStripeCheckout(ctx, validRequest))
-			.andThen((checkoutDraft) => openEmbeddedPackageStripeCheckout(ctx, stripe, checkoutDraft))
+			.andThen((checkoutDraft) => openEmbeddedPackageStripeCheckout(ctx, checkoutDraft))
 			.match(tupleOk, tupleErr);
 	}
 });

@@ -9,7 +9,6 @@ import {
 	bookingAddonQuantitiesValidator,
 	bookingAddonsValidator
 } from "#convex/lib/booking/bookingAddonQuantities";
-import { getStripeClient } from "#convex/lib/stripe/stripeClient";
 import {
 	closeAbandonedBookingStripeCheckout,
 	createPendingBookingForStripeCheckout,
@@ -43,12 +42,10 @@ export const createEmbeddedCheckoutSession = action({
 			CreateEmbeddedCheckoutSessionError
 		>
 	> => {
-		const stripe = getStripeClient();
-
 		return await parsePublicBookingForCheckout(args)
 			.andThen((booking) => runSessionCheckoutSubmitRateLimit(ctx, booking))
 			.andThen((booking) => createPendingBookingForStripeCheckout(ctx, booking))
-			.andThen((checkoutDraft) => openEmbeddedBookingStripeCheckout(ctx, stripe, checkoutDraft))
+			.andThen((checkoutDraft) => openEmbeddedBookingStripeCheckout(ctx, checkoutDraft))
 			.match(tupleOk, tupleErr);
 	}
 });

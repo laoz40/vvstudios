@@ -14,7 +14,10 @@ export function getSessionFromDb(ctx: QueryCtx | MutationCtx, bookingId: Id<"boo
 	});
 }
 
-export function getSessionByStripeSessionId(ctx: MutationCtx, stripeSessionId: string) {
+export function lookupBookingByStripeSessionId(
+	ctx: QueryCtx | MutationCtx,
+	stripeSessionId: string
+) {
 	return okOrThrow(
 		ctx.db
 			.query("bookings")
@@ -22,7 +25,11 @@ export function getSessionByStripeSessionId(ctx: MutationCtx, stripeSessionId: s
 				indexQuery.eq("stripeSessionId", stripeSessionId)
 			)
 			.unique()
-	).andThen((session) => {
+	);
+}
+
+export function getSessionByStripeSessionId(ctx: MutationCtx, stripeSessionId: string) {
+	return lookupBookingByStripeSessionId(ctx, stripeSessionId).andThen((session) => {
 		if (!session) {
 			return err({ reason: "BOOKING_NOT_FOUND" as const });
 		}
