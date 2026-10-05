@@ -307,7 +307,7 @@ export type EditorDrivePermissionSetup = {
 	driveSession: Doc<"driveSessions">;
 };
 
-export function writeEditorDrivePermissionForSetup(
+export function writeEditorDrivePermission(
 	ctx: MutationCtx,
 	setup: EditorDrivePermissionSetup,
 	args: {
@@ -399,7 +399,7 @@ function saveEditorSessionPermission(
 	);
 }
 
-export function writeEditorDrivePermissionsStatusForSetup(
+export function writeEditorDrivePermissionsStatus(
 	ctx: MutationCtx,
 	driveSession: Doc<"driveSessions">,
 	args: { editorTokenIdentifier: string; status: "failed" | "ready" }
@@ -457,7 +457,7 @@ export type EditorAssignmentEmailClaim = {
 	sessionStartAt: number | undefined;
 };
 
-export function claimEditorAssignmentEmailForSetup(
+export function claimEditorAssignmentEmailClaim(
 	ctx: MutationCtx,
 	setup: DriveSetupInfo & { driveSession: Doc<"driveSessions"> },
 	args: ClaimEditorAssignmentEmailArgs

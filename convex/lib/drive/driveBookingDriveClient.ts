@@ -1,15 +1,14 @@
-import { err, ok } from "neverthrow";
-import type { Id } from "#convex/_generated/dataModel";
+import { errAsync, okAsync } from "neverthrow";
+import type { ResultAsync } from "neverthrow";
+import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
 import { okOrThrow } from "#convex/lib/result";
+
+export type LinkBookingDriveClientError = { reason: "BOOKING_NOT_FOUND" };
 
 export type SyncBookingDriveClientIdFromSessionError = {
 	reason: "BOOKING_NOT_FOUND" | "DRIVE_RECORD_NOT_FOUND";
 };
-
-export function loadBookingRowForDriveClientSync(ctx: MutationCtx, bookingId: Id<"bookings">) {
-	return okOrThrow(ctx.db.get("bookings", bookingId));
-}
 
 export function loadDriveClientRow(ctx: Pick<QueryCtx, "db">, driveClientId: Id<"driveClients">) {
 	return okOrThrow(ctx.db.get("driveClients", driveClientId));
@@ -54,16 +53,50 @@ export function patchBookingDriveClientId(
 	return okOrThrow(ctx.db.patch("bookings", bookingId, { driveClientId }).then(() => null));
 }
 
-export function ensureBookingDriveClientId(
+export function linkBookingDriveClientFromRow(
+	ctx: MutationCtx,
+	booking: Doc<"bookings"> | null,
+	bookingId: Id<"bookings">,
+	driveClientId: Id<"driveClients">
+): ResultAsync<null, LinkBookingDriveClientError> {
+	if (booking === null) {
+		return errAsync({ reason: "BOOKING_NOT_FOUND" as const });
+	}
+
+	if (booking.driveClientId === driveClientId) {
+		return okAsync(null);
+	}
+
+	return patchBookingDriveClientId(ctx, bookingId, driveClientId);
+}
+
+export function linkBookingDriveClient(
 	ctx: MutationCtx,
 	bookingId: Id<"bookings">,
 	driveClientId: Id<"driveClients">
-) {
-	return loadBookingRowForDriveClientSync(ctx, bookingId).andThen((booking) => {
-		if (booking === null) return err({ reason: "BOOKING_NOT_FOUND" as const });
+): ResultAsync<null, LinkBookingDriveClientError> {
+	return loadBookingRow(ctx, bookingId).andThen((booking) =>
+		linkBookingDriveClientFromRow(ctx, booking, bookingId, driveClientId)
+	);
+}
 
-		if (booking.driveClientId === driveClientId) return ok(null);
+export function syncBookingDriveClientIdFromSessionRows(
+	ctx: MutationCtx,
+	booking: Doc<"bookings"> | null,
+	bookingId: Id<"bookings">,
+	driveSession: Doc<"driveSessions"> | null
+): ResultAsync<null, SyncBookingDriveClientIdFromSessionError> {
+	if (booking === null) {
+		return errAsync({ reason: "BOOKING_NOT_FOUND" as const });
+	}
 
-		return patchBookingDriveClientId(ctx, bookingId, driveClientId);
-	});
+	if (driveSession === null) {
+		return errAsync({ reason: "DRIVE_RECORD_NOT_FOUND" as const });
+	}
+
+	if (booking.driveClientId === driveSession.driveClientId) {
+		return okAsync(null);
+	}
+
+	return patchBookingDriveClientId(ctx, bookingId, driveSession.driveClientId);
 }

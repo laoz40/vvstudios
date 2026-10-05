@@ -1,7 +1,7 @@
 import { err, errAsync, ok, okAsync, ResultAsync } from "neverthrow";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { MutationCtx } from "#convex/_generated/server";
-import { ensureBookingDriveClientId } from "#convex/lib/drive/driveBookingDriveClient";
+import { linkBookingDriveClient } from "#convex/lib/drive/driveBookingDriveClient";
 import {
 	computeClientSessionFolderNumber,
 	computePackageSessionFolderNumber
@@ -133,9 +133,7 @@ function saveClientSessionNumber(
 				);
 
 	return persistNumber.andThen((number) =>
-		ensureBookingDriveClientId(ctx, allocation.booking._id, allocation.driveClientId).map(
-			() => number
-		)
+		linkBookingDriveClient(ctx, allocation.booking._id, allocation.driveClientId).map(() => number)
 	);
 }
 

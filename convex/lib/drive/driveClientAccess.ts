@@ -35,7 +35,7 @@ export function areClientDrivePermissionsReadyForAssetsEmail(
 	return driveClient !== null && isClientFolderSharingDismissed(driveClient.clientFolderPermission);
 }
 
-export function writeClientDrivePermissionForClient(
+export function writeClientDrivePermission(
 	ctx: MutationCtx,
 	driveClient: Doc<"driveClients">,
 	args: { name: "Client folder" | "Assets"; permission: SavedDrivePermission }
@@ -128,7 +128,7 @@ export type ClientAssetsEmailClaim = {
 	name: string;
 };
 
-export function claimClientAssetsEmailForSendable(
+export function claimClientAssetsEmailRecord(
 	ctx: MutationCtx,
 	args: {
 		attempt: "automatic" | "retry";

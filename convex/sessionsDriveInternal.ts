@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { tupleErr, tupleOk } from "#/lib/result";
 import { internalMutation, internalQuery } from "#convex/_generated/server";
+import { linkBookingDriveClient as linkBookingDriveClientOnBooking } from "#convex/lib/drive/driveBookingDriveClient";
 import * as driveInternal from "#convex/services/drive/driveInternal";
 
 const savedDriveFolderValidator = v.object({
@@ -60,9 +61,10 @@ export const allocateClientSessionNumber = internalMutation({
 export const linkBookingDriveClient = internalMutation({
 	args: { bookingId: v.id("bookings"), driveClientId: v.id("driveClients") },
 	handler: (ctx, args) =>
-		driveInternal
-			.linkBookingDriveClient(ctx, args.bookingId, args.driveClientId)
-			.match(tupleOk, tupleErr)
+		linkBookingDriveClientOnBooking(ctx, args.bookingId, args.driveClientId).match(
+			tupleOk,
+			tupleErr
+		)
 });
 
 export const saveDriveClientAssetsFolder = internalMutation({

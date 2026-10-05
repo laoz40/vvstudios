@@ -2,7 +2,7 @@ import { err, ok, type ResultAsync } from "neverthrow";
 import { exhaustiveCheck } from "#/lib/result";
 import type { Id } from "#convex/_generated/dataModel";
 import type { MutationCtx } from "#convex/_generated/server";
-import { ensureBookingDriveClientId } from "#convex/lib/drive/driveBookingDriveClient";
+import { linkBookingDriveClient } from "#convex/lib/drive/driveBookingDriveClient";
 import type { DriveChildFolderName, SavedDriveFolder } from "#convex/lib/drive/googleDrive";
 import { okOrThrow } from "#convex/lib/result";
 
@@ -146,7 +146,7 @@ export function saveDriveSessionFolder(
 			);
 		})
 		.andThen((folderId) =>
-			ensureBookingDriveClientId(ctx, sessionFolder.bookingId, sessionFolder.driveClientId).map(
+			linkBookingDriveClient(ctx, sessionFolder.bookingId, sessionFolder.driveClientId).map(
 				() => folderId
 			)
 		);

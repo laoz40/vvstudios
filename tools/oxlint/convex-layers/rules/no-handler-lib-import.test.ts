@@ -15,13 +15,17 @@ tester.run("convex-layers/no-handler-lib-import", noHandlerLibImportRule, {
 			code: `import { foo } from "#convex/lib/http/foo";`
 		},
 		{
+			filename: "convex/sessionsDriveInternal.ts",
+			code: `import { linkBookingDriveClient } from "#convex/lib/drive/driveBookingDriveClient";`
+		},
+		{
 			filename: "convex/services/sessions/sessions.ts",
 			code: `import { getSessionFromDb } from "#convex/lib/sessions/sessionLookup";`
 		}
 	],
 	invalid: [
 		{
-			filename: "convex/sessionsDriveInternal.ts",
+			filename: "convex/sessions.ts",
 			code: `import { getDriveSetup } from "#convex/lib/drive/driveLookup";`,
 			errors: [{ messageId: "handlerLibImport" }]
 		}

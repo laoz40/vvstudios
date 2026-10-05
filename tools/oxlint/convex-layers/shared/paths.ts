@@ -9,6 +9,7 @@ export function isConvexServiceFile(filename: string): boolean {
 }
 
 const HANDLER_LIB_IMPORT_ALLOWLIST = new Set([
+	"convex/sessionsDriveInternal.ts",
 	"convex/http.ts",
 	"convex/devSeed.ts",
 	"convex/schema.ts",

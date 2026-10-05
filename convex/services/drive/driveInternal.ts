@@ -1,31 +1,30 @@
-import { err, errAsync, okAsync } from "neverthrow";
+import { err } from "neverthrow";
 import type { Id } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
 import { bookingRequiresClientAssetsEmail } from "#convex/lib/booking/bookingAddonQuantities";
 import {
-	claimClientAssetsEmailForSendable,
+	claimClientAssetsEmailRecord,
 	saveClientAssetsEmailResult as saveClientAssetsEmailResultLib,
-	writeClientDrivePermissionForClient,
+	writeClientDrivePermission,
 	writeClientDrivePermissionsStatusForSession
 } from "#convex/lib/drive/driveClientAccess";
 import {
 	loadBookingRow,
-	loadBookingRowForDriveClientSync,
 	loadClientAssetsEmailRows,
 	loadDriveClientRow,
 	loadDriveSessionRowByBookingId,
-	patchBookingDriveClientId
+	syncBookingDriveClientIdFromSessionRows
 } from "#convex/lib/drive/driveBookingDriveClient";
 import {
-	claimEditorAssignmentEmailForSetup,
+	claimEditorAssignmentEmailClaim,
 	clearPreviousEditorDriveAccess as clearPreviousEditorDriveAccessLib,
 	getEditorDriveAccessToRemove as getEditorDriveAccessToRemoveLib,
 	getFailedEditorRemoval as getFailedEditorRemovalLib,
 	loadEditorDriveSetup,
 	markPreviousEditorRemovalFailed as markPreviousEditorRemovalFailedLib,
 	saveEditorAssignmentEmailResult as saveEditorAssignmentEmailResultLib,
-	writeEditorDrivePermissionForSetup,
-	writeEditorDrivePermissionsStatusForSetup
+	writeEditorDrivePermission,
+	writeEditorDrivePermissionsStatus
 } from "#convex/lib/drive/driveEditor";
 import {
 	clearSavedDriveFolder as clearSavedDriveFolderLib,
@@ -62,23 +61,11 @@ export function saveDriveSessionFolder(
 }
 
 export function syncBookingDriveClientIdFromSession(ctx: MutationCtx, bookingId: Id<"bookings">) {
-	return loadBookingRowForDriveClientSync(ctx, bookingId).andThen((booking) => {
-		if (booking === null) {
-			return errAsync({ reason: "BOOKING_NOT_FOUND" as const });
-		}
-
-		return loadDriveSessionRowByBookingId(ctx, bookingId).andThen((driveSession) => {
-			if (driveSession === null) {
-				return errAsync({ reason: "DRIVE_RECORD_NOT_FOUND" as const });
-			}
-
-			if (booking.driveClientId === driveSession.driveClientId) {
-				return okAsync(null);
-			}
-
-			return patchBookingDriveClientId(ctx, bookingId, driveSession.driveClientId);
-		});
-	});
+	return loadBookingRow(ctx, bookingId).andThen((booking) =>
+		loadDriveSessionRowByBookingId(ctx, bookingId).andThen((driveSession) =>
+			syncBookingDriveClientIdFromSessionRows(ctx, booking, bookingId, driveSession)
+		)
+	);
 }
 
 export function saveDrivePackageFolder(
@@ -100,24 +87,6 @@ export function allocateClientSessionNumber(
 	args: Parameters<typeof allocateClientSessionNumberLib>[1]
 ) {
 	return allocateClientSessionNumberLib(ctx, args);
-}
-
-export function linkBookingDriveClient(
-	ctx: MutationCtx,
-	bookingId: Id<"bookings">,
-	driveClientId: Id<"driveClients">
-) {
-	return loadBookingRowForDriveClientSync(ctx, bookingId).andThen((booking) => {
-		if (booking === null) {
-			return errAsync({ reason: "BOOKING_NOT_FOUND" as const });
-		}
-
-		if (booking.driveClientId === driveClientId) {
-			return okAsync(null);
-		}
-
-		return patchBookingDriveClientId(ctx, bookingId, driveClientId);
-	});
 }
 
 export function saveDriveClientAssetsFolder(
@@ -183,7 +152,7 @@ export function saveEditorDrivePermission(
 		bookingId: Id<"bookings">;
 		editorTokenIdentifier: string;
 		name: "Assets" | "Deliverables" | "Session";
-		permission: Parameters<typeof writeEditorDrivePermissionForSetup>[2]["permission"];
+		permission: Parameters<typeof writeEditorDrivePermission>[2]["permission"];
 	}
 ) {
 	return loadDriveSetup(ctx, args.bookingId).andThen((setup) => {
@@ -196,7 +165,7 @@ export function saveEditorDrivePermission(
 			return err({ reason: "DRIVE_RECORD_NOT_FOUND" as const });
 		}
 
-		return writeEditorDrivePermissionForSetup(
+		return writeEditorDrivePermission(
 			ctx,
 			{ driveClient: setup.driveClient, driveSession: setup.driveSession },
 			args
@@ -217,7 +186,7 @@ export function saveEditorDrivePermissionsStatus(
 			return err({ reason: "DRIVE_RECORD_NOT_FOUND" as const });
 		}
 
-		return writeEditorDrivePermissionsStatusForSetup(ctx, setup.driveSession, args);
+		return writeEditorDrivePermissionsStatus(ctx, setup.driveSession, args);
 	});
 }
 
@@ -236,7 +205,7 @@ export function claimEditorAssignmentEmail(
 			return err({ reason: "EDITOR_ASSIGNMENT_EMAIL_NOT_SENDABLE" as const });
 		}
 
-		return claimEditorAssignmentEmailForSetup(
+		return claimEditorAssignmentEmailClaim(
 			ctx,
 			{ ...setup, driveSession: setup.driveSession },
 			args
@@ -256,7 +225,7 @@ export function saveClientDrivePermission(
 	args: {
 		bookingId: Id<"bookings">;
 		name: "Client folder" | "Assets";
-		permission: Parameters<typeof writeClientDrivePermissionForClient>[2]["permission"];
+		permission: Parameters<typeof writeClientDrivePermission>[2]["permission"];
 	}
 ) {
 	return loadDriveSessionRowByBookingId(ctx, args.bookingId).andThen((driveSession) => {
@@ -265,7 +234,7 @@ export function saveClientDrivePermission(
 		return loadDriveClientRow(ctx, driveSession.driveClientId).andThen((driveClient) => {
 			if (driveClient === null) return err({ reason: "DRIVE_RECORD_NOT_FOUND" as const });
 
-			return writeClientDrivePermissionForClient(ctx, driveClient, args);
+			return writeClientDrivePermission(ctx, driveClient, args);
 		});
 	});
 }
@@ -304,7 +273,7 @@ export function claimClientAssetsEmail(
 				return err({ reason: "CLIENT_ASSETS_EMAIL_NOT_SENDABLE" as const });
 			}
 
-			return claimClientAssetsEmailForSendable(ctx, {
+			return claimClientAssetsEmailRecord(ctx, {
 				attempt: args.attempt,
 				assetsFolder,
 				booking,
