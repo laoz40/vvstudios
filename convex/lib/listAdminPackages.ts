@@ -397,12 +397,18 @@ export function listAdminPackages(ctx: QueryCtx, args: ListAdminPackagesArgs) {
 	const view = args.view ?? "inbox";
 	const includeStale = args.includeStale ?? false;
 
-	return okOrThrow(fetchAdminPackagesListPage(ctx, args)).andThen((packagesPage) => {
-		const visiblePackages = applyAdminPackageListVisibility(packagesPage.page, view, includeStale);
+	return ResultAsync.fromSafePromise(fetchAdminPackagesListPage(ctx, args)).andThen(
+		(packagesPage) => {
+			const visiblePackages = applyAdminPackageListVisibility(
+				packagesPage.page,
+				view,
+				includeStale
+			);
 
-		return loadAdminPackageListRows(ctx, visiblePackages).map((page) => ({
-			...packagesPage,
-			page
-		}));
-	});
+			return loadAdminPackageListRows(ctx, visiblePackages).map((page) => ({
+				...packagesPage,
+				page
+			}));
+		}
+	);
 }

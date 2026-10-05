@@ -5,6 +5,8 @@ import type { ActionCtx, QueryCtx } from "#convex/_generated/server";
 import { requirePermission } from "#convex/services/auth";
 import { requirePermissionActions } from "#convex/services/requirePermissionActions";
 import {
+	detectDeliverablesCustomerType,
+	type DeliverablesCustomerType,
 	requireDeliverablesEligibility,
 	requireDeliverablesOwnership
 } from "#convex/lib/editor/editorSessions";
@@ -34,6 +36,15 @@ export function loadSessionForDeliverables(
 ): ResultAsync<Doc<"bookings">, LoadSessionForDeliverablesError> {
 	return requirePermission(ctx, "send:deliverables-email").andThen((identity) =>
 		withDeliverablesAccess(identity, getSessionFromDb(ctx, bookingId))
+	);
+}
+
+export function loadDeliverablesCustomerTypeForBooking(
+	ctx: QueryCtx,
+	bookingId: Id<"bookings">
+): ResultAsync<DeliverablesCustomerType, LoadSessionForDeliverablesError> {
+	return loadSessionForDeliverables(ctx, bookingId).andThen((session) =>
+		detectDeliverablesCustomerType(ctx, session)
 	);
 }
 

@@ -36,21 +36,17 @@ export function validateCustomTotalDueAmount(amount: number | undefined) {
 }
 
 export function saveNumberedCustomInvoice(ctx: MutationCtx, invoice: CustomInvoiceInsert) {
+	const createdAt = Date.now();
+
 	return okOrThrow(
-		(async () => {
-			const createdAt = Date.now();
+		ctx.db.insert("customInvoices", { ...invoice, invoiceNumber: "pending", createdAt })
+	).andThen((customInvoiceId) => {
+		const invoiceNumber = formatBookingInvoiceNumber(customInvoiceId, createdAt);
 
-			const customInvoiceId = await ctx.db.insert("customInvoices", {
-				...invoice,
-				invoiceNumber: "pending",
-				createdAt
-			});
-
-			const invoiceNumber = formatBookingInvoiceNumber(customInvoiceId, createdAt);
-
-			await ctx.db.patch("customInvoices", customInvoiceId, { invoiceNumber });
-
-			return { customInvoiceId, invoiceNumber, createdAt };
-		})()
-	);
+		return okOrThrow(
+			ctx.db
+				.patch("customInvoices", customInvoiceId, { invoiceNumber })
+				.then(() => ({ customInvoiceId, invoiceNumber, createdAt }))
+		);
+	});
 }

@@ -1,5 +1,5 @@
 import type { UserIdentity } from "convex/server";
-import { err, ok } from "neverthrow";
+import { err, ok, okAsync } from "neverthrow";
 import type { Doc } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
 import { isAdminIdentity } from "#convex/lib/auth";
@@ -18,18 +18,17 @@ export type DeliverablesCustomerType = "first-time" | "recurring";
 
 export function detectDeliverablesCustomerType(ctx: QueryCtx, session: Doc<"bookings">) {
 	return okOrThrow(
-		(async (): Promise<DeliverablesCustomerType> => {
-			for await (const priorSession of ctx.db
-				.query("bookings")
-				.withIndex("by_email", (query) => query.eq("email", session.email))) {
-				if (priorSession._id !== session._id && priorSession.editStatus === "completed") {
-					return "recurring";
-				}
-			}
+		ctx.db
+			.query("bookings")
+			.withIndex("by_email", (query) => query.eq("email", session.email))
+			.collect()
+	).map((priorSessions) => {
+		const hasCompletedPriorSession = priorSessions.some(
+			(priorSession) => priorSession._id !== session._id && priorSession.editStatus === "completed"
+		);
 
-			return "first-time";
-		})()
-	);
+		return hasCompletedPriorSession ? "recurring" : "first-time";
+	});
 }
 
 export function isEditorVisibleSession(session: Doc<"bookings">): boolean {
@@ -66,13 +65,6 @@ export function requireDeliverablesEligibility<T extends DeliverablesEligibility
 	return ok(access.session);
 }
 
-function getAssignedEditor(ctx: MutationCtx, editorTokenIdentifier: string) {
-	return ctx.db
-		.query("editorProfiles")
-		.withIndex("by_tokenIdentifier", (query) => query.eq("tokenIdentifier", editorTokenIdentifier))
-		.unique();
-}
-
 export function saveSessionEditorNotes(
 	ctx: MutationCtx,
 	session: Doc<"bookings">,
@@ -102,32 +94,41 @@ export function saveSessionEditStatus(
 	session: Doc<"bookings">,
 	editStatus: "to_edit" | "editing" | "review" | "completed"
 ) {
+	const editorTokenIdentifier = session.assignedEditorTokenIdentifier;
+
+	// Credit each transition into Completed. A duplicate credit requires an unlikely manual
+	// Completed → Editing → Completed cycle, so we avoid adding persistent tracking for it.
+	const shouldIncrementTotal =
+		editStatus === "completed" &&
+		session.editStatus !== "completed" &&
+		editorTokenIdentifier !== undefined;
+
+	const patchBookingEditStatus = () =>
+		okOrThrow(ctx.db.patch("bookings", session._id, { editStatus }).then(() => null));
+
+	if (!shouldIncrementTotal) {
+		return patchBookingEditStatus();
+	}
+
 	return okOrThrow(
-		(async () => {
-			const editorTokenIdentifier = session.assignedEditorTokenIdentifier;
-
-			// Credit each transition into Completed. A duplicate credit requires an unlikely manual
-			// Completed → Editing → Completed cycle, so we avoid adding persistent tracking for it.
-			const shouldIncrementTotal =
-				editStatus === "completed" &&
-				session.editStatus !== "completed" &&
-				editorTokenIdentifier !== undefined;
-
-			if (!shouldIncrementTotal) {
-				await ctx.db.patch("bookings", session._id, { editStatus });
-
-				return null;
+		ctx.db
+			.query("editorProfiles")
+			.withIndex("by_tokenIdentifier", (query) =>
+				query.eq("tokenIdentifier", editorTokenIdentifier)
+			)
+			.unique()
+	).andThen((editor) =>
+		patchBookingEditStatus().andThen(() => {
+			if (editor === null) {
+				return okAsync(null);
 			}
 
-			const editor = await getAssignedEditor(ctx, editorTokenIdentifier);
-			await ctx.db.patch("bookings", session._id, { editStatus });
-
-			if (editor !== null) {
-				await ctx.db.patch("editorProfiles", editor._id, { totalEdits: editor.totalEdits + 1 });
-			}
-
-			return null;
-		})()
+			return okOrThrow(
+				ctx.db
+					.patch("editorProfiles", editor._id, { totalEdits: editor.totalEdits + 1 })
+					.then(() => null)
+			);
+		})
 	);
 }
 

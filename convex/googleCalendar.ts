@@ -11,9 +11,9 @@ import {
 	loadAvailableRescheduleTimesForDay,
 	loadBookableRangeBusyWindows,
 	loadRescheduleBookableRangeBusyWindows,
-	loadRescheduleSessionAndBookingSettings,
-	loadBookingAvailabilitySettingsForAction
+	loadRescheduleSessionAndBookingSettings
 } from "#convex/services/googleCalendar/sessionCalendarAvailability";
+import { getBookingSettingsService } from "#convex/services/booking/bookingSettings";
 import {
 	type RescheduleSessionError,
 	type UpdateSessionFromAdminError
@@ -130,7 +130,7 @@ export const getBookableRangeBusyWindows = action({
 	args: { rateLimitKey: v.string() },
 	handler: async (ctx, args) =>
 		await enforceGoogleCalendarAvailabilityRateLimit(ctx, args.rateLimitKey)
-			.andThen(() => loadBookingAvailabilitySettingsForAction(ctx))
+			.andThen(() => getBookingSettingsService(ctx))
 			.andThen((settings) => loadBookableRangeBusyWindows(settings))
 			.match(tupleOk, tupleErr)
 });
@@ -138,7 +138,7 @@ export const getBookableRangeBusyWindows = action({
 export const getAvailableBookingTimes = action({
 	args: { date: v.string(), duration: v.string() },
 	handler: async (ctx, args) =>
-		await loadBookingAvailabilitySettingsForAction(ctx)
+		await getBookingSettingsService(ctx)
 			.andThen((settings) => loadAvailableBookingTimesForDay(args, settings))
 			.match(tupleOk, tupleErr)
 });

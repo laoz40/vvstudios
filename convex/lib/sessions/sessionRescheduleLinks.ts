@@ -51,7 +51,7 @@ export function generateRescheduleToken() {
 export function hashRescheduleTokenAsync(token: string): ResultAsync<string, never> {
 	const encodedToken = new TextEncoder().encode(token);
 
-	return okOrThrow(
+	return ResultAsync.fromSafePromise(
 		crypto.subtle
 			.digest("SHA-256", encodedToken)
 			.then((hashBuffer) => bytesToHex(new Uint8Array(hashBuffer)))
@@ -175,7 +175,7 @@ export function createActiveRescheduleLinkForSession({
 	expiresAt: number;
 	now: number;
 }): ResultAsync<{ linkId: Id<"bookingRescheduleLinks">; token: string }, never> {
-	return okOrThrow(
+	return ResultAsync.fromSafePromise(
 		markExistingActiveSessionRescheduleLinksUsed({ ctx, bookingId: session._id, now }).then(
 			() => null
 		)

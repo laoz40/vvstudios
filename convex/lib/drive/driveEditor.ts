@@ -1,4 +1,4 @@
-import { err, errAsync, ok, ResultAsync } from "neverthrow";
+import { err, errAsync, ok, okAsync, ResultAsync } from "neverthrow";
 import { exhaustiveCheck } from "#/lib/result";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
@@ -133,21 +133,24 @@ export function markPreviousEditorRemovalFailed(
 	args: { bookingId: Id<"bookings">; editorTokenIdentifier: string }
 ) {
 	return okOrThrow(
-		(async () => {
-			const driveSession = await ctx.db
-				.query("driveSessions")
-				.withIndex("by_bookingId", (query) => query.eq("bookingId", args.bookingId))
-				.unique();
+		ctx.db
+			.query("driveSessions")
+			.withIndex("by_bookingId", (query) => query.eq("bookingId", args.bookingId))
+			.unique()
+	).andThen((driveSession) => {
+		if (driveSession === null) {
+			return okAsync(null);
+		}
 
-			if (driveSession === null) return null;
-			await ctx.db.patch("driveSessions", driveSession._id, {
-				failedRemovalEditorTokenIdentifier: args.editorTokenIdentifier,
-				updatedAt: Date.now()
-			});
-
-			return null;
-		})()
-	);
+		return okOrThrow(
+			ctx.db
+				.patch("driveSessions", driveSession._id, {
+					failedRemovalEditorTokenIdentifier: args.editorTokenIdentifier,
+					updatedAt: Date.now()
+				})
+				.then(() => null)
+		);
+	});
 }
 
 export type FailedEditorRemoval = {
@@ -214,38 +217,48 @@ export function clearPreviousEditorDriveAccess(
 		editorTokenIdentifier: string;
 	}
 ) {
-	return okOrThrow(
-		(async () => {
-			const driveSession = await ctx.db.get("driveSessions", args.driveSessionId);
+	return okOrThrow(ctx.db.get("driveSessions", args.driveSessionId)).andThen((driveSession) => {
+		if (driveSession === null) {
+			return okAsync(null);
+		}
 
-			if (driveSession === null) return null;
+		const patchDriveSession =
+			driveSession.editorDrivePermissionsTokenIdentifier === args.editorTokenIdentifier
+				? okOrThrow(
+						ctx.db
+							.patch("driveSessions", args.driveSessionId, {
+								assignmentEmailClaimedAt: undefined,
+								assignmentEmailStatus: undefined,
+								assignmentEmailTokenIdentifier: undefined,
+								editorDeliverablesPermission: undefined,
+								editorDrivePermissionsStatus: undefined,
+								editorDrivePermissionsTokenIdentifier: undefined,
+								editorSessionPermission: undefined,
+								failedRemovalEditorTokenIdentifier: undefined,
+								updatedAt: Date.now()
+							})
+							.then(() => null)
+					)
+				: okOrThrow(
+						ctx.db
+							.patch("driveSessions", args.driveSessionId, {
+								failedRemovalEditorTokenIdentifier: undefined
+							})
+							.then(() => null)
+					);
 
-			if (driveSession.editorDrivePermissionsTokenIdentifier === args.editorTokenIdentifier) {
-				await ctx.db.patch("driveSessions", args.driveSessionId, {
-					assignmentEmailClaimedAt: undefined,
-					assignmentEmailStatus: undefined,
-					assignmentEmailTokenIdentifier: undefined,
-					editorDeliverablesPermission: undefined,
-					editorDrivePermissionsStatus: undefined,
-					editorDrivePermissionsTokenIdentifier: undefined,
-					editorSessionPermission: undefined,
-					failedRemovalEditorTokenIdentifier: undefined,
-					updatedAt: Date.now()
-				});
-			} else {
-				// A replacement editor's setup may already own the session fields; still clear the marker.
-				await ctx.db.patch("driveSessions", args.driveSessionId, {
-					failedRemovalEditorTokenIdentifier: undefined
-				});
+		return patchDriveSession.andThen(() => {
+			if (args.driveClientEditorPermissionId === null) {
+				return okAsync(null);
 			}
 
-			if (args.driveClientEditorPermissionId !== null) {
-				await ctx.db.delete("driveClientEditorPermissions", args.driveClientEditorPermissionId);
-			}
-
-			return null;
-		})()
-	);
+			return okOrThrow(
+				ctx.db
+					.delete("driveClientEditorPermissions", args.driveClientEditorPermissionId)
+					.then(() => null)
+			);
+		});
+	});
 }
 
 export type EditorDriveSetupRecordError = {

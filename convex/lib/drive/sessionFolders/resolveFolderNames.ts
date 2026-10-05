@@ -13,7 +13,12 @@ async function loadSavedPackageSessionNumbers(
 	packageId: Id<"packages">
 ) {
 	const savedNumbers = new Set<number>();
-	const packageBookings = await loadPackageBookings(ctx, packageId);
+	const packageBookings = await loadPackageBookings(ctx, packageId).match(
+		(bookings) => bookings,
+		() => {
+			throw new Error("loadPackageBookings failed");
+		}
+	);
 	await Promise.all(
 		packageBookings.map(async (packageBooking) => {
 			const driveSession = await ctx.db
@@ -34,7 +39,14 @@ async function loadPackageSessionsSortedByDate(
 	ctx: DriveFolderNumberCtx,
 	packageId: Id<"packages">
 ) {
-	return (await loadPackageBookings(ctx, packageId))
+	const packageBookings = await loadPackageBookings(ctx, packageId).match(
+		(bookings) => bookings,
+		() => {
+			throw new Error("loadPackageBookings failed");
+		}
+	);
+
+	return packageBookings
 		.filter((packageBooking) => packageBooking.status !== "cancelled")
 		.toSorted((a, b) => a.sessionStartAt - b.sessionStartAt);
 }

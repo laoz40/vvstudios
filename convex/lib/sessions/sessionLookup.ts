@@ -4,8 +4,12 @@ import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { ActionCtx, MutationCtx, QueryCtx } from "#convex/_generated/server";
 import { okOrThrow } from "#convex/lib/result";
 
+export function getBookingRow(ctx: QueryCtx | MutationCtx, bookingId: Id<"bookings">) {
+	return okOrThrow(ctx.db.get("bookings", bookingId));
+}
+
 export function getSessionFromDb(ctx: QueryCtx | MutationCtx, bookingId: Id<"bookings">) {
-	return okOrThrow(ctx.db.get("bookings", bookingId)).andThen((session) => {
+	return getBookingRow(ctx, bookingId).andThen((session) => {
 		if (!session) {
 			return err({ reason: "BOOKING_NOT_FOUND" as const });
 		}

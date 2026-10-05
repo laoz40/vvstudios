@@ -1,4 +1,4 @@
-import { err, errAsync, ok, okAsync, type ResultAsync } from "neverthrow";
+import { err, errAsync, ok, okAsync, ResultAsync } from "neverthrow";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { MutationCtx } from "#convex/_generated/server";
 import { ensureBookingDriveClientId } from "#convex/lib/drive/driveBookingDriveClient";
@@ -95,7 +95,7 @@ function loadNextClientSessionNumber(
 	ctx: MutationCtx,
 	standaloneBooking: StandaloneBooking
 ): ResultAsync<number, ClientSessionNumberError> {
-	return okOrThrow(
+	return ResultAsync.fromSafePromise(
 		computeClientSessionFolderNumber(
 			ctx,
 			standaloneBooking.booking,
@@ -212,7 +212,7 @@ function loadNextPackageSessionNumber(
 	ctx: MutationCtx,
 	packageBooking: PackageBooking
 ): ResultAsync<number, PackageSessionNumberError> {
-	return okOrThrow(
+	return ResultAsync.fromSafePromise(
 		computePackageSessionFolderNumber(ctx, packageBooking.booking, packageBooking.packageId)
 	).andThen((number) =>
 		number === undefined ? errAsync({ reason: "BOOKING_NOT_FOUND" as const }) : okAsync(number)

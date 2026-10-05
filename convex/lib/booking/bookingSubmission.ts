@@ -1,7 +1,7 @@
-import type { ResultAsync } from "neverthrow";
+import { ResultAsync, type ResultAsync as NeverthrowResultAsync } from "neverthrow";
 import { internal } from "#convex/_generated/api";
 import type { ActionCtx } from "#convex/_generated/server";
-import { fromConvexTuple, okOrThrow } from "#convex/lib/result";
+import { fromConvexTuple } from "#convex/lib/result";
 
 const hexRadix = 16;
 
@@ -11,10 +11,10 @@ function bytesToHex(bytes: Uint8Array) {
 	return Array.from(bytes, (byte) => byte.toString(hexRadix).padStart(hexByteLength, "0")).join("");
 }
 
-export function getBookingSubmitRateLimitKey(email: string): ResultAsync<string, never> {
+export function getBookingSubmitRateLimitKey(email: string): NeverthrowResultAsync<string, never> {
 	const encodedEmail = new TextEncoder().encode(email.trim().toLowerCase());
 
-	return okOrThrow(
+	return ResultAsync.fromSafePromise(
 		crypto.subtle
 			.digest("SHA-256", encodedEmail)
 			.then((hashBuffer) => `email:${bytesToHex(new Uint8Array(hashBuffer))}`)

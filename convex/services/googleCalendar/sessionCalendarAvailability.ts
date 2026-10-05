@@ -30,10 +30,6 @@ export type GetAvailableRescheduleTimesError =
 	| GoogleCalendarAvailabilityError
 	| SessionAvailabilityValidationError;
 
-export function loadBookingAvailabilitySettingsForAction(ctx: ActionCtx) {
-	return getBookingSettingsService(ctx);
-}
-
 export function loadBookableRangeBusyWindows(
 	settings: Parameters<typeof loadBookableRangeBusyWindowsFromGoogle>[0]["settings"]
 ) {

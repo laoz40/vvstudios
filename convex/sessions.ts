@@ -1,7 +1,7 @@
 import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
 import { tupleErr, tupleOk } from "#/lib/result";
-import { loadSessionForDeliverables } from "#convex/services/editor/loadSessionForDeliverables";
+import { loadDeliverablesCustomerTypeForBooking } from "#convex/services/editor/loadSessionForDeliverables";
 import { internalMutation, internalQuery, mutation, query } from "#convex/_generated/server";
 import { requirePermission } from "#convex/services/auth";
 import { runArchivePastDeadCheckoutBatch } from "#convex/services/sessions/sessionArchive";
@@ -21,13 +21,12 @@ import {
 	writeSessionEditorNotesFromEditor
 } from "#convex/services/sessions/sessionMutations";
 import {
-	loadDriveStatusForSensitiveBooking,
+	getBookingRow,
 	loadInternalDeliverablesCustomerType,
 	loadPublicRescheduleCompleteSession,
-	loadSessionRowById,
+	loadSensitiveBookingDriveStatus,
 	loadSessionStatusByStripeSessionId
 } from "#convex/services/sessions/sessionQueries";
-import { resolveDeliverablesCustomerTypeForSession } from "#convex/services/sessions/sessionQueries";
 
 export const detectDeliverablesCustomerType = internalQuery({
 	args: { bookingId: v.id("bookings") },
@@ -38,7 +37,7 @@ export const detectDeliverablesCustomerType = internalQuery({
 export const getSessionById = internalQuery({
 	args: { bookingId: v.id("bookings") },
 	handler: async (ctx, args) =>
-		(await loadSessionRowById(ctx, args.bookingId)).match(
+		(await getBookingRow(ctx, args.bookingId)).match(
 			(session) => session,
 			() => null
 		)
@@ -48,16 +47,14 @@ export const getDriveStatus = query({
 	args: { bookingId: v.id("bookings") },
 	handler: (ctx, args) =>
 		requirePermission(ctx, "view:sensitive-booking-data")
-			.andThen(() => loadDriveStatusForSensitiveBooking(ctx, args.bookingId))
+			.andThen(() => loadSensitiveBookingDriveStatus(ctx, args.bookingId))
 			.match(tupleOk, tupleErr)
 });
 
 export const getDeliverablesCustomerType = query({
 	args: { bookingId: v.id("bookings") },
 	handler: (ctx, args) =>
-		loadSessionForDeliverables(ctx, args.bookingId)
-			.andThen((session) => resolveDeliverablesCustomerTypeForSession(ctx, session))
-			.match(tupleOk, tupleErr)
+		loadDeliverablesCustomerTypeForBooking(ctx, args.bookingId).match(tupleOk, tupleErr)
 });
 
 export const listSessions = query({

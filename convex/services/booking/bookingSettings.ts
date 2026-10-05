@@ -1,20 +1,15 @@
 import type { BookingAvailabilitySettings } from "#studio/lib/bookingAvailabilitySettings";
 import type { ResultAsync as NeverthrowResultAsync } from "neverthrow";
 import { api } from "#convex/_generated/api";
-import type { ActionCtx, MutationCtx, QueryCtx } from "#convex/_generated/server";
+import type { ActionCtx, MutationCtx } from "#convex/_generated/server";
 import {
 	readBookingAvailabilitySettings,
 	validateBookingSettings
 } from "#convex/lib/booking/bookingSettings";
 import { okOrThrow } from "#convex/lib/result";
 
-export function loadBookingAvailabilitySettings(ctx: QueryCtx) {
-	return readBookingAvailabilitySettings(ctx);
-}
-
-export function validateBookingAvailabilitySettings(settings: BookingAvailabilitySettings) {
-	return validateBookingSettings(settings);
-}
+export { readBookingAvailabilitySettings as loadBookingAvailabilitySettings };
+export { validateBookingSettings as validateBookingAvailabilitySettings };
 
 export function getBookingSettingsService(
 	ctx: ActionCtx

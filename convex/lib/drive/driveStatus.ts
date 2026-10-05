@@ -9,7 +9,7 @@ import {
 	loadSharedPackageFolder,
 	resolveDriveClientForBooking
 } from "#convex/lib/drive/driveLookup";
-import { okOrThrow } from "#convex/lib/result";
+import { okAsync, ResultAsync } from "neverthrow";
 import type { DriveChildFolderName } from "#convex/lib/drive/googleDrive";
 import {
 	formatDriveClientFolderName,
@@ -423,20 +423,17 @@ function buildDriveStatusFromSetup(
 }
 
 export function getDriveStatus(ctx: QueryCtx, bookingId: Id<"bookings">) {
-	return getDriveSetup(ctx, bookingId).andThen((setupInfo) =>
-		okOrThrow(
-			(async () => {
-				const { booking, driveSession } = getDriveSetupEntities(setupInfo);
+	return getDriveSetup(ctx, bookingId).andThen((setupInfo) => {
+		const { booking, driveSession } = getDriveSetupEntities(setupInfo);
 
-				const sessionFolderName =
-					booking === null
-						? undefined
-						: await resolveSessionFolderDisplayName(ctx, booking, driveSession);
+		if (booking === null) {
+			return okAsync(buildDriveStatusFromSetup(setupInfo, undefined));
+		}
 
-				return buildDriveStatusFromSetup(setupInfo, sessionFolderName);
-			})()
-		)
-	);
+		return ResultAsync.fromSafePromise(
+			resolveSessionFolderDisplayName(ctx, booking, driveSession)
+		).map((sessionFolderName) => buildDriveStatusFromSetup(setupInfo, sessionFolderName));
+	});
 }
 
 // Admin session lists only need the failure flag, not the full Drive status payload.

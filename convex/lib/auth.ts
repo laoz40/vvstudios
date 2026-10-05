@@ -1,5 +1,5 @@
 import type { UserIdentity } from "convex/server";
-import { err, ok } from "neverthrow";
+import { err, ok, okAsync, ResultAsync } from "neverthrow";
 import { z } from "zod";
 import type { Doc } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
@@ -73,23 +73,23 @@ export function saveEditorDetails(
 	const details = { displayName: identity.name ?? "", email: identity.email ?? "" };
 
 	if (editor !== null) {
-		return okOrThrow(
-			(async () => {
-				const nextAssignedEditorDisplayName = editorProfileDisplayName(details);
-				const previousAssignedEditorDisplayName = editorProfileDisplayName(editor);
+		const nextAssignedEditorDisplayName = editorProfileDisplayName(details);
+		const previousAssignedEditorDisplayName = editorProfileDisplayName(editor);
 
-				await ctx.db.patch("editorProfiles", editor._id, details);
+		return okOrThrow(ctx.db.patch("editorProfiles", editor._id, details).then(() => null)).andThen(
+			() => {
+				if (nextAssignedEditorDisplayName === previousAssignedEditorDisplayName) {
+					return okAsync(null);
+				}
 
-				if (nextAssignedEditorDisplayName !== previousAssignedEditorDisplayName) {
-					await patchBookingsAssignedEditorDisplayName(
+				return ResultAsync.fromSafePromise(
+					patchBookingsAssignedEditorDisplayName(
 						ctx,
 						editor.tokenIdentifier,
 						nextAssignedEditorDisplayName
-					);
-				}
-
-				return null;
-			})()
+					).then(() => null)
+				);
+			}
 		);
 	}
 
