@@ -1,18 +1,17 @@
 "use node";
 
-import { errAsync, okAsync } from "neverthrow";
+import { okAsync } from "neverthrow";
 import { v } from "convex/values";
 import { tupleErr, tupleOk, type Result } from "#/lib/result";
 import { action, internalAction } from "#convex/_generated/server";
 import { requirePermissionActions } from "#convex/services/auth";
 import {
-	loadFailedEditorRemoval,
-	removeFailedEditorDriveAccess,
-	sendEditorAssignmentEmailForReadyAccess,
-	setupEditorAccess as runEditorAccessSetup
-} from "#convex/lib/drive/driveEditorPermissions";
-import type { DriveEditorPermissionsError } from "#convex/lib/drive/driveEditorPermissions";
-import { runEditorDriveAccessUpdate } from "#convex/services/drive/driveEditorPermissions";
+	retryFailedPreviousEditorRemoval,
+	runEditorAccessSetup,
+	runEditorAssignmentEmailRetry,
+	runEditorDriveAccessUpdate,
+	type DriveEditorPermissionsError
+} from "#convex/services/drive/driveEditorPermissions";
 
 type RetryEditorAccessError =
 	| DriveEditorPermissionsError
@@ -30,7 +29,7 @@ export const retryEditorAssignmentEmail = action({
 	args: { bookingId: v.id("bookings") },
 	handler: (ctx, args): Promise<Result<null, RetryEditorAccessError>> =>
 		requirePermissionActions(ctx, "edit:sessions")
-			.andThen(() => sendEditorAssignmentEmailForReadyAccess(ctx, args))
+			.andThen(() => runEditorAssignmentEmailRetry(ctx, args))
 			.match(tupleOk, tupleErr)
 });
 
@@ -52,14 +51,6 @@ export const retryPreviousEditorRemoval = action({
 	args: { bookingId: v.id("bookings") },
 	handler: (ctx, args): Promise<Result<null, RetryEditorAccessError>> =>
 		requirePermissionActions(ctx, "edit:sessions")
-			.andThen(() =>
-				loadFailedEditorRemoval(ctx, args).andThen((removal) => {
-					if (removal === null) {
-						return errAsync({ reason: "PREVIOUS_EDITOR_REMOVAL_NOT_FOUND" as const });
-					}
-
-					return removeFailedEditorDriveAccess(ctx, removal);
-				})
-			)
+			.andThen(() => retryFailedPreviousEditorRemoval(ctx, args))
 			.match(tupleOk, tupleErr)
 });

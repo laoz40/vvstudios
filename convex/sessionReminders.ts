@@ -1,13 +1,9 @@
-import type { Doc } from "#convex/_generated/dataModel";
 import { v } from "convex/values";
 import { tupleErr, tupleOk } from "#/lib/result";
-import { internal } from "#convex/_generated/api";
 import { internalAction, internalMutation, internalQuery } from "#convex/_generated/server";
-import { REMINDER_BATCH_SIZE } from "#convex/lib/reminderScheduleTime";
-import { sendDuePackageReminders } from "#convex/packageReminders";
+import { sendDueSessionAndPackageReminders } from "#convex/services/sessions/sessionReminderCronWorkflow";
 import {
 	claimSessionReminderEmail,
-	getTomorrowSessionReminderWindow,
 	listConfirmedSessionsDueForReminderEmail,
 	writeSessionReminderEmailFailed,
 	writeSessionReminderEmailSent
@@ -39,30 +35,5 @@ export const markReminderFailed = internalMutation({
 
 export const sendDueReminders = internalAction({
 	args: {},
-	handler: async (ctx) => {
-		const nowDate = new Date();
-		await sendDuePackageReminders(ctx, nowDate);
-
-		const { dayEnd, dayStart } = getTomorrowSessionReminderWindow(nowDate);
-
-		const bookings = await ctx.runQuery(internal.sessionReminders.listSessionsDueForReminderEmail, {
-			dayEnd,
-			dayStart,
-			limit: REMINDER_BATCH_SIZE
-		});
-
-		await Promise.all(
-			bookings.map(async (booking: Doc<"bookings">) => {
-				try {
-					await ctx.runAction(internal.googleCalendar.sendSessionReminderEmail, {
-						bookingId: booking._id
-					});
-				} catch (error) {
-					console.error(`Failed to process session reminder for booking ${booking._id}`, error);
-				}
-			})
-		);
-
-		return null;
-	}
+	handler: async (ctx) => sendDueSessionAndPackageReminders(ctx, new Date())
 });

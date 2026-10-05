@@ -4,21 +4,19 @@ import { v } from "convex/values";
 import { tupleErr, tupleOk, type Result } from "#/lib/result";
 import { DURATION_OPTIONS, SERVICES } from "#studio/features/booking-form/lib/booking-form-model";
 import { action, internalAction } from "#convex/_generated/server";
-import type { SessionCalendarEventRecord } from "#convex/lib/sessions/sessionCalendarEventPayload";
-import {
-	loadPackageCalendarClientWhenSlotOpen,
-	removePackageSessionGoogleCalendarEvent,
-	writePackageSessionGoogleCalendarEvent,
-	type PackageCalendarWriteError
-} from "#convex/services/googleCalendar/packageSchedulingCalendar";
+import { bookingAddonsValidator } from "#convex/services/booking/bookingFormValidators";
 import {
 	groupPackageBusyWindowsByMonth,
 	loadPackageBookableRangeBusyWindows,
 	loadValidPackageForCalendarAvailability,
+	type BusyDayWindow,
 	type PackageAvailabilityError
 } from "#convex/services/googleCalendar/packageCalendarAvailabilityWorkflow";
-import type { BusyDayWindow } from "#convex/lib/sessions/sessionCalendarTime";
-import { bookingAddonsValidator } from "#convex/lib/booking/bookingAddonQuantities";
+import {
+	removePackageSessionGoogleCalendarEvent,
+	syncPackageSessionGoogleCalendarEvent,
+	type SessionCalendarEventRecord
+} from "#convex/services/googleCalendar/packageSchedulingCalendar";
 
 const packageCalendarBookingValidator = v.object({
 	date: v.string(),
@@ -62,36 +60,36 @@ export const getPackageBusyWindows = action({
 			.match(tupleOk, tupleErr)
 });
 
-type SavePackageSessionCalendarEventArgs = {
-	session: SessionCalendarEventRecord | null;
-	details: Parameters<typeof writePackageSessionGoogleCalendarEvent>[1]["details"];
-};
-
-async function savePackageSessionCalendarEventHandler(
-	args: SavePackageSessionCalendarEventArgs
-): Promise<
-	Result<{ googleCalendarId?: string; googleEventId?: string }, PackageCalendarWriteError>
-> {
-	return await loadPackageCalendarClientWhenSlotOpen(args)
-		.andThen((client) => writePackageSessionGoogleCalendarEvent(client, args))
-		.match(tupleOk, tupleErr);
-}
-
 export const createPackageSessionCalendarEvent = internalAction({
 	args: {
 		session: v.union(v.null(), packageCalendarBookingValidator),
 		details: packageCalendarDetailsValidator
 	},
-	handler: (_ctx, args) => savePackageSessionCalendarEventHandler(args)
+	handler: (_ctx, args) =>
+		syncPackageSessionGoogleCalendarEvent(
+			args as {
+				session: SessionCalendarEventRecord | null;
+				details: Parameters<typeof syncPackageSessionGoogleCalendarEvent>[0]["details"];
+			}
+		).match(tupleOk, tupleErr)
 });
 
 export const updatePackageSessionCalendarEvent = internalAction({
 	args: { session: packageCalendarBookingValidator, details: packageCalendarDetailsValidator },
-	handler: (_ctx, args) => savePackageSessionCalendarEventHandler(args)
+	handler: (_ctx, args) =>
+		syncPackageSessionGoogleCalendarEvent({
+			session: args.session as SessionCalendarEventRecord,
+			details: args.details as Parameters<
+				typeof syncPackageSessionGoogleCalendarEvent
+			>[0]["details"]
+		}).match(tupleOk, tupleErr)
 });
 
 export const deletePackageSessionCalendarEvent = internalAction({
 	args: { session: packageCalendarBookingValidator },
 	handler: (_ctx, args) =>
-		removePackageSessionGoogleCalendarEvent(args.session).match(tupleOk, tupleErr)
+		removePackageSessionGoogleCalendarEvent(args.session as SessionCalendarEventRecord).match(
+			tupleOk,
+			tupleErr
+		)
 });

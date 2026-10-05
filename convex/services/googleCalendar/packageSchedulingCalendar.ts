@@ -184,6 +184,17 @@ export function writePackageSessionGoogleCalendarEvent(
 		: createPackageCalendarEvent(client, args.details);
 }
 
+export type { SessionCalendarEventRecord } from "#convex/lib/sessions/sessionCalendarEventPayload";
+
+export function syncPackageSessionGoogleCalendarEvent(args: {
+	session: SessionCalendarEventRecord | null;
+	details: PackageCalendarDetails;
+}) {
+	return loadPackageCalendarClientWhenSlotOpen(args).andThen((client) =>
+		writePackageSessionGoogleCalendarEvent(client, args)
+	);
+}
+
 export function removePackageSessionGoogleCalendarEvent(
 	session: SessionCalendarEventRecord
 ): ResultAsync<{ calendarEventDeleted: boolean }, PackageCalendarSyncError> {

@@ -5,12 +5,37 @@ import type { Id } from "#convex/_generated/dataModel";
 import type { ActionCtx } from "#convex/_generated/server";
 import {
 	loadEditorDriveAccessToRemove,
+	loadFailedEditorRemoval,
 	markPreviousEditorRemovalFailed,
+	removeFailedEditorDriveAccess,
 	removePreviousEditorDriveAccess,
+	sendEditorAssignmentEmailForReadyAccess,
+	setupEditorAccess,
 	setupEditorAccessIfAssigned
 } from "#convex/lib/drive/driveEditorPermissions";
 
 export type { DriveEditorPermissionsError } from "#convex/lib/drive/driveEditorPermissions";
+
+export function runEditorAccessSetup(ctx: ActionCtx, args: { bookingId: Id<"bookings"> }) {
+	return setupEditorAccess(ctx, args);
+}
+
+export function runEditorAssignmentEmailRetry(ctx: ActionCtx, args: { bookingId: Id<"bookings"> }) {
+	return sendEditorAssignmentEmailForReadyAccess(ctx, args);
+}
+
+export function retryFailedPreviousEditorRemoval(
+	ctx: ActionCtx,
+	args: { bookingId: Id<"bookings"> }
+) {
+	return loadFailedEditorRemoval(ctx, args).andThen((removal) => {
+		if (removal === null) {
+			return errAsync({ reason: "PREVIOUS_EDITOR_REMOVAL_NOT_FOUND" as const });
+		}
+
+		return removeFailedEditorDriveAccess(ctx, removal);
+	});
+}
 
 export function runEditorDriveAccessUpdate(
 	ctx: ActionCtx,

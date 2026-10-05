@@ -15,8 +15,11 @@ import { checkGoogleCalendarAvailabilityRateLimit } from "#convex/lib/rateLimits
 import {
 	getDateAvailabilityRange,
 	groupBusyDaysByMonth,
-	groupBusyWindowsByDay
+	groupBusyWindowsByDay,
+	type BusyDayWindow
 } from "#convex/lib/sessions/sessionCalendarTime";
+
+export type { BusyDayWindow };
 import { formatDateValue, startOfToday } from "#studio/lib/bookingdatetime";
 
 export type PackageAvailabilityError =
