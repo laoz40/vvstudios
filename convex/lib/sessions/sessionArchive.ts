@@ -7,7 +7,7 @@ import {
 	isBookingArchived,
 	setBookingArchived
 } from "#convex/lib/archiveState";
-import { externalPromise, okOrThrow } from "#convex/lib/result";
+import { okOrThrow } from "#convex/lib/result";
 import type { StripeInvoiceAmountSummary } from "#convex/lib/stripe/stripeInvoices";
 
 const DEAD_CHECKOUT_STATUSES = ["cancelled", "expired", "abandoned"] as const;
@@ -36,47 +36,59 @@ export type ArchivePastDeadCheckoutBatchResult = {
 
 const PAST_DEAD_CHECKOUT_ARCHIVE_BATCH_SIZE = 25;
 
+function archiveBookingsOnDeadCheckoutPage(
+	ctx: MutationCtx,
+	bookings: Doc<"bookings">[],
+	now: number
+): ResultAsync<number, never> {
+	if (bookings.length === 0) {
+		return okAsync(0);
+	}
+
+	const [booking, ...rest] = bookings;
+
+	if (booking === undefined) {
+		return okAsync(0);
+	}
+
+	if (isBookingArchived(booking) || !isDeadCheckoutStatus(booking.status)) {
+		return archiveBookingsOnDeadCheckoutPage(ctx, rest, now);
+	}
+
+	if (!shouldArchiveDeadCheckoutBooking(booking.sessionStartAt, now)) {
+		return archiveBookingsOnDeadCheckoutPage(ctx, rest, now);
+	}
+
+	return setBookingArchived(ctx, booking._id, true).andThen(() =>
+		archiveBookingsOnDeadCheckoutPage(ctx, rest, now).map((archivedRest) => archivedRest + 1)
+	);
+}
+
+function archivePastDeadCheckoutSessionsBatchChain(
+	ctx: MutationCtx,
+	cursor: string | null,
+	numItems: number,
+	now: number
+): ResultAsync<ArchivePastDeadCheckoutBatchResult, never> {
+	return okOrThrow(ctx.db.query("bookings").paginate({ cursor, numItems })).andThen(
+		(page: PaginationResult<Doc<"bookings">>) =>
+			archiveBookingsOnDeadCheckoutPage(ctx, page.page, now).map((newlyArchived) => ({
+				continueCursor: page.isDone ? null : page.continueCursor,
+				isDone: page.isDone,
+				newlyArchived,
+				scanned: page.page.length
+			}))
+	);
+}
+
 /** Archives unarchived cancelled / expired / abandoned bookings after session start. */
-export async function archivePastDeadCheckoutSessionsBatch(
+export function archivePastDeadCheckoutSessionsBatch(
 	ctx: MutationCtx,
 	cursor: string | null,
 	numItems = PAST_DEAD_CHECKOUT_ARCHIVE_BATCH_SIZE,
 	now = Date.now()
-): Promise<ArchivePastDeadCheckoutBatchResult> {
-	const page: PaginationResult<Doc<"bookings">> = await ctx.db
-		.query("bookings")
-		.paginate({ cursor, numItems });
-
-	let newlyArchived = 0;
-
-	await page.page.reduce(async (chain, booking) => {
-		await chain;
-
-		if (isBookingArchived(booking)) {
-			return;
-		}
-
-		if (!isDeadCheckoutStatus(booking.status)) {
-			return;
-		}
-
-		if (!shouldArchiveDeadCheckoutBooking(booking.sessionStartAt, now)) {
-			return;
-		}
-
-		const archived = await setBookingArchived(ctx, booking._id, true);
-
-		if (archived.isOk()) {
-			newlyArchived += 1;
-		}
-	}, Promise.resolve());
-
-	return {
-		continueCursor: page.isDone ? null : page.continueCursor,
-		isDone: page.isDone,
-		newlyArchived,
-		scanned: page.page.length
-	};
+): ResultAsync<ArchivePastDeadCheckoutBatchResult, never> {
+	return archivePastDeadCheckoutSessionsBatchChain(ctx, cursor, numItems, now);
 }
 
 export function archivePastDeadCheckoutSessionsBatchStep(
@@ -84,7 +96,7 @@ export function archivePastDeadCheckoutSessionsBatchStep(
 	cursor: string | null,
 	numItems?: number
 ) {
-	return externalPromise(archivePastDeadCheckoutSessionsBatch(ctx, cursor, numItems));
+	return archivePastDeadCheckoutSessionsBatch(ctx, cursor, numItems);
 }
 
 export function mergeDeadCheckoutBookingUpdates(

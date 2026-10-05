@@ -2,10 +2,11 @@ import { internal } from "#convex/_generated/api";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
 import { getEditorWorkStatus } from "#convex/lib/editor/editorAccess";
-import { externalPromise, okOrThrow } from "#convex/lib/result";
+import { okAsync, ResultAsync } from "neverthrow";
+import { okOrThrow } from "#convex/lib/result";
 import {
 	type BookingSearchBlobPatch,
-	searchBlobPatchForBooking
+	searchBlobPatchForBookingAsync
 } from "#convex/lib/adminSearch/adminSearchBlob";
 
 const ACTIVE_EDITOR_LIMIT = 200;
@@ -16,26 +17,37 @@ export function editorProfileDisplayName(
 	return editor.displayName || editor.email;
 }
 
-export async function patchBookingsAssignedEditorDisplayName(
+function patchBookingAssignedEditorDisplayName(
+	ctx: MutationCtx,
+	booking: Doc<"bookings">,
+	assignedEditorDisplayName: string
+) {
+	return searchBlobPatchForBookingAsync(ctx, booking, { assignedEditorDisplayName }).andThen(
+		(searchBlobPatch) =>
+			okOrThrow(ctx.db.patch("bookings", booking._id, searchBlobPatch).then(() => null))
+	);
+}
+
+function writeBookingsAssignedEditorDisplayNameChain(
 	ctx: MutationCtx,
 	editorTokenIdentifier: string,
 	assignedEditorDisplayName: string
 ) {
-	const bookings = await ctx.db
-		.query("bookings")
-		.withIndex("by_assignedEditorTokenIdentifier_and_driveClientId", (query) =>
-			query.eq("assignedEditorTokenIdentifier", editorTokenIdentifier)
-		)
-		.collect();
-
-	await Promise.all(
-		bookings.map(async (booking) => {
-			const searchBlobPatch = await searchBlobPatchForBooking(ctx, booking, {
-				assignedEditorDisplayName
-			});
-
-			return ctx.db.patch("bookings", booking._id, searchBlobPatch);
-		})
+	return okOrThrow(
+		ctx.db
+			.query("bookings")
+			.withIndex("by_assignedEditorTokenIdentifier_and_driveClientId", (query) =>
+				query.eq("assignedEditorTokenIdentifier", editorTokenIdentifier)
+			)
+			.collect()
+	).andThen((bookings) =>
+		bookings.length === 0
+			? okAsync(null)
+			: ResultAsync.combine(
+					bookings.map((booking) =>
+						patchBookingAssignedEditorDisplayName(ctx, booking, assignedEditorDisplayName)
+					)
+				).map(() => null)
 	);
 }
 
@@ -44,12 +56,10 @@ export function writeBookingsAssignedEditorDisplayName(
 	editorTokenIdentifier: string,
 	assignedEditorDisplayName: string
 ) {
-	return externalPromise(
-		patchBookingsAssignedEditorDisplayName(
-			ctx,
-			editorTokenIdentifier,
-			assignedEditorDisplayName
-		).then(() => null)
+	return writeBookingsAssignedEditorDisplayNameChain(
+		ctx,
+		editorTokenIdentifier,
+		assignedEditorDisplayName
 	);
 }
 

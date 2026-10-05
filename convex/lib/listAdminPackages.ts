@@ -1,5 +1,5 @@
-import { ResultAsync } from "neverthrow";
-import { externalPromise, okOrThrow } from "#convex/lib/result";
+import { okAsync, ResultAsync, type ResultAsync as ResultAsyncType } from "neverthrow";
+import { okOrThrow } from "#convex/lib/result";
 import type { Doc } from "#convex/_generated/dataModel";
 import type { QueryCtx } from "#convex/_generated/server";
 import { exhaustiveCheck } from "#/lib/result";
@@ -19,7 +19,6 @@ import {
 } from "#convex/lib/adminSearch/adminSearchQuery";
 import {
 	emptyAdminSearchListPage,
-	paginateAdminSearchList,
 	type AdminArchivedListView,
 	type AdminSearchListPage
 } from "#convex/lib/adminSearch/adminListSearchPage";
@@ -101,166 +100,128 @@ function applyAdminPackageListVisibility(
 	);
 }
 
-function paginateAdminPackagesByCreatedAt(
-	ctx: QueryCtx,
-	view: AdminPackagesView,
-	sortDirection: AdminPackageListSortDirection,
-	paginationOpts: AdminPackagePaginationOpts
-) {
-	if (view === "inbox") {
-		return ctx.db
+function mapAdminPackageSearchPage<T>(
+	paginationOpts: AdminPackagePaginationOpts,
+	dbPage: { continueCursor: string; isDone: boolean; page: T[] }
+): AdminSearchListPage<T> {
+	return {
+		continueCursor: dbPage.continueCursor,
+		isDone: dbPage.isDone,
+		page: dbPage.page,
+		refineSearch: paginationOpts.cursor === null ? !dbPage.isDone : false
+	};
+}
+
+function paginateAdminPackagesFieldSearch(ctx: QueryCtx, args: AdminPackageFieldSearchIndexArgs) {
+	const { paginationOpts } = args;
+
+	return okOrThrow(
+		ctx.db
 			.query("packages")
-			.withIndex("by_archived_and_createdAt", (query) => query.eq("archived", false))
-			.order(sortDirection)
-			.paginate(paginationOpts);
-	}
+			.withSearchIndex(args.indexName, (indexQuery) => {
+				const searchQuery = indexQuery.search(args.searchField, args.searchText);
 
-	return ctx.db
-		.query("packages")
-		.withIndex("by_createdAt")
-		.order(sortDirection)
-		.paginate(paginationOpts);
-}
+				if (args.view === "inbox") {
+					return searchQuery.eq("archived", false);
+				}
 
-function adminPackagesFieldSearchQuery(
-	ctx: QueryCtx,
-	args: Pick<AdminPackageFieldSearchIndexArgs, "indexName" | "searchField" | "searchText" | "view">
-) {
-	return ctx.db.query("packages").withSearchIndex(args.indexName, (indexQuery) => {
-		const searchQuery = indexQuery.search(args.searchField, args.searchText);
-
-		if (args.view === "inbox") {
-			return searchQuery.eq("archived", false);
-		}
-
-		return searchQuery;
-	});
-}
-
-async function paginateAdminPackagesFieldSearch(
-	ctx: QueryCtx,
-	args: AdminPackageFieldSearchIndexArgs
-) {
-	return paginateAdminSearchList({
-		paginationOpts: args.paginationOpts,
-		fetchPage: (cursor, numItems) =>
-			adminPackagesFieldSearchQuery(ctx, {
-				indexName: args.indexName,
-				searchField: args.searchField,
-				searchText: args.searchText,
-				view: args.view
-			}).paginate({ cursor, numItems })
-	});
-}
-
-async function paginateAdminPackagesBlobSearch(ctx: QueryCtx, args: AdminBlobSearchIndexArgs) {
-	return paginateAdminSearchList({
-		paginationOpts: args.paginationOpts,
-		fetchPage: (cursor, numItems) =>
-			adminPackagesBlobSearchQuery(ctx, { searchText: args.searchText, view: args.view }).paginate({
-				cursor,
-				numItems
+				return searchQuery;
 			})
-	});
+			.paginate({ cursor: paginationOpts.cursor, numItems: paginationOpts.numItems })
+	).map((dbPage) => mapAdminPackageSearchPage(paginationOpts, dbPage));
 }
 
-function adminPackagesBlobSearchQuery(
-	ctx: QueryCtx,
-	args: Pick<AdminBlobSearchIndexArgs, "searchText" | "view">
-) {
-	return ctx.db.query("packages").withSearchIndex("search_admin_blob", (indexQuery) => {
-		const searchQuery = indexQuery.search("searchBlob", args.searchText);
+function paginateAdminPackagesBlobSearch(ctx: QueryCtx, args: AdminBlobSearchIndexArgs) {
+	const { paginationOpts } = args;
 
-		if (args.view === "inbox") {
-			return searchQuery.eq("archived", false);
-		}
+	return okOrThrow(
+		ctx.db
+			.query("packages")
+			.withSearchIndex("search_admin_blob", (indexQuery) => {
+				const searchQuery = indexQuery.search("searchBlob", args.searchText);
 
-		return searchQuery;
-	});
+				if (args.view === "inbox") {
+					return searchQuery.eq("archived", false);
+				}
+
+				return searchQuery;
+			})
+			.paginate({ cursor: paginationOpts.cursor, numItems: paginationOpts.numItems })
+	).map((dbPage) => mapAdminPackageSearchPage(paginationOpts, dbPage));
 }
 
-async function paginatePackagesByEmail(
-	ctx: QueryCtx,
-	args: AdminPackageSearchContext,
-	email: string
-): Promise<AdminSearchListPage<Doc<"packages">>> {
-	return paginateAdminSearchList({
-		paginationOpts: args.paginationOpts,
-		fetchPage: (cursor, numItems) =>
-			ctx.db
-				.query("packages")
-				.withIndex("by_email", (indexQuery) => indexQuery.eq("email", email))
-				.paginate({ cursor, numItems })
-	});
+function paginatePackagesByEmail(ctx: QueryCtx, args: AdminPackageSearchContext, email: string) {
+	const { paginationOpts } = args;
+
+	return okOrThrow(
+		ctx.db
+			.query("packages")
+			.withIndex("by_email", (indexQuery) => indexQuery.eq("email", email))
+			.paginate({ cursor: paginationOpts.cursor, numItems: paginationOpts.numItems })
+	).map((dbPage) => mapAdminPackageSearchPage(paginationOpts, dbPage));
 }
 
-async function paginatePackagesByReceipt(
+function paginatePackagesByReceipt(
 	ctx: QueryCtx,
 	args: AdminPackageSearchContext,
 	receiptNumber: string
-): Promise<AdminSearchListPage<Doc<"packages">>> {
-	return paginateAdminSearchList({
-		paginationOpts: args.paginationOpts,
-		fetchPage: (cursor, numItems) =>
-			ctx.db
-				.query("packages")
-				.withIndex("by_receiptNumber", (indexQuery) =>
-					indexQuery.eq("receiptNumber", receiptNumber)
-				)
-				.paginate({ cursor, numItems })
-	});
+) {
+	const { paginationOpts } = args;
+
+	return okOrThrow(
+		ctx.db
+			.query("packages")
+			.withIndex("by_receiptNumber", (indexQuery) => indexQuery.eq("receiptNumber", receiptNumber))
+			.paginate({ cursor: paginationOpts.cursor, numItems: paginationOpts.numItems })
+	).map((dbPage) => mapAdminPackageSearchPage(paginationOpts, dbPage));
 }
 
-async function paginatePackagesByPhone(
+function paginatePackagesByPhone(
 	ctx: QueryCtx,
 	args: AdminPackageSearchContext,
 	phoneQuery: string
-): Promise<AdminSearchListPage<Doc<"packages">>> {
+) {
 	const canonicalPhone = normalizePhone(phoneQuery);
 
 	if (canonicalPhone.length === 0) {
-		return emptyAdminSearchListPage();
+		return okAsync(emptyAdminSearchListPage<Doc<"packages">>());
 	}
 
-	return paginateAdminSearchList({
-		paginationOpts: args.paginationOpts,
-		fetchPage: (cursor, numItems) =>
-			ctx.db
-				.query("packages")
-				.withIndex("by_phone", (indexQuery) => indexQuery.eq("phone", canonicalPhone))
-				.paginate({ cursor, numItems })
-	});
+	const { paginationOpts } = args;
+
+	return okOrThrow(
+		ctx.db
+			.query("packages")
+			.withIndex("by_phone", (indexQuery) => indexQuery.eq("phone", canonicalPhone))
+			.paginate({ cursor: paginationOpts.cursor, numItems: paginationOpts.numItems })
+	).map((dbPage) => mapAdminPackageSearchPage(paginationOpts, dbPage));
 }
 
-async function paginatePackagesByAbn(
-	ctx: QueryCtx,
-	args: AdminPackageSearchContext,
-	abnQuery: string
-): Promise<AdminSearchListPage<Doc<"packages">>> {
+function paginatePackagesByAbn(ctx: QueryCtx, args: AdminPackageSearchContext, abnQuery: string) {
 	const normalizedAbn = normalizeAbn(abnQuery);
 
 	if (normalizedAbn.length === 0) {
-		return emptyAdminSearchListPage();
+		return okAsync(emptyAdminSearchListPage<Doc<"packages">>());
 	}
 
-	return paginateAdminSearchList({
-		paginationOpts: args.paginationOpts,
-		fetchPage: (cursor, numItems) =>
-			ctx.db
-				.query("packages")
-				.withIndex("by_abn", (indexQuery) => indexQuery.eq("abn", normalizedAbn))
-				.paginate({ cursor, numItems })
-	});
+	const { paginationOpts } = args;
+
+	return okOrThrow(
+		ctx.db
+			.query("packages")
+			.withIndex("by_abn", (indexQuery) => indexQuery.eq("abn", normalizedAbn))
+			.paginate({ cursor: paginationOpts.cursor, numItems: paginationOpts.numItems })
+	).map((dbPage) => mapAdminPackageSearchPage(paginationOpts, dbPage));
 }
 
-async function paginateAdminPackagesByPrefixQuery(
+function paginateAdminPackagesByPrefixQuery(
 	ctx: QueryCtx,
 	args: AdminPackageSearchContext,
 	parsedQuery: Exclude<
 		ParsedAdminSearchQuery,
 		{ kind: "blob" } | { kind: "editor" } | { kind: "date" }
 	>
-): Promise<AdminSearchListPage<Doc<"packages">>> {
+) {
 	switch (parsedQuery.kind) {
 		case "email":
 			return paginatePackagesByEmail(ctx, args, parsedQuery.value);
@@ -287,19 +248,19 @@ async function paginateAdminPackagesByPrefixQuery(
 	}
 }
 
-async function paginateAdminPackagesWithSearch(
+function paginateAdminPackagesWithSearch(
 	ctx: QueryCtx,
 	args: AdminPackageSearchContext & { parsedQuery: ParsedAdminSearchQuery }
-): Promise<AdminSearchListPage<Doc<"packages">>> {
+): ResultAsyncType<AdminSearchListPage<Doc<"packages">>, never> {
 	const { parsedQuery } = args;
 
 	if (parsedQuery.kind === "editor" || parsedQuery.kind === "date") {
-		return emptyAdminSearchListPage();
+		return okAsync(emptyAdminSearchListPage<Doc<"packages">>());
 	}
 
 	if (parsedQuery.kind === "blob") {
 		if (parsedQuery.text.length === 0) {
-			return emptyAdminSearchListPage();
+			return okAsync(emptyAdminSearchListPage<Doc<"packages">>());
 		}
 
 		return paginateAdminPackagesBlobSearch(ctx, {
@@ -312,25 +273,32 @@ async function paginateAdminPackagesWithSearch(
 	return paginateAdminPackagesByPrefixQuery(ctx, args, parsedQuery);
 }
 
-async function paginateAdminPackagesWithoutSearch(
-	ctx: QueryCtx,
-	args: AdminPackageSearchContext
-): Promise<AdminSearchListPage<Doc<"packages">>> {
+function paginateAdminPackagesWithoutSearch(ctx: QueryCtx, args: AdminPackageSearchContext) {
 	const { sortDirection, view, paginationOpts } = args;
 
-	const packagesPage = await paginateAdminPackagesByCreatedAt(
-		ctx,
-		view,
-		sortDirection,
-		paginationOpts
-	);
+	if (view === "inbox") {
+		return okOrThrow(
+			ctx.db
+				.query("packages")
+				.withIndex("by_archived_and_createdAt", (query) => query.eq("archived", false))
+				.order(sortDirection)
+				.paginate(paginationOpts)
+		).map((packagesPage) => ({
+			continueCursor: packagesPage.continueCursor,
+			isDone: packagesPage.isDone,
+			page: packagesPage.page,
+			refineSearch: false
+		}));
+	}
 
-	return {
+	return okOrThrow(
+		ctx.db.query("packages").withIndex("by_createdAt").order(sortDirection).paginate(paginationOpts)
+	).map((packagesPage) => ({
 		continueCursor: packagesPage.continueCursor,
 		isDone: packagesPage.isDone,
 		page: packagesPage.page,
 		refineSearch: false
-	};
+	}));
 }
 
 function loadAdminPackageListRow(ctx: QueryCtx, packageFromDb: Doc<"packages">) {
@@ -372,10 +340,10 @@ function loadAdminPackageListRows(ctx: QueryCtx, packagesOnPage: Doc<"packages">
 	);
 }
 
-async function fetchAdminPackagesListPage(
+function fetchAdminPackagesListPage(
 	ctx: QueryCtx,
 	args: ListAdminPackagesArgs
-): Promise<AdminSearchListPage<Doc<"packages">>> {
+): ResultAsyncType<AdminSearchListPage<Doc<"packages">>, never> {
 	const sortDirection = args.sortDirection ?? "desc";
 	const view = args.view ?? "inbox";
 	const includeStale = args.includeStale ?? false;
@@ -397,7 +365,7 @@ export function listAdminPackages(ctx: QueryCtx, args: ListAdminPackagesArgs) {
 	const view = args.view ?? "inbox";
 	const includeStale = args.includeStale ?? false;
 
-	return externalPromise(fetchAdminPackagesListPage(ctx, args)).andThen((packagesPage) => {
+	return fetchAdminPackagesListPage(ctx, args).andThen((packagesPage) => {
 		const visiblePackages = applyAdminPackageListVisibility(packagesPage.page, view, includeStale);
 
 		return loadAdminPackageListRows(ctx, visiblePackages).map((page) => ({

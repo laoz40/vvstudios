@@ -6,11 +6,6 @@ export function okOrThrow<T>(promise: Promise<T>) {
 	return ResultAsync.fromSafePromise<T>(promise);
 }
 
-/** Non-Convex promises (crypto, multi-step lib helpers) where rejection should escape at the handler. */
-export function externalPromise<T>(promise: Promise<T>) {
-	return ResultAsync.fromSafePromise<T>(promise);
-}
-
 type TryPromiseOptions<T, E> = { try: () => Promise<T>; catch: (cause: unknown) => E };
 
 /** Maps expected promise failures into domain errors. Sync throws in `try` are caught too. */
