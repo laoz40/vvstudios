@@ -156,9 +156,7 @@ import type * as services_packages_packageAdjustmentInvoiceEmailWorkflow from ".
 import type * as services_packages_packageAdjustmentInvoicePayment from "../services/packages/packageAdjustmentInvoicePayment.js";
 import type * as services_packages_packageAdjustmentInvoiceSendWorkflow from "../services/packages/packageAdjustmentInvoiceSendWorkflow.js";
 import type * as services_packages_packageAdminMutationWorkflow from "../services/packages/packageAdminMutationWorkflow.js";
-import type * as services_packages_packageCheckout from "../services/packages/packageCheckout.js";
 import type * as services_packages_packageCheckoutCompletion from "../services/packages/packageCheckoutCompletion.js";
-import type * as services_packages_packageCheckoutCompletionActions from "../services/packages/packageCheckoutCompletionActions.js";
 import type * as services_packages_packageCheckoutSessionWorkflow from "../services/packages/packageCheckoutSessionWorkflow.js";
 import type * as services_packages_packagePaidEmailResendWorkflow from "../services/packages/packagePaidEmailResendWorkflow.js";
 import type * as services_packages_packageReminderMutationWorkflow from "../services/packages/packageReminderMutationWorkflow.js";
@@ -344,9 +342,7 @@ declare const fullApi: ApiFromModules<{
   "services/packages/packageAdjustmentInvoicePayment": typeof services_packages_packageAdjustmentInvoicePayment;
   "services/packages/packageAdjustmentInvoiceSendWorkflow": typeof services_packages_packageAdjustmentInvoiceSendWorkflow;
   "services/packages/packageAdminMutationWorkflow": typeof services_packages_packageAdminMutationWorkflow;
-  "services/packages/packageCheckout": typeof services_packages_packageCheckout;
   "services/packages/packageCheckoutCompletion": typeof services_packages_packageCheckoutCompletion;
-  "services/packages/packageCheckoutCompletionActions": typeof services_packages_packageCheckoutCompletionActions;
   "services/packages/packageCheckoutSessionWorkflow": typeof services_packages_packageCheckoutSessionWorkflow;
   "services/packages/packagePaidEmailResendWorkflow": typeof services_packages_packagePaidEmailResendWorkflow;
   "services/packages/packageReminderMutationWorkflow": typeof services_packages_packageReminderMutationWorkflow;

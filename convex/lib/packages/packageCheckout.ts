@@ -51,3 +51,13 @@ export function validatePendingPackageAbandonment(
 
 	return ok({ kind: "abandon" });
 }
+
+export function buildPublicPackageStatusResponse(packageFromDb: Doc<"packages">) {
+	return {
+		_id: packageFromDb._id,
+		status: packageFromDb.status,
+		packageSize: packageFromDb.packageSize,
+		paidAt: packageFromDb.paidAt,
+		createdAt: packageFromDb.createdAt
+	};
+}
