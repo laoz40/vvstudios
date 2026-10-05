@@ -4,7 +4,7 @@ import type { ESTree } from "@oxlint/plugins";
 
 import { isConvexServiceFile } from "../shared/paths.ts";
 
-const CHAIN_METHOD_NAMES = new Set(["andThen", "asyncAndThen", "map"]);
+const CHAIN_METHOD_NAMES = new Set(["andThen", "asyncAndThen"]);
 
 function isResultChainCall(node: ESTree.CallExpression): boolean {
 	const callee = node.callee;
@@ -27,13 +27,13 @@ function isInlineCallback(node: ESTree.Expression | ESTree.SpreadElement): boole
 	return node.type === "ArrowFunctionExpression" || node.type === "FunctionExpression";
 }
 
-/** Service Result chains must use named steps or curried calls, not inline callbacks. */
+/** Service Result chains must use named steps or curried calls for .andThen / .asyncAndThen, not inline callbacks. */
 export const noInlineCallbackInServiceChainsRule = defineRule({
 	meta: {
 		type: "problem",
 		docs: {
 			description:
-				"Disallow inline arrow or function callbacks as the first argument to .andThen, .asyncAndThen, or .map in convex/services/**."
+				"Disallow inline arrow or function callbacks as the first argument to .andThen or .asyncAndThen in convex/services/**."
 		},
 		messages: {
 			inlineCallback:

@@ -9,7 +9,6 @@ import {
 	attachPdfToBookingReceiptArtifacts,
 	attachPdfToPackageReceiptArtifacts,
 	bookingReceiptNumberFromArtifacts,
-	mapReceiptNumberResult,
 	type BookingReceiptCustomerSentStep,
 	type PackageReceiptArtifactsStep
 } from "#convex/lib/booking/bookingReceiptEmailPipeline";
@@ -92,7 +91,7 @@ function maybeSendBookingReceiptHostEmail(
 			...pickBookingAddonQuantities(bookingForHost)
 		})
 			.orElse(logBookingReceiptHostEmailFailure(booking._id))
-			.map(mapReceiptNumberResult(receiptNumber));
+			.map(() => ({ receiptNumber }));
 	};
 }
 
@@ -134,7 +133,7 @@ function maybeSendPackageReceiptHostEmail(
 			invoiceDueAt: paidAt
 		})
 			.orElse(logPackageReceiptHostEmailFailure(packageRecord._id))
-			.map(mapReceiptNumberResult(receiptNumber));
+			.map(() => ({ receiptNumber }));
 	};
 }
 

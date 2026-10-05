@@ -77,12 +77,8 @@ export function parseInviteEmail(email: string) {
 	return ok(parsed.data.toLowerCase());
 }
 
-export function mapClerkInvitationToInvitedEmail(email: string) {
-	return () => ({ invitedEmail: email });
-}
-
 export function inviteEmployeeAfterDomainCheck(email: string) {
-	return createClerkInvitation(email).map(mapClerkInvitationToInvitedEmail(email));
+	return createClerkInvitation(email).map(() => ({ invitedEmail: email }));
 }
 
 export function createClerkInvitation(email: string) {

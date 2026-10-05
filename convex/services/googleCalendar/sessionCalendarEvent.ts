@@ -14,7 +14,6 @@ import {
 } from "#convex/lib/googleCalendar/googleCalendarEventCalls";
 import {
 	buildSessionCalendarEventPayload,
-	mapInsertedSessionCalendarEventStep,
 	matchingSessionCalendarEventStep,
 	type GoogleCalendarEventClient,
 	type SessionCalendarEventDetails,
@@ -137,7 +136,11 @@ function insertSessionCalendarEvent({
 		calendar: client.calendar,
 		calendarId: client.calendarId,
 		requestBody: payloadResult.value
-	}).map(mapInsertedSessionCalendarEventStep(client));
+	}).map((replacementEvent) => ({
+		googleCalendarId: client.calendarId,
+		googleEventId: replacementEvent.data.id ?? undefined,
+		outcome: "replacementCreated" as const
+	}));
 }
 
 export function createSessionCalendarEvent({

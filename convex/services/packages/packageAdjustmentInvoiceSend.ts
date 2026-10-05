@@ -26,10 +26,6 @@ function failAfterInvoiceEmailFailure<T extends PackageAdjustmentInvoiceSendFail
 	return () => err(failure);
 }
 
-function toNullAfterInvoiceEmailSent(_sent: { updated: boolean }) {
-	return null;
-}
-
 function recordSentPackageAdjustmentInvoice(
 	ctx: ActionCtx,
 	args: SendPackageAdjustmentInvoiceArgs,
@@ -44,7 +40,7 @@ function recordSentPackageAdjustmentInvoice(
 				claimedAt,
 				stripeInvoiceId
 			})
-		).map(toNullAfterInvoiceEmailSent);
+		).map(() => null);
 }
 
 export type SendPackageAdjustmentInvoiceError =

@@ -65,19 +65,15 @@ export function unarchiveAfterNewPackageInvoice(
 function archiveBookingForPaidStripeInvoice(ctx: MutationCtx, paidAt: number) {
 	return (stripeInvoice: Doc<"stripeInvoices"> | null) => {
 		if (stripeInvoice?.bookingId !== undefined) {
-			return archiveSessionWhenFullyDone(ctx, stripeInvoice.bookingId, paidAt).map(toNull);
+			return archiveSessionWhenFullyDone(ctx, stripeInvoice.bookingId, paidAt).map(() => null);
 		}
 
 		if (stripeInvoice?.packageId !== undefined) {
-			return archivePackageWhenFullyDone(ctx, stripeInvoice.packageId, paidAt).map(toNull);
+			return archivePackageWhenFullyDone(ctx, stripeInvoice.packageId, paidAt).map(() => null);
 		}
 
 		return okAsync(null);
 	};
-}
-
-function toNull() {
-	return null;
 }
 
 export function archiveBookingWhenStripeInvoicePaid(

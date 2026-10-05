@@ -2,7 +2,6 @@
 
 import type { calendar_v3 } from "googleapis/build/src/apis/calendar/v3";
 import { okAsync, type ResultAsync } from "neverthrow";
-import { mapCalendarEventDeletedStep } from "#convex/lib/sessions/sessionCalendarEventPayload";
 import { deleteGoogleCalendarEventIfFound } from "#convex/lib/googleCalendar/googleCalendarEventCalls";
 import type {
 	GoogleCalendarEventClient,
@@ -28,7 +27,7 @@ export function deleteFoundSessionEventStep(
 	foundEventId: string
 ) {
 	return deleteGoogleCalendarEventIfFound(client.calendar, calendarId, foundEventId).map(
-		mapCalendarEventDeletedStep
+		(wasFoundEventDeleted) => ({ calendarEventDeleted: wasFoundEventDeleted })
 	);
 }
 

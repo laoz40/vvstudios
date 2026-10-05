@@ -224,10 +224,6 @@ export function loadPackageEligibleForInstagramUpdate(ctx: MutationCtx, packageI
 	return getPackageFromDb(ctx, packageId).andThen(requireActivePackageForInstagramUpdate);
 }
 
-function toNull() {
-	return null;
-}
-
 function syncInstagramContactSearch(
 	ctx: MutationCtx,
 	packageId: Id<"packages">,
@@ -235,7 +231,7 @@ function syncInstagramContactSearch(
 ) {
 	return ResultAsync.fromSafePromise(
 		patchPackageSessionBookingsContactSearch(ctx, packageId, contactFields)
-	).map(toNull);
+	).map(() => null);
 }
 
 type PackageContactSearchFields = {

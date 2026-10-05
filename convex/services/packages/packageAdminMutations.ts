@@ -100,11 +100,7 @@ function syncContactSearchAfterAdminPatch(
 
 	return ResultAsync.fromSafePromise(
 		patchPackageSessionBookingsContactSearch(ctx, args.packageId, contactFields)
-	).map(toNull);
-}
-
-function toNull() {
-	return null;
+	).map(() => null);
 }
 
 function loadPackageAfterArchivePermission(ctx: MutationCtx, packageId: Id<"packages">) {

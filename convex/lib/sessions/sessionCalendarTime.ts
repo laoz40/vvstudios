@@ -111,19 +111,12 @@ function nextCalendarDate(date: string) {
 	return `${nextYear}-${nextMonth}-${nextDay}`;
 }
 
-function mapDateAvailabilityRangeStep(timeMaxDate: Date, timeMinDate: Date) {
-	return { timeMax: timeMaxDate.toISOString(), timeMin: timeMinDate.toISOString() };
-}
-
-function mapDateAvailabilityRangeFromTimeMinStep(timeMaxDate: Date) {
-	return (timeMinDate: Date) => mapDateAvailabilityRangeStep(timeMaxDate, timeMinDate);
-}
-
 export function mapDateAvailabilityRangeFromStartStep(startDate: string, timeZone: string) {
 	return (timeMaxDate: Date) =>
-		getUtcDateForZonedDateTime(startDate, "00:00", timeZone).map(
-			mapDateAvailabilityRangeFromTimeMinStep(timeMaxDate)
-		);
+		getUtcDateForZonedDateTime(startDate, "00:00", timeZone).map((timeMinDate) => ({
+			timeMax: timeMaxDate.toISOString(),
+			timeMin: timeMinDate.toISOString()
+		}));
 }
 
 export function getDateAvailabilityEndDateTime(endDate: string, timeZone: string) {
