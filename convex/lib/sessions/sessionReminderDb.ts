@@ -5,7 +5,7 @@ import { okOrThrow } from "#convex/lib/result";
 
 type ReminderBookingArgs = { bookingId: Id<"bookings"> };
 
-export function listConfirmedSessionsDueForReminderEmailRows(
+export function takeConfirmedBookingsInReminderWindow(
 	ctx: QueryCtx,
 	args: { dayStart: number; dayEnd: number; limit?: number }
 ) {

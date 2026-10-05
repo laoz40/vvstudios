@@ -1,15 +1,14 @@
 import { err, ok } from "neverthrow";
-import type { Doc, Id } from "#convex/_generated/dataModel";
-import type { MutationCtx } from "#convex/_generated/server";
+import type { Id } from "#convex/_generated/dataModel";
+import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
 import { getTomorrowTimeZoneDayRange, REMINDER_TIME_ZONE } from "#convex/lib/reminderScheduleTime";
 import { getSessionFromDb } from "#convex/lib/sessions/sessionLookup";
 import {
-	listConfirmedSessionsDueForReminderEmailRows,
 	patchSessionReminderEmailClaimed,
 	patchSessionReminderEmailFailed,
-	patchSessionReminderEmailSent
+	patchSessionReminderEmailSent,
+	takeConfirmedBookingsInReminderWindow
 } from "#convex/lib/sessions/sessionReminderDb";
-import type { QueryCtx } from "#convex/_generated/server";
 
 type ReminderBookingArgs = { bookingId: Id<"bookings"> };
 
@@ -20,8 +19,8 @@ export function getTomorrowSessionReminderWindow(nowDate: Date) {
 export function listConfirmedSessionsDueForReminderEmail(
 	ctx: QueryCtx,
 	args: { dayStart: number; dayEnd: number; limit?: number }
-): import("neverthrow").ResultAsync<Doc<"bookings">[], never> {
-	return listConfirmedSessionsDueForReminderEmailRows(ctx, args);
+) {
+	return takeConfirmedBookingsInReminderWindow(ctx, args);
 }
 
 export function claimSessionReminderEmail(

@@ -13,10 +13,6 @@ export function loadBookingAvailabilitySettings(ctx: QueryCtx) {
 	return readBookingAvailabilitySettings(ctx);
 }
 
-export function validateBookingAvailabilitySettings(settings: BookingAvailabilitySettings) {
-	return validateBookingSettings(settings);
-}
-
 export function getBookingSettingsService(
 	ctx: ActionCtx
 ): NeverthrowResultAsync<BookingAvailabilitySettings, never> {
@@ -28,5 +24,7 @@ export function writeBookingAvailabilitySettings(
 	settings: BookingAvailabilitySettings,
 	updatedBy: string
 ) {
-	return writeBookingAvailabilitySettingsRow(ctx, settings, updatedBy);
+	return validateBookingSettings(settings).asyncAndThen(() =>
+		writeBookingAvailabilitySettingsRow(ctx, settings, updatedBy)
+	);
 }

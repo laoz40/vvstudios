@@ -1,5 +1,5 @@
-import { err, ok, ResultAsync } from "neverthrow";
-import type { Doc } from "#convex/_generated/dataModel";
+import { err, ok, type ResultAsync } from "neverthrow";
+import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
 import { okOrThrow } from "#convex/lib/result";
 
@@ -46,27 +46,7 @@ export function getEditorWorkStatus(
 	});
 }
 
-/** Profile fields for the admin employees table, plus current session workload. */
-function loadEditorWithWorkStatus(ctx: QueryCtx, editor: Doc<"editorProfiles">) {
-	return getEditorWorkStatus(ctx, editor.tokenIdentifier).map((workStatus) => ({
-		tokenIdentifier: editor.tokenIdentifier,
-		displayName: editor.displayName,
-		email: editor.email,
-		isActive: editor.isActive,
-		lastAssignedAt: editor.lastAssignedAt,
-		notes: editor.notes,
-		totalEdits: editor.totalEdits,
-		workStatus
-	}));
-}
-
-export function listEmployeesForManagement(ctx: QueryCtx) {
-	return listEditorProfiles(ctx).andThen((editors) =>
-		ResultAsync.combine(editors.map((editor) => loadEditorWithWorkStatus(ctx, editor)))
-	);
-}
-
-function getEditorProfile(ctx: MutationCtx, tokenIdentifier: string) {
+export function getEditorProfileByToken(ctx: MutationCtx, tokenIdentifier: string) {
 	return okOrThrow(
 		ctx.db
 			.query("editorProfiles")
@@ -79,18 +59,16 @@ function getEditorProfile(ctx: MutationCtx, tokenIdentifier: string) {
 	});
 }
 
-export function updateEditorAccess(ctx: MutationCtx, tokenIdentifier: string, isActive: boolean) {
-	return getEditorProfile(ctx, tokenIdentifier).andThen((editor) =>
-		okOrThrow(ctx.db.patch("editorProfiles", editor._id, { isActive }).then(() => null))
-	);
+export function patchEditorAccess(
+	ctx: MutationCtx,
+	editorId: Id<"editorProfiles">,
+	isActive: boolean
+) {
+	return okOrThrow(ctx.db.patch("editorProfiles", editorId, { isActive }).then(() => null));
 }
 
-export function updateEditorNotes(ctx: MutationCtx, tokenIdentifier: string, notes: string) {
-	return getEditorProfile(ctx, tokenIdentifier).andThen((editor) =>
-		okOrThrow(
-			ctx.db
-				.patch("editorProfiles", editor._id, { notes: notes.trim() || undefined })
-				.then(() => null)
-		)
+export function patchEditorNotes(ctx: MutationCtx, editorId: Id<"editorProfiles">, notes: string) {
+	return okOrThrow(
+		ctx.db.patch("editorProfiles", editorId, { notes: notes.trim() || undefined }).then(() => null)
 	);
 }

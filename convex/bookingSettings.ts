@@ -4,7 +4,6 @@ import { tupleErr, tupleOk } from "#/lib/result";
 import { requirePermission } from "#convex/services/auth";
 import {
 	loadBookingAvailabilitySettings,
-	validateBookingAvailabilitySettings,
 	writeBookingAvailabilitySettings
 } from "#convex/services/booking/bookingSettings";
 
@@ -20,8 +19,7 @@ export const update = mutation({
 	handler: (ctx, args) =>
 		requirePermission(ctx, "update:availability")
 			.andThen((identity) =>
-				validateBookingAvailabilitySettings(args).map(() => identity.email ?? "unknown")
+				writeBookingAvailabilitySettings(ctx, args, identity.email ?? "unknown")
 			)
-			.andThen((updatedBy) => writeBookingAvailabilitySettings(ctx, args, updatedBy))
 			.match(tupleOk, tupleErr)
 });

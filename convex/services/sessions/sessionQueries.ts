@@ -9,14 +9,17 @@ import {
 	lookupBookingByStripeSessionId,
 	normalizeBookingId
 } from "#convex/lib/sessions/sessionLookup";
+import { requirePermission } from "#convex/services/auth";
 import { buildPublicSessionStatusResponse } from "#convex/services/sessions/sessions";
 
 export function loadSensitiveBookingDriveStatus(ctx: QueryCtx, bookingId: Id<"bookings">) {
-	return getDriveStatus(ctx, bookingId);
+	return requirePermission(ctx, "view:sensitive-booking-data").andThen(() =>
+		getDriveStatus(ctx, bookingId)
+	);
 }
 
-export function loadBookingRowForInternal(ctx: QueryCtx, bookingId: Id<"bookings">) {
-	return getBookingRow(ctx, bookingId);
+export function loadBookingRowOrNull(ctx: QueryCtx, bookingId: Id<"bookings">) {
+	return getBookingRow(ctx, bookingId).map((session) => session ?? null);
 }
 
 export function loadInternalDeliverablesCustomerType(ctx: QueryCtx, bookingId: Id<"bookings">) {

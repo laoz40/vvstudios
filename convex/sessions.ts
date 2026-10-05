@@ -21,7 +21,7 @@ import {
 	writeSessionEditorNotesFromEditor
 } from "#convex/services/sessions/sessionMutations";
 import {
-	loadBookingRowForInternal,
+	loadBookingRowOrNull,
 	loadInternalDeliverablesCustomerType,
 	loadPublicRescheduleCompleteSession,
 	loadSensitiveBookingDriveStatus,
@@ -37,18 +37,13 @@ export const detectDeliverablesCustomerType = internalQuery({
 export const getSessionById = internalQuery({
 	args: { bookingId: v.id("bookings") },
 	handler: async (ctx, args) =>
-		(await loadBookingRowForInternal(ctx, args.bookingId)).match(
-			(session) => session,
-			() => null
-		)
+		(await loadBookingRowOrNull(ctx, args.bookingId)).match((session) => session, () => null)
 });
 
 export const getDriveStatus = query({
 	args: { bookingId: v.id("bookings") },
 	handler: (ctx, args) =>
-		requirePermission(ctx, "view:sensitive-booking-data")
-			.andThen(() => loadSensitiveBookingDriveStatus(ctx, args.bookingId))
-			.match(tupleOk, tupleErr)
+		loadSensitiveBookingDriveStatus(ctx, args.bookingId).match(tupleOk, tupleErr)
 });
 
 export const getDeliverablesCustomerType = query({
