@@ -1,6 +1,6 @@
 import { err, ok } from "neverthrow";
 import type { Id } from "#convex/_generated/dataModel";
-import type { MutationCtx } from "#convex/_generated/server";
+import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
 import { okOrThrow } from "#convex/lib/result";
 
 export type SyncBookingDriveClientIdFromSessionError = {
@@ -11,7 +11,33 @@ export function loadBookingRowForDriveClientSync(ctx: MutationCtx, bookingId: Id
 	return okOrThrow(ctx.db.get("bookings", bookingId));
 }
 
-export function loadDriveSessionRowByBookingId(ctx: MutationCtx, bookingId: Id<"bookings">) {
+export function loadDriveClientRow(ctx: Pick<QueryCtx, "db">, driveClientId: Id<"driveClients">) {
+	return okOrThrow(ctx.db.get("driveClients", driveClientId));
+}
+
+export function loadBookingRow(ctx: Pick<QueryCtx, "db">, bookingId: Id<"bookings">) {
+	return okOrThrow(ctx.db.get("bookings", bookingId));
+}
+
+export function loadClientAssetsEmailRows(
+	ctx: Pick<QueryCtx, "db">,
+	args: { bookingId: Id<"bookings">; driveClientId: Id<"driveClients"> }
+) {
+	return okOrThrow(
+		Promise.all([
+			ctx.db.get("driveClients", args.driveClientId),
+			ctx.db
+				.query("driveSessions")
+				.withIndex("by_bookingId", (query) => query.eq("bookingId", args.bookingId))
+				.unique()
+		])
+	);
+}
+
+export function loadDriveSessionRowByBookingId(
+	ctx: Pick<QueryCtx, "db">,
+	bookingId: Id<"bookings">
+) {
 	return okOrThrow(
 		ctx.db
 			.query("driveSessions")

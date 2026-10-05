@@ -5,6 +5,14 @@ import { okOrThrow } from "#convex/lib/result";
 
 export const DRIVE_EMAIL_CLAIM_TIMEOUT_MS = 15 * 60 * 1000;
 
+export type DriveSetupInfo = {
+	booking: Doc<"bookings">;
+	driveClient: Doc<"driveClients"> | null;
+	driveSession: Doc<"driveSessions"> | null;
+	packageRecord: Doc<"packages"> | null;
+	sharedPackageFolder: Doc<"driveSessions">["packageFolder"] | undefined;
+};
+
 export function resolveDriveClientForBooking(
 	ctx: QueryCtx,
 	driveSession: Doc<"driveSessions"> | null,

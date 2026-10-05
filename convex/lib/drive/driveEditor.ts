@@ -2,7 +2,7 @@ import { err, errAsync, ok, okAsync, ResultAsync } from "neverthrow";
 import { exhaustiveCheck } from "#/lib/result";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
-import { DRIVE_EMAIL_CLAIM_TIMEOUT_MS, getDriveSetup } from "#convex/lib/drive/driveLookup";
+import { DRIVE_EMAIL_CLAIM_TIMEOUT_MS, type DriveSetupInfo } from "#convex/lib/drive/driveLookup";
 import type { SavedDrivePermission } from "#convex/lib/drive/googleDrive";
 import { okOrThrow } from "#convex/lib/result";
 
@@ -269,87 +269,79 @@ export type EditorDriveSetupRecordError = {
 		| "EDITOR_NOT_ASSIGNED";
 };
 
-export function getEditorDriveSetup(
+export function loadEditorDriveSetup(
 	ctx: QueryCtx,
-	bookingId: Id<"bookings">
+	setup: DriveSetupInfo | null
 ): ResultAsync<EditorDriveSetupRecord, EditorDriveSetupRecordError> {
-	return getDriveSetup(ctx, bookingId).andThen((setup) => {
-		if (setup === null) return errAsync({ reason: "BOOKING_NOT_FOUND" as const });
-		const editorTokenIdentifier = setup.booking.assignedEditorTokenIdentifier;
+	if (setup === null) return errAsync({ reason: "BOOKING_NOT_FOUND" as const });
+	const editorTokenIdentifier = setup.booking.assignedEditorTokenIdentifier;
 
-		if (editorTokenIdentifier === undefined) {
-			return errAsync({ reason: "EDITOR_NOT_ASSIGNED" as const });
+	if (editorTokenIdentifier === undefined) {
+		return errAsync({ reason: "EDITOR_NOT_ASSIGNED" as const });
+	}
+
+	if (setup.driveClient === null || setup.driveSession === null) {
+		return errAsync({ reason: "DRIVE_FOLDERS_NOT_READY" as const });
+	}
+
+	const { driveClient, driveSession } = setup;
+
+	return okOrThrow(
+		ctx.db
+			.query("editorProfiles")
+			.withIndex("by_tokenIdentifier", (query) =>
+				query.eq("tokenIdentifier", editorTokenIdentifier)
+			)
+			.unique()
+	).andThen((editor) => {
+		if (editor === null || !editor.isActive) {
+			return err({ reason: "EDITOR_NOT_ACTIVE" as const });
 		}
 
-		if (setup.driveClient === null || setup.driveSession === null) {
-			return errAsync({ reason: "DRIVE_FOLDERS_NOT_READY" as const });
-		}
-
-		const { driveClient, driveSession } = setup;
-
-		return okOrThrow(
-			ctx.db
-				.query("editorProfiles")
-				.withIndex("by_tokenIdentifier", (query) =>
-					query.eq("tokenIdentifier", editorTokenIdentifier)
-				)
-				.unique()
-		).andThen((editor) => {
-			if (editor === null || !editor.isActive) {
-				return err({ reason: "EDITOR_NOT_ACTIVE" as const });
-			}
-
-			return ok({ ...setup, driveClient, driveSession, editor });
-		});
+		return ok({ ...setup, driveClient, driveSession, editor });
 	});
 }
 
-export function saveEditorDrivePermission(
+export type EditorDrivePermissionSetup = {
+	driveClient: Doc<"driveClients">;
+	driveSession: Doc<"driveSessions">;
+};
+
+export function writeEditorDrivePermissionForSetup(
 	ctx: MutationCtx,
+	setup: EditorDrivePermissionSetup,
 	args: {
-		bookingId: Id<"bookings">;
 		editorTokenIdentifier: string;
 		name: "Assets" | "Deliverables" | "Session";
 		permission: SavedDrivePermission;
 	}
 ) {
-	return getDriveSetup(ctx, args.bookingId).andThen((setup) => {
-		if (
-			setup === null ||
-			setup.driveClient === null ||
-			setup.driveSession === null ||
-			setup.booking.assignedEditorTokenIdentifier !== args.editorTokenIdentifier
-		) {
-			return err({ reason: "DRIVE_RECORD_NOT_FOUND" as const });
-		}
-
-		switch (args.name) {
-			case "Assets":
-				// Assets access is shared across every session for this client and editor.
-				return saveEditorAssetsPermission(ctx, {
-					driveClientId: setup.driveClient._id,
-					editorTokenIdentifier: args.editorTokenIdentifier,
-					permission: args.permission
-				});
-			case "Session":
-				// Session-specific permissions stay on the session's Drive record.
-				return saveEditorSessionPermission(ctx, {
-					driveSessionId: setup.driveSession._id,
-					editorTokenIdentifier: args.editorTokenIdentifier,
-					field: "editorSessionPermission",
-					permission: args.permission
-				});
-			case "Deliverables":
-				return saveEditorSessionPermission(ctx, {
-					driveSessionId: setup.driveSession._id,
-					editorTokenIdentifier: args.editorTokenIdentifier,
-					field: "editorDeliverablesPermission",
-					permission: args.permission
-				});
-			default:
-				return exhaustiveCheck(args.name);
-		}
-	});
+	switch (args.name) {
+		case "Assets":
+			// Assets access is shared across every session for this client and editor.
+			return saveEditorAssetsPermission(ctx, {
+				driveClientId: setup.driveClient._id,
+				editorTokenIdentifier: args.editorTokenIdentifier,
+				permission: args.permission
+			});
+		case "Session":
+			// Session-specific permissions stay on the session's Drive record.
+			return saveEditorSessionPermission(ctx, {
+				driveSessionId: setup.driveSession._id,
+				editorTokenIdentifier: args.editorTokenIdentifier,
+				field: "editorSessionPermission",
+				permission: args.permission
+			});
+		case "Deliverables":
+			return saveEditorSessionPermission(ctx, {
+				driveSessionId: setup.driveSession._id,
+				editorTokenIdentifier: args.editorTokenIdentifier,
+				field: "editorDeliverablesPermission",
+				permission: args.permission
+			});
+		default:
+			return exhaustiveCheck(args.name);
+	}
 }
 
 function saveEditorAssetsPermission(
@@ -407,29 +399,20 @@ function saveEditorSessionPermission(
 	);
 }
 
-export function saveEditorDrivePermissionsStatus(
+export function writeEditorDrivePermissionsStatusForSetup(
 	ctx: MutationCtx,
-	args: { bookingId: Id<"bookings">; editorTokenIdentifier: string; status: "failed" | "ready" }
+	driveSession: Doc<"driveSessions">,
+	args: { editorTokenIdentifier: string; status: "failed" | "ready" }
 ) {
-	return getDriveSetup(ctx, args.bookingId).andThen((setup) => {
-		if (
-			setup?.driveSession === null ||
-			setup?.driveSession === undefined ||
-			setup.booking.assignedEditorTokenIdentifier !== args.editorTokenIdentifier
-		) {
-			return err({ reason: "DRIVE_RECORD_NOT_FOUND" as const });
-		}
-
-		return okOrThrow(
-			ctx.db
-				.patch("driveSessions", setup.driveSession._id, {
-					editorDrivePermissionsStatus: args.status,
-					editorDrivePermissionsTokenIdentifier: args.editorTokenIdentifier,
-					updatedAt: Date.now()
-				})
-				.then(() => null)
-		);
-	});
+	return okOrThrow(
+		ctx.db
+			.patch("driveSessions", driveSession._id, {
+				editorDrivePermissionsStatus: args.status,
+				editorDrivePermissionsTokenIdentifier: args.editorTokenIdentifier,
+				updatedAt: Date.now()
+			})
+			.then(() => null)
+	);
 }
 
 type ClaimEditorAssignmentEmailArgs = {
@@ -464,59 +447,60 @@ function canClaimEditorAssignmentEmail(
 	}
 }
 
-export function claimEditorAssignmentEmail(ctx: MutationCtx, args: ClaimEditorAssignmentEmailArgs) {
-	return getDriveSetup(ctx, args.bookingId).andThen((setup) => {
-		// The email belongs to the current editor and can only follow completed Drive access.
-		if (
-			setup?.driveSession === null ||
-			setup?.driveSession === undefined ||
-			setup.booking.assignedEditorTokenIdentifier !== args.editorTokenIdentifier ||
-			setup.driveSession.editorDrivePermissionsStatus !== "ready" ||
-			setup.driveSession.editorDrivePermissionsTokenIdentifier !== args.editorTokenIdentifier
-		) {
+export type EditorAssignmentEmailClaim = {
+	bookingId: Id<"bookings">;
+	claimedAt: number;
+	editorEmail: string;
+	editorName: string;
+	editorTokenIdentifier: string;
+	sessionName: string;
+	sessionStartAt: number | undefined;
+};
+
+export function claimEditorAssignmentEmailForSetup(
+	ctx: MutationCtx,
+	setup: DriveSetupInfo & { driveSession: Doc<"driveSessions"> },
+	args: ClaimEditorAssignmentEmailArgs
+) {
+	const driveSession = setup.driveSession;
+
+	// Reject duplicate, recent, or already completed attempts.
+	if (!canClaimEditorAssignmentEmail(driveSession, args)) {
+		return err({ reason: "EDITOR_ASSIGNMENT_EMAIL_NOT_SENDABLE" as const });
+	}
+
+	// Load the current editor so the claim contains the final email details.
+	return okOrThrow(
+		ctx.db
+			.query("editorProfiles")
+			.withIndex("by_tokenIdentifier", (query) =>
+				query.eq("tokenIdentifier", args.editorTokenIdentifier)
+			)
+			.unique()
+	).andThen((editor) => {
+		if (editor === null || !editor.isActive) {
 			return err({ reason: "EDITOR_ASSIGNMENT_EMAIL_NOT_SENDABLE" as const });
 		}
 
-		const driveSession = setup.driveSession;
-
-		// Reject duplicate, recent, or already completed attempts.
-		if (!canClaimEditorAssignmentEmail(driveSession, args)) {
-			return err({ reason: "EDITOR_ASSIGNMENT_EMAIL_NOT_SENDABLE" as const });
-		}
-
-		// Load the current editor so the claim contains the final email details.
+		// Save the claim before sending so another action cannot claim it concurrently.
 		return okOrThrow(
 			ctx.db
-				.query("editorProfiles")
-				.withIndex("by_tokenIdentifier", (query) =>
-					query.eq("tokenIdentifier", args.editorTokenIdentifier)
-				)
-				.unique()
-		).andThen((editor) => {
-			if (editor === null || !editor.isActive) {
-				return err({ reason: "EDITOR_ASSIGNMENT_EMAIL_NOT_SENDABLE" as const });
-			}
-
-			// Save the claim before sending so another action cannot claim it concurrently.
-			return okOrThrow(
-				ctx.db
-					.patch("driveSessions", driveSession._id, {
-						assignmentEmailClaimedAt: args.now,
-						assignmentEmailStatus: undefined,
-						assignmentEmailTokenIdentifier: args.editorTokenIdentifier,
-						updatedAt: Date.now()
-					})
-					.then(() => ({
-						bookingId: setup.booking._id,
-						claimedAt: args.now,
-						editorEmail: editor.email,
-						editorName: editor.displayName,
-						editorTokenIdentifier: args.editorTokenIdentifier,
-						sessionName: setup.booking.accountName.trim() || setup.booking.name,
-						sessionStartAt: setup.booking.sessionStartAt
-					}))
-			);
-		});
+				.patch("driveSessions", driveSession._id, {
+					assignmentEmailClaimedAt: args.now,
+					assignmentEmailStatus: undefined,
+					assignmentEmailTokenIdentifier: args.editorTokenIdentifier,
+					updatedAt: Date.now()
+				})
+				.then(() => ({
+					bookingId: setup.booking._id,
+					claimedAt: args.now,
+					editorEmail: editor.email,
+					editorName: editor.displayName,
+					editorTokenIdentifier: args.editorTokenIdentifier,
+					sessionName: setup.booking.accountName.trim() || setup.booking.name,
+					sessionStartAt: setup.booking.sessionStartAt
+				}))
+		);
 	});
 }
 

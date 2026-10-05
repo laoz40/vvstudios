@@ -2,7 +2,6 @@ import { err, ok } from "neverthrow";
 import { exhaustiveCheck } from "#/lib/result";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { MutationCtx } from "#convex/_generated/server";
-import { bookingRequiresClientAssetsEmail } from "#convex/lib/booking/bookingAddonQuantities";
 import { DRIVE_EMAIL_CLAIM_TIMEOUT_MS } from "#convex/lib/drive/driveLookup";
 import { okOrThrow } from "#convex/lib/result";
 import type { SavedDrivePermission } from "#convex/lib/drive/googleDrive";
@@ -36,68 +35,42 @@ export function areClientDrivePermissionsReadyForAssetsEmail(
 	return driveClient !== null && isClientFolderSharingDismissed(driveClient.clientFolderPermission);
 }
 
-export function saveClientDrivePermission(
+export function writeClientDrivePermissionForClient(
 	ctx: MutationCtx,
-	args: {
-		bookingId: Id<"bookings">;
-		name: "Client folder" | "Assets";
-		permission: SavedDrivePermission;
-	}
+	driveClient: Doc<"driveClients">,
+	args: { name: "Client folder" | "Assets"; permission: SavedDrivePermission }
 ) {
-	return okOrThrow(
-		ctx.db
-			.query("driveSessions")
-			.withIndex("by_bookingId", (query) => query.eq("bookingId", args.bookingId))
-			.unique()
-	).andThen((driveSession) => {
-		if (driveSession === null) return err({ reason: "DRIVE_RECORD_NOT_FOUND" as const });
-
-		return okOrThrow(ctx.db.get("driveClients", driveSession.driveClientId)).andThen(
-			(driveClient) => {
-				if (driveClient === null) return err({ reason: "DRIVE_RECORD_NOT_FOUND" as const });
-
-				switch (args.name) {
-					case "Client folder":
-						return okOrThrow(
-							ctx.db
-								.patch("driveClients", driveClient._id, { clientFolderPermission: args.permission })
-								.then(() => null)
-						);
-					case "Assets":
-						return okOrThrow(
-							ctx.db
-								.patch("driveClients", driveClient._id, { assetsClientPermission: args.permission })
-								.then(() => null)
-						);
-					default:
-						return exhaustiveCheck(args.name);
-				}
-			}
-		);
-	});
+	switch (args.name) {
+		case "Client folder":
+			return okOrThrow(
+				ctx.db
+					.patch("driveClients", driveClient._id, { clientFolderPermission: args.permission })
+					.then(() => null)
+			);
+		case "Assets":
+			return okOrThrow(
+				ctx.db
+					.patch("driveClients", driveClient._id, { assetsClientPermission: args.permission })
+					.then(() => null)
+			);
+		default:
+			return exhaustiveCheck(args.name);
+	}
 }
 
-export function saveClientDrivePermissionsStatus(
+export function writeClientDrivePermissionsStatusForSession(
 	ctx: MutationCtx,
-	args: { bookingId: Id<"bookings">; status: ClientDrivePermissionsStatus }
+	driveSession: Doc<"driveSessions">,
+	status: ClientDrivePermissionsStatus
 ) {
 	return okOrThrow(
 		ctx.db
-			.query("driveSessions")
-			.withIndex("by_bookingId", (query) => query.eq("bookingId", args.bookingId))
-			.unique()
-	).andThen((driveSession) => {
-		if (driveSession === null) return err({ reason: "DRIVE_RECORD_NOT_FOUND" as const });
-
-		return okOrThrow(
-			ctx.db
-				.patch("driveSessions", driveSession._id, {
-					clientDrivePermissionsStatus: args.status,
-					updatedAt: Date.now()
-				})
-				.then(() => null)
-		);
-	});
+			.patch("driveSessions", driveSession._id, {
+				clientDrivePermissionsStatus: status,
+				updatedAt: Date.now()
+			})
+			.then(() => null)
+	);
 }
 
 function canClaimClientAssetsEmail(
@@ -146,69 +119,58 @@ function canClaimClientAssetsEmailSend(args: {
 	);
 }
 
-export function claimClientAssetsEmail(
+export type ClientAssetsEmailClaim = {
+	assetsUrl: string;
+	assetsFolderId: string;
+	bookingId: Id<"bookings">;
+	claimedAt: number;
+	email: string;
+	name: string;
+};
+
+export function claimClientAssetsEmailForSendable(
 	ctx: MutationCtx,
-	args: { bookingId: Id<"bookings">; attempt: "automatic" | "retry"; now: number }
+	args: {
+		attempt: "automatic" | "retry";
+		assetsFolder: { id: string; url: string };
+		booking: Doc<"bookings">;
+		driveClient: Doc<"driveClients"> | null;
+		driveSession: Doc<"driveSessions">;
+		now: number;
+	}
 ) {
-	return okOrThrow(ctx.db.get("bookings", args.bookingId)).andThen((booking) => {
-		if (
-			booking === null ||
-			booking.driveClientId === undefined ||
-			!bookingRequiresClientAssetsEmail(booking.addons)
-		) {
-			return err({ reason: "CLIENT_ASSETS_EMAIL_NOT_SENDABLE" as const });
-		}
+	const isEmailCurrent =
+		args.driveSession.assetsEmailStatus === "sent" &&
+		args.driveSession.assetsEmailFolderId === args.assetsFolder.id;
 
-		return okOrThrow(
-			Promise.all([
-				ctx.db.get("driveClients", booking.driveClientId),
-				ctx.db
-					.query("driveSessions")
-					.withIndex("by_bookingId", (query) => query.eq("bookingId", args.bookingId))
-					.unique()
-			])
-		).andThen(([driveClient, driveSession]) => {
-			const assetsFolder = driveClient?.assetsFolder;
+	if (
+		!canClaimClientAssetsEmailSend({
+			attempt: args.attempt,
+			assetsFolder: args.assetsFolder,
+			driveClient: args.driveClient,
+			driveSession: args.driveSession,
+			isEmailCurrent,
+			now: args.now
+		})
+	) {
+		return err({ reason: "CLIENT_ASSETS_EMAIL_NOT_SENDABLE" as const });
+	}
 
-			const isEmailCurrent =
-				driveSession?.assetsEmailStatus === "sent" &&
-				driveSession.assetsEmailFolderId === assetsFolder?.id;
-
-			if (
-				!canClaimClientAssetsEmailSend({
-					attempt: args.attempt,
-					assetsFolder,
-					driveClient: driveClient ?? null,
-					driveSession,
-					isEmailCurrent,
-					now: args.now
-				}) ||
-				driveSession === null ||
-				assetsFolder === undefined
-			) {
-				return err({ reason: "CLIENT_ASSETS_EMAIL_NOT_SENDABLE" as const });
-			}
-
-			const claimedDriveSession = driveSession;
-			const claimedAssetsFolder = assetsFolder;
-
-			return okOrThrow(
-				ctx.db
-					.patch("driveSessions", claimedDriveSession._id, {
-						assetsEmailClaimedAt: args.now,
-						updatedAt: Date.now()
-					})
-					.then(() => ({
-						assetsUrl: claimedAssetsFolder.url,
-						assetsFolderId: claimedAssetsFolder.id,
-						bookingId: booking._id,
-						claimedAt: args.now,
-						email: booking.email,
-						name: booking.name
-					}))
-			);
-		});
-	});
+	return okOrThrow(
+		ctx.db
+			.patch("driveSessions", args.driveSession._id, {
+				assetsEmailClaimedAt: args.now,
+				updatedAt: Date.now()
+			})
+			.then(() => ({
+				assetsUrl: args.assetsFolder.url,
+				assetsFolderId: args.assetsFolder.id,
+				bookingId: args.booking._id,
+				claimedAt: args.now,
+				email: args.booking.email,
+				name: args.booking.name
+			}))
+	);
 }
 
 export function saveClientAssetsEmailResult(
