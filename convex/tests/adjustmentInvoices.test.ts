@@ -19,6 +19,12 @@
  *
  * 5. Stripe invoice payment
  *    invoice.paid claims mark the adjustment paid once and reject mismatched Stripe invoice ids.
+ *
+ * 6. Deferred closeout
+ *    Expiry waits for the last session, keeps the expiry guard, and ignores a later extension.
+ *
+ * 7. Competing triggers
+ *    Completion and expiry racing create one invoice and schedule one automatic delivery.
  */
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { bookingDocument, packageDocument } from "#convex/tests/insertDocumentDefaults";
@@ -191,6 +197,98 @@ describe("package adjustment closeout", () => {
 		await Promise.all([processExpiredPackage(t, packageId), processExpiredPackage(t, packageId)]);
 
 		expect(await readAdjustments(t, packageId)).toHaveLength(1);
+	});
+
+	test("expiry and completion racing schedule only one invoice delivery", async () => {
+		const t = createConvexTest();
+		const packageId = await seedPaidPackage(t);
+
+		const remoteBookingIds = await Promise.all([
+			seedPackageSession(t, packageId, ["Remote Podcast"]),
+			seedPackageSession(t, packageId, ["Remote Podcast"])
+		]);
+
+		await seedPackageSession(t, packageId, []);
+		await seedPackageSession(t, packageId, []);
+
+		expect(
+			await Promise.all([
+				processExpiredPackage(t, packageId),
+				processCompletedPackage(t, packageId)
+			])
+		).toEqual([
+			[null, null],
+			[null, null]
+		]);
+		await processExpiredPackage(t, packageId);
+		await processCompletedPackage(t, packageId);
+
+		const adjustments = await readAdjustments(t, packageId);
+		expect(adjustments).toHaveLength(1);
+		expect(adjustments[0]).toMatchObject({
+			outcome: "invoice_required",
+			quantity: 2,
+			rate: 59,
+			totalAmount: 118,
+			invoiceDueAt: Date.parse("2030-01-17T00:00:00.000Z")
+		});
+		expect(adjustments[0]?.remotePodcastBookingIds).toEqual(
+			expect.arrayContaining(remoteBookingIds)
+		);
+		expect(await readScheduledJobs(t)).toEqual([
+			expect.objectContaining({
+				args: [{ adjustmentId: adjustments[0]?._id, attempt: "automatic" }],
+				scheduledTime: now
+			})
+		]);
+	});
+
+	test("expiry defers to the final session end and records no charge once", async () => {
+		const t = createConvexTest();
+		const packageId = await seedPaidPackage(t);
+		await seedPackageSession(t, packageId, [], { sessionStartAt: now });
+		const finalSessionEndAt = now + 60 * 60 * 1000;
+
+		expect(await processExpiredPackage(t, packageId)).toEqual([null, null]);
+		expect(await readAdjustments(t, packageId)).toEqual([]);
+		expect(await readScheduledJobs(t)).toEqual([
+			expect.objectContaining({
+				args: [{ packageId, expectedExpiresAt: now }],
+				scheduledTime: finalSessionEndAt
+			})
+		]);
+		expect(await t.run((ctx) => ctx.db.get("packages", packageId))).toMatchObject({
+			archived: false
+		});
+
+		vi.setSystemTime(finalSessionEndAt);
+		expect(await processExpiredPackage(t, packageId)).toEqual([null, null]);
+		await processExpiredPackage(t, packageId);
+
+		expect(await readAdjustments(t, packageId)).toEqual([
+			expect.objectContaining({ outcome: "no_charge", quantity: 0, totalAmount: 0 })
+		]);
+		expect(await readScheduledJobs(t)).toHaveLength(1);
+		expect(await t.run((ctx) => ctx.db.get("packages", packageId))).toMatchObject({
+			archived: true
+		});
+	});
+
+	test("a deferred expiry cannot close a package after its expiry is extended", async () => {
+		const t = createConvexTest();
+		const packageId = await seedPaidPackage(t);
+		await seedPackageSession(t, packageId, ["Remote Podcast"], { sessionStartAt: now });
+		await processExpiredPackage(t, packageId);
+
+		await t.run((ctx) => ctx.db.patch("packages", packageId, { expiresAt: now + 86_400_000 }));
+		vi.setSystemTime(now + 60 * 60 * 1000);
+
+		expect(await processExpiredPackage(t, packageId)).toEqual([null, null]);
+		expect(await readAdjustments(t, packageId)).toEqual([]);
+		expect(await readScheduledJobs(t)).toHaveLength(1);
+		expect(await t.run((ctx) => ctx.db.get("packages", packageId))).toMatchObject({
+			archived: false
+		});
 	});
 });
 

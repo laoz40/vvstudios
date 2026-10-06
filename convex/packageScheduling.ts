@@ -45,9 +45,13 @@ import {
 	syncPackageRescheduleCalendar
 } from "#convex/services/packages/packageSessionScheduling";
 import {
-	runPackageAdjustmentWhenAllSessionsBooked,
-	runPackageAdjustmentWhenExpired
+	deferCompletedPackageAdjustment,
+	deferExpiredPackageAdjustment,
+	loadCompletedPackageAdjustmentSessions,
+	loadExpiredPackageAdjustmentSessions,
+	recordPackageAdjustment
 } from "#convex/services/packages/packageAdjustmentCron";
+import { archivePackageWhenFullyDone } from "#convex/services/packages/packageArchive";
 import {
 	loadPackageSchedulingPageByToken,
 	loadPaidPackageByScheduleToken,
@@ -151,15 +155,39 @@ export const getValidPackageByToken = internalQuery({
 
 export const processPackageAdjustmentAtExpiry = internalMutation({
 	args: { packageId: v.id("packages"), expectedExpiresAt: v.number() },
-	handler: async (ctx, args) => {
-		await runPackageAdjustmentWhenExpired(ctx, args);
+	handler: (ctx, args) => {
+		const now = Date.now();
+
+		return loadExpiredPackageAdjustmentSessions(ctx, args, now)
+			.andThen((sessions) =>
+				recordPackageAdjustment(
+					ctx,
+					{ packageId: args.packageId, trigger: "package_expired", createdAt: now },
+					sessions
+				)
+			)
+			.andThen((nextCheckAt) => deferExpiredPackageAdjustment(ctx, args, nextCheckAt))
+			.andThen(() => archivePackageWhenFullyDone(ctx, args.packageId, now))
+			.match(tupleOk, tupleErr);
 	}
 });
 
 export const processPackageAdjustmentWhenSessionsComplete = internalMutation({
 	args: { packageId: v.id("packages") },
-	handler: async (ctx, args) => {
-		await runPackageAdjustmentWhenAllSessionsBooked(ctx, args);
+	handler: (ctx, args) => {
+		const now = Date.now();
+
+		return loadCompletedPackageAdjustmentSessions(ctx, args.packageId)
+			.andThen((sessions) =>
+				recordPackageAdjustment(
+					ctx,
+					{ packageId: args.packageId, trigger: "all_sessions_completed", createdAt: now },
+					sessions
+				)
+			)
+			.andThen((nextCheckAt) => deferCompletedPackageAdjustment(ctx, args.packageId, nextCheckAt))
+			.andThen(() => archivePackageWhenFullyDone(ctx, args.packageId, now))
+			.match(tupleOk, tupleErr);
 	}
 });
 
