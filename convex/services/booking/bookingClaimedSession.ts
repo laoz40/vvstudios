@@ -4,7 +4,10 @@ import { err, ok, okAsync, type Result, type ResultAsync } from "neverthrow";
 import { loadBookingAvailabilitySettings } from "#convex/lib/booking/bookingConfirmationActionBoundaries";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { ActionCtx } from "#convex/_generated/server";
-import { reserveClaimedBookingSession } from "#convex/lib/booking/bookingConfirmationActionBoundaries";
+import {
+	reserveClaimedBookingSession,
+	type ReserveClaimedBookingSessionResult
+} from "#convex/lib/booking/bookingConfirmationActionBoundaries";
 import {
 	saveConfirmedBooking,
 	sendConfirmedBookingInvoice
@@ -130,16 +133,13 @@ function reserveUnavailableDoneStep(ctx: ActionCtx, bookingId: Id<"bookings">) {
 function finishReserveClaimedBookingSlot(
 	ctx: ActionCtx,
 	bookingId: Id<"bookings">,
-	reservationResult: { outcome: "reserved" | "unavailable"; reservation?: SessionReservation }
+	reservationResult: ReserveClaimedBookingSessionResult
 ) {
 	if (reservationResult.outcome === "unavailable") {
 		return reserveUnavailableDoneStep(ctx, bookingId);
 	}
 
-	// SAFETY: `outcome === "reserved"` guarantees `reservation` was set by the reserve step.
-	const reservation = reservationResult.reservation!;
-
-	return okAsync({ kind: "reserved" as const, reservation });
+	return okAsync({ kind: "reserved" as const, reservation: reservationResult.reservation });
 }
 
 function buildClaimedBookingCalendarPayload(session: Doc<"bookings">, timeZone: string) {
@@ -325,11 +325,8 @@ export function reserveClaimedBookingSlot(
 		duration: session.duration,
 		eventBufferMinutes: settings.eventBufferMinutes,
 		sessionStartAt: session.sessionStartAt
-	}).andThen(
-		(reservationResult: {
-			outcome: "reserved" | "unavailable";
-			reservation?: SessionReservation;
-		}) => finishReserveClaimedBookingSlot(ctx, session._id, reservationResult)
+	}).andThen((reservationResult) =>
+		finishReserveClaimedBookingSlot(ctx, session._id, reservationResult)
 	);
 }
 
