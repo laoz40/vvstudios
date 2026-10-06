@@ -6,7 +6,7 @@ import {
 	searchBlobPatchForPackage
 } from "#convex/lib/adminSearch/adminSearchBlob";
 import { checkBookingSubmitRateLimit } from "#convex/lib/rateLimits";
-import { patchPackageBookingsReceiptNumber } from "#convex/lib/packages/packageBookingsReceiptSync";
+import { syncPackageBookingsReceiptNumber } from "#convex/services/packages/packageBookingsReceiptSync";
 import { validateActivePackageForInstagramUpdate } from "#convex/lib/packages/packageCheckout";
 import type { PackageLookupError } from "#convex/lib/packages/packageLookup";
 import { getPackageFromDb } from "#convex/services/packages/packageLookup";
@@ -179,7 +179,7 @@ function afterReceiptEmailPatch(
 		return ok(null);
 	}
 
-	return patchPackageBookingsReceiptNumber(ctx, args.packageId, args.receiptNumber);
+	return syncPackageBookingsReceiptNumber(ctx, args.packageId, args.receiptNumber);
 }
 
 function patchReceiptEmailForPackage(

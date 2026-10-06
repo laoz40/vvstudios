@@ -9,6 +9,10 @@
  *
  * 3. Package payment claim
  *    Payment claim creates one paid lifecycle, one expiry job, and slot accounting on the package row.
+ *
+ * 4. Receipt synchronization
+ *    Replays keep every package session searchable without changing another package's sessions.
+ *    A failed editor lookup rolls back the package receipt and all session receipt updates.
  */
 import { beforeEach, describe, expect, test, vi } from "vitest";
 import { bookingDocument, packageDocument } from "#convex/tests/insertDocumentDefaults";
@@ -244,7 +248,112 @@ describe("package receipt number", () => {
 		const booking = await t.run((ctx) => ctx.db.get("bookings", bookingId));
 		expect(booking?.receiptNumber).toBe(receiptNumber);
 	});
+
+	test("receipt replays synchronize session search and preserve editor names", async () => {
+		const t = createConvexTest();
+		const packageId = await seedPendingPackage(t);
+		const otherPackageId = await seedPendingPackage(t);
+		const bookingId = await seedPackageSession(t, packageId, 0, "confirmed");
+		const cachedEditorBookingId = await seedPackageSession(t, packageId, 1, "email_failed");
+		const cancelledBookingId = await seedPackageSession(t, packageId, 2, "confirmed");
+		await seedPackageSession(t, otherPackageId, 3, "confirmed");
+		await seedEditorProfile(t, "editor-token", "Lookup Editor");
+		await t.run(async (ctx) => {
+			await ctx.db.patch("bookings", bookingId, { assignedEditorTokenIdentifier: "editor-token" });
+			await ctx.db.patch("bookings", cachedEditorBookingId, {
+				assignedEditorTokenIdentifier: "cached-editor-token",
+				assignedEditorDisplayName: "Cached Editor"
+			});
+			await ctx.db.patch("bookings", cancelledBookingId, { status: "cancelled", archived: true });
+		});
+		const receiptNumber = "VV-20300101-REPLAY";
+
+		const receiptArgs = { packageId, receiptNumber, status: "sent" as const };
+
+		expect(await t.mutation(internal.packages.markPackageReceiptEmailAttempt, receiptArgs)).toEqual(
+			[null, null]
+		);
+		expect(await t.mutation(internal.packages.markPackageReceiptEmailAttempt, receiptArgs)).toEqual(
+			[null, null]
+		);
+
+		const sessions = await readAdminSessions(t, `receipt:${receiptNumber}`);
+		expect(sessions).toHaveLength(3);
+		expect(sessions).toEqual(
+			expect.arrayContaining([
+				expect.objectContaining({
+					_id: bookingId,
+					receiptNumber,
+					assignedEditorDisplayName: "Lookup Editor"
+				}),
+				expect.objectContaining({
+					_id: cachedEditorBookingId,
+					receiptNumber,
+					assignedEditorDisplayName: "Cached Editor"
+				}),
+				expect.objectContaining({ _id: cancelledBookingId, receiptNumber })
+			])
+		);
+		expect(sessions.every((session) => session.searchBlob.includes(receiptNumber))).toBe(true);
+		expect(sessions.find((session) => session._id === bookingId)?.searchBlob).toContain(
+			"Lookup Editor"
+		);
+		expect(sessions.find((session) => session._id === cachedEditorBookingId)?.searchBlob).toContain(
+			"Cached Editor"
+		);
+	});
+
+	test("receipt lookup failure rolls back the package and every session", async () => {
+		const t = createConvexTest();
+		const packageId = await seedPendingPackage(t);
+		const bookingId = await seedPackageSession(t, packageId, 0, "confirmed");
+		await seedPackageSession(t, packageId, 1, "confirmed");
+		await t.run((ctx) =>
+			ctx.db.patch("bookings", bookingId, { assignedEditorTokenIdentifier: "duplicate-editor" })
+		);
+		await seedEditorProfile(t, "duplicate-editor", "First Editor");
+		await seedEditorProfile(t, "duplicate-editor", "Second Editor");
+		const packageBefore = await readPackage(t, packageId);
+		const sessionsBefore = await readAdminSessions(t);
+
+		await expect(
+			t.mutation(internal.packages.markPackageReceiptEmailAttempt, {
+				packageId,
+				receiptNumber: "VV-20300101-ROLLBACK",
+				status: "sent"
+			})
+		).rejects.toThrow();
+
+		expect(await readPackage(t, packageId)).toEqual(packageBefore);
+		expect(await readAdminSessions(t)).toEqual(sessionsBefore);
+	});
 });
+
+async function seedEditorProfile(t: TestClient, tokenIdentifier: string, displayName: string) {
+	return await t.run((ctx) =>
+		ctx.db.insert("editorProfiles", {
+			tokenIdentifier,
+			displayName,
+			email: "editor@example.com",
+			isActive: true,
+			lastAssignedAt: null,
+			totalEdits: 0
+		})
+	);
+}
+
+async function readAdminSessions(t: TestClient, searchQuery?: string) {
+	const result = await t
+		.withIdentity(adminIdentity)
+		.query(api.sessions.listSessions, {
+			paginationOpts: { numItems: 20, cursor: null },
+			view: "all",
+			includeStale: true,
+			searchQuery
+		});
+
+	return result.page;
+}
 
 async function seedPackage(t: TestClient) {
 	return await t.run((ctx) =>
