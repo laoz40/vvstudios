@@ -7,7 +7,7 @@ import type { Id } from "#convex/_generated/dataModel";
 import type { ActionCtx } from "#convex/_generated/server";
 import { env } from "#convex/env";
 import { emailDomainCanReceiveMailAsync } from "#convex/lib/email/emailDomain";
-import { fromConvexTuple, okOrThrow, tryPromise } from "#convex/lib/result";
+import { fromConvexTuple, tryPromise } from "#convex/lib/result";
 import type { SessionAvailabilityValidationError } from "#convex/lib/sessions/sessionCalendarTime";
 import type {
 	BuildSessionCheckoutLineItemsInput,
@@ -128,19 +128,17 @@ export function linkStripeCheckoutToPendingBooking(
 		return errAsync({ reason: "STRIPE_CHECKOUT_CREATE_FAILED" });
 	}
 
-	return okOrThrow(
-		ctx
-			.runMutation(internal.sessionCheckout.setSessionStripeSessionId, {
-				bookingId: checkoutDraft.bookingId,
-				stripeSessionId: checkoutDraft.session.id,
-				stripeCustomerId: checkoutDraft.stripeCustomerId
-			})
-			.then(() => ({
-				bookingId: checkoutDraft.bookingId,
-				clientSecret,
-				stripeSessionId: checkoutDraft.session.id
-			}))
-	);
+	return fromConvexTuple(
+		ctx.runMutation(internal.sessionCheckout.setSessionStripeSessionId, {
+			bookingId: checkoutDraft.bookingId,
+			stripeSessionId: checkoutDraft.session.id,
+			stripeCustomerId: checkoutDraft.stripeCustomerId
+		})
+	).map(() => ({
+		bookingId: checkoutDraft.bookingId,
+		clientSecret,
+		stripeSessionId: checkoutDraft.session.id
+	}));
 }
 
 type PackageCheckoutDraft = {
@@ -252,17 +250,15 @@ export function linkStripeCheckoutToPendingPackage(
 		return errAsync({ reason: "STRIPE_CHECKOUT_CREATE_FAILED" });
 	}
 
-	return okOrThrow(
-		ctx
-			.runMutation(internal.packageCheckout.setPackageStripeSessionId, {
-				packageId: checkoutDraft.packageId,
-				stripeSessionId: checkoutDraft.session.id,
-				stripeCustomerId: checkoutDraft.stripeCustomerId
-			})
-			.then(() => ({
-				packageId: checkoutDraft.packageId,
-				clientSecret,
-				stripeSessionId: checkoutDraft.session.id
-			}))
-	);
+	return fromConvexTuple(
+		ctx.runMutation(internal.packageCheckout.setPackageStripeSessionId, {
+			packageId: checkoutDraft.packageId,
+			stripeSessionId: checkoutDraft.session.id,
+			stripeCustomerId: checkoutDraft.stripeCustomerId
+		})
+	).map(() => ({
+		packageId: checkoutDraft.packageId,
+		clientSecret,
+		stripeSessionId: checkoutDraft.session.id
+	}));
 }

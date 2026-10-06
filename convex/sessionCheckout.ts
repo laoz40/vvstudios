@@ -55,7 +55,7 @@ export const getSessionByStripeSessionId = internalQuery({
 
 export const setSessionStripeSessionId = internalMutation({
 	args: { bookingId: v.id("bookings"), stripeSessionId: v.string(), stripeCustomerId: v.string() },
-	handler: async (ctx, args) => await writeBookingStripeCheckoutIds(ctx, args)
+	handler: (ctx, args) => writeBookingStripeCheckoutIds(ctx, args).match(tupleOk, tupleErr)
 });
 
 export const markSessionExpiredByStripeSessionId = internalMutation({

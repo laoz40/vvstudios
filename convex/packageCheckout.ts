@@ -12,7 +12,7 @@ import {
 
 export const setPackageStripeSessionId = internalMutation({
 	args: { packageId: v.id("packages"), stripeSessionId: v.string(), stripeCustomerId: v.string() },
-	handler: async (ctx, args) => await writePackageStripeCheckoutIds(ctx, args)
+	handler: (ctx, args) => writePackageStripeCheckoutIds(ctx, args).match(tupleOk, tupleErr)
 });
 
 export const claimPackageCheckoutPayment = internalMutation({
