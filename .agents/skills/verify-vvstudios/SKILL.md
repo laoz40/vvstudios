@@ -1,6 +1,6 @@
 ---
 name: verify-vvstudios
-description: Verify VV Studios (TanStack Start + Vite web UI at http://localhost:3000). Use when proving public marketing pages, Convex-backed customer booking, payment confirmation, package session scheduling, customer reschedule, Clerk staff login, admin dashboard, or editor dashboard before merge or after risky UI changes.
+description: Verify VV Studios (TanStack Start + Vite web UI at http://localhost:3000). Use when proving public marketing pages, Convex-backed customer booking, payment confirmation, package session scheduling, customer reschedule, Clerk staff login, admin dashboard, or editor dashboard before merge or after risky UI changes. Also use when investigating failed CI checks.
 ---
 
 # Verify VV Studios
@@ -75,6 +75,10 @@ Playwright uses `baseURL` `http://localhost:3000`, starts `bun run dev` via `web
 - Editor dashboard (`/dashboard` as editor): a **named assigned session** on **Edits** or **History** after admin assignment. Empty **Nothing in your queue** is not proof.
 
 **Do not** use as proof: Convex mutations or `convex run` to fake bookings; `/booking-complete?dev_scenario=...`; minting reschedule tokens outside the email link flow; completing Stripe Pay in CI; `pkill` by process name; `convex:seed-dev` for customer booking proofs. Seed is allowed only to fill an empty admin table for a screenshot, never as the auth proof.
+
+## CI failures
+
+For failed GitHub Actions checks, read [CI failure triage](./ci-failures.md) before retrying tests or changing shared backend data.
 
 ## Evidence
 

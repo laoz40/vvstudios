@@ -1,6 +1,11 @@
 {
 	"$schema": "./node_modules/fallow/schema.json",
-	"entry": ["nitro.config.ts", "scripts/preview-*.tsx", "scripts/*.mjs"],
+	"entry": [
+		"nitro.config.ts",
+		"scripts/preview-*.tsx",
+		"scripts/*.mjs",
+		"tools/type-contract/neverthrow-endpoints.ts"
+	],
 	"ignoreExports": [
 		// shadcn/ui barrels export more than the app uses today
 		{ "file": "src/components/ui/**", "exports": ["*"] },
