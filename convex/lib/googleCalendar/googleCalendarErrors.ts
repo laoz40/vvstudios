@@ -13,7 +13,7 @@ export type CalendarFallbackCode =
 export type GoogleCalendarWriteError =
 	| { reason: "GOOGLE_CALENDAR_AUTH_FAILED" }
 	| { reason: "GOOGLE_CALENDAR_RATE_LIMITED" }
-	| { reason: "GOOGLE_CALENDAR_SYNC_FAILED" };
+	| { reason: CalendarFallbackCode };
 
 type GoogleCalendarErrorCode<T extends CalendarFallbackCode = CalendarFallbackCode> =
 	| "GOOGLE_CALENDAR_AUTH_FAILED"

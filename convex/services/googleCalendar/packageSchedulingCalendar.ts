@@ -4,10 +4,9 @@ import { err, ok, ResultAsync } from "neverthrow";
 import { getBusyWindows } from "#convex/lib/googleCalendar/googleCalendarAvailability";
 import { loadGoogleCalendarClient } from "#convex/lib/googleCalendar/googleCalendarClient";
 import {
-	calendarErrorSchema,
-	mapCalendarErrorCode
+	tryGoogleCalendarAvailability,
+	type GoogleCalendarWriteError
 } from "#convex/lib/googleCalendar/googleCalendarErrors";
-import { tryPromise } from "#convex/lib/result";
 import { isTimeSlotAvailable } from "#convex/lib/sessions/sessionCalendarTime";
 import { getGoogleCalendarClient } from "#convex/lib/googleCalendar/googleCalendarClient";
 import type {
@@ -34,27 +33,14 @@ type PackageCalendarClient = Pick<
 	"calendar" | "calendarId" | "calendarIds" | "timeZone"
 >;
 
-export type PackageCalendarSyncError =
-	| { reason: "GOOGLE_CALENDAR_AUTH_FAILED" }
-	| { reason: "GOOGLE_CALENDAR_RATE_LIMITED" }
-	| { reason: "GOOGLE_CALENDAR_SYNC_FAILED" };
-
 export type PackageCalendarWriteError =
 	| { reason: "BOOKING_TIME_UNAVAILABLE" }
-	| PackageCalendarSyncError;
+	| GoogleCalendarWriteError;
 
 type PackageCalendarIdPatch = Pick<
 	SessionCalendarEventRecord,
 	"googleCalendarId" | "googleEventId"
 >;
-
-function getPackageCalendarSyncErrorReason(reason: string): PackageCalendarSyncError["reason"] {
-	if (reason === "GOOGLE_CALENDAR_AUTH_FAILED") return "GOOGLE_CALENDAR_AUTH_FAILED";
-
-	if (reason === "GOOGLE_CALENDAR_RATE_LIMITED") return "GOOGLE_CALENDAR_RATE_LIMITED";
-
-	return "GOOGLE_CALENDAR_SYNC_FAILED";
-}
 
 function packageCalendarIdPatchFromUpdateStep(
 	session: SessionCalendarEventRecord,
@@ -92,10 +78,6 @@ function packageCalendarIdPatchFromCreateStep(result: {
 	return patch;
 }
 
-function mapPackageCalendarSyncErrorStep(error: { reason: string }): PackageCalendarWriteError {
-	return { reason: getPackageCalendarSyncErrorReason(error.reason) };
-}
-
 function updatePackageCalendarEvent(
 	client: PackageCalendarClient,
 	session: SessionCalendarEventRecord,
@@ -115,11 +97,9 @@ function updatePackageCalendarEvent(
 			...pickBookingAddonQuantities(details)
 		},
 		time: details.time
-	})
-		.mapErr(mapPackageCalendarSyncErrorStep)
-		.map((result: { googleCalendarId?: string; googleEventId?: string }) =>
-			packageCalendarIdPatchFromUpdateStep(session, result)
-		);
+	}).map((result: { googleCalendarId?: string; googleEventId?: string }) =>
+		packageCalendarIdPatchFromUpdateStep(session, result)
+	);
 }
 
 function createPackageCalendarEvent(
@@ -138,11 +118,9 @@ function createPackageCalendarEvent(
 			...pickBookingAddonQuantities(details)
 		},
 		time: details.time
-	})
-		.mapErr(mapPackageCalendarSyncErrorStep)
-		.map((result: { googleCalendarId?: string; googleEventId?: string }) =>
-			packageCalendarIdPatchFromCreateStep(result)
-		);
+	}).map((result: { googleCalendarId?: string; googleEventId?: string }) =>
+		packageCalendarIdPatchFromCreateStep(result)
+	);
 }
 
 function openPackageCalendarSlotStep(
@@ -153,25 +131,15 @@ function openPackageCalendarSlotStep(
 		? { calendarId: args.session.googleCalendarId, eventId: args.session.googleEventId }
 		: undefined;
 
-	return tryPromise({
-		try: () =>
-			getBusyWindows({
-				calendar: client.calendar,
-				calendarIds: client.calendarIds,
-				date: args.details.date,
-				ignoredEvent,
-				timeZone: client.timeZone
-			}),
-		catch: (error) => {
-			const parsedError = calendarErrorSchema.safeParse(error);
-
-			return {
-				reason: parsedError.success
-					? mapCalendarErrorCode(parsedError.data, "GOOGLE_CALENDAR_SYNC_FAILED")
-					: "GOOGLE_CALENDAR_SYNC_FAILED"
-			};
-		}
-	}).andThen((busyWindows: Awaited<ReturnType<typeof getBusyWindows>>) =>
+	return tryGoogleCalendarAvailability(() =>
+		getBusyWindows({
+			calendar: client.calendar,
+			calendarIds: client.calendarIds,
+			date: args.details.date,
+			ignoredEvent,
+			timeZone: client.timeZone
+		})
+	).andThen((busyWindows: Awaited<ReturnType<typeof getBusyWindows>>) =>
 		confirmPackageSlotAvailableStep(args.details, client, busyWindows)
 	);
 }
@@ -235,16 +203,12 @@ function deletePackageSessionCalendarStep(
 		timeZone
 	}: Pick<PackageCalendarClient, "calendar" | "calendarId" | "timeZone"> & { calendarIds: string[] }
 ) {
-	return deleteSessionCalendarEvent({ session, client: { calendar, calendarId, timeZone } }).mapErr(
-		(error): PackageCalendarSyncError => ({
-			reason: getPackageCalendarSyncErrorReason(error.reason)
-		})
-	);
+	return deleteSessionCalendarEvent({ session, client: { calendar, calendarId, timeZone } });
 }
 
 export function removePackageSessionGoogleCalendarEvent(
 	session: SessionCalendarEventRecord
-): ResultAsync<{ calendarEventDeleted: boolean }, PackageCalendarSyncError> {
+): ResultAsync<{ calendarEventDeleted: boolean }, GoogleCalendarWriteError> {
 	return (
 		loadGoogleCalendarClient("GOOGLE_CALENDAR_SYNC_FAILED")
 			// Delete the saved event, including declined invitations found by session details.
