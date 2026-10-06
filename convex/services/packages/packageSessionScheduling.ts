@@ -105,10 +105,6 @@ export function syncNewPackageSessionCalendar(
 	);
 }
 
-function failWithSaveError<T>(saveError: T) {
-	return err(saveError);
-}
-
 function compensateOrphanCalendarAndFail<T>(
 	ctx: ActionCtx,
 	args: PackageSessionArgs,
@@ -126,7 +122,7 @@ function compensateOrphanCalendarAndFail<T>(
 		time: args.time
 	})
 		.mapErr((cleanupError) => logOrphanCalendarCleanupFailure(saveError, cleanupError))
-		.andThen(() => failWithSaveError(saveError));
+		.andThen(() => err(saveError));
 }
 
 function logOrphanCalendarCleanupFailure<T>(saveError: T, cleanupError: { reason: string }) {
@@ -227,12 +223,8 @@ function releaseReservationAfterCalendarFailure(
 	calendarError: ReschedulePackageSessionError
 ) {
 	return clearPackageSessionReservation(ctx, { bookingId: args.bookingId, reservation }).andThen(
-		() => failWithCalendarRescheduleError(calendarError)
+		() => err(calendarError)
 	);
-}
-
-function failWithCalendarRescheduleError(calendarError: ReschedulePackageSessionError) {
-	return err(calendarError);
 }
 
 export function syncPackageRescheduleCalendar(
@@ -272,7 +264,7 @@ function releaseReservationAfterRescheduleSaveFailure(
 	saveError: ReschedulePackageSessionError
 ) {
 	return clearPackageSessionReservation(ctx, { bookingId: args.bookingId, reservation }).andThen(
-		() => failWithSaveError(saveError)
+		() => err(saveError)
 	);
 }
 

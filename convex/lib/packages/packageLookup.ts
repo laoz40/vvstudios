@@ -7,6 +7,22 @@ import { hashRescheduleTokenAsync } from "#convex/lib/sessions/sessionReschedule
 
 export type PackageLookupError = { reason: "PACKAGE_NOT_FOUND" };
 
+export function packageFromDbOrNotFound(packageFromDb: Doc<"packages"> | null) {
+	if (!packageFromDb) {
+		return err({ reason: "PACKAGE_NOT_FOUND" as const } satisfies PackageLookupError);
+	}
+
+	return ok(packageFromDb);
+}
+
+export function packageFromActionOrNotFound(packageFromDb: Doc<"packages"> | null) {
+	if (packageFromDb === null) {
+		return err({ reason: "PACKAGE_NOT_FOUND" as const });
+	}
+
+	return ok(packageFromDb);
+}
+
 export type ValidPackageByTokenError =
 	| { reason: "PACKAGE_LINK_INVALID" }
 	| { reason: "PACKAGE_LINK_EXPIRED" }

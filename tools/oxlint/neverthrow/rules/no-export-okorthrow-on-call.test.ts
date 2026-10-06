@@ -12,6 +12,7 @@ tester.run("neverthrow/no-export-okorthrow-on-call", noExportOkOrThrowOnCallRule
 		`okOrThrow(ctx.runMutation(internal.foo.bar, args));`,
 		`okOrThrow(ctx.scheduler.runAfter(0, internal.jobs.tick, {}));`,
 		`okOrThrow(ctx.auth.getUserIdentity());`,
+		`okOrThrow(rateLimiter.limit(ctx, "bookingSubmitGlobal"));`,
 		`okOrThrow(
       ctx.db
         .query("bookingRescheduleLinks")
@@ -31,7 +32,7 @@ tester.run("neverthrow/no-export-okorthrow-on-call", noExportOkOrThrowOnCallRule
 			errors: [{ messageId: "notConvexIo" }]
 		},
 		{
-			code: `okOrThrow(rateLimiter.limit(ctx, "bookingSubmitGlobal"));`,
+			code: `okOrThrow(rateLimiter.limit(otherContext, "bookingSubmitGlobal"));`,
 			errors: [{ messageId: "notConvexIo" }]
 		},
 		{

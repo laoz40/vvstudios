@@ -16,13 +16,14 @@
 - One service **file** groups related abstractions for one domain concept.
 - **File layout:** name modules for what they do (`packageCheckoutMutations.ts`, `sessionQueries.ts`, `stripeInvoiceSend.ts`). No `Workflow`, `MutationWorkflow`, or layer jargon in filenames; the folder is the feature (`services/packages/`). Internal Convex entrypoints live next to the feature (e.g. `sessionsDriveInternal.ts`), not under a generic `convex/internal/` folder.
 - Handlers chain several service functions together.
-- Policy and invariants live here, not in handlers or lib.
+- Policy and invariants live here, not in handlers or lib. Authorization services load the caller's identity and access, choose the required permission, and compose lib checks.
 - Mutation/query services do not use `ctx.runQuery` / `ctx.runMutation`.
 
 ## Lib (`convex/lib/**`)
 
 - Small, single-purpose building blocks: DB operations and pure logic.
-- No permission checks, workflow orchestration, or policy.
+- Pure authorization checks on supplied values belong here, such as checking an identity's role, an editor profile's active status, or an access value's permissions.
+- No authorization workflows, workflow orchestration, or policy. Services decide which checks an operation requires and load their inputs.
 
 ## How they fit
 

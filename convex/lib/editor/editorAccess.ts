@@ -1,9 +1,17 @@
-import { type ResultAsync } from "neverthrow";
+import { err, ok, type ResultAsync } from "neverthrow";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
 import { okOrThrow } from "#convex/lib/result";
 
 const EDITOR_LIMIT = 200;
+
+export function assertEditorProfileFound(editor: Doc<"editorProfiles"> | null) {
+	if (editor === null) {
+		return err({ reason: "EDITOR_NOT_FOUND" as const });
+	}
+
+	return ok(editor);
+}
 
 const ASSIGNED_SESSION_LIMIT = 500;
 

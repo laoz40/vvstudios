@@ -2,7 +2,7 @@ import { internal } from "#convex/_generated/api";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
 import { getEditorWorkStatus } from "#convex/lib/editor/editorAccess";
-import { okAsync, ResultAsync } from "neverthrow";
+import { err, ok, okAsync, ResultAsync, type Result } from "neverthrow";
 import { okOrThrow } from "#convex/lib/result";
 import {
 	type BookingSearchBlobPatch,
@@ -10,6 +10,16 @@ import {
 } from "#convex/lib/adminSearch/adminSearchBlob";
 
 const ACTIVE_EDITOR_LIMIT = 200;
+
+export function requireActiveEditor(
+	editor: Doc<"editorProfiles"> | null
+): Result<Doc<"editorProfiles">, { reason: "EDITOR_NOT_ACTIVE" }> {
+	if (editor === null || !editor.isActive) {
+		return err({ reason: "EDITOR_NOT_ACTIVE" as const });
+	}
+
+	return ok(editor);
+}
 
 export function editorProfileDisplayName(
 	editor: Pick<Doc<"editorProfiles">, "displayName" | "email">

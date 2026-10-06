@@ -26,10 +26,52 @@ import {
 	type ValidPackage,
 	type ValidPackageByTokenError
 } from "#convex/lib/packages/packageLookup";
-import { capacityConsumingSessionStatuses } from "#convex/lib/packages/packageSessionCapacity";
+import {
+	capacityConsumingSessionStatuses,
+	sessionConsumesPackageCapacity
+} from "#convex/lib/packages/packageSessionCapacity";
 import { generateRescheduleToken } from "#convex/lib/sessions/sessionRescheduleLinks";
+import type { BookingAvailabilitySettings } from "#studio/lib/bookingAvailabilitySettings";
+import { isPackageSessionLocked } from "#studio/features/booking-form/lib/package-scheduling-rules";
 
 export { sessionConsumesPackageCapacity } from "#convex/lib/packages/packageSessionCapacity";
+
+export function rejectMissingCapacityConsumingPackageSession(session: Doc<"bookings"> | null) {
+	if (!session || !sessionConsumesPackageCapacity(session)) {
+		return err({ reason: "PACKAGE_BOOKING_NOT_FOUND" as const });
+	}
+
+	return ok(session);
+}
+
+export function rejectLockedEditablePackageSession(
+	now: number,
+	details: {
+		packageRecord: ValidPackage;
+		session: Doc<"bookings">;
+		settings: SessionAvailabilitySettings;
+	}
+) {
+	if (
+		isPackageSessionLocked(details.session.sessionStartAt, details.settings.leadTimeMinutes, now)
+	) {
+		return err({ reason: "PACKAGE_BOOKING_LOCKED" as const });
+	}
+
+	return ok(details);
+}
+
+export function rejectWhenPackageCapacityFull(
+	packageRecord: ValidPackage,
+	settings: BookingAvailabilitySettings,
+	bookings: Doc<"bookings">[]
+) {
+	if (bookings.length >= packageRecord.packageSize) {
+		return err({ reason: "PACKAGE_CAPACITY_EXCEEDED" as const });
+	}
+
+	return ok({ packageRecord, settings });
+}
 
 export type { ValidPackage, ValidPackageByTokenError } from "#convex/lib/packages/packageLookup";
 

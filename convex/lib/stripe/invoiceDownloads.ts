@@ -3,6 +3,34 @@ import type { Doc } from "#convex/_generated/dataModel";
 
 export const INVOICE_DOWNLOAD_EXPIRY_MS = 60 * 60 * 1000;
 
+export function validateAdminBookingReceipt(booking: Doc<"bookings">) {
+	if (booking.status !== "confirmed" && booking.status !== "email_failed") {
+		return err({ reason: "BOOKING_NOT_CONFIRMED" as const });
+	}
+
+	const receiptCreatedAt =
+		booking.paymentCompletedAt ?? booking.bookingConfirmedAt ?? booking.pendingPaymentCreatedAt;
+
+	if (!receiptCreatedAt) {
+		return err({ reason: "BOOKING_NOT_CONFIRMED" as const });
+	}
+
+	return ok({ booking, receiptCreatedAt });
+}
+
+export function validateAdminPackageReceipt(packageRecord: Doc<"packages">) {
+	const receiptCreatedAt = packageRecord.paidAt;
+
+	if (
+		(packageRecord.status !== "paid" && packageRecord.status !== "schedule_email_failed") ||
+		!receiptCreatedAt
+	) {
+		return err({ reason: "PACKAGE_NOT_PAID" as const });
+	}
+
+	return ok({ packageRecord, receiptCreatedAt });
+}
+
 export type InvoicePdfPayload = { content: ArrayBuffer; contentType: string; filename: string };
 
 export function toInvoicePdfPayload(

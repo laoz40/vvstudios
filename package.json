@@ -17,7 +17,7 @@
 		"preview": "vite preview",
 		"format": "oxfmt .",
 		"format:check": "oxfmt --check .",
-		"lint": "NODE_OPTIONS=--experimental-strip-types oxlint .",
+		"lint": "node --experimental-strip-types tools/checks/merge-conflicts.ts && node --experimental-strip-types --test --test-concurrency=1 $(find tools/oxlint -name '*.test.ts' | sort) && NODE_OPTIONS=--experimental-strip-types oxlint .",
 		"lint:fix": "NODE_OPTIONS=--experimental-strip-types oxlint --fix .",
 		"typecheck": "tsc --noEmit",
 		"test": "vitest run",

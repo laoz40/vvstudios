@@ -1,6 +1,6 @@
 "use node";
 
-import { err, errAsync, ok, type ResultAsync } from "neverthrow";
+import { err, errAsync, type ResultAsync } from "neverthrow";
 import { api, internal } from "#convex/_generated/api";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { ActionCtx } from "#convex/_generated/server";
@@ -18,6 +18,8 @@ import { okOrThrow } from "#convex/lib/result";
 import { getSessionFromQuery } from "#convex/services/sessions/sessionLookup";
 import {
 	toInvoicePdfPayload,
+	validateAdminBookingReceipt,
+	validateAdminPackageReceipt,
 	validateBookingInvoiceDownload,
 	validatePackageReceiptDownload,
 	type InvoicePdfPayload
@@ -58,20 +60,6 @@ type PublicBookingDownload = { booking: Doc<"bookings">; downloadCreatedAt: numb
 type AdminBookingReceiptContext = { booking: Doc<"bookings">; receiptCreatedAt: number };
 
 type AdminPackageReceiptContext = { packageRecord: Doc<"packages">; receiptCreatedAt: number };
-
-function isPaidPackageStatus(status: Doc<"packages">["status"]) {
-	return status === "paid" || status === "schedule_email_failed";
-}
-
-function isConfirmedBookingStatus(status: Doc<"bookings">["status"]) {
-	return status === "confirmed" || status === "email_failed";
-}
-
-function getBookingReceiptCreatedAt(booking: Doc<"bookings">) {
-	return (
-		booking.paymentCompletedAt ?? booking.bookingConfirmedAt ?? booking.pendingPaymentCreatedAt
-	);
-}
 
 function toPublicBookingDownload({
 	booking: validatedBooking,
@@ -130,30 +118,6 @@ function renderInvoicePdfPayloadFromArtifacts(value: BookingInvoiceArtifactsValu
 
 function validatePublicPackageReceiptDownload(packageRecord: Doc<"packages">) {
 	return validatePackageReceiptDownload(packageRecord, Date.now());
-}
-
-function adminBookingReceiptContextFromSession(booking: Doc<"bookings">) {
-	if (!isConfirmedBookingStatus(booking.status)) {
-		return err({ reason: "BOOKING_NOT_CONFIRMED" as const });
-	}
-
-	const receiptCreatedAt = getBookingReceiptCreatedAt(booking);
-
-	if (!receiptCreatedAt) {
-		return err({ reason: "BOOKING_NOT_CONFIRMED" as const });
-	}
-
-	return ok({ booking, receiptCreatedAt });
-}
-
-function adminPackageReceiptContextFromRecord(packageRecord: Doc<"packages">) {
-	const receiptCreatedAt = packageRecord.paidAt;
-
-	if (!isPaidPackageStatus(packageRecord.status) || !receiptCreatedAt) {
-		return err({ reason: "PACKAGE_NOT_PAID" as const });
-	}
-
-	return ok({ packageRecord, receiptCreatedAt });
 }
 
 export function loadBookingByStripeCheckoutSession(
@@ -247,12 +211,12 @@ export function loadAdminBookingForReceiptPdf(
 	ctx: ActionCtx,
 	bookingId: Id<"bookings">
 ): ResultAsync<AdminBookingReceiptContext, AdminBookingReceiptPdfError> {
-	return getSessionFromQuery(ctx, bookingId).andThen(adminBookingReceiptContextFromSession);
+	return getSessionFromQuery(ctx, bookingId).andThen(validateAdminBookingReceipt);
 }
 
 export function loadAdminPackageForReceiptPdf(
 	ctx: ActionCtx,
 	packageId: Id<"packages">
 ): ResultAsync<AdminPackageReceiptContext, AdminPackageReceiptPdfError> {
-	return getPackageForAction(ctx, packageId).andThen(adminPackageReceiptContextFromRecord);
+	return getPackageForAction(ctx, packageId).andThen(validateAdminPackageReceipt);
 }

@@ -1,7 +1,8 @@
-import { err, ok, ResultAsync } from "neverthrow";
+import { ResultAsync } from "neverthrow";
 import type { Doc } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
 import {
+	assertEditorProfileFound,
 	getEditorWorkStatus,
 	listEditorProfiles,
 	lookupEditorProfileByToken,
@@ -44,14 +45,6 @@ export function loadEmployeeRoster(ctx: QueryCtx) {
 	return listEditorProfiles(ctx).andThen((editors: Doc<"editorProfiles">[]) =>
 		combineEditorWorkStatuses(ctx, editors)
 	);
-}
-
-function assertEditorProfileFound(editor: Doc<"editorProfiles"> | null) {
-	if (editor === null) {
-		return err({ reason: "EDITOR_NOT_FOUND" as const });
-	}
-
-	return ok(editor);
 }
 
 function requireEditorProfileByToken(ctx: MutationCtx, tokenIdentifier: string) {
