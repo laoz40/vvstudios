@@ -76,9 +76,13 @@ jobs:
     needs: lint-and-test
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
+    # Hold this lock through provisioning, deployment and tests. A running job
+    # must finish before another attempt can replace its backend.
+    concurrency:
+      group: convex-e2e-pr-${{ github.event.pull_request.number }}
+      cancel-in-progress: false
     permissions:
       contents: read
-      actions: write
 
     steps:
       - name: Check out repository
@@ -102,14 +106,35 @@ jobs:
       - name: Install Playwright browsers
         run: bunx playwright install --with-deps chromium
 
-      - name: Deploy Convex to e2e
+      - name: Create empty Convex preview and deploy
+        id: preview
         env:
-          CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_E2E_DEPLOY_KEY }}
-        run: bunx convex dev --once
+          CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_E2E_PREVIEW_DEPLOY_KEY }}
+          CONVEX_PREVIEW_NAME: e2e-pr-${{ github.event.pull_request.number }}
+          E2E_GOOGLE_CALENDAR_ID: ${{ vars.E2E_GOOGLE_CALENDAR_ID }}
+          E2E_GOOGLE_DRIVE_ROOT_FOLDER_ID: ${{ vars.E2E_GOOGLE_DRIVE_ROOT_FOLDER_ID }}
+          E2E_PREVIEW_INTEGRATIONS_CONFIRMED: ${{ vars.E2E_PREVIEW_INTEGRATIONS_CONFIRMED }}
+          VITE_CLERK_PUBLISHABLE_KEY: ${{ vars.E2E_VITE_CLERK_PUBLISHABLE_KEY }}
+          VITE_STRIPE_PUBLISHABLE_KEY: ${{ vars.E2E_VITE_STRIPE_PUBLISHABLE_KEY }}
+        run: |
+          bun -e 'import { validatePreviewKey } from "./scripts/convex-preview-safety.ts"; validatePreviewKey(process.env.CONVEX_DEPLOY_KEY)'
+          bunx convex deploy --preview-create "$CONVEX_PREVIEW_NAME" --typecheck enable \
+            --cmd "bun scripts/prepare-convex-preview.ts" --cmd-url-env-var-name VITE_CONVEX_URL
+
+      - name: Type-check regenerated Convex API and frontend
+        run: bun run typecheck
+
+      - name: Record preview
+        env:
+          PREVIEW_URL: ${{ steps.preview.outputs.url }}
+          PREVIEW_NAME: e2e-pr-${{ github.event.pull_request.number }}
+        run: |
+          printf 'Convex smoke-test preview: `%s` at %s. Empty DB for this attempt; automatic Convex expiration.\n' \
+            "$PREVIEW_NAME" "$PREVIEW_URL" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Run E2E
         env:
-          VITE_CONVEX_URL: ${{ vars.E2E_CONVEX_URL }}
+          VITE_CONVEX_URL: ${{ steps.preview.outputs.url }}
           VITE_CLERK_PUBLISHABLE_KEY: ${{ vars.E2E_VITE_CLERK_PUBLISHABLE_KEY }}
           VITE_STRIPE_PUBLISHABLE_KEY: ${{ vars.E2E_VITE_STRIPE_PUBLISHABLE_KEY }}
           VITE_FREE_TOUR_URL: ${{ vars.VITE_FREE_TOUR_URL }}
@@ -122,7 +147,7 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-report
+          name: playwright-report-pr-${{ github.event.pull_request.number }}-${{ github.run_attempt }}
           path: |
             playwright-report/
             test-results/

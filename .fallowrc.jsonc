@@ -4,6 +4,8 @@
 		"nitro.config.ts",
 		"scripts/preview-*.tsx",
 		"scripts/*.mjs",
+		// Invoked by convex deploy --cmd in GitHub Actions
+		"scripts/prepare-convex-preview.ts",
 		"tools/type-contract/neverthrow-endpoints.ts"
 	],
 	"ignoreExports": [
