@@ -25,7 +25,7 @@ const bookingModeOptions = [
 	{
 		value: BOOKING_MODES[1],
 		title: "Session Packages",
-		description: "Save money and secure your bookings early."
+		description: "Book multiple sessions to save money and secure your sessions early."
 	}
 ] as const;
 
@@ -62,12 +62,14 @@ export function BookingModeSection() {
 								);
 							}
 						}}
-						className="grid gap-4 md:grid-cols-2">
+						className="grid grid-cols-1 items-stretch gap-4 md:grid-cols-2">
 						{bookingModeOptions.map((option) => {
 							const isSelected = field.state.value === option.value;
 
 							return (
-								<div key={option.value}>
+								<div
+									key={option.value}
+									className="h-full">
 									<RadioGroupItem
 										value={option.value}
 										id={`booking-mode-${option.value}`}
@@ -76,7 +78,7 @@ export function BookingModeSection() {
 									<label
 										htmlFor={`booking-mode-${option.value}`}
 										className={cn(
-											"pressable flex cursor-pointer items-center justify-between gap-3 rounded-lg border bg-input/30 p-4 shadow-lg shadow-background/25 peer-focus-visible:border-primary peer-focus-visible:ring-2 peer-focus-visible:ring-ring peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-background",
+											"pressable flex h-full min-h-full cursor-pointer items-center justify-between gap-3 rounded-lg border bg-input/30 p-4 shadow-lg shadow-background/25 peer-focus-visible:border-primary peer-focus-visible:ring-2 peer-focus-visible:ring-ring peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-background max-md:min-h-26 md:min-h-0",
 											transitionClassName,
 											getCardStateClassName(isSelected),
 											isSelected && "shadow-primary/20"
@@ -87,7 +89,14 @@ export function BookingModeSection() {
 												{option.description}
 											</p>
 										</div>
-										{isSelected ? <BookingSelectionCheck /> : null}
+										{isSelected ? (
+											<BookingSelectionCheck />
+										) : (
+											<span
+												aria-hidden="true"
+												className="size-5 shrink-0"
+											/>
+										)}
 									</label>
 								</div>
 							);

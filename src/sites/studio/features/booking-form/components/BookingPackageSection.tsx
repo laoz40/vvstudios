@@ -63,7 +63,7 @@ export function BookingPackageSection() {
 
 								return (
 									<FieldSet data-field-name="packageSize">
-										<FieldLegend className={sectionHeadingClassName}>Package size *</FieldLegend>
+										<FieldLegend className={sectionHeadingClassName}>Package Size *</FieldLegend>
 										<RadioGroup
 											value={String(field.state.value)}
 											onValueChange={(value) => {
