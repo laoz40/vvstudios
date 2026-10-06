@@ -286,7 +286,7 @@ export async function fillPackageBookingForm(
 		'[data-field-name="bookingMode"] label[for="booking-mode-package"]',
 		"#booking-mode-package"
 	);
-	await expect(page.getByText("Package size *")).toBeVisible({ timeout: 10_000 });
+	await expect(page.getByText("Package Size *")).toBeVisible({ timeout: 10_000 });
 	await selectBookingRadio(
 		page,
 		`[data-field-name="packageSize"] label[for="package-size-${packageSize}"]`,
