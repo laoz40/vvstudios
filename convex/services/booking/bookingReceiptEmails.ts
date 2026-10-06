@@ -37,7 +37,7 @@ type BookingReceiptEmailError = {
 		| "RECEIPT_PDF_RENDER_FAILED";
 };
 
-type PackageReceiptEmailError = {
+export type PackageReceiptEmailError = {
 	reason:
 		| "EMAIL_REQUEST_FAILED"
 		| "EMAIL_RESPONSE_FAILED"

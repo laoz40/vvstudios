@@ -12,14 +12,13 @@ import {
 	refreshPackageScheduleToken,
 	validatePaidPackageForEmailResend
 } from "#convex/lib/packages/packagePayment";
-import { sendAndRecordPackagePaidEmail } from "#convex/services/packages/packagePaidEmailSend";
+import {
+	sendAndRecordPackagePaidEmail,
+	type PackagePaidEmailError
+} from "#convex/services/packages/packagePaidEmailSend";
 import { getPackageForAction } from "#convex/services/packages/packageLookup";
 import { okOrThrow } from "#convex/lib/result";
 import type { BookingAvailabilitySettings } from "#studio/lib/bookingAvailabilitySettings";
-
-type PackagePaidEmailError =
-	| { reason: "PACKAGE_NOT_FOUND" }
-	| { reason: "PACKAGE_SCHEDULE_EMAIL_FAILED" };
 
 export type ResendPackageEmailError =
 	| { reason: "NOT_AUTHENTICATED" }

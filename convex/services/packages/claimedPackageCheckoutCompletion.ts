@@ -6,22 +6,18 @@ import type { ActionCtx } from "#convex/_generated/server";
 import { env } from "#convex/env";
 import { markPackagePaid } from "#convex/lib/packages/packagePayment";
 import type { PaidPackageResult } from "#convex/lib/packages/packagePayment";
-import { sendPackageCheckoutPaidEmails } from "#convex/services/packages/packagePaidEmailSend";
+import {
+	sendPackageCheckoutPaidEmails,
+	type PackagePaidEmailError
+} from "#convex/services/packages/packagePaidEmailSend";
 import { okOrThrow } from "#convex/lib/result";
 import type { BookingAvailabilitySettings } from "#studio/lib/bookingAvailabilitySettings";
 
 type CompleteClaimedPackageCheckoutSuccess = { outcome: "completed" };
 
 type CompleteClaimedPackageCheckoutError =
-	| { reason: "EMAIL_REQUEST_FAILED" }
-	| { reason: "EMAIL_RESPONSE_FAILED" }
-	| { reason: "INVALID_BOOKING_DATA" }
-	| { reason: "PACKAGE_ALREADY_PAID" }
-	| { reason: "PACKAGE_NOT_FOUND" }
-	| { reason: "PACKAGE_SCHEDULE_EMAIL_FAILED" }
-	| { reason: "RECEIPT_EMAIL_RENDER_FAILED" }
-	| { reason: "RECEIPT_PDF_RENDER_FAILED" }
-	| { reason: "SCHEDULE_EMAIL_RENDER_FAILED" };
+	| PackagePaidEmailError
+	| { reason: "PACKAGE_ALREADY_PAID" };
 
 type ClaimedCheckoutEmailContext = {
 	bookingSettings: BookingAvailabilitySettings;

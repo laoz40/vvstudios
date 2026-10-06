@@ -10,12 +10,14 @@ import {
 	type PackagePaidEmailContext,
 	type PaidPackageResult
 } from "#convex/lib/packages/packagePayment";
-import { sendPackageReceiptEmailsForPackage } from "#convex/services/booking/bookingReceiptEmails";
+import {
+	sendPackageReceiptEmailsForPackage,
+	type PackageReceiptEmailError
+} from "#convex/services/booking/bookingReceiptEmails";
 
-type PackageScheduleEmailResult = ResultAsync<
-	null,
-	{ reason: "PACKAGE_NOT_FOUND" } | { reason: "PACKAGE_SCHEDULE_EMAIL_FAILED" }
->;
+export type PackagePaidEmailError = { reason: "PACKAGE_NOT_FOUND" } | PackageReceiptEmailError;
+
+type PackageScheduleEmailResult = ResultAsync<null, PackagePaidEmailError>;
 
 function recordSentPackagePaidEmail(
 	ctx: ActionCtx,
@@ -25,17 +27,13 @@ function recordSentPackagePaidEmail(
 	return recordPackagePaidEmailAttempt(ctx, packageId, "sent", receiptNumber);
 }
 
-function failPackageScheduleEmailAfterRecord() {
-	return errAsync({ reason: "PACKAGE_SCHEDULE_EMAIL_FAILED" as const });
-}
-
 function recordFailedPackagePaidEmailAndFail(
 	ctx: ActionCtx,
 	packageId: Id<"packages">,
-	error: { reason: string }
+	error: PackagePaidEmailError
 ) {
 	return recordPackagePaidEmailAttempt(ctx, packageId, "failed", error.reason).andThen(() =>
-		failPackageScheduleEmailAfterRecord()
+		errAsync(error)
 	);
 }
 
@@ -50,9 +48,7 @@ export function sendAndRecordPackagePaidEmail(
 		scheduleUrl: context.scheduleUrl
 	})
 		.andThen((_value) => recordSentPackagePaidEmail(ctx, packageId, _value))
-		.orElse((error: { reason: string }) =>
-			recordFailedPackagePaidEmailAndFail(ctx, packageId, error)
-		);
+		.orElse((error) => recordFailedPackagePaidEmailAndFail(ctx, packageId, error));
 }
 
 export function sendPackageCheckoutPaidEmails(
