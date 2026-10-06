@@ -6,6 +6,7 @@ import { noLibLoaderOrchestrationRule } from "./rules/no-lib-loader-orchestratio
 import { noInlineCallbackInServiceChainsRule } from "./rules/no-inline-callback-in-service-chains.ts";
 import { pureValidationInLibOnlyRule } from "./rules/pure-validation-in-lib-only.ts";
 import { noLibReexportRule } from "./rules/no-lib-reexport.ts";
+import { noLibTestSetupImportRule } from "./rules/no-lib-test-setup-import.ts";
 
 /** Oxlint rules enforcing Convex handler → service → lib layering. */
 const convexLayersPlugin = eslintCompatPlugin({
@@ -16,7 +17,8 @@ const convexLayersPlugin = eslintCompatPlugin({
 		"no-inline-callback-in-service-chains": noInlineCallbackInServiceChainsRule,
 		"pure-validation-in-lib-only": pureValidationInLibOnlyRule,
 		"no-lib-loader-orchestration": noLibLoaderOrchestrationRule,
-		"no-lib-reexport": noLibReexportRule
+		"no-lib-reexport": noLibReexportRule,
+		"no-lib-test-setup-import": noLibTestSetupImportRule
 	}
 });
 

@@ -73,6 +73,8 @@ Dont mock internal collaborators or anything you control.
 
 ## Convex tests
 
+For Convex test placement or Stripe, Google SDK, PDF, and email boundary stubs, read [boundary-testing.md](references/boundary-testing.md) before choosing fixtures.
+
 - Only to test important flows and failures:
     - Races
     - Idempotency — webhook replay, send-once reminders/jobs

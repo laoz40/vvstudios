@@ -211,7 +211,13 @@
 			"files": ["**/*.test.ts", "**/*.test.tsx", "convex/tests/**"],
 			"rules": { "max-lines": "off" }
 		},
-		{ "files": ["convex/lib/tests/**"], "rules": { "typescript/no-unsafe-type-assertion": "off" } },
+		{
+			"files": ["convex/lib/tests/**"],
+			"rules": {
+				"typescript/no-unsafe-type-assertion": "off",
+				"convex-layers/no-lib-test-setup-import": "error"
+			}
+		},
 		{ "files": ["convex/tests/**"], "rules": { "anti-slop/no-module-mocking": "error" } },
 		{
 			"files": ["convex/lib/**", "convex/services/**", "convex/*.ts"],
