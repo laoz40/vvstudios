@@ -207,6 +207,8 @@ function usesForbiddenIo(node: ESTree.Node, visited = new WeakSet<ESTree.Node>()
 	}
 
 	for (const key of Object.keys(node) as (keyof ESTree.Node)[]) {
+		if (key === "parent") continue;
+
 		const child = node[key];
 
 		if (child === null || child === undefined) {
@@ -215,7 +217,7 @@ function usesForbiddenIo(node: ESTree.Node, visited = new WeakSet<ESTree.Node>()
 
 		if (Array.isArray(child)) {
 			for (const item of child) {
-				if (item !== null && typeof item === "object" && "type" in item && usesForbiddenIo(item as ESTree.Node, visited)) {
+				if (item !== null && typeof item === "object" && "type" in item && usesForbiddenIo(item as unknown as ESTree.Node, visited)) {
 					return true;
 				}
 			}
@@ -223,7 +225,7 @@ function usesForbiddenIo(node: ESTree.Node, visited = new WeakSet<ESTree.Node>()
 			continue;
 		}
 
-		if (typeof child === "object" && "type" in child && usesForbiddenIo(child as ESTree.Node, visited)) {
+		if (typeof child === "object" && "type" in child && usesForbiddenIo(child as unknown as ESTree.Node, visited)) {
 			return true;
 		}
 	}
@@ -257,6 +259,8 @@ function hasReturnOutsideOkErr(body: ESTree.BlockStatement | ESTree.Expression):
 		}
 
 		for (const key of Object.keys(node) as (keyof ESTree.Node)[]) {
+			if (key === "parent") continue;
+
 			const child = node[key];
 
 			if (child === null || child === undefined || typeof child !== "object") {
@@ -266,7 +270,7 @@ function hasReturnOutsideOkErr(body: ESTree.BlockStatement | ESTree.Expression):
 			if (Array.isArray(child)) {
 				for (const item of child) {
 					if (item !== null && typeof item === "object" && "type" in item) {
-						visit(item as ESTree.Node);
+						visit(item as unknown as ESTree.Node);
 					}
 				}
 
@@ -274,7 +278,7 @@ function hasReturnOutsideOkErr(body: ESTree.BlockStatement | ESTree.Expression):
 			}
 
 			if ("type" in child) {
-				visit(child as ESTree.Node);
+				visit(child as unknown as ESTree.Node);
 			}
 		}
 	}
@@ -303,6 +307,8 @@ function hasOkErrReturns(body: ESTree.BlockStatement | ESTree.Expression): boole
 		}
 
 		for (const key of Object.keys(node) as (keyof ESTree.Node)[]) {
+			if (key === "parent") continue;
+
 			const child = node[key];
 
 			if (child === null || child === undefined || typeof child !== "object") {
@@ -312,7 +318,7 @@ function hasOkErrReturns(body: ESTree.BlockStatement | ESTree.Expression): boole
 			if (Array.isArray(child)) {
 				for (const item of child) {
 					if (item !== null && typeof item === "object" && "type" in item) {
-						visit(item as ESTree.Node);
+						visit(item as unknown as ESTree.Node);
 					}
 				}
 
@@ -320,7 +326,7 @@ function hasOkErrReturns(body: ESTree.BlockStatement | ESTree.Expression): boole
 			}
 
 			if ("type" in child) {
-				visit(child as ESTree.Node);
+				visit(child as unknown as ESTree.Node);
 			}
 		}
 	}
@@ -444,7 +450,7 @@ export const pureValidationInLibOnlyRule = defineRule({
 		},
 		messages: {
 			pureValidationInService:
-				"Pure validation belongs in convex/lib. Move this function to a validate* (or reject*) helper and import it."
+				"Pure validation belongs in convex/lib. Move this function there and import it."
 		}
 	},
 	create(context) {

@@ -4,6 +4,7 @@ import type { MutationCtx } from "#convex/_generated/server";
 import {
 	editorProfileDisplayName,
 	lookupEditorProfileByToken,
+	requireActiveEditor,
 	patchBookingEditorAssignment,
 	patchEditorProfileLastAssignedAt,
 	scheduleEditorDriveAccessSetup,
@@ -26,16 +27,6 @@ function requireEditorAssignableSession(
 	}
 
 	return ok(session);
-}
-
-function requireActiveEditor(
-	editor: Doc<"editorProfiles"> | null
-): Result<Doc<"editorProfiles">, { reason: "EDITOR_NOT_ACTIVE" }> {
-	if (editor === null || !editor.isActive) {
-		return err({ reason: "EDITOR_NOT_ACTIVE" as const });
-	}
-
-	return ok(editor);
 }
 
 function patchEditorAssignmentAfterSearchStep(

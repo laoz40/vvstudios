@@ -1,19 +1,10 @@
-import { err, ok } from "neverthrow";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { MutationCtx } from "#convex/_generated/server";
 import {
 	getPackageSessionForToken,
-	sessionConsumesPackageCapacity
+	rejectMissingCapacityConsumingPackageSession
 } from "#convex/lib/packages/packageScheduling";
 import { archiveDeadCheckoutBooking } from "#convex/services/sessions/sessionArchive";
-
-export function rejectMissingCapacityConsumingPackageSession(session: Doc<"bookings"> | null) {
-	if (!session || !sessionConsumesPackageCapacity(session)) {
-		return err({ reason: "PACKAGE_BOOKING_NOT_FOUND" as const });
-	}
-
-	return ok(session);
-}
 
 function cancelledPackageSessionBookingResult(bookingId: Id<"bookings">) {
 	return { cancelled: true as const, bookingId };

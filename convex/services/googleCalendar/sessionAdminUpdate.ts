@@ -178,12 +178,6 @@ export function loadAdminSessionEditDeps(ctx: ActionCtx) {
 	return loadBookingAvailabilitySettings(ctx).andThen(loadAdminEditGoogleClientStep);
 }
 
-function rethrowSaveErrorAfterOrphanCleanupStep<Error extends AdminSessionUpdateError>(
-	saveError: Error
-) {
-	return err(saveError);
-}
-
 function savePromotedFailedSession({
 	args,
 	session,
@@ -225,7 +219,7 @@ function savePromotedFailedSession({
 			googleEventId
 		})
 			.orElse(() => okAsync(undefined))
-			.andThen(() => rethrowSaveErrorAfterOrphanCleanupStep(saveError));
+			.andThen(() => err(saveError));
 	});
 }
 
@@ -487,10 +481,6 @@ function reserveSlotForAdminTimingChange(
 	);
 }
 
-function rethrowAdminUpdateErrorStep<Error extends AdminSessionUpdateError>(error: Error) {
-	return err(error);
-}
-
 function compensateFailedAdminUpdateStep(
 	ctx: ActionCtx,
 	session: Doc<"bookings">,
@@ -499,7 +489,7 @@ function compensateFailedAdminUpdateStep(
 	error: AdminSessionUpdateError
 ) {
 	return clearSessionSlotReservation(ctx, { bookingId: session._id, reservation }).andThen(() =>
-		rethrowAdminUpdateErrorStep(error)
+		err(error)
 	);
 }
 

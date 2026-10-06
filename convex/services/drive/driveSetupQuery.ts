@@ -116,16 +116,10 @@ function loadDriveSessionForSetup(
 	driveSessionResult: ReturnType<typeof loadDriveSessionRowByBookingId>,
 	driveClientFromBooking: Doc<"driveClients"> | null
 ) {
-	return driveSessionResult.andThen((driveSession: Doc<"driveSessions"> | null) =>
-		loadPackageRecordChainStart(driveClientFromBooking, driveSession)
-	);
-}
-
-function loadPackageRecordChainStart(
-	driveClientFromBooking: Doc<"driveClients"> | null,
-	driveSession: Doc<"driveSessions"> | null
-) {
-	return ok({ driveClientFromBooking, driveSession });
+	return driveSessionResult.map((driveSession: Doc<"driveSessions"> | null) => ({
+		driveClientFromBooking,
+		driveSession
+	}));
 }
 
 function loadPackageRecordForSetup(

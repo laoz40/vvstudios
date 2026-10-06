@@ -1,7 +1,8 @@
 import type { UserIdentity } from "convex/server";
-import { err, ok, okAsync } from "neverthrow";
+import { err, ok, okAsync, type Result } from "neverthrow";
 import { z } from "zod";
 import type { Doc } from "#convex/_generated/dataModel";
+import { hasPermission, ROLE_PERMISSIONS, type Permission } from "#/lib/permissions";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
 import {
 	editorProfileDisplayName,
@@ -10,6 +11,12 @@ import {
 import { okOrThrow } from "#convex/lib/result";
 
 export const ADMIN_ROLE = "admin";
+
+type AdminEditorProfile = { tokenIdentifier: string; displayName: string; isActive: boolean };
+
+export type UserAccess =
+	| { role: "admin"; permissions: readonly Permission[]; editorProfile: AdminEditorProfile | null }
+	| { role: "editor"; permissions: readonly Permission[] };
 
 type PublicMetadata = { role?: string };
 
@@ -31,6 +38,40 @@ export function requireAdminIdentity(identity: UserIdentity) {
 	}
 
 	return ok(identity);
+}
+
+function buildAdminEditorProfile(editor: Doc<"editorProfiles">): AdminEditorProfile {
+	return {
+		tokenIdentifier: editor.tokenIdentifier,
+		displayName: editor.displayName,
+		isActive: editor.isActive
+	};
+}
+
+export function adminUserAccessFromEditor(editor: Doc<"editorProfiles"> | null): UserAccess {
+	return {
+		role: "admin",
+		permissions: ROLE_PERMISSIONS.admin,
+		editorProfile: editor === null ? null : buildAdminEditorProfile(editor)
+	};
+}
+
+export function editorUserAccessFromProfile(
+	editor: Doc<"editorProfiles"> | null
+): Result<UserAccess, { reason: "NOT_AUTHORIZED" }> {
+	if (editor === null || !editor.isActive) {
+		return err({ reason: "NOT_AUTHORIZED" as const });
+	}
+
+	return ok({ role: "editor" as const, permissions: ROLE_PERMISSIONS.editor });
+}
+
+export function verifyUserPermission(permission: Permission, access: UserAccess) {
+	if (!hasPermission(access.permissions, permission)) {
+		return err({ reason: "NOT_AUTHORIZED" as const });
+	}
+
+	return ok(access);
 }
 
 export function requireEnrollableEditorProfile(editor: Doc<"editorProfiles"> | null) {

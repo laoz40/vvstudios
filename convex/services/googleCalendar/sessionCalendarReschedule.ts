@@ -236,10 +236,6 @@ export function attachCalendarClientToLockState(
 	return { calendarClient, state };
 }
 
-function rethrowReservationErrorStep<Error extends { reason: string }>(reservationError: Error) {
-	return err(reservationError);
-}
-
 export function lockAndReserve(
 	ctx: ActionCtx,
 	details: ValidRescheduleDetails,
@@ -250,10 +246,7 @@ export function lockAndReserve(
 
 	const unlockAndReturnReservationError = <Error extends { reason: string }>(
 		reservationError: Error
-	) =>
-		releaseRescheduleLink(ctx, details.link._id, lockedAt).andThen(() =>
-			rethrowReservationErrorStep(reservationError)
-		);
+	) => releaseRescheduleLink(ctx, details.link._id, lockedAt).andThen(() => err(reservationError));
 
 	return lockRescheduleLink(ctx, { linkId: details.link._id, now: lockedAt })
 		.andThen((_linkLocked: null) =>
@@ -318,16 +311,12 @@ function rescheduleStateWithTimingUpdateStep(
 	return { ...state, timingUpdate };
 }
 
-function rethrowRescheduleErrorStep<Error extends RescheduleSessionError>(error: Error) {
-	return err(error);
-}
-
 function rollbackRescheduleOnCalendarErrorStep(
 	ctx: ActionCtx,
 	state: RescheduleState,
 	error: RescheduleSessionError
 ) {
-	return clearReservationThenUnlock(ctx, state).andThen(() => rethrowRescheduleErrorStep(error));
+	return clearReservationThenUnlock(ctx, state).andThen(() => err(error));
 }
 
 export function syncCalendar(
@@ -376,7 +365,7 @@ function rollbackRescheduleOnSaveErrorStep(
 
 	error: RescheduleSessionError
 ) {
-	return clearReservationThenUnlock(ctx, state).andThen(() => rethrowRescheduleErrorStep(error));
+	return clearReservationThenUnlock(ctx, state).andThen(() => err(error));
 }
 
 function saveReschedule(

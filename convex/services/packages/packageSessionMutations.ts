@@ -1,4 +1,4 @@
-import { err, errAsync, ok, okAsync, type ResultAsync as ResultAsyncType } from "neverthrow";
+import { err, errAsync, okAsync, type ResultAsync as ResultAsyncType } from "neverthrow";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
 import { getBookingAvailabilitySettings } from "#convex/lib/booking/bookingSettings";
@@ -11,6 +11,9 @@ import { schedulePackageAdjustmentWhenSessionsComplete } from "#convex/lib/packa
 import {
 	checkPackageSessionAvailability,
 	getCapacityConsumingPackageSessions,
+	rejectLockedEditablePackageSession,
+	rejectWhenPackageCapacityFull,
+	sessionConsumesPackageCapacity,
 	getPackageSessionForToken,
 	type PackageSessionEditError,
 	type UnschedulePackageSessionError
@@ -20,14 +23,12 @@ import {
 	type ValidPackage,
 	type ValidPackageByTokenError
 } from "#convex/lib/packages/packageLookup";
-import { sessionConsumesPackageCapacity } from "#convex/lib/packages/packageSessionCapacity";
 import type { SessionAvailabilitySettings } from "#convex/lib/sessions/sessionCalendarTime";
 import { getSessionStartAt } from "#convex/lib/sessions/sessionAdminEdit";
 import { env } from "#convex/env";
 import { getPackageSessionAddons } from "#studio/features/booking-form/lib/booking-form-model";
 import type { BookingFormValues } from "#studio/features/booking-form/lib/booking-form-model";
 import type { BookingAvailabilitySettings } from "#studio/lib/bookingAvailabilitySettings";
-import { isPackageSessionLocked } from "#studio/features/booking-form/lib/package-scheduling-rules";
 
 type RecordingSpace = Exclude<BookingFormValues["service"], "">;
 
@@ -71,16 +72,6 @@ function loadSettingsForEditableSession(
 	return getBookingAvailabilitySettings(ctx).map((settings: SessionAvailabilitySettings) =>
 		attachAvailabilitySettingsToSession(packageRecord, session, settings)
 	);
-}
-
-function rejectLockedEditablePackageSession(now: number, details: EditablePackageSessionDetails) {
-	if (
-		isPackageSessionLocked(details.session.sessionStartAt, details.settings.leadTimeMinutes, now)
-	) {
-		return err({ reason: "PACKAGE_BOOKING_LOCKED" as const });
-	}
-
-	return ok(details);
 }
 
 function getEditablePackageSession(
@@ -175,18 +166,6 @@ export function rejectPackageCreateWhenUnavailableOrFull(
 	).andThen((bookings: Doc<"bookings">[]) =>
 		rejectWhenPackageCapacityFull(packageRecord, settings, bookings)
 	);
-}
-
-function rejectWhenPackageCapacityFull(
-	packageRecord: ValidPackage,
-	settings: BookingAvailabilitySettings,
-	bookings: Doc<"bookings">[]
-) {
-	if (bookings.length >= packageRecord.packageSize) {
-		return err({ reason: "PACKAGE_CAPACITY_EXCEEDED" as const });
-	}
-
-	return ok({ packageRecord, settings });
 }
 
 export function parsePackageSessionCreateStartTime(
