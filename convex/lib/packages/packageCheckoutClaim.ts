@@ -1,6 +1,11 @@
 import { err, ok, type Result } from "neverthrow";
 import { exhaustiveCheck } from "#/lib/result";
-import type { Doc } from "#convex/_generated/dataModel";
+import type { Doc, Id } from "#convex/_generated/dataModel";
+
+export type PackageCheckoutClaim =
+	| { outcome: "already_completed"; packageId: Id<"packages"> }
+	| { outcome: "already_claimed"; packageId: Id<"packages"> }
+	| { outcome: "claimed"; packageId: Id<"packages"> };
 
 export type PackageCheckoutClaimPackage = Pick<
 	Doc<"packages">,

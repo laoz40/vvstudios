@@ -51,7 +51,10 @@ export function summarizeCustomPackageStripeInvoices(
 	return summarizeStripeInvoices(customInvoices);
 }
 
-function getStripeInvoiceByStripeInvoiceId(ctx: QueryCtx | MutationCtx, stripeInvoiceId: string) {
+export function getStripeInvoiceByStripeInvoiceId(
+	ctx: QueryCtx | MutationCtx,
+	stripeInvoiceId: string
+) {
 	return okOrThrow(
 		ctx.db
 			.query("stripeInvoices")
@@ -62,50 +65,86 @@ function getStripeInvoiceByStripeInvoiceId(ctx: QueryCtx | MutationCtx, stripeIn
 	);
 }
 
+function existingStripeInvoiceResult(
+	stripeInvoiceRecordId: Id<"stripeInvoices">
+): StripeInvoiceInsertResult {
+	return { stripeInvoiceRecordId, created: false };
+}
+
+function insertNewStripeInvoiceRecord(
+	ctx: MutationCtx,
+	invoice: StripeInvoiceInsert
+): ResultAsync<StripeInvoiceInsertResult, never> {
+	return okOrThrow(ctx.db.insert("stripeInvoices", invoice)).map((stripeInvoiceRecordId) => ({
+		stripeInvoiceRecordId,
+		created: true
+	}));
+}
+
+function lookupStripeInvoiceByPackageAdjustmentId(
+	ctx: MutationCtx,
+	packageAdjustmentId: Id<"packageAdjustments">
+) {
+	return okOrThrow(
+		ctx.db
+			.query("stripeInvoices")
+			.withIndex("by_packageAdjustmentId", (indexQuery) =>
+				indexQuery.eq("packageAdjustmentId", packageAdjustmentId)
+			)
+			.unique()
+	);
+}
+
+function lookupStripeInvoiceByRequestId(ctx: MutationCtx, requestId: string) {
+	return okOrThrow(
+		ctx.db
+			.query("stripeInvoices")
+			.withIndex("by_requestId", (indexQuery) => indexQuery.eq("requestId", requestId))
+			.unique()
+	);
+}
+
 // Idempotent insert: on retry, return the existing row instead of inserting again.
 function insertStripeInvoiceIfAbsent(ctx: MutationCtx, invoice: StripeInvoiceInsert) {
 	return okOrThrow(
-		(async () => {
-			const existingByStripeInvoiceId = await ctx.db
-				.query("stripeInvoices")
-				.withIndex("by_stripeInvoiceId", (indexQuery) =>
-					indexQuery.eq("stripeInvoiceId", invoice.stripeInvoiceId)
-				)
-				.unique();
+		ctx.db
+			.query("stripeInvoices")
+			.withIndex("by_stripeInvoiceId", (indexQuery) =>
+				indexQuery.eq("stripeInvoiceId", invoice.stripeInvoiceId)
+			)
+			.unique()
+	).andThen((existingByStripeInvoiceId) => {
+		if (existingByStripeInvoiceId) {
+			return okAsync(existingStripeInvoiceResult(existingByStripeInvoiceId._id));
+		}
 
-			if (existingByStripeInvoiceId) {
-				return { stripeInvoiceRecordId: existingByStripeInvoiceId._id, created: false };
-			}
+		if (invoice.requestId) {
+			return lookupStripeInvoiceByRequestId(ctx, invoice.requestId).andThen(
+				(existingByRequestId) => {
+					if (existingByRequestId) {
+						return okAsync(existingStripeInvoiceResult(existingByRequestId._id));
+					}
 
-			if (invoice.requestId) {
-				const existingByRequestId = await ctx.db
-					.query("stripeInvoices")
-					.withIndex("by_requestId", (indexQuery) => indexQuery.eq("requestId", invoice.requestId))
-					.unique();
-
-				if (existingByRequestId) {
-					return { stripeInvoiceRecordId: existingByRequestId._id, created: false };
+					return insertStripeInvoiceAfterRequestLookup(ctx, invoice);
 				}
-			}
+			);
+		}
 
-			if (invoice.packageAdjustmentId) {
-				const existingByAdjustmentId = await ctx.db
-					.query("stripeInvoices")
-					.withIndex("by_packageAdjustmentId", (indexQuery) =>
-						indexQuery.eq("packageAdjustmentId", invoice.packageAdjustmentId)
-					)
-					.unique();
+		return insertStripeInvoiceAfterRequestLookup(ctx, invoice);
+	});
+}
 
-				if (existingByAdjustmentId) {
-					return { stripeInvoiceRecordId: existingByAdjustmentId._id, created: false };
-				}
-			}
+function insertStripeInvoiceAfterRequestLookup(ctx: MutationCtx, invoice: StripeInvoiceInsert) {
+	if (invoice.packageAdjustmentId) {
+		return lookupStripeInvoiceByPackageAdjustmentId(ctx, invoice.packageAdjustmentId).andThen(
+			(existingByAdjustmentId) =>
+				existingByAdjustmentId
+					? okAsync(existingStripeInvoiceResult(existingByAdjustmentId._id))
+					: insertNewStripeInvoiceRecord(ctx, invoice)
+		);
+	}
 
-			const stripeInvoiceRecordId = await ctx.db.insert("stripeInvoices", invoice);
-
-			return { stripeInvoiceRecordId, created: true };
-		})()
-	);
+	return insertNewStripeInvoiceRecord(ctx, invoice);
 }
 
 export function recordBookingStripeInvoice(
@@ -182,25 +221,16 @@ export function recordPackageAdjustmentStripeInvoice(
 	});
 }
 
-export function markStripeInvoicePaid(
+export function patchStripeInvoicePaymentStatus(
 	ctx: MutationCtx,
-	args: { stripeInvoiceId: string; paidAt: number }
-): ResultAsync<StripeInvoicePaymentClaim, never> {
-	return getStripeInvoiceByStripeInvoiceId(ctx, args.stripeInvoiceId).andThen((stripeInvoice) => {
-		if (!stripeInvoice) {
-			return okAsync({ outcome: "not_found" as const });
-		}
-
-		if (stripeInvoice.paymentStatus === "paid") {
-			return okAsync({ outcome: "already_completed" as const });
-		}
-
-		return okOrThrow(
-			ctx.db
-				.patch("stripeInvoices", stripeInvoice._id, { paymentStatus: "paid", paidAt: args.paidAt })
-				.then(() => ({ outcome: "completed" as const }))
-		);
-	});
+	stripeInvoiceRecordId: Id<"stripeInvoices">,
+	paidAt: number
+) {
+	return okOrThrow(
+		ctx.db
+			.patch("stripeInvoices", stripeInvoiceRecordId, { paymentStatus: "paid", paidAt })
+			.then(() => ({ outcome: "completed" as const }) satisfies StripeInvoicePaymentClaim)
+	);
 }
 
 export function listStripeInvoicesForBooking(ctx: QueryCtx, bookingId: Id<"bookings">) {

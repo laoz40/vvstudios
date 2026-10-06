@@ -6,12 +6,19 @@ import { tupleErr, tupleOk } from "#/lib/result";
 import {
 	bookingAddonQuantitiesValidator,
 	bookingAddonsValidator
-} from "#convex/lib/booking/bookingAddonQuantities";
+} from "#convex/services/booking/bookingFormValidators";
 import {
-	closeEmbeddedPackageCheckoutSessionService,
-	createPackageCheckoutSessionService
-} from "#convex/services/packages/packageCheckoutActions";
-import { resendPackageEmailService } from "#convex/services/packages/packagePayment";
+	closeAbandonedPackageStripeCheckout,
+	createPendingPackageForStripeCheckout,
+	openEmbeddedPackageStripeCheckout,
+	parsePackageCheckoutRequest,
+	runPackageCheckoutSubmitRateLimit
+} from "#convex/services/packages/packageCheckoutSession";
+import {
+	loadPaidPackageForEmailResend,
+	refreshPackageScheduleLinkForResend,
+	sendPackagePaidScheduleEmail
+} from "#convex/services/packages/packagePaidEmailResend";
 
 export const createPackageCheckoutSession = action({
 	args: {
@@ -26,16 +33,28 @@ export const createPackageCheckoutSession = action({
 		notes: v.optional(v.string()),
 		packageSize: v.union(v.literal(4), v.literal(8), v.literal(12))
 	},
-	handler: (ctx, args) => createPackageCheckoutSessionService(ctx, args).match(tupleOk, tupleErr)
+	handler: async (ctx, args) => {
+		return await parsePackageCheckoutRequest(args)
+			.andThen((packageRequest) => runPackageCheckoutSubmitRateLimit(ctx, packageRequest))
+			.andThen((validRequest) => createPendingPackageForStripeCheckout(ctx, validRequest))
+			.andThen((checkoutDraft) => openEmbeddedPackageStripeCheckout(ctx, checkoutDraft))
+			.match(tupleOk, tupleErr);
+	}
 });
 
 export const closeEmbeddedPackageCheckoutSession = action({
 	args: { packageId: v.id("packages"), stripeSessionId: v.string() },
-	handler: (ctx, args) =>
-		closeEmbeddedPackageCheckoutSessionService(ctx, args).match(tupleOk, tupleErr)
+	handler: async (ctx, args) =>
+		await closeAbandonedPackageStripeCheckout(ctx, args).match(tupleOk, tupleErr)
 });
 
 export const resendPackageEmail = action({
 	args: { packageId: v.id("packages") },
-	handler: (ctx, args) => resendPackageEmailService(ctx, args).match(tupleOk, tupleErr)
+	handler: async (ctx, args) =>
+		await loadPaidPackageForEmailResend(ctx, args)
+			.andThen(() => refreshPackageScheduleLinkForResend(ctx, args.packageId))
+			.andThen((tokenResult) =>
+				sendPackagePaidScheduleEmail(ctx, { packageId: args.packageId, tokenResult })
+			)
+			.match(tupleOk, tupleErr)
 });

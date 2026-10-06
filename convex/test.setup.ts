@@ -4,7 +4,7 @@ import { register } from "@convex-dev/rate-limiter/test";
 import { convexTest } from "convex-test";
 import schema from "#convex/schema";
 
-const modules = import.meta.glob("./**/*.ts");
+const modules = import.meta.glob(["./*.ts", "./_generated/*.ts", "!./test.setup.ts"]);
 
 export function createConvexTest() {
 	const testClient = convexTest(schema, modules);

@@ -5,9 +5,11 @@ import { google } from "googleapis";
 import { env } from "#convex/env";
 import { getGoogleOAuthClient } from "#convex/lib/googleCalendar/googleAuth";
 import {
-	calendarResultAsync,
+	calendarErrorSchema,
+	mapCalendarErrorCode,
 	type CalendarFallbackCode
 } from "#convex/lib/googleCalendar/googleCalendarErrors";
+import { tryPromise } from "#convex/lib/result";
 
 function parseGoogleCalendarAvailabilityIds(calendarId: string) {
 	return (env.GOOGLE_CALENDAR_AVAILABILITY_IDS ?? calendarId)
@@ -17,10 +19,18 @@ function parseGoogleCalendarAvailabilityIds(calendarId: string) {
 }
 
 export function loadGoogleCalendarClient<T extends CalendarFallbackCode>(fallbackReason: T) {
-	return calendarResultAsync(
-		Promise.resolve().then(() => getGoogleCalendarClient()),
-		fallbackReason
-	);
+	return tryPromise({
+		try: () => Promise.resolve().then(() => getGoogleCalendarClient()),
+		catch: (error) => {
+			const parsedError = calendarErrorSchema.safeParse(error);
+
+			return {
+				reason: parsedError.success
+					? mapCalendarErrorCode(parsedError.data, fallbackReason)
+					: fallbackReason
+			};
+		}
+	});
 }
 
 export function getGoogleCalendarClient() {

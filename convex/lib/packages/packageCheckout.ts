@@ -1,5 +1,7 @@
-import { err, ok, type Result } from "neverthrow";
-import type { Doc } from "#convex/_generated/dataModel";
+import { err, errAsync, ok, okAsync, type Result, type ResultAsync } from "neverthrow";
+import type { Doc, Id } from "#convex/_generated/dataModel";
+import type { MutationCtx } from "#convex/_generated/server";
+import { archiveDeadPackage } from "#convex/lib/packages/packageArchive";
 
 export type ExpirePackageError =
 	| { reason: "PACKAGE_NOT_FOUND" }
@@ -50,4 +52,81 @@ export function validatePendingPackageAbandonment(
 	}
 
 	return ok({ kind: "abandon" });
+}
+
+export function buildPublicPackageStatusResponse(packageFromDb: Doc<"packages">) {
+	return {
+		_id: packageFromDb._id,
+		status: packageFromDb.status,
+		packageSize: packageFromDb.packageSize,
+		paidAt: packageFromDb.paidAt,
+		createdAt: packageFromDb.createdAt
+	};
+}
+
+export function validateActivePackageForInstagramUpdate(
+	packageFromDb: Doc<"packages">
+): Result<Doc<"packages">, { reason: "PACKAGE_NOT_ACTIVE" }> {
+	if (packageFromDb.status !== "pending_payment" && packageFromDb.status !== "paid") {
+		return err({ reason: "PACKAGE_NOT_ACTIVE" });
+	}
+
+	return ok(packageFromDb);
+}
+
+function writeDeadPackageStatus(
+	ctx: MutationCtx,
+	packageId: Id<"packages">,
+	status: "expired" | "abandoned"
+): ResultAsync<null, never> {
+	return archiveDeadPackage(ctx, packageId, { status });
+}
+
+export function writeExpiredPackage(
+	ctx: MutationCtx,
+	packageId: Id<"packages">
+): ResultAsync<{ alreadyExpired: false }, never> {
+	return writeDeadPackageStatus(ctx, packageId, "expired").map(() => ({
+		alreadyExpired: false as const
+	}));
+}
+
+export function writeAbandonedPackage(
+	ctx: MutationCtx,
+	packageId: Id<"packages">
+): ResultAsync<Extract<AbandonPendingPackageSuccess, { outcome: "abandoned" }>, never> {
+	return writeDeadPackageStatus(ctx, packageId, "abandoned").map(() => ({
+		outcome: "abandoned" as const
+	}));
+}
+
+export function expirePackageAfterValidate(
+	ctx: MutationCtx,
+	decision: ExpirePackageDecision
+): ResultAsync<{ alreadyExpired: boolean }, never> {
+	if (decision.kind === "complete") {
+		return okAsync({ alreadyExpired: decision.alreadyExpired });
+	}
+
+	return writeExpiredPackage(ctx, decision.packageId);
+}
+
+export function abandonPackageAfterValidate(
+	ctx: MutationCtx,
+	packageId: Id<"packages">,
+	decision: AbandonPendingPackageDecision
+): ResultAsync<AbandonPendingPackageSuccess, never> {
+	if (decision.kind === "complete") {
+		return okAsync(decision.value);
+	}
+
+	return writeAbandonedPackage(ctx, packageId);
+}
+
+export function mapPackageNotFoundToAbandonOutcome(
+	error: { reason: "PACKAGE_NOT_FOUND" } | { reason: string }
+) {
+	return error.reason === "PACKAGE_NOT_FOUND"
+		? ok({ outcome: "not_found" as const })
+		: errAsync(error);
 }

@@ -4,11 +4,12 @@ import { internalQuery, mutation, query } from "#convex/_generated/server";
 import {
 	bookingAddonQuantitiesValidator,
 	bookingAddonsValidator
-} from "#convex/lib/booking/bookingAddonQuantities";
+} from "#convex/services/booking/bookingFormValidators";
 import {
-	createBookingCustomInvoiceService,
-	listCustomInvoicesForBookingService
-} from "#convex/services/stripe/customInvoices";
+	createBookingCustomInvoiceFromAdmin,
+	listCustomInvoicesForBooking as listCustomInvoicesForBookingStep,
+	loadBookingCustomInvoiceInput
+} from "#convex/services/stripe/bookingCustomInvoice";
 
 export const createCustomInvoice = mutation({
 	args: {
@@ -22,24 +23,19 @@ export const createCustomInvoice = mutation({
 		customTotalDueAmount: v.optional(v.number())
 	},
 	handler: async (ctx, args) =>
-		createBookingCustomInvoiceService(ctx, args).match(tupleOk, tupleErr)
+		createBookingCustomInvoiceFromAdmin(ctx, args).match(tupleOk, tupleErr)
 });
 
 export const listCustomInvoicesForBooking = query({
 	args: { bookingId: v.id("bookings") },
-	handler: async (ctx, args) =>
-		listCustomInvoicesForBookingService(ctx, args).match(tupleOk, tupleErr)
+	handler: async (ctx, args) => listCustomInvoicesForBookingStep(ctx, args).match(tupleOk, tupleErr)
 });
 
 export const getBookingCustomInvoiceInput = internalQuery({
 	args: { bookingId: v.id("bookings"), customInvoiceId: v.id("customInvoices") },
-	handler: async (ctx, args) => {
-		const customInvoice = await ctx.db.get("customInvoices", args.customInvoiceId);
-
-		if (customInvoice?.bookingId !== args.bookingId) {
-			return null;
-		}
-
-		return customInvoice;
-	}
+	handler: async (ctx, args) =>
+		(await loadBookingCustomInvoiceInput(ctx, args)).match(
+			(customInvoice) => customInvoice,
+			() => null
+		)
 });

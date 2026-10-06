@@ -119,6 +119,10 @@ const savePackageBookingMessages = {
 	BOOKING_RATE_LIMITED: "Too many session updates. Please wait a minute and try again.",
 	GOOGLE_CALENDAR_AUTH_FAILED: "Calendar access failed. Please try again later.",
 	GOOGLE_CALENDAR_SYNC_FAILED: "Could not update the calendar event. Please try again.",
+	GOOGLE_CALENDAR_AVAILABILITY_FAILED: "Availability could not be loaded. Please try again.",
+	GOOGLE_CALENDAR_CREATE_FAILED: "Could not create the calendar event. Please try again.",
+	GOOGLE_CALENDAR_UPDATE_FAILED: "Could not update the calendar event. Please try again.",
+	GOOGLE_CALENDAR_DELETE_FAILED: "Could not remove the calendar event. Please try again.",
 	GOOGLE_CALENDAR_RATE_LIMITED:
 		"Availability was checked too many times. Please wait a minute and try again.",
 	UNEXPECTED_ERROR: "Something went wrong while saving this session."
@@ -154,7 +158,13 @@ export function getUnschedulePackageBookingToastMessage(
 		case "GOOGLE_CALENDAR_AUTH_FAILED":
 			return "Calendar access failed. Please try again later.";
 		case "GOOGLE_CALENDAR_SYNC_FAILED":
+		case "GOOGLE_CALENDAR_DELETE_FAILED":
 			return "Could not remove the calendar event. Please try again.";
+		case "GOOGLE_CALENDAR_AVAILABILITY_FAILED":
+			return "Availability could not be loaded. Please try again.";
+		case "GOOGLE_CALENDAR_CREATE_FAILED":
+		case "GOOGLE_CALENDAR_UPDATE_FAILED":
+			return "Could not update the calendar event. Please try again.";
 		case "GOOGLE_CALENDAR_RATE_LIMITED":
 			return "Calendar updates are busy. Please wait a minute and try again.";
 		case "UNEXPECTED_ERROR":

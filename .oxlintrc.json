@@ -3,6 +3,7 @@
 	"jsPlugins": [
 		{ "name": "anti-slop", "specifier": "./tools/oxlint/anti-slop/index.ts" },
 		{ "name": "neverthrow", "specifier": "./tools/oxlint/neverthrow/index.ts" },
+		{ "name": "convex-layers", "specifier": "./tools/oxlint/convex-layers/index.ts" },
 		"@convex-dev/eslint-plugin"
 	],
 	"plugins": ["eslint", "oxc", "typescript", "unicorn", "react", "import", "jsx-a11y"],
@@ -15,7 +16,8 @@
 		"convex/_generated/**",
 		"src/**/*.gen.ts",
 		"tools/oxlint/anti-slop/**",
-		"tools/oxlint/neverthrow/**"
+		"tools/oxlint/neverthrow/**",
+		"tools/oxlint/convex-layers/**"
 	],
 	"rules": {
 		"@typescript-eslint/ban-ts-comment": "error",
@@ -222,7 +224,23 @@
 			"files": ["convex/services/**", "convex/*.ts"],
 			"rules": { "neverthrow/no-export-okorthrow-on-call": "error" }
 		},
-		{ "files": ["convex/lib/**"], "rules": { "neverthrow/no-export-okorthrow-on-call": "warn" } },
+		{
+			"files": ["convex/lib/**"],
+			"rules": {
+				"convex-layers/no-lib-loader-orchestration": "error",
+				"neverthrow/no-export-okorthrow-on-call": "warn"
+			}
+		},
+		{
+			"files": ["convex/services/**", "convex/*.ts"],
+			"rules": {
+				"convex-layers/no-db-in-services": "error",
+				"convex-layers/no-lib-reexport": "error",
+				"convex-layers/no-handler-lib-import": "error",
+				"convex-layers/no-inline-callback-in-service-chains": "error",
+				"convex-layers/pure-validation-in-lib-only": "error"
+			}
+		},
 		{
 			"files": ["**/*.ts", "**/*.tsx", "**/*.mts", "**/*.cts"],
 			"rules": {

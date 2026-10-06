@@ -1,12 +1,12 @@
 import { v } from "convex/values";
 import { tupleErr, tupleOk } from "#/lib/result";
 import { internalMutation, internalQuery } from "#convex/_generated/server";
+import { listPackagesPotentiallyDueForExpiryReminderService } from "#convex/services/packages/packageReminders";
 import {
-	claimPackageReminderService,
-	listPackagesPotentiallyDueForExpiryReminderService,
-	markPackageReminderFailedService,
-	markPackageReminderSentService
-} from "#convex/services/packages/packageReminders";
+	claimPackageReminderEmail,
+	writePackageReminderEmailFailed,
+	writePackageReminderEmailSent
+} from "#convex/services/packages/packageReminderMutations";
 
 export { sendDuePackageReminders } from "#convex/services/packages/packageReminders";
 
@@ -17,15 +17,15 @@ export const listPackagesPotentiallyDueForExpiryReminder = internalQuery({
 
 export const claimPackageReminder = internalMutation({
 	args: { packageId: v.id("packages"), reminderType: v.literal("expiry"), now: v.number() },
-	handler: (ctx, args) => claimPackageReminderService(ctx, args).match(tupleOk, tupleErr)
+	handler: (ctx, args) => claimPackageReminderEmail(ctx, args).match(tupleOk, tupleErr)
 });
 
 export const markPackageReminderSent = internalMutation({
 	args: { packageId: v.id("packages"), reminderType: v.literal("expiry"), now: v.number() },
-	handler: (ctx, args) => markPackageReminderSentService(ctx, args).match(tupleOk, tupleErr)
+	handler: (ctx, args) => writePackageReminderEmailSent(ctx, args).match(tupleOk, tupleErr)
 });
 
 export const markPackageReminderFailed = internalMutation({
 	args: { packageId: v.id("packages"), reminderType: v.literal("expiry"), failureCode: v.string() },
-	handler: (ctx, args) => markPackageReminderFailedService(ctx, args).match(tupleOk, tupleErr)
+	handler: (ctx, args) => writePackageReminderEmailFailed(ctx, args).match(tupleOk, tupleErr)
 });

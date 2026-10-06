@@ -1,10 +1,13 @@
-import { err, ok, type Result } from "neverthrow";
 import { internal } from "#convex/_generated/api";
-import type { Doc } from "#convex/_generated/dataModel";
+import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
 import { getEditorWorkStatus } from "#convex/lib/editor/editorAccess";
+import { okAsync, ResultAsync } from "neverthrow";
 import { okOrThrow } from "#convex/lib/result";
-import { searchBlobPatchForBooking } from "#convex/lib/adminSearch/adminSearchBlob";
+import {
+	type BookingSearchBlobPatch,
+	searchBlobPatchForBookingAsync
+} from "#convex/lib/adminSearch/adminSearchBlob";
 
 const ACTIVE_EDITOR_LIMIT = 200;
 
@@ -14,26 +17,49 @@ export function editorProfileDisplayName(
 	return editor.displayName || editor.email;
 }
 
-export async function patchBookingsAssignedEditorDisplayName(
+function patchBookingAssignedEditorDisplayName(
+	ctx: MutationCtx,
+	booking: Doc<"bookings">,
+	assignedEditorDisplayName: string
+) {
+	return searchBlobPatchForBookingAsync(ctx, booking, { assignedEditorDisplayName }).andThen(
+		(searchBlobPatch) =>
+			okOrThrow(ctx.db.patch("bookings", booking._id, searchBlobPatch).then(() => null))
+	);
+}
+
+function writeBookingsAssignedEditorDisplayNameChain(
 	ctx: MutationCtx,
 	editorTokenIdentifier: string,
 	assignedEditorDisplayName: string
 ) {
-	const bookings = await ctx.db
-		.query("bookings")
-		.withIndex("by_assignedEditorTokenIdentifier_and_driveClientId", (query) =>
-			query.eq("assignedEditorTokenIdentifier", editorTokenIdentifier)
-		)
-		.collect();
+	return okOrThrow(
+		ctx.db
+			.query("bookings")
+			.withIndex("by_assignedEditorTokenIdentifier_and_driveClientId", (query) =>
+				query.eq("assignedEditorTokenIdentifier", editorTokenIdentifier)
+			)
+			.collect()
+	).andThen((bookings) =>
+		bookings.length === 0
+			? okAsync(null)
+			: ResultAsync.combine(
+					bookings.map((booking) =>
+						patchBookingAssignedEditorDisplayName(ctx, booking, assignedEditorDisplayName)
+					)
+				).map(() => null)
+	);
+}
 
-	await Promise.all(
-		bookings.map(async (booking) => {
-			const searchBlobPatch = await searchBlobPatchForBooking(ctx, booking, {
-				assignedEditorDisplayName
-			});
-
-			return ctx.db.patch("bookings", booking._id, searchBlobPatch);
-		})
+export function writeBookingsAssignedEditorDisplayName(
+	ctx: MutationCtx,
+	editorTokenIdentifier: string,
+	assignedEditorDisplayName: string
+) {
+	return writeBookingsAssignedEditorDisplayNameChain(
+		ctx,
+		editorTokenIdentifier,
+		assignedEditorDisplayName
 	);
 }
 
@@ -78,7 +104,7 @@ export function buildActiveEditorProjection(ctx: QueryCtx, editor: Doc<"editorPr
 	}));
 }
 
-export function getActiveEditor(ctx: MutationCtx, editorTokenIdentifier: string) {
+export function lookupEditorProfileByToken(ctx: MutationCtx, editorTokenIdentifier: string) {
 	return okOrThrow(
 		ctx.db
 			.query("editorProfiles")
@@ -86,97 +112,55 @@ export function getActiveEditor(ctx: MutationCtx, editorTokenIdentifier: string)
 				query.eq("tokenIdentifier", editorTokenIdentifier)
 			)
 			.unique()
-	).andThen((editor) => {
-		if (editor === null || !editor.isActive) {
-			return err({ reason: "EDITOR_NOT_ACTIVE" as const });
-		}
-
-		return ok(editor);
-	});
-}
-
-function isEditorAssignableSession(session: Doc<"bookings">): boolean {
-	return session.status === "confirmed" || session.status === "email_failed";
-}
-
-function requireEditorAssignableSession(
-	session: Doc<"bookings">
-): Result<Doc<"bookings">, { reason: "SESSION_NOT_ASSIGNABLE" }> {
-	if (!isEditorAssignableSession(session)) {
-		return err({ reason: "SESSION_NOT_ASSIGNABLE" as const });
-	}
-
-	return ok(session);
-}
-
-function saveSessionEditorAssignment(
-	ctx: MutationCtx,
-	session: Doc<"bookings">,
-	editor: Doc<"editorProfiles"> | undefined,
-	adminNotes: string
-) {
-	return okOrThrow(
-		(async () => {
-			const previousEditorTokenIdentifier = session.assignedEditorTokenIdentifier;
-
-			const assignedEditorDisplayName =
-				editor !== undefined ? editorProfileDisplayName(editor) : undefined;
-
-			const searchBlobPatch = await searchBlobPatchForBooking(ctx, {
-				...session,
-				assignedEditorTokenIdentifier: editor?.tokenIdentifier,
-				assignedEditorDisplayName
-			});
-
-			await ctx.db.patch("bookings", session._id, {
-				adminNotes: adminNotes.trim() || undefined,
-				assignedEditorTokenIdentifier: editor?.tokenIdentifier,
-				...searchBlobPatch
-			});
-
-			// Assignment and the editor's latest-assignment timestamp are saved in one transaction.
-			if (editor !== undefined) {
-				await ctx.db.patch("editorProfiles", editor._id, { lastAssignedAt: Date.now() });
-			}
-
-			const editorChanged = previousEditorTokenIdentifier !== editor?.tokenIdentifier;
-
-			const previousEditorNeedsAccessRemoved =
-				previousEditorTokenIdentifier !== undefined && editorChanged;
-
-			// Reassignment and unassignment must remove the previous editor before adding new access.
-			if (previousEditorNeedsAccessRemoved) {
-				await ctx.scheduler.runAfter(0, internal.drive.updateEditorDriveAccess, {
-					bookingId: session._id,
-					previousEditorTokenIdentifier
-				});
-			}
-
-			const isFirstAssignment = previousEditorTokenIdentifier === undefined && editor !== undefined;
-
-			// A first assignment has no old Drive access to remove.
-			if (isFirstAssignment) {
-				await ctx.scheduler.runAfter(0, internal.drive.setupEditorAccess, {
-					bookingId: session._id
-				});
-			}
-
-			return null;
-		})()
 	);
 }
 
-export function updateSessionEditorAssignment(
+export function patchBookingEditorAssignment(
 	ctx: MutationCtx,
-	session: Doc<"bookings">,
-	editorTokenIdentifier: string | null,
-	adminNotes: string
-) {
-	if (editorTokenIdentifier === null) {
-		return saveSessionEditorAssignment(ctx, session, undefined, adminNotes);
+	bookingId: Id<"bookings">,
+	patch: {
+		adminNotes?: string;
+		assignedEditorTokenIdentifier?: string;
+		searchBlobPatch: BookingSearchBlobPatch;
 	}
+) {
+	return okOrThrow(
+		ctx.db
+			.patch("bookings", bookingId, {
+				adminNotes: patch.adminNotes,
+				assignedEditorTokenIdentifier: patch.assignedEditorTokenIdentifier,
+				...patch.searchBlobPatch
+			})
+			.then(() => null)
+	);
+}
 
-	return requireEditorAssignableSession(session)
-		.asyncAndThen(() => getActiveEditor(ctx, editorTokenIdentifier))
-		.andThen((editor) => saveSessionEditorAssignment(ctx, session, editor, adminNotes));
+export function patchEditorProfileLastAssignedAt(
+	ctx: MutationCtx,
+	editorProfileId: Id<"editorProfiles">
+) {
+	return okOrThrow(
+		ctx.db.patch("editorProfiles", editorProfileId, { lastAssignedAt: Date.now() }).then(() => null)
+	);
+}
+
+export function scheduleEditorDriveAccessUpdate(
+	ctx: MutationCtx,
+	bookingId: Id<"bookings">,
+	previousEditorTokenIdentifier: string
+) {
+	return okOrThrow(
+		ctx.scheduler
+			.runAfter(0, internal.drive.updateEditorDriveAccess, {
+				bookingId,
+				previousEditorTokenIdentifier
+			})
+			.then(() => null)
+	);
+}
+
+export function scheduleEditorDriveAccessSetup(ctx: MutationCtx, bookingId: Id<"bookings">) {
+	return okOrThrow(
+		ctx.scheduler.runAfter(0, internal.drive.setupEditorAccess, { bookingId }).then(() => null)
+	);
 }

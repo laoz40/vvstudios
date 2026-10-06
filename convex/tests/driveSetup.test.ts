@@ -11,7 +11,7 @@ import { describe, expect, test } from "vitest";
 import { bookingDocument } from "#convex/tests/insertDocumentDefaults";
 import { internal } from "#convex/_generated/api";
 import type { Id } from "#convex/_generated/dataModel";
-import { getOrCreateDriveClientId } from "#convex/lib/drive/driveFolders";
+import { getOrCreateDriveClientId } from "#convex/services/drive/driveInternal";
 import { resolveSessionFolderDisplayName } from "#convex/lib/drive/sessionFolders/resolveFolderNames";
 import { createConvexTest } from "#convex/test.setup";
 
@@ -76,12 +76,12 @@ describe("drive setup guards", () => {
 		});
 
 		expect(
-			await t.mutation(internal.internal.sessionsDrive.syncBookingDriveClientIdFromSession, {
+			await t.mutation(internal.sessionsDriveInternal.syncBookingDriveClientIdFromSession, {
 				bookingId: deletedBookingId
 			})
 		).toEqual([{ reason: "BOOKING_NOT_FOUND" }, null]);
 		expect(
-			await t.mutation(internal.internal.sessionsDrive.syncBookingDriveClientIdFromSession, {
+			await t.mutation(internal.sessionsDriveInternal.syncBookingDriveClientIdFromSession, {
 				bookingId
 			})
 		).toEqual([{ reason: "DRIVE_RECORD_NOT_FOUND" }, null]);
@@ -111,17 +111,17 @@ describe("drive setup guards", () => {
 		});
 
 		expect(
-			await t.mutation(internal.internal.sessionsDrive.allocateClientSessionNumber, {
+			await t.mutation(internal.sessionsDriveInternal.allocateClientSessionNumber, {
 				bookingId: laterBookingId
 			})
 		).toEqual([null, 2]);
 		expect(
-			await t.mutation(internal.internal.sessionsDrive.allocateClientSessionNumber, {
+			await t.mutation(internal.sessionsDriveInternal.allocateClientSessionNumber, {
 				bookingId: earlierBookingId
 			})
 		).toEqual([null, 1]);
 		expect(
-			await t.mutation(internal.internal.sessionsDrive.allocateClientSessionNumber, {
+			await t.mutation(internal.sessionsDriveInternal.allocateClientSessionNumber, {
 				bookingId: earlierBookingId
 			})
 		).toEqual([null, 1]);
@@ -169,7 +169,7 @@ describe("drive setup guards", () => {
 		});
 
 		expect(
-			await t.mutation(internal.internal.sessionsDrive.allocateClientSessionNumber, {
+			await t.mutation(internal.sessionsDriveInternal.allocateClientSessionNumber, {
 				bookingId: laterBookingId
 			})
 		).toEqual([null, 2]);
@@ -190,10 +190,10 @@ describe("drive setup guards", () => {
 		});
 
 		expect(
-			await t.mutation(internal.internal.sessionsDrive.allocateClientSessionNumber, { bookingId })
+			await t.mutation(internal.sessionsDriveInternal.allocateClientSessionNumber, { bookingId })
 		).toEqual([null, 1]);
 
-		await t.mutation(internal.internal.sessionsDrive.saveDriveSessionFolder, {
+		await t.mutation(internal.sessionsDriveInternal.saveDriveSessionFolder, {
 			bookingId,
 			driveClientId,
 			folder: {
@@ -204,7 +204,7 @@ describe("drive setup guards", () => {
 		});
 
 		expect(
-			await t.mutation(internal.internal.sessionsDrive.clearSessionDriveDb, { bookingId })
+			await t.mutation(internal.sessionsDriveInternal.clearSessionDriveDb, { bookingId })
 		).toEqual([null, null]);
 
 		const driveSession = await readDriveSession(t, bookingId);
@@ -235,14 +235,14 @@ describe("drive setup guards", () => {
 		};
 
 		expect(
-			await t.mutation(internal.internal.sessionsDrive.saveDriveSessionFolder, {
+			await t.mutation(internal.sessionsDriveInternal.saveDriveSessionFolder, {
 				bookingId,
 				driveClientId,
 				folder: firstFolder
 			})
 		).toEqual([null, firstFolder.id]);
 		expect(
-			await t.mutation(internal.internal.sessionsDrive.saveDriveSessionFolder, {
+			await t.mutation(internal.sessionsDriveInternal.saveDriveSessionFolder, {
 				bookingId,
 				driveClientId,
 				folder: secondFolder

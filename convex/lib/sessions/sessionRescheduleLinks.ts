@@ -1,17 +1,14 @@
-import { err, ok, ResultAsync } from "neverthrow";
+import { err, ok, okAsync, type Result, type ResultAsync } from "neverthrow";
 import { internal } from "#convex/_generated/api";
 import type { Doc, Id } from "#convex/_generated/dataModel";
-import type { ActionCtx, MutationCtx } from "#convex/_generated/server";
+import type { ActionCtx, MutationCtx, QueryCtx } from "#convex/_generated/server";
 import { env } from "#convex/env";
+import { bytesToHex } from "#convex/lib/crypto/bytesToHex";
 import { fromConvexTuple, okOrThrow } from "#convex/lib/result";
 
 const rescheduleLinkInvalidationBatchSize = 100;
 
 const rescheduleTokenByteLength = 32;
-
-const hexRadix = 16;
-
-const hexByteLength = 2;
 
 export type SessionRescheduleLinkStatus = "active" | "used" | "expired";
 
@@ -37,9 +34,15 @@ export type LockRescheduleLinkError =
 	| { reason: "RESCHEDULE_LINK_USED" }
 	| { reason: "RESCHEDULE_LINK_EXPIRED" };
 
-function bytesToHex(bytes: Uint8Array) {
-	return Array.from(bytes, (byte) => byte.toString(hexRadix).padStart(hexByteLength, "0")).join("");
-}
+export type RescheduleLinkLookupError =
+	| LockRescheduleLinkError
+	| { reason: "BOOKING_NOT_FOUND" }
+	| { reason: "BOOKING_NOT_RESCHEDULABLE" };
+
+export type ValidRescheduleLinkAndSession = {
+	session: Doc<"bookings">;
+	link: Doc<"bookingRescheduleLinks">;
+};
 
 export function generateRescheduleToken() {
 	const bytes = new Uint8Array(rescheduleTokenByteLength);
@@ -75,6 +78,29 @@ export function buildRescheduleUrl(baseUrl: string, token: string) {
 
 export function getRescheduleUrlForToken(token: string) {
 	return buildRescheduleUrl(new URL(env.STRIPE_CHECKOUT_RETURN_URL).origin, token);
+}
+
+export function rescheduleUrlFromLinkRow(link: { token: string }) {
+	return { rescheduleUrl: getRescheduleUrlForToken(link.token) };
+}
+
+export function validateRescheduleLinkSession(
+	args: { now: number },
+	{ link, session }: { link: Doc<"bookingRescheduleLinks">; session: Doc<"bookings"> | null }
+): Result<ValidRescheduleLinkAndSession, RescheduleLinkLookupError> {
+	if (session === null) {
+		return err({ reason: "BOOKING_NOT_FOUND" });
+	}
+
+	if (isRescheduleLinkExpired(link, session, args.now)) {
+		return err({ reason: "RESCHEDULE_LINK_EXPIRED" });
+	}
+
+	if (!isSessionReschedulable(session)) {
+		return err({ reason: "BOOKING_NOT_RESCHEDULABLE" });
+	}
+
+	return ok({ session, link });
 }
 
 export function isSessionReschedulable(session: Doc<"bookings">) {
@@ -175,11 +201,7 @@ export function createActiveRescheduleLinkForSession({
 	expiresAt: number;
 	now: number;
 }): ResultAsync<{ linkId: Id<"bookingRescheduleLinks">; token: string }, never> {
-	return okOrThrow(
-		markExistingActiveSessionRescheduleLinksUsed({ ctx, bookingId: session._id, now }).then(
-			() => null
-		)
-	).andThen(() => {
+	return writeRescheduleLinksUsedForBooking(ctx, { bookingId: session._id, now }).andThen(() => {
 		const token = generateRescheduleToken();
 
 		return hashRescheduleTokenAsync(token).andThen((tokenHash) =>
@@ -198,33 +220,65 @@ export function createActiveRescheduleLinkForSession({
 	});
 }
 
-export async function markExistingActiveSessionRescheduleLinksUsed(args: {
-	ctx: MutationCtx;
-	bookingId: Id<"bookings">;
-	now: number;
-}) {
-	const invalidateNextBatch = async (): Promise<void> => {
-		const activeLinks = await args.ctx.db
+function invalidateNextRescheduleLinksBatch(
+	ctx: MutationCtx,
+	args: { bookingId: Id<"bookings">; now: number }
+): ResultAsync<null, never> {
+	return okOrThrow(
+		ctx.db
 			.query("bookingRescheduleLinks")
 			.withIndex("by_bookingId_and_status", (q) =>
 				q.eq("bookingId", args.bookingId).eq("status", "active")
 			)
-			.take(rescheduleLinkInvalidationBatchSize);
-
+			.take(rescheduleLinkInvalidationBatchSize)
+	).andThen((activeLinks) => {
 		if (activeLinks.length === 0) {
-			return;
+			return okAsync(null);
 		}
 
-		await Promise.all(
-			activeLinks.map((link) =>
-				args.ctx.db.patch("bookingRescheduleLinks", link._id, { status: "used", usedAt: args.now })
+		return okOrThrow(
+			Promise.all(
+				activeLinks.map((link) =>
+					ctx.db.patch("bookingRescheduleLinks", link._id, { status: "used", usedAt: args.now })
+				)
 			)
-		);
+		).andThen(() => {
+			if (activeLinks.length < rescheduleLinkInvalidationBatchSize) {
+				return okAsync(null);
+			}
 
-		if (activeLinks.length === rescheduleLinkInvalidationBatchSize) {
-			await invalidateNextBatch();
-		}
-	};
+			return invalidateNextRescheduleLinksBatch(ctx, args);
+		});
+	});
+}
 
-	await invalidateNextBatch();
+export function writeRescheduleLinksUsedForBooking(
+	ctx: MutationCtx,
+	args: { bookingId: Id<"bookings">; now: number }
+) {
+	return invalidateNextRescheduleLinksBatch(ctx, args);
+}
+
+export function lookupRescheduleLinkByTokenHash(ctx: QueryCtx, tokenHash: string) {
+	return okOrThrow(
+		ctx.db
+			.query("bookingRescheduleLinks")
+			.withIndex("by_tokenHash", (query) => query.eq("tokenHash", tokenHash))
+			.unique()
+	);
+}
+
+export function getRescheduleLinkRow(
+	ctx: QueryCtx | MutationCtx,
+	linkId: Id<"bookingRescheduleLinks">
+) {
+	return okOrThrow(ctx.db.get("bookingRescheduleLinks", linkId));
+}
+
+export function patchRescheduleLinkRow(
+	ctx: MutationCtx,
+	linkId: Id<"bookingRescheduleLinks">,
+	patch: Partial<Pick<Doc<"bookingRescheduleLinks">, "status" | "usedAt" | "expiresAt">>
+) {
+	return okOrThrow(ctx.db.patch("bookingRescheduleLinks", linkId, patch).then(() => null));
 }

@@ -1,9 +1,8 @@
 import { err, ok, okAsync, type ResultAsync } from "neverthrow";
 import { internal } from "#convex/_generated/api";
 import type { Doc, Id } from "#convex/_generated/dataModel";
-import type { ActionCtx, MutationCtx } from "#convex/_generated/server";
+import type { ActionCtx, MutationCtx, QueryCtx } from "#convex/_generated/server";
 import { okOrThrow } from "#convex/lib/result";
-import { formatBookingInvoiceNumber } from "#studio/features/booking-invoice/lib/build-booking-invoice-data";
 
 type CustomInvoiceInsert = Omit<
 	Doc<"customInvoices">,
@@ -19,12 +18,29 @@ export function getSelectedBookingCustomInvoice(
 		return okAsync(undefined);
 	}
 
-	return okOrThrow(
+	return okOrThrow<Doc<"customInvoices"> | null>(
 		ctx.runQuery(internal.customInvoices.getBookingCustomInvoiceInput, {
 			bookingId,
 			customInvoiceId
 		})
 	);
+}
+
+export function listCustomInvoicesByBookingId(ctx: QueryCtx, bookingId: Id<"bookings">) {
+	return okOrThrow(
+		ctx.db
+			.query("customInvoices")
+			.withIndex("by_bookingId", (query) => query.eq("bookingId", bookingId))
+			.order("desc")
+			.collect()
+	);
+}
+
+export function getCustomInvoiceRow(
+	ctx: QueryCtx | MutationCtx,
+	customInvoiceId: Id<"customInvoices">
+) {
+	return okOrThrow(ctx.db.get("customInvoices", customInvoiceId));
 }
 
 export function validateCustomTotalDueAmount(amount: number | undefined) {
@@ -35,22 +51,20 @@ export function validateCustomTotalDueAmount(amount: number | undefined) {
 	return ok(null);
 }
 
-export function saveNumberedCustomInvoice(ctx: MutationCtx, invoice: CustomInvoiceInsert) {
+export function insertPendingCustomInvoice(ctx: MutationCtx, invoice: CustomInvoiceInsert) {
+	const createdAt = Date.now();
+
 	return okOrThrow(
-		(async () => {
-			const createdAt = Date.now();
+		ctx.db.insert("customInvoices", { ...invoice, invoiceNumber: "pending", createdAt })
+	).map((customInvoiceId) => ({ customInvoiceId, createdAt }));
+}
 
-			const customInvoiceId = await ctx.db.insert("customInvoices", {
-				...invoice,
-				invoiceNumber: "pending",
-				createdAt
-			});
-
-			const invoiceNumber = formatBookingInvoiceNumber(customInvoiceId, createdAt);
-
-			await ctx.db.patch("customInvoices", customInvoiceId, { invoiceNumber });
-
-			return { customInvoiceId, invoiceNumber, createdAt };
-		})()
+export function patchCustomInvoiceNumber(
+	ctx: MutationCtx,
+	customInvoiceId: Id<"customInvoices">,
+	invoiceNumber: string
+) {
+	return okOrThrow(
+		ctx.db.patch("customInvoices", customInvoiceId, { invoiceNumber }).then(() => null)
 	);
 }

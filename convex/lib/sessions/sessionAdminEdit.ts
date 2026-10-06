@@ -16,7 +16,7 @@ import {
 } from "#convex/lib/sessions/sessionCalendarTime";
 import { normalizePhone } from "#convex/lib/contactNormalization";
 import { getBusyWindows } from "#convex/lib/googleCalendar/googleCalendarAvailability";
-import { calendarResultAsync } from "#convex/lib/googleCalendar/googleCalendarErrors";
+import { tryGoogleCalendarAvailability } from "#convex/lib/googleCalendar/googleCalendarErrors";
 
 type SessionEditValues = {
 	name: string;
@@ -285,9 +285,8 @@ export function verifySessionCanBeScheduled({
 		return okAsync(false);
 	}
 
-	return calendarResultAsync(
-		getBusyWindows({ calendar, calendarIds, date: session.date, timeZone }),
-		"GOOGLE_CALENDAR_AVAILABILITY_FAILED"
+	return tryGoogleCalendarAvailability(() =>
+		getBusyWindows({ calendar, calendarIds, date: session.date, timeZone })
 	).map((busyWindows) =>
 		isTimeSlotAvailable({
 			busyWindows,
@@ -341,7 +340,7 @@ export function validateSessionTimingEdit({
 			});
 
 	return settingsResult.asyncAndThen(() =>
-		calendarResultAsync(
+		tryGoogleCalendarAvailability(() =>
 			getBusyWindows({
 				calendar,
 				calendarIds,
@@ -357,8 +356,7 @@ export function validateSessionTimingEdit({
 					time: next.time,
 					timeZone
 				})
-			),
-			"GOOGLE_CALENDAR_AVAILABILITY_FAILED"
+			)
 		).andThen((isAvailable) =>
 			isAvailable ? ok(null) : err({ reason: "BOOKING_TIME_UNAVAILABLE" as const })
 		)

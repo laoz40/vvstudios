@@ -103,6 +103,97 @@ function allowedCtxRootFromExpression(expression: ESTree.Expression): string | n
 	return null;
 }
 
+function isCryptoSubtleDigest(expression: ESTree.Expression): boolean {
+	const unwrapped = unwrapExpression(expression);
+
+	if (unwrapped.type !== "CallExpression") {
+		return false;
+	}
+
+	const callee = unwrapExpression(unwrapped.callee);
+
+	if (
+		callee.type !== "MemberExpression" ||
+		callee.computed ||
+		callee.property.type !== "Identifier" ||
+		callee.property.name !== "digest"
+	) {
+		return false;
+	}
+
+	const digestTarget = unwrapExpression(callee.object);
+
+	if (digestTarget.type !== "MemberExpression" || digestTarget.computed) {
+		return false;
+	}
+
+	if (
+		digestTarget.property.type !== "Identifier" ||
+		digestTarget.property.name !== "subtle"
+	) {
+		return false;
+	}
+
+	const cryptoRoot = unwrapExpression(digestTarget.object);
+
+	return cryptoRoot.type === "Identifier" && cryptoRoot.name === "crypto";
+}
+
+function isArrayMapOfAllowedCtxIo(expression: ESTree.Expression): boolean {
+	const unwrapped = unwrapExpression(expression);
+
+	if (unwrapped.type !== "CallExpression") {
+		return false;
+	}
+
+	const callee = unwrapExpression(unwrapped.callee);
+
+	if (
+		callee.type !== "MemberExpression" ||
+		callee.computed ||
+		callee.property.type !== "Identifier" ||
+		callee.property.name !== "map"
+	) {
+		return false;
+	}
+
+	const [mapCallback] = unwrapped.arguments;
+
+	if (mapCallback === undefined || mapCallback.type === "SpreadElement") {
+		return false;
+	}
+
+	if (mapCallback.type === "ArrowFunctionExpression") {
+		if (mapCallback.async || mapCallback.body.type === "BlockStatement") {
+			return false;
+		}
+
+		return isAllowedCtxIoExpression(unwrapExpression(mapCallback.body));
+	}
+
+	if (mapCallback.type === "FunctionExpression") {
+		const functionBody = mapCallback.body;
+
+		if (mapCallback.async || functionBody === null || functionBody.type !== "BlockStatement") {
+			return false;
+		}
+
+		const [returnStatement] = functionBody.body;
+
+		if (
+			returnStatement?.type !== "ReturnStatement" ||
+			returnStatement.argument === null ||
+			returnStatement.argument === undefined
+		) {
+			return false;
+		}
+
+		return isAllowedCtxIoExpression(unwrapExpression(returnStatement.argument));
+	}
+
+	return false;
+}
+
 function isRateLimiterLimitOnCtx(expression: ESTree.Expression): boolean {
 	const unwrapped = unwrapExpression(expression);
 
@@ -154,13 +245,17 @@ function isPromiseAllOfAllowedCtxIo(expression: ESTree.Expression): boolean {
 		return false;
 	}
 
-	const arrayExpression = unwrapExpression(firstArgument);
+	const arraySource = unwrapExpression(firstArgument);
 
-	if (arrayExpression.type !== "ArrayExpression") {
+	if (arraySource.type === "CallExpression" && isArrayMapOfAllowedCtxIo(arraySource)) {
+		return true;
+	}
+
+	if (arraySource.type !== "ArrayExpression") {
 		return false;
 	}
 
-	return arrayExpression.elements.every((element) => {
+	return arraySource.elements.every((element) => {
 		if (element === null || element.type === "SpreadElement") {
 			return false;
 		}
@@ -180,6 +275,10 @@ function isPromiseAllOfAllowedCtxIo(expression: ESTree.Expression): boolean {
 function isAllowedCtxIoExpression(expression: ESTree.Expression): boolean {
 	const root = stripPromiseChain(expression);
 
+	if (isCryptoSubtleDigest(root)) {
+		return true;
+	}
+
 	if (isRateLimiterLimitOnCtx(root)) {
 		return true;
 	}
@@ -197,9 +296,11 @@ function isAllowedCtxIoExpression(expression: ESTree.Expression): boolean {
  * Heuristic: `okOrThrow` is only for a single Convex I/O promise at the call site (`ctx.db`, `ctx.scheduler`,
  * `ctx.auth`, `ctx.runQuery`, `ctx.runMutation`, including `.then` chains on those reads/writes).
  *
- * Narrow allowlist extensions (documented): `rateLimiter.limit(ctx, …)` and `Promise.all([…])` when every
- * element is ctx I/O (including simple ternaries). Legacy `okOrThrow(domainHelper())` call sites should be
- * refactored to `ResultAsync` callees during layer migration.
+ * Narrow allowlist extensions (documented): `crypto.subtle.digest`, `rateLimiter.limit(ctx, …)`,
+ * `Promise.all([…])` when every element is ctx I/O (including simple ternaries), and
+ * `Promise.all(items.map((item) => ctx.db.patch(...)))` when the map callback is a single ctx I/O
+ * expression. Legacy `okOrThrow(domainHelper())` call sites should be refactored to `ResultAsync` callees
+ * during layer migration.
  */
 export const noExportOkOrThrowOnCallRule = defineRule({
 	meta: {
@@ -210,7 +311,7 @@ export const noExportOkOrThrowOnCallRule = defineRule({
 		},
 		messages: {
 			notConvexIo:
-				"`okOrThrow` must wrap a single Convex I/O promise (`ctx.db`, `ctx.scheduler`, `ctx.auth`, `ctx.runQuery`, `ctx.runMutation`). Callees that touch Stripe, DNS, fetch, or Drive should return `ResultAsync` and be chained with `.andThen`."
+				"`okOrThrow` must wrap a single Convex I/O promise (`ctx.db`, `ctx.scheduler`, `ctx.auth`, `ctx.runQuery`, `ctx.runMutation`), `crypto.subtle.digest`, or `Promise.all` of those patches/queries. Callees that touch Stripe, DNS, fetch, or Drive should return `ResultAsync` and be chained with `.andThen`."
 		}
 	},
 	createOnce(context) {

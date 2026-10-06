@@ -17,6 +17,12 @@ tester.run("neverthrow/no-export-okorthrow-on-call", noExportOkOrThrowOnCallRule
         .query("bookingRescheduleLinks")
         .withIndex("by_tokenHash", (query) => query.eq("tokenHash", tokenHash))
         .unique()
+    );`,
+		`okOrThrow(crypto.subtle.digest("SHA-256", encoded).then((buffer) => buffer));`,
+		`okOrThrow(
+      Promise.all(
+        links.map((link) => ctx.db.patch("bookingRescheduleLinks", link._id, { status: "used" }))
+      )
     );`
 	],
 	invalid: [

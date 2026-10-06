@@ -1,7 +1,7 @@
 "use node";
 
 import { google, type drive_v3 } from "googleapis";
-import { err, ok, okAsync, type ResultAsync } from "neverthrow";
+import { err, ok } from "neverthrow";
 import { z } from "zod";
 import { getGoogleOAuthClient } from "#convex/lib/googleCalendar/googleAuth";
 import { tryPromise } from "#convex/lib/result";
@@ -293,7 +293,7 @@ export function listDriveFolderChildren(drive: DriveClient, folderId: string) {
 	});
 }
 
-function deleteDriveItem(drive: DriveClient, fileId: string) {
+export function deleteDriveItem(drive: DriveClient, fileId: string) {
 	return driveFolderLookupAsync(
 		drive.files.delete({ fileId, supportsAllDrives: false }).then(() => null),
 		"GOOGLE_DRIVE_FOLDER_DELETE_FAILED"
@@ -301,47 +301,6 @@ function deleteDriveItem(drive: DriveClient, fileId: string) {
 		if (error.reason === "GOOGLE_DRIVE_FOLDER_MISSING") return ok(null);
 
 		return err(error);
-	});
-}
-
-function areListedDriveChildrenEmpty(
-	drive: DriveClient,
-	children: ListedDriveChild[]
-): ResultAsync<boolean, DriveError> {
-	if (children.length === 0) return okAsync(true);
-
-	const child = children[0];
-
-	if (child === undefined) return okAsync(true);
-
-	const remainingChildren = children.slice(1);
-
-	if (child.mimeType !== GOOGLE_DRIVE_FOLDER_MIME_TYPE) return okAsync(false);
-
-	return isDriveFolderTreeEmpty(drive, child.id).andThen((childIsEmpty) =>
-		childIsEmpty ? areListedDriveChildrenEmpty(drive, remainingChildren) : okAsync(false)
-	);
-}
-
-export function isDriveFolderTreeEmpty(drive: DriveClient, folderId: string) {
-	return listDriveFolderChildren(drive, folderId).andThen((children) =>
-		children.length === 0 ? okAsync(true) : areListedDriveChildrenEmpty(drive, children)
-	);
-}
-
-export function deleteDriveFolderTree(drive: DriveClient, folderId: string) {
-	return listDriveFolderChildren(drive, folderId).andThen((children) => {
-		let chain: ResultAsync<null, DriveError> = okAsync(null);
-
-		for (const child of children) {
-			chain = chain.andThen(() =>
-				child.mimeType === GOOGLE_DRIVE_FOLDER_MIME_TYPE
-					? deleteDriveFolderTree(drive, child.id)
-					: deleteDriveItem(drive, child.id)
-			);
-		}
-
-		return chain.andThen(() => deleteDriveItem(drive, folderId));
 	});
 }
 

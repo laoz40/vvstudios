@@ -1,11 +1,11 @@
 import type { UserIdentity } from "convex/server";
-import { err, ok } from "neverthrow";
+import { err, ok, okAsync } from "neverthrow";
 import { z } from "zod";
 import type { Doc } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
 import {
 	editorProfileDisplayName,
-	patchBookingsAssignedEditorDisplayName
+	writeBookingsAssignedEditorDisplayName
 } from "#convex/lib/editor/editorAssignments";
 import { okOrThrow } from "#convex/lib/result";
 
@@ -73,23 +73,21 @@ export function saveEditorDetails(
 	const details = { displayName: identity.name ?? "", email: identity.email ?? "" };
 
 	if (editor !== null) {
-		return okOrThrow(
-			(async () => {
-				const nextAssignedEditorDisplayName = editorProfileDisplayName(details);
-				const previousAssignedEditorDisplayName = editorProfileDisplayName(editor);
+		const nextAssignedEditorDisplayName = editorProfileDisplayName(details);
+		const previousAssignedEditorDisplayName = editorProfileDisplayName(editor);
 
-				await ctx.db.patch("editorProfiles", editor._id, details);
-
-				if (nextAssignedEditorDisplayName !== previousAssignedEditorDisplayName) {
-					await patchBookingsAssignedEditorDisplayName(
-						ctx,
-						editor.tokenIdentifier,
-						nextAssignedEditorDisplayName
-					);
+		return okOrThrow(ctx.db.patch("editorProfiles", editor._id, details).then(() => null)).andThen(
+			() => {
+				if (nextAssignedEditorDisplayName === previousAssignedEditorDisplayName) {
+					return okAsync(null);
 				}
 
-				return null;
-			})()
+				return writeBookingsAssignedEditorDisplayName(
+					ctx,
+					editor.tokenIdentifier,
+					nextAssignedEditorDisplayName
+				);
+			}
 		);
 	}
 

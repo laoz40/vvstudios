@@ -1,31 +1,31 @@
 "use node";
 
-import { errAsync, okAsync, type ResultAsync } from "neverthrow";
+import { err, errAsync, ok, okAsync, type ResultAsync } from "neverthrow";
 import { internal } from "#convex/_generated/api";
 import type { Id } from "#convex/_generated/dataModel";
 import type { ActionCtx } from "#convex/_generated/server";
-import { requirePermissionActions } from "#convex/services/auth";
 import {
 	areDriveSetupFoldersSaved,
 	shouldRecordDriveSetupFailure,
 	validateDriveSetup,
 	type DriveSetupInfo,
-	type SetupError
+	type SetupError as LibSetupError
 } from "#convex/lib/drive/sessionFolders/driveSetupInfo";
-import { ensureSessionDriveFolders } from "#convex/lib/drive/sessionFolders/ensureFolders";
 import { fromConvexTuple } from "#convex/lib/result";
 import { requireClientDrivePermissionsAndSendAssetsEmail } from "#convex/services/drive/driveClientPermissions";
-import { setupEditorAccess } from "#convex/lib/drive/driveEditorPermissions";
+import { setupEditorAccess } from "#convex/services/drive/editorDrivePermissions";
 
-export type { SetupError } from "#convex/lib/drive/sessionFolders/driveSetupInfo";
+export type SetupError = LibSetupError;
 
-function loadValidatedSetup(
+type DriveSetupLoadArgs = { bookingId: Id<"bookings">; sessionStartAt?: number; duration?: string };
+
+export function loadValidatedDriveSetup(
 	ctx: ActionCtx,
-	args: { bookingId: Id<"bookings">; sessionStartAt?: number; duration?: string }
+	args: DriveSetupLoadArgs
 ): ResultAsync<DriveSetupInfo, SetupError> {
 	return fromConvexTuple(
-		ctx.runQuery(internal.internal.sessionsDrive.getDriveSetup, { bookingId: args.bookingId })
-	).andThen((setupInfo) =>
+		ctx.runQuery(internal.sessionsDriveInternal.getDriveSetup, { bookingId: args.bookingId })
+	).andThen((setupInfo: DriveSetupInfo | null) =>
 		validateDriveSetup(
 			setupInfo,
 			args.sessionStartAt !== undefined && args.duration !== undefined
@@ -35,81 +35,57 @@ function loadValidatedSetup(
 	);
 }
 
-function saveSetupFailure(ctx: ActionCtx, bookingId: Id<"bookings">, failureCode: string) {
-	return fromConvexTuple(
-		ctx.runMutation(internal.internal.sessionsDrive.saveDriveSetupResult, {
-			bookingId,
-			failureCode
-		})
-	);
+function requireSavedDriveFolders(setupInfo: DriveSetupInfo) {
+	return areDriveSetupFoldersSaved(setupInfo)
+		? ok(null)
+		: err({ reason: "DRIVE_FOLDERS_INCOMPLETE" as const });
 }
 
-function setupFoldersAndRecordResult(
+export function markDriveSetupSuccessful(
 	ctx: ActionCtx,
-	args: {
-		bookingId: Id<"bookings">;
-		sessionStartAt?: number;
-		duration?: string;
-		replaceMissingFolders: boolean;
-	}
+	args: DriveSetupLoadArgs
 ): ResultAsync<null, SetupError> {
-	return (
-		// Create or recover every folder, then mark the folder setup as complete.
-		loadValidatedSetup(ctx, args)
-			.andThen((setupInfo) => ensureSessionDriveFolders(ctx, setupInfo, args.replaceMissingFolders))
-			.andThen(() => loadValidatedSetup(ctx, args))
-			.andThen((setupInfo) =>
-				areDriveSetupFoldersSaved(setupInfo)
-					? okAsync(null)
-					: errAsync({ reason: "DRIVE_FOLDERS_INCOMPLETE" as const })
+	// Re-read saved folders and timing before marking setup complete.
+	return loadValidatedDriveSetup(ctx, args)
+		.andThen(requireSavedDriveFolders)
+		.andThen(() =>
+			fromConvexTuple(
+				ctx.runMutation(internal.sessionsDriveInternal.saveDriveSetupResult, {
+					bookingId: args.bookingId
+				})
 			)
-			.andThen(() =>
-				fromConvexTuple(
-					ctx.runMutation(internal.internal.sessionsDrive.saveDriveSetupResult, {
-						bookingId: args.bookingId
-					})
-				)
-			)
-			// Client access and its email fail independently from folder setup.
-			.andThen(() =>
-				requireClientDrivePermissionsAndSendAssetsEmail(ctx, {
-					bookingId: args.bookingId,
-					attempt: "automatic"
-				}).orElse(() => okAsync(null))
-			)
-			// Editor access also fails independently and has its own admin retry.
-			.andThen(() =>
-				setupEditorAccess(ctx, { bookingId: args.bookingId }).orElse(() => okAsync(null))
-			)
-			// Only folder setup errors are saved on the booking here.
-			.orElse((setupError) => {
-				if (!shouldRecordDriveSetupFailure(setupError)) return errAsync(setupError);
-
-				return saveSetupFailure(ctx, args.bookingId, setupError.reason).andThen(() =>
-					errAsync(setupError)
-				);
-			})
-	);
+		);
 }
 
-export function setupDriveService(ctx: ActionCtx, args: { bookingId: Id<"bookings"> }) {
-	return requirePermissionActions(ctx, "edit:sessions").andThen(() =>
-		setupFoldersAndRecordResult(ctx, { ...args, replaceMissingFolders: true })
-	);
-}
-
-export function retryDriveSetupService(ctx: ActionCtx, args: { bookingId: Id<"bookings"> }) {
-	return requirePermissionActions(ctx, "edit:sessions").andThen(() =>
-		setupFoldersAndRecordResult(ctx, { ...args, replaceMissingFolders: true })
-	);
-}
-
-export function runScheduledDriveSetupService(
+export function sendClientAssetsEmailAfterSetup(
 	ctx: ActionCtx,
-	args: { bookingId: Id<"bookings">; sessionStartAt: number; duration: string }
+	bookingId: Id<"bookings">
 ): ResultAsync<null, never> {
-	// Scheduled jobs resume partial setup only; admins recreate missing folders from the dialog.
-	return setupFoldersAndRecordResult(ctx, { ...args, replaceMissingFolders: false }).orElse(() =>
-		okAsync(null)
-	);
+	// Access/email failures have their own statuses and must not fail folder setup.
+	return requireClientDrivePermissionsAndSendAssetsEmail(ctx, {
+		bookingId,
+		attempt: "automatic"
+	}).orElse(() => okAsync(null));
+}
+
+export function setupEditorAccessAfterSetup(
+	ctx: ActionCtx,
+	bookingId: Id<"bookings">
+): ResultAsync<null, never> {
+	return setupEditorAccess(ctx, { bookingId }).orElse(() => okAsync(null));
+}
+
+export function recordDriveSetupFailure(
+	ctx: ActionCtx,
+	bookingId: Id<"bookings">,
+	setupError: SetupError
+): ResultAsync<null, SetupError> {
+	if (!shouldRecordDriveSetupFailure(setupError)) return errAsync(setupError);
+
+	return fromConvexTuple(
+		ctx.runMutation(internal.sessionsDriveInternal.saveDriveSetupResult, {
+			bookingId,
+			failureCode: setupError.reason
+		})
+	).andThen(() => errAsync(setupError));
 }

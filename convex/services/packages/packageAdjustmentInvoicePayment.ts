@@ -13,6 +13,22 @@ type CompletePackageAdjustmentInvoicePaymentFailure = {
 	error: PackageAdjustmentInvoicePaymentClaimError;
 };
 
+function mapPackageAdjustmentInvoicePaymentClaimFailed(
+	error: PackageAdjustmentInvoicePaymentClaimError
+) {
+	return { kind: "claim_failed" as const, error };
+}
+
+function toPackageAdjustmentInvoicePaymentCompletionOutcome(claim: {
+	outcome: "already_completed" | "completed";
+}) {
+	if (claim.outcome === "already_completed") {
+		return { outcome: "already_completed" as const };
+	}
+
+	return { outcome: "completed" as const };
+}
+
 export function completePackageAdjustmentInvoicePaymentService(
 	ctx: ActionCtx,
 	args: { stripeInvoiceId: string; adjustmentId?: string; paidAt: number }
@@ -23,12 +39,6 @@ export function completePackageAdjustmentInvoicePaymentService(
 	return fromConvexTuple(
 		ctx.runMutation(internal.packageAdjustments.claimPackageAdjustmentInvoicePayment, args)
 	)
-		.mapErr((error) => ({ kind: "claim_failed" as const, error }))
-		.map((claim) => {
-			if (claim.outcome === "already_completed") {
-				return { outcome: "already_completed" as const };
-			}
-
-			return { outcome: "completed" as const };
-		});
+		.mapErr(mapPackageAdjustmentInvoicePaymentClaimFailed)
+		.map(toPackageAdjustmentInvoicePaymentCompletionOutcome);
 }

@@ -1,6 +1,6 @@
 "use node";
 
-import { okAsync, type ResultAsync } from "neverthrow";
+import { errAsync, okAsync, type ResultAsync } from "neverthrow";
 import { resolveMx } from "node:dns/promises";
 import { tryPromise } from "#convex/lib/result";
 
@@ -22,4 +22,9 @@ export async function emailDomainCanReceiveMail(email: string) {
 		(canReceiveMail) => canReceiveMail,
 		() => false
 	);
+}
+
+export function rejectUninvitableEmailDomain(email: string) {
+	return (canReceiveMail: boolean) =>
+		canReceiveMail ? okAsync(email) : errAsync({ reason: "EMAIL_DOMAIN_INVALID" as const });
 }

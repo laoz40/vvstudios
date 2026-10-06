@@ -1,80 +1,155 @@
 "use node";
 
 import { v } from "convex/values";
+import { okAsync } from "neverthrow";
 import { tupleErr, tupleOk, type Result } from "#/lib/result";
 import { action, internalAction } from "#convex/_generated/server";
-import { type BusyDayWindow } from "#convex/lib/sessions/sessionCalendarTime";
 import {
-	cancelBookingFromAdminService,
-	getAvailableBookingTimesService,
-	getAvailableRescheduleTimesService,
-	getBookableRangeBusyWindowsService,
-	getRescheduleBookableRangeBusyWindowsService,
-	rescheduleSessionService,
+	type BusyDayWindow,
 	type GetAvailableRescheduleTimesError,
-	updateSessionFromAdminService
-} from "#convex/services/googleCalendar/sessionCalendar";
+	enforceGoogleCalendarAvailabilityRateLimit,
+	loadAvailableBookingTimesForDay,
+	loadAvailableRescheduleTimesForDay,
+	loadBookableRangeBusyWindows,
+	loadRescheduleBookableRangeBusyWindows,
+	loadRescheduleSessionAndBookingSettings
+} from "#convex/services/googleCalendar/sessionCalendarAvailability";
+import { getBookingSettingsService } from "#convex/services/booking/bookingSettings";
+import {
+	attachAdminUpdateContext,
+	requireEditSessionsPermissionAndLoadBooking,
+	loadAdminSessionEditDeps,
+	notifyHostIfNeeded,
+	syncAdminBookingGoogleCalendarAndDb
+} from "#convex/services/googleCalendar/sessionAdminUpdate";
+import {
+	requireCancelSessionsPermission,
+	cleanupAdminCancelledBookingDrive,
+	deleteAdminBookingCalendarEvent,
+	loadAdminCancelSession,
+	markBookingSessionCalendarDeleted
+} from "#convex/services/googleCalendar/cancelBookingFromAdmin";
+import {
+	attachCalendarClientToLockState,
+	finishReschedule,
+	loadRescheduleTargetAndValidate,
+	lockAndReserve,
+	saveClientRescheduleAndUnlockLink,
+	syncCalendar
+} from "#convex/services/googleCalendar/sessionCalendarReschedule";
+import type { CancelBookingFromAdminError } from "#convex/services/googleCalendar/sessionCalendar";
 import {
 	bookingAddonQuantitiesValidator,
 	bookingAddonsValidator
-} from "#convex/lib/booking/bookingAddonQuantities";
+} from "#convex/services/booking/bookingFormValidators";
 import {
-	retryDriveSetupService,
-	runScheduledDriveSetupService,
-	setupDriveService,
+	loadValidatedDriveSetup,
+	markDriveSetupSuccessful,
+	recordDriveSetupFailure,
+	sendClientAssetsEmailAfterSetup,
+	setupEditorAccessAfterSetup,
 	type SetupError
 } from "#convex/services/drive/drive";
 import {
-	retryClientAssetsEmailService,
-	retryClientDrivePermissionsService,
+	loadReadyBookingDriveFolders,
+	recordClientDrivePermissionsFailure,
+	requireClientDrivePermissions,
+	sendClientAssetsFolderEmail,
 	type DriveClientPermissionsError
-} from "#convex/services/drive/driveClientPermissions";
+} from "#convex/services/drive/clientDrivePermissions";
+import { syncBookingDriveClientIdForRetry } from "#convex/services/drive/driveClientPermissions";
+import { ensureSessionDriveFolders } from "#convex/services/drive/ensureSessionDriveFolders";
+import { requirePermissionActions } from "#convex/services/requirePermissionActions";
 import {
-	completeClaimedSessionService,
-	sendSessionReminderEmailService
-} from "#convex/services/booking/bookingConfirmationActions";
-import { cleanupCancelledSessionDriveService } from "#convex/services/drive/cleanupCancelledSessionDrive";
+	claimSessionReminderSend,
+	sendSessionReminderWhenClaimed
+} from "#convex/services/booking/sessionReminderEmail";
+import {
+	runCompleteClaimedSession,
+	type CompleteClaimedSessionError
+} from "#convex/services/booking/bookingClaimedSession";
+import type { CompleteClaimedSessionSuccess } from "#convex/services/booking/bookingConfirmation";
+import { clearCancelledSessionDriveFields } from "#convex/services/drive/cleanupCancelledSessionDrive";
 
 export const setupDrive = action({
 	args: { bookingId: v.id("bookings") },
 	handler: (ctx, args): Promise<Result<null, SetupError>> =>
-		setupDriveService(ctx, args).match(tupleOk, tupleErr)
+		requirePermissionActions(ctx, "edit:sessions")
+			.andThen(() => loadValidatedDriveSetup(ctx, args))
+			.andThen((setup) => ensureSessionDriveFolders(ctx, setup, true))
+			.andThen(() => markDriveSetupSuccessful(ctx, args))
+			.andThen(() => sendClientAssetsEmailAfterSetup(ctx, args.bookingId))
+			.andThen(() => setupEditorAccessAfterSetup(ctx, args.bookingId))
+			.orElse((error) => recordDriveSetupFailure(ctx, args.bookingId, error))
+			.match(tupleOk, tupleErr)
 });
 
 export const retryDriveSetup = action({
 	args: { bookingId: v.id("bookings") },
 	handler: (ctx, args): Promise<Result<null, SetupError>> =>
-		retryDriveSetupService(ctx, args).match(tupleOk, tupleErr)
+		requirePermissionActions(ctx, "edit:sessions")
+			.andThen(() => loadValidatedDriveSetup(ctx, args))
+			.andThen((setup) => ensureSessionDriveFolders(ctx, setup, true))
+			.andThen(() => markDriveSetupSuccessful(ctx, args))
+			.andThen(() => sendClientAssetsEmailAfterSetup(ctx, args.bookingId))
+			.andThen(() => setupEditorAccessAfterSetup(ctx, args.bookingId))
+			.orElse((error) => recordDriveSetupFailure(ctx, args.bookingId, error))
+			.match(tupleOk, tupleErr)
 });
 
 export const retryClientDrivePermissions = action({
 	args: { bookingId: v.id("bookings") },
 	handler: (ctx, args): Promise<Result<null, DriveClientPermissionsError>> =>
-		retryClientDrivePermissionsService(ctx, args).match(tupleOk, tupleErr)
+		requirePermissionActions(ctx, "edit:sessions")
+			.andThen(() => loadReadyBookingDriveFolders(ctx, args.bookingId))
+			.andThen((setup) =>
+				syncBookingDriveClientIdForRetry(ctx, args.bookingId).andThen(() =>
+					requireClientDrivePermissions(ctx, setup).orElse((error) =>
+						recordClientDrivePermissionsFailure(ctx, setup, error)
+					)
+				)
+			)
+			.map(() => null)
+			.match(tupleOk, tupleErr)
 });
 
 export const retryClientAssetsEmail = action({
 	args: { bookingId: v.id("bookings") },
 	handler: (ctx, args): Promise<Result<null, DriveClientPermissionsError>> =>
-		retryClientAssetsEmailService(ctx, args).match(tupleOk, tupleErr)
+		requirePermissionActions(ctx, "edit:sessions")
+			.andThen(() => sendClientAssetsFolderEmail(ctx, args.bookingId, "retry"))
+			.match(tupleOk, tupleErr)
 });
 
 export const runScheduledDriveSetup = internalAction({
 	args: { bookingId: v.id("bookings"), sessionStartAt: v.number(), duration: v.string() },
-	handler: async (ctx, args) =>
-		(await runScheduledDriveSetupService(ctx, args)).match(tupleOk, tupleErr)
+	// Scheduled jobs resume partial setup; admins may recreate missing folders.
+	handler: (ctx, args): Promise<Result<null, never>> =>
+		loadValidatedDriveSetup(ctx, args)
+			.andThen((setup) => ensureSessionDriveFolders(ctx, setup, false))
+			.andThen(() => markDriveSetupSuccessful(ctx, args))
+			.andThen(() => sendClientAssetsEmailAfterSetup(ctx, args.bookingId))
+			.andThen(() => setupEditorAccessAfterSetup(ctx, args.bookingId))
+			.orElse((error) => recordDriveSetupFailure(ctx, args.bookingId, error))
+			.orElse(() => okAsync(null))
+			.match(tupleOk, tupleErr)
 });
 
 export const getBookableRangeBusyWindows = action({
 	args: { rateLimitKey: v.string() },
 	handler: async (ctx, args) =>
-		await getBookableRangeBusyWindowsService(ctx, args).match(tupleOk, tupleErr)
+		await enforceGoogleCalendarAvailabilityRateLimit(ctx, args.rateLimitKey)
+			.andThen(() => getBookingSettingsService(ctx))
+			.andThen((settings) => loadBookableRangeBusyWindows(settings))
+			.match(tupleOk, tupleErr)
 });
 
 export const getAvailableBookingTimes = action({
 	args: { date: v.string(), duration: v.string() },
 	handler: async (ctx, args) =>
-		await getAvailableBookingTimesService(ctx, args).match(tupleOk, tupleErr)
+		await getBookingSettingsService(ctx)
+			.andThen((settings) => loadAvailableBookingTimesForDay(args, settings))
+			.match(tupleOk, tupleErr)
 });
 
 export const getRescheduleBookableRangeBusyWindows = action({
@@ -87,7 +162,11 @@ export const getRescheduleBookableRangeBusyWindows = action({
 			{ busyWindowsByMonth: Record<string, BusyDayWindow[]>; timeZone: string },
 			GetAvailableRescheduleTimesError
 		>
-	> => await getRescheduleBookableRangeBusyWindowsService(ctx, args).match(tupleOk, tupleErr)
+	> =>
+		await enforceGoogleCalendarAvailabilityRateLimit(ctx, args.rateLimitKey)
+			.andThen(() => loadRescheduleSessionAndBookingSettings(ctx, args.token))
+			.andThen(({ details, settings }) => loadRescheduleBookableRangeBusyWindows(settings, details))
+			.match(tupleOk, tupleErr)
 });
 
 export const getAvailableRescheduleTimes = action({
@@ -96,12 +175,28 @@ export const getAvailableRescheduleTimes = action({
 		ctx,
 		args
 	): Promise<Result<{ timeZone: string; times: string[] }, GetAvailableRescheduleTimesError>> =>
-		await getAvailableRescheduleTimesService(ctx, args).match(tupleOk, tupleErr)
+		await loadRescheduleSessionAndBookingSettings(ctx, args.token)
+			.andThen(({ details, settings }) =>
+				loadAvailableRescheduleTimesForDay(args, details, settings)
+			)
+			.match(tupleOk, tupleErr)
 });
 
 export const rescheduleSession = action({
 	args: { token: v.string(), date: v.string(), time: v.string() },
-	handler: async (ctx, args) => await rescheduleSessionService(ctx, args).match(tupleOk, tupleErr)
+	handler: (ctx, args) =>
+		loadRescheduleTargetAndValidate(ctx, args)
+			.andThen(({ calendarClient, details, sessionStartAt, settings }) =>
+				lockAndReserve(ctx, details, sessionStartAt, settings).map((state) =>
+					attachCalendarClientToLockState(calendarClient, state)
+				)
+			)
+			.andThen(({ calendarClient, state }) => syncCalendar(ctx, args, state, calendarClient))
+			.andThen((state) => saveClientRescheduleAndUnlockLink(ctx, args, state))
+			.andThen(({ session, settings, timingUpdate }) =>
+				finishReschedule(session, args, timingUpdate, settings)
+			)
+			.match(tupleOk, tupleErr)
 });
 
 export const updateSessionFromAdmin = action({
@@ -120,30 +215,53 @@ export const updateSessionFromAdmin = action({
 		...bookingAddonQuantitiesValidator,
 		notes: v.optional(v.string())
 	},
-	handler: async (ctx, args) =>
-		await updateSessionFromAdminService(ctx, args).match(tupleOk, tupleErr)
+	handler: (ctx, args) =>
+		requireEditSessionsPermissionAndLoadBooking(ctx, args.bookingId)
+			.andThen((session) => loadAdminSessionEditDeps(ctx).map((deps) => ({ session, ...deps })))
+			.andThen(({ client, session, settings }) =>
+				syncAdminBookingGoogleCalendarAndDb({ args, session, client, ctx, settings }).map(
+					(result) => attachAdminUpdateContext(session, settings, result)
+				)
+			)
+			.andThen(({ result, session, settings }) =>
+				notifyHostIfNeeded(ctx, args, session, settings, result)
+			)
+			.match(tupleOk, tupleErr)
 });
 
 export const cancelBookingFromAdmin = action({
 	args: { bookingId: v.id("bookings") },
-	handler: async (ctx, args) =>
-		await cancelBookingFromAdminService(ctx, args.bookingId).match(tupleOk, tupleErr)
+	handler: (ctx, args): Promise<Result<{ cancelled: boolean }, CancelBookingFromAdminError>> =>
+		requireCancelSessionsPermission(ctx)
+			.andThen(() => loadAdminCancelSession(ctx, args.bookingId))
+			.andThen(deleteAdminBookingCalendarEvent)
+			.andThen(() => markBookingSessionCalendarDeleted(ctx, args.bookingId))
+			.andThen(() => cleanupAdminCancelledBookingDrive(ctx, args.bookingId))
+			.match(tupleOk, tupleErr)
 });
 
 export const sendSessionReminderEmail = internalAction({
 	args: { bookingId: v.id("bookings") },
-	handler: async (ctx, args) =>
-		(await sendSessionReminderEmailService(ctx, args)).match(tupleOk, tupleErr)
+	handler: async (ctx, args) => {
+		const now = Date.now();
+
+		return await claimSessionReminderSend(ctx, args.bookingId, now)
+			.andThen((claim) => sendSessionReminderWhenClaimed(ctx, args.bookingId, claim))
+			.match(tupleOk, tupleErr);
+	}
 });
 
 export const completeClaimedSession = internalAction({
 	args: { bookingId: v.id("bookings") },
-	handler: async (ctx, args) =>
-		(await completeClaimedSessionService(ctx, args)).match(tupleOk, tupleErr)
+	handler: (
+		ctx,
+		args
+	): Promise<Result<CompleteClaimedSessionSuccess, CompleteClaimedSessionError>> =>
+		runCompleteClaimedSession(ctx, args.bookingId).match(tupleOk, tupleErr)
 });
 
 export const cleanupCancelledSessionDrive = internalAction({
 	args: { bookingId: v.id("bookings") },
 	handler: async (ctx, args) =>
-		cleanupCancelledSessionDriveService(ctx, args).match(tupleOk, tupleErr)
+		await clearCancelledSessionDriveFields(ctx, args).match(tupleOk, tupleErr)
 });

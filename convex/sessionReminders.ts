@@ -1,77 +1,39 @@
 import { v } from "convex/values";
 import { tupleErr, tupleOk } from "#/lib/result";
-import { internal } from "#convex/_generated/api";
 import { internalAction, internalMutation, internalQuery } from "#convex/_generated/server";
+import { sendDueSessionAndPackageReminders } from "#convex/services/sessions/sessionReminderCron";
 import {
-	getTomorrowTimeZoneDayRange,
-	REMINDER_BATCH_SIZE,
-	REMINDER_TIME_ZONE
-} from "#convex/lib/reminderScheduleTime";
-import { sendDuePackageReminders } from "#convex/packageReminders";
-import {
-	claimReminderService,
-	markReminderFailedService,
-	markReminderSentService
-} from "#convex/services/sessions/sessionReminders";
+	claimSessionReminderEmail,
+	listConfirmedSessionsDueForReminderEmail,
+	writeSessionReminderEmailFailed,
+	writeSessionReminderEmailSent
+} from "#convex/services/sessions/sessionReminderMutations";
 
 export const listSessionsDueForReminderEmail = internalQuery({
 	args: { dayStart: v.number(), dayEnd: v.number(), limit: v.optional(v.number()) },
-	handler: async (ctx, args) => {
-		return await ctx.db
-			.query("bookings")
-			.withIndex("by_status_and_reminderEmailSentAt_and_sessionStartAt", (indexQuery) =>
-				indexQuery
-					.eq("status", "confirmed")
-					.eq("reminderEmailSentAt", undefined)
-					.gte("sessionStartAt", args.dayStart)
-					.lt("sessionStartAt", args.dayEnd)
-			)
-			.take(args.limit ?? REMINDER_BATCH_SIZE);
-	}
+	handler: async (ctx, args) =>
+		await listConfirmedSessionsDueForReminderEmail(ctx, args).match(
+			(bookings) => bookings,
+			() => []
+		)
 });
 
 export const claimReminder = internalMutation({
 	args: { bookingId: v.id("bookings"), now: v.number() },
-	handler: (ctx, args) => claimReminderService(ctx, args).match(tupleOk, tupleErr)
+	handler: (ctx, args) => claimSessionReminderEmail(ctx, args).match(tupleOk, tupleErr)
 });
 
 export const markReminderSent = internalMutation({
 	args: { bookingId: v.id("bookings"), now: v.number() },
-	handler: (ctx, args) => markReminderSentService(ctx, args).match(tupleOk, tupleErr)
+	handler: (ctx, args) => writeSessionReminderEmailSent(ctx, args).match(tupleOk, tupleErr)
 });
 
 export const markReminderFailed = internalMutation({
 	args: { bookingId: v.id("bookings"), failureCode: v.string() },
-	handler: (ctx, args) => markReminderFailedService(ctx, args).match(tupleOk, tupleErr)
+	handler: (ctx, args) => writeSessionReminderEmailFailed(ctx, args).match(tupleOk, tupleErr)
 });
 
 export const sendDueReminders = internalAction({
 	args: {},
-	handler: async (ctx) => {
-		const nowDate = new Date();
-		await sendDuePackageReminders(ctx, nowDate);
-
-		const { dayEnd, dayStart } = getTomorrowTimeZoneDayRange(nowDate, REMINDER_TIME_ZONE);
-
-		const bookings = await ctx.runQuery(internal.sessionReminders.listSessionsDueForReminderEmail, {
-			dayEnd,
-			dayStart,
-			limit: REMINDER_BATCH_SIZE
-		});
-
-		// Reminders are non-critical, so isolate each booking to ensure one failure does not block the rest.
-		await Promise.all(
-			bookings.map(async (booking) => {
-				try {
-					await ctx.runAction(internal.googleCalendar.sendSessionReminderEmail, {
-						bookingId: booking._id
-					});
-				} catch (error) {
-					console.error(`Failed to process session reminder for booking ${booking._id}`, error);
-				}
-			})
-		);
-
-		return null;
-	}
+	handler: async (ctx) => sendDueSessionAndPackageReminders(ctx, new Date())
 });

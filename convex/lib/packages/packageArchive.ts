@@ -1,22 +1,17 @@
-import { okAsync, ResultAsync } from "neverthrow";
+import { okAsync, type ResultAsync } from "neverthrow";
 import type { Doc, Id } from "#convex/_generated/dataModel";
-import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
+import type { MutationCtx } from "#convex/_generated/server";
 import {
 	evaluatePackageAdjustment,
 	type PackageAdjustmentSession
 } from "#convex/lib/packages/packageAdjustments";
-import { getCapacityConsumingPackageSessions } from "#convex/lib/packages/packageScheduling";
 import {
 	isPackageArchived,
 	packageArchivedPatch,
 	setPackageArchived
 } from "#convex/lib/archiveState";
 import { okOrThrow } from "#convex/lib/result";
-import {
-	listStripeInvoicesForPackage,
-	summarizeCustomPackageStripeInvoices,
-	type StripeInvoiceAmountSummary
-} from "#convex/lib/stripe/stripeInvoices";
+import type { StripeInvoiceAmountSummary } from "#convex/lib/stripe/stripeInvoices";
 
 export const DEAD_PACKAGE_STATUSES = ["expired", "abandoned"] as const;
 
@@ -68,7 +63,7 @@ function isPackageWindowClosed(
 	return true;
 }
 
-type PackageAdjustmentArchiveState =
+export type PackageAdjustmentArchiveState =
 	| { outcome: "no_charge" }
 	| { outcome: "invoice_required"; paymentStatus: "paid" | "unpaid" };
 
@@ -82,20 +77,6 @@ function isPackageAdjustmentResolved(adjustment: PackageAdjustmentArchiveState |
 	}
 
 	return adjustment.paymentStatus === "paid";
-}
-
-function toPackageAdjustmentArchiveState(
-	adjustment: Doc<"packageAdjustments"> | null
-): PackageAdjustmentArchiveState | null {
-	if (!adjustment) {
-		return null;
-	}
-
-	if (adjustment.outcome === "no_charge") {
-		return { outcome: "no_charge" };
-	}
-
-	return { outcome: "invoice_required", paymentStatus: adjustment.paymentStatus };
 }
 
 export function isPackageEligibleForAutoArchive(
@@ -122,73 +103,6 @@ export function isPackageEligibleForAutoArchive(
 	}
 
 	return true;
-}
-
-function loadPackageAutoArchiveContext(
-	ctx: QueryCtx | MutationCtx,
-	packageId: Id<"packages">
-): ResultAsync<
-	{
-		packageRecord: Doc<"packages">;
-		sessions: Doc<"bookings">[];
-		adjustment: ReturnType<typeof toPackageAdjustmentArchiveState>;
-		customStripeSummary: StripeInvoiceAmountSummary | null;
-	} | null,
-	never
-> {
-	return okOrThrow(ctx.db.get("packages", packageId)).andThen((packageRecord) => {
-		if (!packageRecord) {
-			return okAsync(null);
-		}
-
-		return ResultAsync.combine([
-			getCapacityConsumingPackageSessions(ctx, packageId, packageRecord.packageSize),
-			okOrThrow(
-				ctx.db
-					.query("packageAdjustments")
-					.withIndex("by_packageId", (indexQuery) => indexQuery.eq("packageId", packageId))
-					.unique()
-			),
-			listStripeInvoicesForPackage(ctx, packageId)
-		]).map(([sessions, adjustment, stripeInvoices]) => ({
-			packageRecord,
-			sessions,
-			adjustment: toPackageAdjustmentArchiveState(adjustment),
-			customStripeSummary: summarizeCustomPackageStripeInvoices(stripeInvoices)
-		}));
-	});
-}
-
-export function archivePackageWhenFullyDone(
-	ctx: MutationCtx,
-	packageId: Id<"packages">,
-	now = Date.now()
-): ResultAsync<null, never> {
-	return loadPackageAutoArchiveContext(ctx, packageId).andThen((context) => {
-		if (!context) {
-			return okAsync(null);
-		}
-
-		const { packageRecord, sessions, adjustment, customStripeSummary } = context;
-
-		if (isPackageArchived(packageRecord)) {
-			return okAsync(null);
-		}
-
-		if (
-			!isPackageEligibleForAutoArchive(
-				packageRecord,
-				sessions,
-				adjustment,
-				customStripeSummary,
-				now
-			)
-		) {
-			return okAsync(null);
-		}
-
-		return setPackageArchived(ctx, packageId, true);
-	});
 }
 
 /** Puts a paid package back in the admin inbox when a new unpaid invoice needs attention. */

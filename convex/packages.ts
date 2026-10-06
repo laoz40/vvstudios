@@ -1,33 +1,30 @@
 import { paginationOptsValidator } from "convex/server";
-import { ConvexError, v } from "convex/values";
-import { tupleErr, tupleOk, type Result } from "#/lib/result";
+import { v } from "convex/values";
+import { tupleErr, tupleOk } from "#/lib/result";
 import { internalMutation, internalQuery, mutation, query } from "#convex/_generated/server";
-import { checkBookingSubmitRateLimit } from "#convex/lib/rateLimits";
 import {
 	bookingAddonQuantitiesValidator,
 	bookingAddonsValidator
-} from "#convex/lib/booking/bookingAddonQuantities";
-import { getPackageFromDb, type PackageLookupError } from "#convex/lib/packages/packageLookup";
-import type { PaidPackageResult } from "#convex/lib/packages/packagePayment";
+} from "#convex/services/booking/bookingFormValidators";
 import {
-	buildPaidPackageResult,
-	patchPackagePaidAfterSchedulingDetails,
-	rejectAlreadyPaidPackage,
-	schedulePackageAdjustmentAtExpiry
-} from "#convex/lib/packages/packagePaidLifecycle";
-import { createPackageSchedulingDetails } from "#convex/lib/packages/packageScheduling";
+	archivePackageFromAdmin,
+	loadAdminPackageUpdateValidation,
+	writeAdminPackageFields
+} from "#convex/services/packages/packageAdminMutations";
+import { listAdminPackagesPage } from "#convex/services/packages/packageAdminQueries";
 import {
-	archivePackageService,
-	createPendingPackageService,
-	listPackagesService,
-	markPackageReceiptEmailAttemptService,
-	markPackageScheduleEmailAttemptService,
-	refreshPackageScheduleTokenService,
-	savePackageInstagramHandleService,
-	updatePackageService
-} from "#convex/services/packages/packages";
+	enforcePackageSubmitRateLimit,
+	insertPendingPackageRecord,
+	loadPackageEligibleForInstagramUpdate,
+	queryPackageByIdOrNull,
+	markPackagePaidWithScheduleToken,
+	refreshPaidPackageScheduleToken,
+	savePackageInstagramHandle as applyPackageInstagramHandleUpdate,
+	writePackageReceiptEmailAttempt,
+	writePackageScheduleEmailAttempt
+} from "#convex/services/packages/packageInternalMutations";
 
-const bookingInvoiceLineItemValidator = v.object({
+const packageInvoiceLineItemValidator = v.object({
 	amount: v.number(),
 	description: v.string(),
 	quantity: v.number(),
@@ -37,7 +34,7 @@ const bookingInvoiceLineItemValidator = v.object({
 export const checkPackageSubmitRateLimit = internalMutation({
 	args: { submitRateLimitKey: v.string() },
 	handler: (ctx, args) =>
-		checkBookingSubmitRateLimit(ctx, args.submitRateLimitKey).match(tupleOk, tupleErr)
+		enforcePackageSubmitRateLimit(ctx, args.submitRateLimitKey).match(tupleOk, tupleErr)
 });
 
 export const createPendingPackage = internalMutation({
@@ -57,9 +54,9 @@ export const createPendingPackage = internalMutation({
 		discountPercent: v.number(),
 		discountAmount: v.number(),
 		totalDueAmount: v.number(),
-		invoiceLineItems: v.array(bookingInvoiceLineItemValidator)
+		invoiceLineItems: v.array(packageInvoiceLineItemValidator)
 	},
-	handler: (ctx, args) => createPendingPackageService(ctx, args)
+	handler: (ctx, args) => insertPendingPackageRecord(ctx, args).match(tupleOk, tupleErr)
 });
 
 export const listPackages = query({
@@ -70,13 +67,7 @@ export const listPackages = query({
 		includeStale: v.optional(v.boolean()),
 		searchQuery: v.optional(v.string())
 	},
-	handler: (ctx, args) =>
-		listPackagesService(ctx, args).match(
-			(packagesPage) => packagesPage,
-			(error) => {
-				throw new ConvexError(error);
-			}
-		)
+	handler: (ctx, args) => listAdminPackagesPage(ctx, args)
 });
 
 export const updatePackageFromAdmin = mutation({
@@ -94,52 +85,31 @@ export const updatePackageFromAdmin = mutation({
 		packageSize: v.union(v.literal(4), v.literal(8), v.literal(12)),
 		expiresAt: v.optional(v.number())
 	},
-	handler: (ctx, args) => updatePackageService(ctx, args).match(tupleOk, tupleErr)
+	handler: (ctx, args) =>
+		loadAdminPackageUpdateValidation(ctx, args)
+			.andThen((validated) => writeAdminPackageFields(ctx, args, validated))
+			.match(tupleOk, tupleErr)
 });
 
 export const archivePackage = mutation({
 	args: { packageId: v.id("packages"), archived: v.boolean() },
-	handler: (ctx, args) => archivePackageService(ctx, args).match(tupleOk, tupleErr)
+	handler: (ctx, args) => archivePackageFromAdmin(ctx, args).match(tupleOk, tupleErr)
 });
 
 export const markPackagePaidAndCreateScheduleToken = internalMutation({
 	args: { packageId: v.id("packages"), paidAt: v.number() },
-	handler: (
-		ctx,
-		args
-	): Promise<Result<PaidPackageResult, PackageLookupError | { reason: "PACKAGE_ALREADY_PAID" }>> =>
-		getPackageFromDb(ctx, args.packageId)
-			.andThen(rejectAlreadyPaidPackage)
-			.andThen((packageFromDb) => createPackageSchedulingDetails(packageFromDb, args.paidAt))
-			.andThen((packageSchedulingDetails) =>
-				patchPackagePaidAfterSchedulingDetails(
-					ctx,
-					args.packageId,
-					args.paidAt,
-					packageSchedulingDetails
-				)
-			)
-			.andThen((packageSchedulingDetails) =>
-				schedulePackageAdjustmentAtExpiry(
-					ctx,
-					args.packageId,
-					packageSchedulingDetails.expiresAt
-				).map(() => packageSchedulingDetails)
-			)
-			.map((packageSchedulingDetails) =>
-				buildPaidPackageResult(packageSchedulingDetails, args.paidAt)
-			)
-			.match(tupleOk, tupleErr)
+	handler: (ctx, args) => markPackagePaidWithScheduleToken(ctx, args).match(tupleOk, tupleErr)
 });
 
 export const refreshPackageScheduleToken = internalMutation({
 	args: { packageId: v.id("packages") },
-	handler: (ctx, args) => refreshPackageScheduleTokenService(ctx, args).match(tupleOk, tupleErr)
+	handler: (ctx, args) =>
+		refreshPaidPackageScheduleToken(ctx, args.packageId).match(tupleOk, tupleErr)
 });
 
 export const markPackageScheduleEmailAttempt = internalMutation({
 	args: { packageId: v.id("packages"), status: v.union(v.literal("sent"), v.literal("failed")) },
-	handler: (ctx, args) => markPackageScheduleEmailAttemptService(ctx, args).match(tupleOk, tupleErr)
+	handler: (ctx, args) => writePackageScheduleEmailAttempt(ctx, args).match(tupleOk, tupleErr)
 });
 
 export const markPackageReceiptEmailAttempt = internalMutation({
@@ -149,17 +119,23 @@ export const markPackageReceiptEmailAttempt = internalMutation({
 		receiptNumber: v.optional(v.string()),
 		failureCode: v.optional(v.string())
 	},
-	handler: (ctx, args) => markPackageReceiptEmailAttemptService(ctx, args).match(tupleOk, tupleErr)
+	handler: (ctx, args) => writePackageReceiptEmailAttempt(ctx, args).match(tupleOk, tupleErr)
 });
 
 export const savePackageInstagramHandle = mutation({
 	args: { packageId: v.id("packages"), instagramHandle: v.string() },
-	handler: (ctx, args) => savePackageInstagramHandleService(ctx, args).match(tupleOk, tupleErr)
+	handler: (ctx, args) =>
+		loadPackageEligibleForInstagramUpdate(ctx, args.packageId)
+			.andThen((packageFromDb) =>
+				applyPackageInstagramHandleUpdate(ctx, {
+					packageFromDb,
+					instagramHandle: args.instagramHandle
+				})
+			)
+			.match(tupleOk, tupleErr)
 });
 
 export const getPackageById = internalQuery({
 	args: { packageId: v.id("packages") },
-	handler: async (ctx, args) => {
-		return await ctx.db.get("packages", args.packageId);
-	}
+	handler: (ctx, args) => queryPackageByIdOrNull(ctx, args.packageId)
 });

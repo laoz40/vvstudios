@@ -1,4 +1,4 @@
-import { errAsync, ResultAsync } from "neverthrow";
+import { err, ok, ResultAsync, type Result } from "neverthrow";
 import { internal } from "#convex/_generated/api";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { ActionCtx } from "#convex/_generated/server";
@@ -6,9 +6,8 @@ import type { PackageLookupError } from "#convex/lib/packages/packageLookup";
 import { calculatePackageAmounts } from "#studio/features/booking-form/lib/booking-pricing";
 import { createPackageInvoiceLineItemSnapshot } from "#studio/features/booking-invoice/lib/build-booking-invoice-data";
 import type { PackageInvoiceInput } from "#studio/features/booking-invoice/lib/booking-artifacts";
-import { sendPackageReceiptEmailsForPackage } from "#convex/lib/booking/bookingDocumentEmails";
 import type { ParsedPackageRequest } from "#convex/lib/packages/packageUpdates";
-import { fromConvexTuple, okOrThrow } from "#convex/lib/result";
+import { fromConvexTuple } from "#convex/lib/result";
 
 export type PaidPackageResult = {
 	expiresAt: number;
@@ -16,11 +15,6 @@ export type PaidPackageResult = {
 	packageRecord: Doc<"packages">;
 	token: string;
 };
-
-type PackageScheduleEmailResult = ResultAsync<
-	null,
-	{ reason: "PACKAGE_NOT_FOUND" } | { reason: "PACKAGE_SCHEDULE_EMAIL_FAILED" }
->;
 
 export type PackagePaidEmailContext = {
 	expiresAt: number;
@@ -36,10 +30,26 @@ export function buildPackageScheduleUrl(baseUrl: string, token: string) {
 	return url.toString();
 }
 
+function isPaidPackageStatus(status: string) {
+	return status === "paid" || status === "schedule_email_failed";
+}
+
+export function validatePaidPackageForEmailResend(
+	packageRecord: Doc<"packages">
+): Result<{ packageRecord: Doc<"packages">; paidAt: number }, { reason: "PACKAGE_NOT_PAID" }> {
+	const paidAt = packageRecord.paidAt;
+
+	if (!isPaidPackageStatus(packageRecord.status) || paidAt === undefined) {
+		return err({ reason: "PACKAGE_NOT_PAID" });
+	}
+
+	return ok({ packageRecord, paidAt });
+}
+
 export function createPendingPackage(
 	ctx: ActionCtx,
 	args: ParsedPackageRequest
-): ResultAsync<PackageInvoiceInput, never> {
+): ResultAsync<PackageInvoiceInput & { _id: Id<"packages"> }, never> {
 	const amounts = calculatePackageAmounts(args);
 
 	const invoiceLineItems = createPackageInvoiceLineItemSnapshot({
@@ -54,7 +64,7 @@ export function createPendingPackage(
 		packageSize: args.packageSize
 	});
 
-	return okOrThrow(
+	return fromConvexTuple(
 		ctx.runMutation(internal.packages.createPendingPackage, {
 			...args,
 			abn: args.abn || undefined,
@@ -97,87 +107,4 @@ export function buildPackagePaidEmailContext(
 		paidAt: paymentResult.paidAt,
 		scheduleUrl: buildPackageScheduleUrl(origin, paymentResult.token)
 	};
-}
-
-export function sendAndRecordPackagePaidEmail(
-	ctx: ActionCtx,
-	packageId: Id<"packages">,
-	context: PackagePaidEmailContext
-): PackageScheduleEmailResult {
-	return sendPackageReceiptEmailsForPackage(context.packageRecord, context.paidAt, {
-		expiresAt: context.expiresAt,
-		leadTimeMinutes: context.leadTimeMinutes,
-		scheduleUrl: context.scheduleUrl
-	})
-		.andThen(({ receiptNumber }) =>
-			recordPackagePaidEmailAttempt(ctx, packageId, "sent", receiptNumber)
-		)
-		.orElse((error) =>
-			recordPackagePaidEmailAttempt(ctx, packageId, "failed", error.reason).andThen(() =>
-				errAsync({ reason: "PACKAGE_SCHEDULE_EMAIL_FAILED" as const })
-			)
-		);
-}
-
-export function sendPackageCheckoutPaidEmails(
-	ctx: ActionCtx,
-	packageId: Id<"packages">,
-	paymentResult: PaidPackageResult,
-	leadTimeMinutes: number,
-	checkoutReturnOrigin: string
-): PackageScheduleEmailResult {
-	return sendAndRecordPackagePaidEmail(
-		ctx,
-		packageId,
-		buildPackagePaidEmailContext(paymentResult, leadTimeMinutes, checkoutReturnOrigin)
-	);
-}
-
-function recordPackagePaidEmailAttempt(
-	ctx: ActionCtx,
-	packageId: Id<"packages">,
-	status: "sent" | "failed",
-	receiptNumberOrFailureCode?: string
-): ResultAsync<null, { reason: "PACKAGE_NOT_FOUND" }> {
-	if (status === "sent") {
-		return recordPackageReceiptEmailAttempt(
-			ctx,
-			packageId,
-			"sent",
-			receiptNumberOrFailureCode
-		).andThen(() => recordPackageScheduleEmailAttempt(ctx, packageId, "sent"));
-	}
-
-	return recordPackageReceiptEmailAttempt(
-		ctx,
-		packageId,
-		"failed",
-		receiptNumberOrFailureCode
-	).andThen(() => recordPackageScheduleEmailAttempt(ctx, packageId, "failed"));
-}
-
-function recordPackageScheduleEmailAttempt(
-	ctx: ActionCtx,
-	packageId: Id<"packages">,
-	status: "sent" | "failed"
-): ResultAsync<null, { reason: "PACKAGE_NOT_FOUND" }> {
-	return fromConvexTuple(
-		ctx.runMutation(internal.packages.markPackageScheduleEmailAttempt, { packageId, status })
-	);
-}
-
-function recordPackageReceiptEmailAttempt(
-	ctx: ActionCtx,
-	packageId: Id<"packages">,
-	status: "sent" | "failed",
-	receiptNumberOrFailureCode?: string
-): ResultAsync<null, { reason: "PACKAGE_NOT_FOUND" }> {
-	return fromConvexTuple(
-		ctx.runMutation(internal.packages.markPackageReceiptEmailAttempt, {
-			packageId,
-			status,
-			receiptNumber: status === "sent" ? receiptNumberOrFailureCode : undefined,
-			failureCode: status === "failed" ? receiptNumberOrFailureCode : undefined
-		})
-	);
 }

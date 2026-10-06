@@ -136,8 +136,15 @@ export function usePackagePaymentActions(
 					toast.error("This package does not have an active scheduling window yet.");
 					break;
 
-				case "PACKAGE_SCHEDULE_EMAIL_FAILED":
+				case "EMAIL_REQUEST_FAILED":
+				case "EMAIL_RESPONSE_FAILED":
 					toast.error("Receipt and scheduling email failed to send.");
+					break;
+
+				case "INVALID_BOOKING_DATA":
+				case "RECEIPT_EMAIL_RENDER_FAILED":
+				case "RECEIPT_PDF_RENDER_FAILED":
+					toast.error("Could not generate the package receipt email.");
 					break;
 
 				case "UNEXPECTED_ERROR":

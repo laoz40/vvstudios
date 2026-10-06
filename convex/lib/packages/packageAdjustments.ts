@@ -1,12 +1,9 @@
 import { err, ok } from "neverthrow";
 import { okOrThrow } from "#convex/lib/result";
-import { exhaustiveCheck } from "#/lib/result";
-import { internal } from "#convex/_generated/api";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
 import { ADDON_PRICES } from "#studio/features/booking-form/lib/booking-pricing";
 import { formatBookingInvoiceNumber } from "#studio/features/booking-invoice/lib/build-booking-invoice-data";
-import { getCapacityConsumingPackageSessions } from "#convex/lib/packages/packageScheduling";
 
 const MILLISECONDS_PER_HOUR = 60 * 60 * 1000;
 
@@ -44,17 +41,31 @@ export function validatePackageAdjustmentEmailClaim(
 	return ok(adjustment);
 }
 
-export function getPackageAdjustmentInvoice(
+export function lookupPackageAdjustmentRow(
 	ctx: QueryCtx | MutationCtx,
 	adjustmentId: Id<"packageAdjustments">
 ) {
-	return okOrThrow(ctx.db.get("packageAdjustments", adjustmentId)).andThen((adjustment) => {
-		if (!adjustment || adjustment.outcome !== "invoice_required") {
-			return err({ reason: "PACKAGE_ADJUSTMENT_NOT_FOUND" as const });
-		}
+	return okOrThrow(ctx.db.get("packageAdjustments", adjustmentId));
+}
 
-		return ok(adjustment);
-	});
+export function lookupPackageAdjustmentByPackageId(
+	ctx: QueryCtx | MutationCtx,
+	packageId: Id<"packages">
+) {
+	return okOrThrow(
+		ctx.db
+			.query("packageAdjustments")
+			.withIndex("by_packageId", (indexQuery) => indexQuery.eq("packageId", packageId))
+			.unique()
+	);
+}
+
+export function requirePackageAdjustmentInvoiceRow(adjustment: Doc<"packageAdjustments">) {
+	if (adjustment.outcome !== "invoice_required") {
+		return err({ reason: "PACKAGE_ADJUSTMENT_NOT_FOUND" as const });
+	}
+
+	return ok(adjustment);
 }
 
 export function requirePackageAdjustmentPaymentEligibility(
@@ -138,167 +149,109 @@ function getPackageSessionEndAt(booking: Pick<Doc<"bookings">, "duration" | "ses
 	}
 }
 
-export type ProcessPackageAdjustmentArgs =
-	| { trigger: "all_sessions_completed"; packageId: Id<"packages"> }
-	| { trigger: "package_expired"; packageId: Id<"packages">; expectedExpiresAt: number };
+type ReadyPackageAdjustment = Extract<PackageAdjustmentEvaluation, { kind: "ready" }>;
 
-export async function processPackageAdjustment(
+type PackageAdjustmentRecordArgs = {
+	packageId: Id<"packages">;
+	trigger: Doc<"packageAdjustments">["trigger"];
+	createdAt: number;
+};
+
+export function insertNoChargePackageAdjustment(
 	ctx: MutationCtx,
-	args: ProcessPackageAdjustmentArgs
+	args: PackageAdjustmentRecordArgs
 ) {
-	const packageRecord = await getPackageEligibleForAdjustment(ctx, args);
-
-	if (!packageRecord) return null;
-
-	const existingAdjustment = await ctx.db
-		.query("packageAdjustments")
-		.withIndex("by_packageId", (indexQuery) => indexQuery.eq("packageId", args.packageId))
-		.unique();
-
-	if (existingAdjustment) return null;
-
-	const bookingsResult = await getCapacityConsumingPackageSessions(
-		ctx,
-		packageRecord._id,
-		packageRecord.packageSize
-	);
-
-	if (bookingsResult.isErr()) {
-		throw new Error("getCapacityConsumingPackageSessions failed");
-	}
-
-	const bookings = bookingsResult.value;
-
-	// Closing before expiry requires every package session to be scheduled.
-	if (args.trigger === "all_sessions_completed" && bookings.length !== packageRecord.packageSize) {
-		return null;
-	}
-
-	const now = Date.now();
-
-	return handlePackageAdjustmentEvaluation(
-		ctx,
-		args,
-		evaluatePackageAdjustment(bookings, now),
-		now
-	);
-}
-
-async function getPackageEligibleForAdjustment(
-	ctx: MutationCtx,
-	args: ProcessPackageAdjustmentArgs
-) {
-	const packageRecord = await ctx.db.get("packages", args.packageId);
-
-	if (!packageRecord) return null;
-
-	const hasAdjustableStatus =
-		packageRecord.status === "paid" || packageRecord.status === "schedule_email_failed";
-
-	if (!hasAdjustableStatus) return null;
-
-	if (args.trigger === "package_expired") {
-		// Ignore stale expiry jobs and jobs that run before the package expires.
-		if (packageRecord.expiresAt !== args.expectedExpiresAt || Date.now() < args.expectedExpiresAt) {
-			return null;
-		}
-	}
-
-	return packageRecord;
-}
-
-async function handlePackageAdjustmentEvaluation(
-	ctx: MutationCtx,
-	args: ProcessPackageAdjustmentArgs,
-	evaluation: ReturnType<typeof evaluatePackageAdjustment>,
-	now: number
-) {
-	const evaluationKind = evaluation.kind;
-
-	switch (evaluationKind) {
-		case "wait_for_sessions_to_end":
-			return schedulePackageAdjustmentReevaluation(ctx, args, evaluation.nextCheckAt);
-		case "invalid_duration":
-			console.error("Package adjustment could not parse a session duration", {
-				packageId: args.packageId
-			});
-
-			return null;
-		case "ready":
-			return savePackageAdjustment(ctx, args, evaluation, now);
-		default:
-			return exhaustiveCheck(evaluationKind);
-	}
-}
-
-async function schedulePackageAdjustmentReevaluation(
-	ctx: MutationCtx,
-	args: ProcessPackageAdjustmentArgs,
-	nextCheckAt: number
-) {
-	// Re-evaluate when the final session ends.
-	if (args.trigger === "package_expired") {
-		await ctx.scheduler.runAt(
-			nextCheckAt,
-			internal.packageScheduling.processPackageAdjustmentAtExpiry,
-			args
-		);
-
-		return null;
-	}
-
-	await ctx.scheduler.runAt(
-		nextCheckAt,
-		internal.packageScheduling.processPackageAdjustmentWhenSessionsComplete,
-		args
-	);
-
-	return null;
-}
-
-async function savePackageAdjustment(
-	ctx: MutationCtx,
-	args: ProcessPackageAdjustmentArgs,
-	evaluation: Extract<ReturnType<typeof evaluatePackageAdjustment>, { kind: "ready" }>,
-	createdAt: number
-) {
-	if (evaluation.quantity === 0) {
-		await ctx.db.insert("packageAdjustments", {
+	return okOrThrow(
+		ctx.db.insert("packageAdjustments", {
+			...args,
 			outcome: "no_charge",
-			packageId: args.packageId,
-			trigger: args.trigger,
 			remotePodcastBookingIds: [],
 			quantity: 0,
 			rate: REMOTE_PODCAST_ADJUSTMENT_RATE,
-			totalAmount: 0,
-			createdAt
-		});
+			totalAmount: 0
+		})
+	).map(() => null);
+}
 
-		return null;
-	}
+export function insertPackageAdjustmentInvoice(
+	ctx: MutationCtx,
+	args: PackageAdjustmentRecordArgs,
+	evaluation: ReadyPackageAdjustment
+) {
+	return okOrThrow(
+		ctx.db.insert("packageAdjustments", {
+			...args,
+			outcome: "invoice_required",
+			remotePodcastBookingIds: evaluation.remotePodcastBookingIds,
+			quantity: evaluation.quantity,
+			rate: REMOTE_PODCAST_ADJUSTMENT_RATE,
+			totalAmount: evaluation.totalAmount,
+			invoiceNumber: "pending",
+			invoiceDueAt: args.createdAt + PACKAGE_ADJUSTMENT_PAYMENT_DUE_MS,
+			invoiceEmailStatus: "pending",
+			paymentStatus: "unpaid"
+		})
+	);
+}
 
-	const adjustmentId = await ctx.db.insert("packageAdjustments", {
-		outcome: "invoice_required",
-		packageId: args.packageId,
-		trigger: args.trigger,
-		remotePodcastBookingIds: evaluation.remotePodcastBookingIds,
-		quantity: evaluation.quantity,
-		rate: REMOTE_PODCAST_ADJUSTMENT_RATE,
-		totalAmount: evaluation.totalAmount,
-		invoiceNumber: "pending",
-		createdAt,
-		invoiceDueAt: createdAt + PACKAGE_ADJUSTMENT_PAYMENT_DUE_MS,
-		invoiceEmailStatus: "pending",
-		paymentStatus: "unpaid"
-	});
+export function patchPackageAdjustmentInvoiceNumber(
+	ctx: MutationCtx,
+	adjustmentId: Id<"packageAdjustments">,
+	createdAt: number
+) {
+	return okOrThrow(
+		ctx.db.patch("packageAdjustments", adjustmentId, {
+			invoiceNumber: formatBookingInvoiceNumber(adjustmentId, createdAt)
+		})
+	).map(() => adjustmentId);
+}
 
-	await ctx.db.patch("packageAdjustments", adjustmentId, {
-		invoiceNumber: formatBookingInvoiceNumber(adjustmentId, createdAt)
-	});
-	await ctx.scheduler.runAfter(0, internal.packageAdjustmentInvoices.sendPackageAdjustmentInvoice, {
-		adjustmentId,
-		attempt: "automatic"
-	});
+export function patchPackageAdjustmentInvoiceEmailClaimed(
+	ctx: MutationCtx,
+	adjustmentId: Id<"packageAdjustments">,
+	claimedAt: number
+) {
+	return okOrThrow(
+		ctx.db.patch("packageAdjustments", adjustmentId, { invoiceEmailClaimedAt: claimedAt })
+	);
+}
 
-	return null;
+export function patchPackageAdjustmentInvoiceEmailFailed(
+	ctx: MutationCtx,
+	adjustmentId: Id<"packageAdjustments">
+) {
+	return okOrThrow(
+		ctx.db
+			.patch("packageAdjustments", adjustmentId, {
+				invoiceEmailStatus: "failed",
+				invoiceEmailClaimedAt: undefined
+			})
+			.then(() => null)
+	);
+}
+
+export function patchPackageAdjustmentInvoiceEmailSent(
+	ctx: MutationCtx,
+	adjustmentId: Id<"packageAdjustments">,
+	stripeInvoiceId: string
+) {
+	return okOrThrow(
+		ctx.db
+			.patch("packageAdjustments", adjustmentId, {
+				invoiceEmailStatus: "sent",
+				invoiceEmailClaimedAt: undefined,
+				stripeInvoiceId
+			})
+			.then(() => ({ updated: true }))
+	);
+}
+
+export function patchPackageAdjustmentPaymentStatus(
+	ctx: MutationCtx,
+	adjustmentId: Id<"packageAdjustments">,
+	paymentStatus: "paid" | "unpaid"
+) {
+	return okOrThrow(
+		ctx.db.patch("packageAdjustments", adjustmentId, { paymentStatus }).then(() => null)
+	);
 }

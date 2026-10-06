@@ -2,15 +2,20 @@
 
 import { v } from "convex/values";
 import { action } from "#convex/_generated/server";
-import { tupleErr, tupleOk } from "#/lib/result";
+import { tupleErr, tupleOk, type Result } from "#/lib/result";
+import type { Id } from "#convex/_generated/dataModel";
+import type { CreateEmbeddedCheckoutSessionError } from "#convex/services/stripe/stripeCheckoutSession";
 import {
 	bookingAddonQuantitiesValidator,
 	bookingAddonsValidator
-} from "#convex/lib/booking/bookingAddonQuantities";
+} from "#convex/services/booking/bookingFormValidators";
 import {
-	closeEmbeddedCheckoutSessionService,
-	createEmbeddedCheckoutSessionService
-} from "#convex/services/stripe/stripe";
+	closeAbandonedBookingStripeCheckout,
+	createPendingBookingForStripeCheckout,
+	openEmbeddedBookingStripeCheckout,
+	parsePublicBookingForCheckout,
+	runSessionCheckoutSubmitRateLimit
+} from "#convex/services/stripe/stripeCheckoutSession";
 
 // Creates a pending booking, opens a Stripe checkout session, then links both records.
 export const createEmbeddedCheckoutSession = action({
@@ -28,12 +33,25 @@ export const createEmbeddedCheckoutSession = action({
 		...bookingAddonQuantitiesValidator,
 		notes: v.optional(v.string())
 	},
-	handler: async (ctx, args) =>
-		await createEmbeddedCheckoutSessionService(ctx, args).match(tupleOk, tupleErr)
+	handler: async (
+		ctx,
+		args
+	): Promise<
+		Result<
+			{ bookingId: Id<"bookings">; clientSecret: string; stripeSessionId: string },
+			CreateEmbeddedCheckoutSessionError
+		>
+	> => {
+		return await parsePublicBookingForCheckout(args)
+			.andThen((booking) => runSessionCheckoutSubmitRateLimit(ctx, booking))
+			.andThen((booking) => createPendingBookingForStripeCheckout(ctx, booking))
+			.andThen((checkoutDraft) => openEmbeddedBookingStripeCheckout(ctx, checkoutDraft))
+			.match(tupleOk, tupleErr);
+	}
 });
 
 export const closeEmbeddedCheckoutSession = action({
 	args: { bookingId: v.id("bookings"), stripeSessionId: v.string() },
 	handler: async (ctx, args) =>
-		await closeEmbeddedCheckoutSessionService(ctx, args).match(tupleOk, tupleErr)
+		await closeAbandonedBookingStripeCheckout(ctx, args).match(tupleOk, tupleErr)
 });

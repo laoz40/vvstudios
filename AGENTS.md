@@ -52,34 +52,39 @@ Before opening PR:
 - Do not start a long-running `convex dev`.
 - Cloud agents doing Convex work: use the `convex-cloud-agents` skill under `.agents/skills/`.
 
+### Three-layer architecture
+
+Read **[docs/convex-three-layers.md](./docs/convex-three-layers.md)** first for handlers → services → lib (the project goal for every endpoint).
+
+Quick map:
+
+| Layer | Where | Calls | You should see |
+| --- | --- | --- | --- |
+| Handler | `convex/<domain>.ts` | services only | A short, flat list of steps (*what* happens) |
+| Service | `convex/services/**` | lib (+ other services) | One abstraction per function; policy here |
+| Lib | `convex/lib/**` | — | Small DB/logic primitives; no policy |
+
+Handlers: neverthrow chain of service steps, no domain `if`s, `.match(tupleOk, tupleErr)` on tuple endpoints. Crons and internal mutations reuse the same service steps.
+
+When you touch code that breaks the guide, fix it only if in scope; do not repo-wide sweep.
+
 ### Conventions (while implementing)
 
 - Do not duplicate constants or defaults between the frontend and Convex; extract shared values to one importable source when possible.
 - Do not suffix internal Convex function names with `Internal` or similar; that is obvious from context.
 - Services whose handlers are exported in the same API module may need an explicit `ResultAsync<..., { reason: string }>` return type to break circular inference.
+- New service **functions** are verb-first; do not bulk-rename existing symbols. Split a service that branches on which endpoint called it (mode flags, endpoint-only optional args).
 
-#### Neverthrow
+### Neverthrow
 
-Three layers:
-
-- **Handler** (`convex/*.ts`): one use case, one endpoint. It owns validators and the pipeline order, a flat neverthrow chain of 3 to 6 steps with no domain `if`s. It returns the wire tuple with `.match(tupleOk, tupleErr)`. A handler may call `convex/lib` directly when there is no invariant (trivial cases like feedback). Anything with a permission, state or policy check goes through a service.
-- **Service** (`convex/services/<domain>/`): a reusable domain operation that carries an invariant or policy (`loadSessionForDeliverables`, `reserveSessionTime`). It takes `QueryCtx | MutationCtx`, calls other services and lib functions as plain functions, and never uses `ctx.runQuery` / `ctx.runMutation`. Handlers, crons and internal mutations can all call it. Action-ctx workflows also live here, with `ActionCtx` in the signature.
-- **Lib** (`convex/lib`): dumb primitives such as `getFoo` and `patchBaz`. No permission checks, workflow or policy.
-
-Rules:
-
-- Do not add one service per endpoint. A service with a single caller that only chains lib functions belongs in the handler. A service that branches on which endpoint called it (mode flag, endpoint-only optional args) should be split.
-- New services are verb-first and have no `Service` suffix. Do not bulk-rename existing ones.
-- Existing code is migrating to this split. When you touch a service that fails these rules, fix it only if the change is in scope; do not sweep.
-- Errors: return the real domain reason from lib, email senders and rate limiters. Do not `mapErr` into a synthetic code. Fire-and-forget success returns `null`.
-- Lib and service steps return `Result` / `ResultAsync` with `ok` / `err` for domain outcomes. Chain with `.andThen` / `.map`; do not wrap a whole lib function in `okOrThrow`.
-- Result helpers live in `convex/lib/result.ts`. Do not call `fromSafePromise` / `fromPromise` directly.
-  - `okOrThrow` — only the **single** Convex I/O expression at that step: `ctx.db.*`, `ctx.scheduler.*`, `ctx.auth.getUserIdentity()`, or `ctx.runQuery` / `ctx.runMutation` returning a raw value. Infra failure throws; expected domain errors belong in `.andThen` as `err(...)`.
+- Return real domain `reason` codes from lib, email senders, and rate limiters. Do not `mapErr` into synthetic codes. Fire-and-forget success returns `null`.
+- Service and lib steps return `Result` / `ResultAsync`; chain with `.andThen` / `.map`. Do not wrap a whole function in `okOrThrow`.
+- Helpers in `convex/lib/result.ts` only — do not call `fromSafePromise` / `fromPromise` directly.
+  - `okOrThrow` — single Convex I/O at that step: `ctx.db.*`, `ctx.scheduler.*`, `ctx.auth.getUserIdentity()`, or raw `runQuery` / `runMutation`. Infra throws; domain outcomes use `err(...)` in `.andThen`.
   - `fromConvexTuple` — `runQuery` / `runMutation` whose handler uses `.match(tupleOk, tupleErr)`.
-  - `tryPromise` — external APIs (Stripe, Resend, Google, render). Failure becomes domain `err` in `catch`.
-- Do not use `tryPromise` with a `catch` that rethrows; use `okOrThrow` on Convex I/O (or `fromSafePromise` via `okOrThrow`) and reserve `tryPromise` for when `catch` maps to a domain `err({ reason })`.
-- Lib exports that return `ResultAsync` should build it from their steps; do not wrap an internal async helper in `tryPromise` or `okOrThrow` at the export boundary.
-- Paginated Convex query handlers may return plain pagination values at the boundary when tuple `Result` would break Convex pagination; use `okOrThrow` on individual `ctx.db` reads inside internal `ResultAsync` row-load steps.
+  - `tryPromise` — external APIs (Stripe, Resend, Google, render); `catch` maps to domain `err`, never rethrows.
+- Lib exports returning `ResultAsync` build it from steps; no export-level `tryPromise` / `okOrThrow` around internal async helpers.
+- Paginated query handlers may return plain pagination at the boundary when tuples break Convex pagination; use `okOrThrow` on individual reads inside service/lib row-load steps.
 
 ## Tests
 

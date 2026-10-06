@@ -3,11 +3,14 @@
 import { v } from "convex/values";
 import { tupleErr, tupleOk } from "#/lib/result";
 import { action } from "#convex/_generated/server";
-import { getStripeInvoiceBillingUrlsService } from "#convex/services/stripe/stripeInvoiceBillingUrls";
 import {
-	sendBookingStripeInvoiceService,
-	sendPackageStripeInvoiceService
-} from "#convex/services/stripe/stripeInvoicing";
+	createAndRecordBookingStripeInvoice,
+	createAndRecordPackageStripeInvoice,
+	loadBookingStripeCustomerId,
+	loadPackageStripeCustomerId,
+	loadStripeInvoiceBillingUrlsForStaff,
+	requireSendReceiptEmailsAndValidateLineItems
+} from "#convex/services/stripe/stripeInvoiceSend";
 
 const stripeInvoiceLineItemValidator = v.object({ description: v.string(), amount: v.number() });
 
@@ -18,7 +21,23 @@ export const sendBookingStripeInvoice = action({
 		requestId: v.string()
 	},
 	handler: async (ctx, args) =>
-		(await sendBookingStripeInvoiceService(ctx, args)).match(tupleOk, tupleErr)
+		await requireSendReceiptEmailsAndValidateLineItems(ctx, args.lineItems)
+			.andThen(({ identity, lineItems }) =>
+				loadBookingStripeCustomerId(ctx, args.bookingId).map((stripeCustomerId) => ({
+					identity,
+					lineItems,
+					stripeCustomerId
+				}))
+			)
+			.andThen(({ identity, lineItems, stripeCustomerId }) =>
+				createAndRecordBookingStripeInvoice(
+					ctx,
+					{ bookingId: args.bookingId, lineItems, requestId: args.requestId },
+					identity,
+					stripeCustomerId
+				)
+			)
+			.match(tupleOk, tupleErr)
 });
 
 export const sendPackageStripeInvoice = action({
@@ -28,11 +47,27 @@ export const sendPackageStripeInvoice = action({
 		requestId: v.string()
 	},
 	handler: async (ctx, args) =>
-		(await sendPackageStripeInvoiceService(ctx, args)).match(tupleOk, tupleErr)
+		await requireSendReceiptEmailsAndValidateLineItems(ctx, args.lineItems)
+			.andThen(({ identity, lineItems }) =>
+				loadPackageStripeCustomerId(ctx, args.packageId).map((stripeCustomerId) => ({
+					identity,
+					lineItems,
+					stripeCustomerId
+				}))
+			)
+			.andThen(({ identity, lineItems, stripeCustomerId }) =>
+				createAndRecordPackageStripeInvoice(
+					ctx,
+					{ packageId: args.packageId, lineItems, requestId: args.requestId },
+					identity,
+					stripeCustomerId
+				)
+			)
+			.match(tupleOk, tupleErr)
 });
 
 export const getStripeInvoiceBillingUrls = action({
 	args: { stripeInvoiceId: v.string() },
 	handler: async (ctx, args) =>
-		(await getStripeInvoiceBillingUrlsService(ctx, args)).match(tupleOk, tupleErr)
+		await loadStripeInvoiceBillingUrlsForStaff(ctx, args.stripeInvoiceId).match(tupleOk, tupleErr)
 });

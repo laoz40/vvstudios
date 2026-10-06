@@ -1,7 +1,10 @@
 import { err, errAsync, ok, okAsync, type Result, type ResultAsync } from "neverthrow";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
-import { getPackageAdjustmentInvoice } from "#convex/lib/packages/packageAdjustments";
+import {
+	lookupPackageAdjustmentRow,
+	requirePackageAdjustmentInvoiceRow
+} from "#convex/lib/packages/packageAdjustments";
 import { okOrThrow } from "#convex/lib/result";
 
 type InvoiceRequiredAdjustment = Extract<
@@ -53,7 +56,19 @@ function resolvePackageAdjustmentForPayment(
 			return getPackageAdjustmentByStripeInvoiceId(ctx, args.stripeInvoiceId);
 		}
 
-		return getPackageAdjustmentInvoice(ctx, normalizedAdjustmentId);
+		return lookupPackageAdjustmentRow(ctx, normalizedAdjustmentId).andThen((adjustment) => {
+			if (!adjustment) {
+				return errAsync({ reason: "PACKAGE_ADJUSTMENT_NOT_FOUND" as const });
+			}
+
+			const invoiceRow = requirePackageAdjustmentInvoiceRow(adjustment);
+
+			if (invoiceRow.isErr()) {
+				return errAsync({ reason: "PACKAGE_ADJUSTMENT_NOT_FOUND" as const });
+			}
+
+			return okAsync(invoiceRow.value);
+		});
 	}
 
 	return getPackageAdjustmentByStripeInvoiceId(ctx, args.stripeInvoiceId);

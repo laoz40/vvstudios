@@ -21,6 +21,7 @@ export type DriveSetupInfo = {
 		duration: string;
 		status: Doc<"bookings">["status"];
 		packageId?: Id<"packages">;
+		assignedEditorTokenIdentifier?: string;
 	};
 	packageRecord: SetupPackage | null;
 	driveClient: {

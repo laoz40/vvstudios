@@ -9,8 +9,13 @@ import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { BookingAddonQuantitiesArgs } from "#convex/lib/booking/bookingAddonQuantities";
 import type { BookingAddon } from "#studio/features/booking-form/lib/booking-form-model";
 import { getPackageUpdateValidationError } from "#convex/lib/packages/packageScheduling";
-import { buildPackageSearchBlob } from "#convex/lib/adminSearch/adminSearchBlob";
+import {
+	buildPackageSearchBlob,
+	searchBlobPatchForPackage
+} from "#convex/lib/adminSearch/adminSearchBlob";
 import { normalizePhone } from "#convex/lib/contactNormalization";
+import type { MutationCtx } from "#convex/_generated/server";
+import { okOrThrow } from "#convex/lib/result";
 
 export type CreatePendingPackageArgs = {
 	name: string;
@@ -238,4 +243,114 @@ export function buildPackageUpdatePatch(args: UpdatePackageArgs, updatedPackage:
 	}
 
 	return patch;
+}
+
+export function patchPackageRowInstagramHandle(
+	ctx: MutationCtx,
+	args: { packageFromDb: Doc<"packages">; instagramHandle: string }
+) {
+	return okOrThrow(
+		ctx.db
+			.patch("packages", args.packageFromDb._id, {
+				instagramHandle: args.instagramHandle,
+				...searchBlobPatchForPackage(args.packageFromDb, { instagramHandle: args.instagramHandle })
+			})
+			.then(() => null)
+	);
+}
+
+export function insertPendingPackageRow(
+	ctx: MutationCtx,
+	packageRecord: Omit<Doc<"packages">, "_id" | "_creationTime">
+) {
+	return okOrThrow(
+		ctx.db
+			.insert("packages", packageRecord)
+			.then((packageId) => ({ packageRecord: { _id: packageId, ...packageRecord } }))
+	);
+}
+
+export function patchPackageStripeCheckoutIds(
+	ctx: MutationCtx,
+	args: { packageId: Id<"packages">; stripeSessionId: string; stripeCustomerId: string }
+) {
+	return okOrThrow(
+		ctx.db
+			.patch("packages", args.packageId, {
+				stripeSessionId: args.stripeSessionId,
+				stripeCustomerId: args.stripeCustomerId
+			})
+			.then(() => null)
+	);
+}
+
+export function patchPackageCheckoutClaimed(
+	ctx: MutationCtx,
+	packageId: Id<"packages">,
+	patch: { packageCheckoutClaimedAt: number; stripePaymentIntentId?: string }
+) {
+	return okOrThrow(ctx.db.patch("packages", packageId, patch).then(() => null));
+}
+
+export function patchPackageDefaultRecordingSpace(
+	ctx: MutationCtx,
+	packageId: Id<"packages">,
+	service: NonNullable<Doc<"packages">["defaultSpace"]>
+) {
+	return okOrThrow(
+		ctx.db
+			.patch("packages", packageId, { defaultSpace: service })
+			.then(() => ({ defaultSpace: service }))
+	);
+}
+
+export function patchPackageScheduleTokenRefresh(
+	ctx: MutationCtx,
+	packageId: Id<"packages">,
+	scheduleTokenHash: string
+) {
+	return okOrThrow(
+		ctx.db
+			.patch("packages", packageId, { scheduleLinkStatus: "active", scheduleTokenHash })
+			.then(() => null)
+	);
+}
+
+export function patchPackageScheduleEmailStatus(
+	ctx: MutationCtx,
+	packageId: Id<"packages">,
+	status: "sent" | "failed"
+) {
+	return okOrThrow(
+		ctx.db
+			.patch("packages", packageId, {
+				status: status === "sent" ? "paid" : "schedule_email_failed"
+			})
+			.then(() => null)
+	);
+}
+
+export function patchPackageReceiptEmailAttempt(
+	ctx: MutationCtx,
+	packageId: Id<"packages">,
+	sentPatch: Partial<Doc<"packages">>
+) {
+	return okOrThrow(ctx.db.patch("packages", packageId, sentPatch).then(() => null));
+}
+
+export function patchPackageExpiryReminderStateCleared(
+	ctx: MutationCtx,
+	packageId: Id<"packages">
+) {
+	return okOrThrow(
+		ctx.db.patch("packages", packageId, { packageReminderState: undefined }).then(() => null)
+	);
+}
+
+export function patchAdminPackageRow(
+	ctx: MutationCtx,
+	packageId: Id<"packages">,
+	patch: Partial<Doc<"packages">>
+) {
+	return okOrThrow(ctx.db.patch("packages", packageId, patch).then(() => null));
 }

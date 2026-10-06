@@ -15,26 +15,36 @@ export type ValidPackageByTokenError =
 
 export type ValidPackage = Doc<"packages"> & { expiresAt: number };
 
-export function getPackageFromDb(ctx: QueryCtx | MutationCtx, packageId: Id<"packages">) {
-	return okOrThrow(ctx.db.get("packages", packageId)).andThen((packageFromDb) => {
-		if (!packageFromDb) {
-			return err({ reason: "PACKAGE_NOT_FOUND" as const });
-		}
+export function normalizePackageId(ctx: QueryCtx | MutationCtx, packageId: string) {
+	const normalizedPackageId = ctx.db.normalizeId("packages", packageId);
 
-		return ok(packageFromDb);
-	});
+	return normalizedPackageId
+		? ok(normalizedPackageId)
+		: err({ reason: "PACKAGE_NOT_FOUND" as const });
 }
 
-export function getPackageForAction(ctx: ActionCtx, packageId: Id<"packages">) {
+export function lookupPackageByStripeSessionId(
+	ctx: QueryCtx | MutationCtx,
+	stripeSessionId: string
+) {
+	return okOrThrow(
+		ctx.db
+			.query("packages")
+			.withIndex("by_stripeSessionId", (indexQuery) =>
+				indexQuery.eq("stripeSessionId", stripeSessionId)
+			)
+			.unique()
+	);
+}
+
+export function lookupPackageRow(ctx: QueryCtx | MutationCtx, packageId: Id<"packages">) {
+	return okOrThrow(ctx.db.get("packages", packageId));
+}
+
+export function lookupPackageByIdForAction(ctx: ActionCtx, packageId: Id<"packages">) {
 	return okOrThrow<Doc<"packages"> | null>(
 		ctx.runQuery(internal.packages.getPackageById, { packageId: packageId })
-	).andThen((packageFromDb) => {
-		if (packageFromDb === null) {
-			return err({ reason: "PACKAGE_NOT_FOUND" as const });
-		}
-
-		return ok(packageFromDb);
-	});
+	);
 }
 
 export function getValidPackageByToken(ctx: QueryCtx | MutationCtx, token: string, now: number) {

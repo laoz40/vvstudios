@@ -191,7 +191,8 @@ export function usePackageSchedule({
 	const calendarView = useMemo(() => {
 		const today = startOfToday();
 		const selectedDate = parseDateValue(sessionSelection.selectedDateValue);
-		const expiresDateValue = formatDateValue(new Date(packageData.expiresAt));
+		const expiresAt = packageData.expiresAt ?? getCurrentTimestamp();
+		const expiresDateValue = formatDateValue(new Date(expiresAt));
 		const lastBookableDate = parseDateValue(expiresDateValue) ?? today;
 		const bookableMonthKeys = getBookableMonthKeys(today, lastBookableDate);
 		const visibleMonth = formatMonthKey(calendarMonth);

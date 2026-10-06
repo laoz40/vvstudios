@@ -2,7 +2,7 @@ import { err, ok, okAsync, type Result, type ResultAsync } from "neverthrow";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { MutationCtx } from "#convex/_generated/server";
 import {
-	searchBlobPatchForBooking,
+	searchBlobPatchForBookingAsync,
 	type BookingSearchPatchOverrides
 } from "#convex/lib/adminSearch/adminSearchBlob";
 import { scheduleDriveSetup } from "#convex/lib/drive/driveScheduling";
@@ -83,14 +83,14 @@ export function applySessionPatch(
 	patch: Partial<Doc<"bookings">>,
 	searchOverrides: BookingSearchPatchOverrides = {}
 ) {
-	return okOrThrow(
-		searchBlobPatchForBooking(ctx, booking, searchOverrides).then((searchBlobPatch) =>
+	return searchBlobPatchForBookingAsync(ctx, booking, searchOverrides).andThen((searchBlobPatch) =>
+		okOrThrow(
 			ctx.db.patch("bookings", bookingId, { ...patch, ...searchBlobPatch }).then(() => null)
 		)
 	);
 }
 
-export function persistSessionPatchWithDriveSetup(args: {
+export function writeSessionBookingPatchWithDriveSetup(args: {
 	ctx: MutationCtx;
 	bookingId: Id<"bookings">;
 	booking: Doc<"bookings">;

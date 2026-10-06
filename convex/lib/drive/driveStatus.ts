@@ -1,15 +1,14 @@
-import type { Doc, Id } from "#convex/_generated/dataModel";
+import type { Doc } from "#convex/_generated/dataModel";
 import { exhaustiveCheck } from "#/lib/result";
 import type { QueryCtx } from "#convex/_generated/server";
+import { okAsync } from "neverthrow";
+import { okOrThrow } from "#convex/lib/result";
 import { bookingRequiresClientAssetsEmail } from "#convex/lib/booking/bookingAddonQuantities";
 import { isClientFolderSharingDismissed } from "#convex/lib/drive/driveClientAccess";
-import { resolveSessionFolderDisplayName } from "#convex/lib/drive/sessionFolders/resolveFolderNames";
-import {
-	getDriveSetup,
-	loadSharedPackageFolder,
-	resolveDriveClientForBooking
-} from "#convex/lib/drive/driveLookup";
-import { okOrThrow } from "#convex/lib/result";
+import { loadSessionFolderDisplayName } from "#convex/lib/drive/sessionFolders/resolveFolderNames";
+import { resolveDriveClientForBooking } from "#convex/lib/drive/driveLookup";
+import { loadPackageBookings } from "#convex/lib/drive/driveLookup";
+import { packageFolderFromOtherPackageBookings } from "#convex/lib/drive/driveSetupLoad";
 import type { DriveChildFolderName } from "#convex/lib/drive/googleDrive";
 import {
 	formatDriveClientFolderName,
@@ -354,7 +353,7 @@ function buildDriveWorkflowFailureStatus(args: {
 	});
 }
 
-function getDriveSetupEntities(
+export function getDriveSetupEntities(
 	setupInfo: {
 		booking: Doc<"bookings"> | null;
 		driveClient: Doc<"driveClients"> | null;
@@ -372,7 +371,7 @@ function getDriveSetupEntities(
 	};
 }
 
-function buildDriveStatusFromSetup(
+export function buildDriveStatusFromSetup(
 	setupInfo: {
 		booking: Doc<"bookings"> | null;
 		driveClient: Doc<"driveClients"> | null;
@@ -422,23 +421,6 @@ function buildDriveStatusFromSetup(
 	};
 }
 
-export function getDriveStatus(ctx: QueryCtx, bookingId: Id<"bookings">) {
-	return getDriveSetup(ctx, bookingId).andThen((setupInfo) =>
-		okOrThrow(
-			(async () => {
-				const { booking, driveSession } = getDriveSetupEntities(setupInfo);
-
-				const sessionFolderName =
-					booking === null
-						? undefined
-						: await resolveSessionFolderDisplayName(ctx, booking, driveSession);
-
-				return buildDriveStatusFromSetup(setupInfo, sessionFolderName);
-			})()
-		)
-	);
-}
-
 // Admin session lists only need the failure flag, not the full Drive status payload.
 export async function getDriveWorkflowFailureForBooking(ctx: QueryCtx, booking: Doc<"bookings">) {
 	const [driveClientFromBooking, driveSession, packageRecord] = await Promise.all([
@@ -465,10 +447,20 @@ export async function getDriveWorkflowFailureForBooking(ctx: QueryCtx, booking: 
 	let sharedPackageFolder: Doc<"driveSessions">["packageFolder"] | undefined;
 
 	if (driveSession?.packageFolder === undefined && booking.packageId !== undefined) {
-		const sharedFolderResult = await loadSharedPackageFolder(ctx, booking.packageId, booking._id);
+		const packageBookingsResult = await loadPackageBookings(ctx, booking.packageId);
+
+		if (packageBookingsResult.isErr()) {
+			throw new Error("loadPackageBookings failed");
+		}
+
+		const sharedFolderResult = await packageFolderFromOtherPackageBookings(
+			ctx,
+			packageBookingsResult.value,
+			booking._id
+		);
 
 		if (sharedFolderResult.isErr()) {
-			throw new Error("loadSharedPackageFolder failed");
+			throw new Error("packageFolderFromOtherPackageBookings failed");
 		}
 
 		sharedPackageFolder = sharedFolderResult.value;
@@ -483,44 +475,76 @@ export async function getDriveWorkflowFailureForBooking(ctx: QueryCtx, booking: 
 	});
 }
 
-export async function getEditorSessionDriveFolders(ctx: QueryCtx, booking: Doc<"bookings">) {
+export type EditorSessionDriveFolders = {
+	assets: NonNullable<Doc<"driveClients">["assetsFolder"]>;
+	deliverables: NonNullable<Doc<"driveSessions">["deliverablesFolder"]>;
+	rawMedia: NonNullable<Doc<"driveSessions">["rawMediaFolder"]>;
+	session: NonNullable<Doc<"driveSessions">["sessionFolder"]>;
+	sessionFolderName: string;
+};
+
+function loadEditorSessionDriveFoldersChain(ctx: QueryCtx, booking: Doc<"bookings">) {
 	const editorTokenIdentifier = booking.assignedEditorTokenIdentifier;
 
-	if (editorTokenIdentifier === undefined) return null;
-
-	const driveSession = await ctx.db
-		.query("driveSessions")
-		.withIndex("by_bookingId", (query) => query.eq("bookingId", booking._id))
-		.unique();
-
-	if (
-		driveSession === null ||
-		driveSession.editorDrivePermissionsStatus !== "ready" ||
-		driveSession.editorDrivePermissionsTokenIdentifier !== editorTokenIdentifier
-	) {
-		return null;
+	if (editorTokenIdentifier === undefined) {
+		return okAsync<EditorSessionDriveFolders | null>(null);
 	}
 
-	const driveClient = await ctx.db.get("driveClients", driveSession.driveClientId);
+	return okOrThrow(
+		ctx.db
+			.query("driveSessions")
+			.withIndex("by_bookingId", (query) => query.eq("bookingId", booking._id))
+			.unique()
+	).andThen((driveSession) => {
+		if (
+			driveSession === null ||
+			driveSession.editorDrivePermissionsStatus !== "ready" ||
+			driveSession.editorDrivePermissionsTokenIdentifier !== editorTokenIdentifier
+		) {
+			return okAsync<EditorSessionDriveFolders | null>(null);
+		}
 
-	if (
-		driveClient?.assetsFolder === undefined ||
-		driveSession.sessionFolder === undefined ||
-		driveSession.rawMediaFolder === undefined ||
-		driveSession.deliverablesFolder === undefined
-	) {
-		return null;
-	}
+		return okOrThrow(ctx.db.get("driveClients", driveSession.driveClientId)).andThen(
+			(driveClient) => {
+				const assetsFolder = driveClient?.assetsFolder;
+				const sessionFolder = driveSession.sessionFolder;
+				const rawMediaFolder = driveSession.rawMediaFolder;
+				const deliverablesFolder = driveSession.deliverablesFolder;
 
-	const sessionFolderName = await resolveSessionFolderDisplayName(ctx, booking, driveSession);
+				if (
+					assetsFolder === undefined ||
+					sessionFolder === undefined ||
+					rawMediaFolder === undefined ||
+					deliverablesFolder === undefined
+				) {
+					return okAsync<EditorSessionDriveFolders | null>(null);
+				}
 
-	return {
-		assets: driveClient.assetsFolder,
-		deliverables: driveSession.deliverablesFolder,
-		rawMedia: driveSession.rawMediaFolder,
-		session: driveSession.sessionFolder,
-		sessionFolderName
-	};
+				return loadSessionFolderDisplayName(ctx, booking, driveSession).map(
+					(sessionFolderName) => ({
+						assets: assetsFolder,
+						deliverables: deliverablesFolder,
+						rawMedia: rawMediaFolder,
+						session: sessionFolder,
+						sessionFolderName
+					})
+				);
+			}
+		);
+	});
+}
+
+export function loadEditorSessionDriveFolders(ctx: QueryCtx, booking: Doc<"bookings">) {
+	return loadEditorSessionDriveFoldersChain(ctx, booking);
+}
+
+export async function getEditorSessionDriveFolders(ctx: QueryCtx, booking: Doc<"bookings">) {
+	return loadEditorSessionDriveFolders(ctx, booking).match(
+		(driveFolders) => driveFolders,
+		() => {
+			throw new Error("getEditorSessionDriveFolders failed");
+		}
+	);
 }
 
 function buildEditorDrivePermissionsStatus(

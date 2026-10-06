@@ -1,110 +1,63 @@
 import type { UserIdentity } from "convex/server";
-import { err, ok, type ResultAsync } from "neverthrow";
-import { internal } from "#convex/_generated/api";
+import { ok } from "neverthrow";
 import type { Doc } from "#convex/_generated/dataModel";
-import type { ActionCtx, MutationCtx, QueryCtx } from "#convex/_generated/server";
+import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
 import {
-	getEditorByToken,
+	getEditorByToken as getEditorByTokenLib,
 	isAdminIdentity,
-	requireAdminIdentity,
+	requireAdminIdentity as requireAdminIdentityLib,
 	requireEnrollableEditorProfile,
-	requireUser,
+	requireUser as requireUserLib,
 	saveEditorDetails
 } from "#convex/lib/auth";
-import { fromConvexTuple } from "#convex/lib/result";
-import { hasPermission, ROLE_PERMISSIONS, type Permission } from "#/lib/permissions";
+import type { Permission } from "#/lib/permissions";
+import {
+	loadUserAccessForIdentity as loadUserAccessForIdentityLib,
+	requireUserPermission
+} from "#convex/services/authPermissions";
 
-type AdminEditorProfile = { tokenIdentifier: string; displayName: string; isActive: boolean };
-
-type UserAccess =
-	| { role: "admin"; permissions: readonly Permission[]; editorProfile: AdminEditorProfile | null }
-	| { role: "editor"; permissions: readonly Permission[] };
-
-function buildAdminEditorProfile(editor: Doc<"editorProfiles">): AdminEditorProfile {
-	return {
-		tokenIdentifier: editor.tokenIdentifier,
-		displayName: editor.displayName,
-		isActive: editor.isActive
-	};
-}
-
-function getUserRoleAndPermissions(
+function persistEditorForIdentity(
+	ctx: MutationCtx,
 	identity: UserIdentity,
-	loadEditor: (
-		token: UserIdentity["tokenIdentifier"]
-	) => ResultAsync<Doc<"editorProfiles"> | null, never>
-): ResultAsync<UserAccess, { reason: "NOT_AUTHORIZED" }> {
-	if (isAdminIdentity(identity)) {
-		return loadEditor(identity.tokenIdentifier).map((editor) => ({
-			role: "admin" as const,
-			permissions: ROLE_PERMISSIONS.admin,
-			editorProfile: editor === null ? null : buildAdminEditorProfile(editor)
-		}));
-	}
-
-	return loadEditor(identity.tokenIdentifier).andThen((editor) => {
-		if (editor === null || !editor.isActive) {
-			return err({ reason: "NOT_AUTHORIZED" as const });
-		}
-
-		return ok({ role: "editor" as const, permissions: ROLE_PERMISSIONS.editor });
-	});
-}
-
-function requireUserPermission(
-	auth: QueryCtx["auth"],
-	loadEditor: (
-		token: UserIdentity["tokenIdentifier"]
-	) => ResultAsync<Doc<"editorProfiles"> | null, never>,
-	permission: Permission
+	editor: Doc<"editorProfiles"> | null
 ) {
-	return requireUser({ auth }).andThen((identity) =>
-		getUserRoleAndPermissions(identity, loadEditor).andThen((access) => {
-			if (!hasPermission(access.permissions, permission)) {
-				return err({ reason: "NOT_AUTHORIZED" as const });
-			}
-
-			return ok(identity);
-		})
-	);
+	return saveEditorDetails(ctx, identity, editor);
 }
 
 export function requirePermission(ctx: QueryCtx | MutationCtx, permission: Permission) {
-	return requireUserPermission(ctx.auth, (token) => getEditorByToken(ctx, token), permission);
+	return requireUserPermission(ctx.auth, (token) => getEditorByTokenLib(ctx, token), permission);
 }
 
-export function requirePermissionActions(ctx: ActionCtx, permission: Permission) {
-	return requireUserPermission(
-		ctx.auth,
-		(token) => fromConvexTuple(ctx.runQuery(internal.auth.getEditorByToken, { token })),
-		permission
+export function saveSignedInEditorProfile(ctx: MutationCtx, identity: UserIdentity) {
+	if (isAdminIdentity(identity)) {
+		return ok(null);
+	}
+
+	return getEditorByTokenLib(ctx, identity.tokenIdentifier).andThen(
+		(editor: Doc<"editorProfiles"> | null) => persistEditorForIdentity(ctx, identity, editor)
 	);
 }
 
-export function getCurrentUserAccessService(ctx: QueryCtx) {
-	return requireUser(ctx).andThen((identity) =>
-		getUserRoleAndPermissions(identity, (token) => getEditorByToken(ctx, token))
-	);
+export function saveAdminEditorEnrollment(ctx: MutationCtx, identity: UserIdentity) {
+	return getEditorByTokenLib(ctx, identity.tokenIdentifier)
+		.andThen(requireEnrollableEditorProfile)
+		.andThen((editor: Doc<"editorProfiles"> | null) =>
+			persistEditorForIdentity(ctx, identity, editor)
+		);
 }
 
-export function createEditorUserService(ctx: MutationCtx) {
-	return requireUser(ctx).andThen((identity) => {
-		if (isAdminIdentity(identity)) {
-			return ok(null);
-		}
-
-		return getEditorByToken(ctx, identity.tokenIdentifier).andThen((editor) =>
-			saveEditorDetails(ctx, identity, editor)
-		);
-	});
+export function getEditorByToken(ctx: QueryCtx | MutationCtx, token: string) {
+	return getEditorByTokenLib(ctx, token);
 }
 
-export function enrollAdminAsEditorService(ctx: MutationCtx) {
-	return requireUser(ctx)
-		.andThen(requireAdminIdentity)
-		.andThen((identity) =>
-			getEditorByToken(ctx, identity.tokenIdentifier)
-				.andThen(requireEnrollableEditorProfile)
-				.andThen((editor) => saveEditorDetails(ctx, identity, editor))
-		);
+export function requireAdminIdentity(identity: UserIdentity) {
+	return requireAdminIdentityLib(identity);
+}
+
+export function requireUser(ctx: QueryCtx | MutationCtx) {
+	return requireUserLib(ctx);
+}
+
+export function loadUserAccessForIdentity(ctx: QueryCtx | MutationCtx, identity: UserIdentity) {
+	return loadUserAccessForIdentityLib(ctx, identity);
 }

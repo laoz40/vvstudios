@@ -1,23 +1,33 @@
 import { v } from "convex/values";
 import { tupleErr, tupleOk } from "#/lib/result";
 import { mutation, query } from "#convex/_generated/server";
+import { requirePermission } from "#convex/services/auth";
 import {
-	listEmployees as listEmployeesService,
-	updateEmployeeAccessForAdmin,
-	updateEmployeeNotesForAdmin
+	loadEmployeeRoster,
+	saveEmployeeAccess,
+	saveEmployeeNotes
 } from "#convex/services/employees/employeeManagement";
 
 export const listEmployees = query({
 	args: {},
-	handler: (ctx) => listEmployeesService(ctx).match(tupleOk, tupleErr)
+	handler: (ctx) =>
+		requirePermission(ctx, "update:editor-access")
+			.andThen(() => loadEmployeeRoster(ctx))
+			.match(tupleOk, tupleErr)
 });
 
 export const updateEmployeeNotes = mutation({
 	args: { tokenIdentifier: v.string(), notes: v.string() },
-	handler: (ctx, args) => updateEmployeeNotesForAdmin(ctx, args).match(tupleOk, tupleErr)
+	handler: (ctx, args) =>
+		requirePermission(ctx, "update:editor-access")
+			.andThen(() => saveEmployeeNotes(ctx, args.tokenIdentifier, args.notes))
+			.match(tupleOk, tupleErr)
 });
 
 export const updateEmployeeAccess = mutation({
 	args: { tokenIdentifier: v.string(), isActive: v.boolean() },
-	handler: (ctx, args) => updateEmployeeAccessForAdmin(ctx, args).match(tupleOk, tupleErr)
+	handler: (ctx, args) =>
+		requirePermission(ctx, "update:editor-access")
+			.andThen(() => saveEmployeeAccess(ctx, args.tokenIdentifier, args.isActive))
+			.match(tupleOk, tupleErr)
 });
