@@ -1,4 +1,6 @@
 import type { ResultAsync as NeverthrowResultAsync } from "neverthrow";
+import { formatDriveClientFolderName } from "#studio/lib/bookingdatetime";
+import { getOrCreateDriveClientId } from "#convex/services/drive/driveInternal";
 import type { Id } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
 import { patchBookingStripeCheckoutIds } from "#convex/lib/booking/bookingConfirmationSessionPatches";
@@ -19,7 +21,6 @@ import {
 	findPendingPaymentBookingAtStartTime,
 	insertPendingPaymentBooking,
 	rejectPendingPaymentSlotConflict,
-	resolveCheckoutDriveClientId,
 	validateCheckoutSessionAvailability
 } from "#convex/lib/sessions/pendingCheckoutSession";
 import { getBookingAvailabilitySettings } from "#convex/lib/booking/bookingSettings";
@@ -42,13 +43,6 @@ function insertPendingCheckoutBookingFields(
 	const bookingFields = buildPendingPaymentBookingFields(args, sessionStartAt, driveClientId);
 
 	return insertPendingPaymentBooking(ctx, bookingFields);
-}
-
-function resolveCheckoutDriveClientIdStep(
-	ctx: MutationCtx,
-	args: CreatePendingCheckoutSessionArgs
-) {
-	return resolveCheckoutDriveClientId(ctx, args);
 }
 
 export function enforceBookingSubmitRateLimit(ctx: MutationCtx, submitRateLimitKey: string) {
@@ -77,7 +71,15 @@ export function createPendingCheckoutBooking(
 ) {
 	return findPendingPaymentBookingAtStartTime(ctx, sessionStartAt)
 		.andThen(rejectPendingPaymentSlotConflict)
-		.andThen(() => resolveCheckoutDriveClientIdStep(ctx, args))
+		.andThen(() =>
+			getOrCreateDriveClientId(ctx, {
+				email: args.email,
+				displayName: formatDriveClientFolderName({
+					accountName: args.accountName,
+					contactName: args.name
+				})
+			})
+		)
 		.andThen((driveClientId) =>
 			insertPendingCheckoutBookingFields(ctx, args, sessionStartAt, driveClientId)
 		);

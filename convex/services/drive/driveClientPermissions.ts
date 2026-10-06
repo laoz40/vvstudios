@@ -5,71 +5,25 @@ import { internal } from "#convex/_generated/api";
 import type { Id } from "#convex/_generated/dataModel";
 import type { ActionCtx } from "#convex/_generated/server";
 import {
-	loadReadyBookingDriveFolders as loadReadyBookingDriveFoldersLib,
-	recordClientDrivePermissionsFailure as recordClientDrivePermissionsFailureLib,
-	requireClientDrivePermissions as requireClientDrivePermissionsLib,
-	sendClientAssetsFolderEmail as sendClientAssetsFolderEmailLib,
+	loadReadyBookingDriveFolders,
+	recordClientDrivePermissionsFailure,
+	requireClientDrivePermissions,
+	sendClientAssetsFolderEmail,
 	type DriveClientPermissionsError
 } from "#convex/services/drive/clientDrivePermissions";
 import { fromConvexTuple } from "#convex/lib/result";
-
-export type { DriveClientPermissionsError };
-
-export function loadReadyBookingDriveFolders(
-	ctx: ActionCtx,
-	bookingId: Parameters<typeof loadReadyBookingDriveFoldersLib>[1]
-) {
-	return loadReadyBookingDriveFoldersLib(ctx, bookingId);
-}
-
-export function recordClientDrivePermissionsFailure(
-	ctx: ActionCtx,
-	setup: Parameters<typeof recordClientDrivePermissionsFailureLib>[1],
-	error: Parameters<typeof recordClientDrivePermissionsFailureLib>[2]
-) {
-	return recordClientDrivePermissionsFailureLib(ctx, setup, error);
-}
-
-export function requireClientDrivePermissions(
-	ctx: ActionCtx,
-	setup: Parameters<typeof requireClientDrivePermissionsLib>[1]
-) {
-	return requireClientDrivePermissionsLib(ctx, setup);
-}
-
-export function sendClientAssetsFolderEmail(
-	ctx: ActionCtx,
-	bookingId: Parameters<typeof sendClientAssetsFolderEmailLib>[1],
-	attempt: Parameters<typeof sendClientAssetsFolderEmailLib>[2]
-) {
-	return sendClientAssetsFolderEmailLib(ctx, bookingId, attempt);
-}
-
-function requireClientPermissionsOrRecordFailure(
-	ctx: ActionCtx,
-	setup: Parameters<typeof requireClientDrivePermissionsLib>[1]
-) {
-	return requireClientDrivePermissions(ctx, setup).orElse((error) =>
-		recordClientDrivePermissionsFailure(ctx, setup, error)
-	);
-}
-
-function sendClientAssetsEmailForBooking(
-	ctx: ActionCtx,
-	args: { bookingId: Id<"bookings">; attempt: "automatic" | "retry" }
-) {
-	return sendClientAssetsFolderEmail(ctx, args.bookingId, args.attempt);
-}
 
 export function requireClientDrivePermissionsAndSendAssetsEmail(
 	ctx: ActionCtx,
 	args: { bookingId: Id<"bookings">; attempt: "automatic" | "retry" }
 ): ResultAsync<null, DriveClientPermissionsError> {
 	return loadReadyBookingDriveFolders(ctx, args.bookingId)
-		.andThen((setup: Parameters<typeof requireClientDrivePermissionsLib>[1]) =>
-			requireClientPermissionsOrRecordFailure(ctx, setup)
+		.andThen((setup) =>
+			requireClientDrivePermissions(ctx, setup).orElse((error) =>
+				recordClientDrivePermissionsFailure(ctx, setup, error)
+			)
 		)
-		.andThen(() => sendClientAssetsEmailForBooking(ctx, args));
+		.andThen(() => sendClientAssetsFolderEmail(ctx, args.bookingId, args.attempt));
 }
 
 export function syncBookingDriveClientIdForRetry(

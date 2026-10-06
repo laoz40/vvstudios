@@ -1,6 +1,7 @@
 "use node";
 
 import { v } from "convex/values";
+import { okAsync } from "neverthrow";
 import { tupleErr, tupleOk, type Result } from "#/lib/result";
 import { action, internalAction } from "#convex/_generated/server";
 import {
@@ -42,8 +43,11 @@ import {
 	bookingAddonsValidator
 } from "#convex/services/booking/bookingFormValidators";
 import {
-	createSessionDriveFoldersAndCompleteSetup,
-	runScheduledSessionDriveFolderSetup,
+	loadValidatedDriveSetup,
+	markDriveSetupSuccessful,
+	recordDriveSetupFailure,
+	sendClientAssetsEmailAfterSetup,
+	setupEditorAccessAfterSetup,
 	type SetupError
 } from "#convex/services/drive/drive";
 import {
@@ -51,9 +55,10 @@ import {
 	recordClientDrivePermissionsFailure,
 	requireClientDrivePermissions,
 	sendClientAssetsFolderEmail,
-	syncBookingDriveClientIdForRetry,
 	type DriveClientPermissionsError
-} from "#convex/services/drive/driveClientPermissions";
+} from "#convex/services/drive/clientDrivePermissions";
+import { syncBookingDriveClientIdForRetry } from "#convex/services/drive/driveClientPermissions";
+import { ensureSessionDriveFolders } from "#convex/services/drive/ensureSessionDriveFolders";
 import { requirePermissionActions } from "#convex/services/requirePermissionActions";
 import {
 	claimSessionReminderSend,
@@ -70,12 +75,12 @@ export const setupDrive = action({
 	args: { bookingId: v.id("bookings") },
 	handler: (ctx, args): Promise<Result<null, SetupError>> =>
 		requirePermissionActions(ctx, "edit:sessions")
-			.andThen(() =>
-				createSessionDriveFoldersAndCompleteSetup(ctx, {
-					bookingId: args.bookingId,
-					replaceMissingFolders: true
-				})
-			)
+			.andThen(() => loadValidatedDriveSetup(ctx, args))
+			.andThen((setup) => ensureSessionDriveFolders(ctx, setup, true))
+			.andThen(() => markDriveSetupSuccessful(ctx, args))
+			.andThen(() => sendClientAssetsEmailAfterSetup(ctx, args.bookingId))
+			.andThen(() => setupEditorAccessAfterSetup(ctx, args.bookingId))
+			.orElse((error) => recordDriveSetupFailure(ctx, args.bookingId, error))
 			.match(tupleOk, tupleErr)
 });
 
@@ -83,12 +88,12 @@ export const retryDriveSetup = action({
 	args: { bookingId: v.id("bookings") },
 	handler: (ctx, args): Promise<Result<null, SetupError>> =>
 		requirePermissionActions(ctx, "edit:sessions")
-			.andThen(() =>
-				createSessionDriveFoldersAndCompleteSetup(ctx, {
-					bookingId: args.bookingId,
-					replaceMissingFolders: true
-				})
-			)
+			.andThen(() => loadValidatedDriveSetup(ctx, args))
+			.andThen((setup) => ensureSessionDriveFolders(ctx, setup, true))
+			.andThen(() => markDriveSetupSuccessful(ctx, args))
+			.andThen(() => sendClientAssetsEmailAfterSetup(ctx, args.bookingId))
+			.andThen(() => setupEditorAccessAfterSetup(ctx, args.bookingId))
+			.orElse((error) => recordDriveSetupFailure(ctx, args.bookingId, error))
 			.match(tupleOk, tupleErr)
 });
 
@@ -118,8 +123,16 @@ export const retryClientAssetsEmail = action({
 
 export const runScheduledDriveSetup = internalAction({
 	args: { bookingId: v.id("bookings"), sessionStartAt: v.number(), duration: v.string() },
-	handler: async (ctx, args) =>
-		(await runScheduledSessionDriveFolderSetup(ctx, args)).match(tupleOk, tupleErr)
+	// Scheduled jobs resume partial setup; admins may recreate missing folders.
+	handler: (ctx, args): Promise<Result<null, never>> =>
+		loadValidatedDriveSetup(ctx, args)
+			.andThen((setup) => ensureSessionDriveFolders(ctx, setup, false))
+			.andThen(() => markDriveSetupSuccessful(ctx, args))
+			.andThen(() => sendClientAssetsEmailAfterSetup(ctx, args.bookingId))
+			.andThen(() => setupEditorAccessAfterSetup(ctx, args.bookingId))
+			.orElse((error) => recordDriveSetupFailure(ctx, args.bookingId, error))
+			.orElse(() => okAsync(null))
+			.match(tupleOk, tupleErr)
 });
 
 export const getBookableRangeBusyWindows = action({

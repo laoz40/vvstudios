@@ -1,12 +1,10 @@
 import { err, ok, type Result, type ResultAsync } from "neverthrow";
-import { formatDriveClientFolderName } from "#studio/lib/bookingdatetime";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { MutationCtx } from "#convex/_generated/server";
 import { env } from "#convex/env";
 import type { BookingAddonQuantitiesArgs } from "#convex/lib/booking/bookingAddonQuantities";
 import type { BookingAddon } from "#studio/features/booking-form/lib/booking-form-model";
 import { buildBookingSearchBlob } from "#convex/lib/adminSearch/adminSearchBlob";
-import { getOrCreateDriveClientId } from "#convex/services/drive/driveInternal";
 import { normalizePhone } from "#convex/lib/contactNormalization";
 import { okOrThrow } from "#convex/lib/result";
 import {
@@ -54,19 +52,6 @@ export function findPendingPaymentBookingAtStartTime(
 			)
 			.first()
 	);
-}
-
-export function resolveCheckoutDriveClientId(
-	ctx: MutationCtx,
-	args: Pick<CreatePendingCheckoutSessionArgs, "accountName" | "email" | "name">
-): ResultAsync<Id<"driveClients">, never> {
-	return getOrCreateDriveClientId(ctx, {
-		email: args.email,
-		displayName: formatDriveClientFolderName({
-			accountName: args.accountName,
-			contactName: args.name
-		})
-	});
 }
 
 export type PendingPaymentBookingInsertFields = CreatePendingCheckoutSessionArgs & {
