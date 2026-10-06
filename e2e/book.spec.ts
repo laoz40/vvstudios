@@ -20,9 +20,12 @@
  */
 import { expect, test } from "@playwright/test";
 import {
+	captureCheckoutDiagnostics,
+	expectPaymentModalWithDiagnostics
+} from "./helpers/checkout-diagnostics";
+import {
 	agreeToTerms,
 	closePaymentModal,
-	expectPaymentModal,
 	expectTermsDialog,
 	fillPackageBookingForm,
 	fillSingleSessionBookingForm,
@@ -57,13 +60,16 @@ test.describe("book page", () => {
 
 		await page.goto("/book");
 
+		let diagnostics: Awaited<ReturnType<typeof captureCheckoutDiagnostics>> | undefined;
+
 		try {
 			await fillSingleSessionBookingForm(page, getE2eBookingSlotOffset(test.info().parallelIndex));
 			await submitBookingForm(page);
 			await expectTermsDialog(page);
-			await agreeToTerms(page);
-			await expectPaymentModal(page);
+			diagnostics = await captureCheckoutDiagnostics(page);
+			await expectPaymentModalWithDiagnostics(page, diagnostics, () => agreeToTerms(page));
 		} finally {
+			await diagnostics?.dispose();
 			await closePaymentModal(page);
 		}
 	});
@@ -73,13 +79,16 @@ test.describe("book page", () => {
 
 		await page.goto("/book");
 
+		let diagnostics: Awaited<ReturnType<typeof captureCheckoutDiagnostics>> | undefined;
+
 		try {
 			await fillPackageBookingForm(page);
 			await submitBookingForm(page);
 			await expectTermsDialog(page);
-			await agreeToTerms(page);
-			await expectPaymentModal(page);
+			diagnostics = await captureCheckoutDiagnostics(page);
+			await expectPaymentModalWithDiagnostics(page, diagnostics, () => agreeToTerms(page));
 		} finally {
+			await diagnostics?.dispose();
 			await closePaymentModal(page);
 		}
 	});
