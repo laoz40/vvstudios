@@ -231,7 +231,6 @@ import type * as services_stripe_stripeInvoiceMutations from "../services/stripe
 import type * as services_stripe_stripeInvoicePayment from "../services/stripe/stripeInvoicePayment.js";
 import type * as services_stripe_stripeInvoiceSend from "../services/stripe/stripeInvoiceSend.js";
 import type * as services_stripe_stripeInvoices from "../services/stripe/stripeInvoices.js";
-import type * as services_stripe_stripeInvoicing from "../services/stripe/stripeInvoicing.js";
 import type * as sessionCheckout from "../sessionCheckout.js";
 import type * as sessionReminders from "../sessionReminders.js";
 import type * as sessionReschedule from "../sessionReschedule.js";
@@ -473,7 +472,6 @@ declare const fullApi: ApiFromModules<{
   "services/stripe/stripeInvoicePayment": typeof services_stripe_stripeInvoicePayment;
   "services/stripe/stripeInvoiceSend": typeof services_stripe_stripeInvoiceSend;
   "services/stripe/stripeInvoices": typeof services_stripe_stripeInvoices;
-  "services/stripe/stripeInvoicing": typeof services_stripe_stripeInvoicing;
   sessionCheckout: typeof sessionCheckout;
   sessionReminders: typeof sessionReminders;
   sessionReschedule: typeof sessionReschedule;

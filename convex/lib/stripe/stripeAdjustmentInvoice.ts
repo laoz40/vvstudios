@@ -1,58 +1,17 @@
 "use node";
 
-import { ResultAsync } from "neverthrow";
+import type Stripe from "stripe";
 import type { Id } from "#convex/_generated/dataModel";
-import {
-	PACKAGE_ADJUSTMENT_PAYMENT_DUE_MS,
-	REMOTE_PODCAST_ADJUSTMENT_RATE
-} from "#convex/lib/packages/packageAdjustments";
+import { PACKAGE_ADJUSTMENT_PAYMENT_DUE_MS } from "#convex/lib/packages/packageAdjustments";
 import { tryPromise } from "#convex/lib/result";
-import { stripeApiFailureReason, type StripeApiFailure } from "#convex/lib/stripe/stripeApiErrors";
+import { stripeApiFailureReason } from "#convex/lib/stripe/stripeApiErrors";
 import type { StripeClient } from "#convex/lib/stripe/stripeClient";
-import { getCustomerAddonDisplayLabel } from "#studio/features/booking-form/lib/booking-form-model";
-import { BOOKING_INVOICE_CURRENCY } from "#studio/features/booking-form/lib/booking-pricing";
 
 const MILLISECONDS_PER_DAY = 24 * 60 * 60 * 1000;
 
 export const PACKAGE_ADJUSTMENT_STRIPE_INVOICE_DAYS_UNTIL_DUE = Math.round(
 	PACKAGE_ADJUSTMENT_PAYMENT_DUE_MS / MILLISECONDS_PER_DAY
 );
-
-function audToStripeUnitAmount(amount: number) {
-	return Math.round(amount * 100);
-}
-
-const PACKAGE_ADJUSTMENT_PRODUCT_METADATA_KIND = "package_adjustment_remote_podcast";
-
-async function getPackageAdjustmentRemotePodcastProductId(
-	stripe: StripeClient,
-	productName: string
-) {
-	const existingProducts = await stripe.products.search({
-		query: `metadata['kind']:'${PACKAGE_ADJUSTMENT_PRODUCT_METADATA_KIND}' AND active:'true'`,
-		limit: 1
-	});
-
-	const existingProduct = existingProducts.data[0];
-
-	if (existingProduct !== undefined) {
-		return existingProduct.id;
-	}
-
-	const product = await stripe.products.create({
-		name: productName,
-		metadata: { kind: PACKAGE_ADJUSTMENT_PRODUCT_METADATA_KIND }
-	});
-
-	return product.id;
-}
-
-type CreatePackageAdjustmentStripeInvoiceInput = {
-	adjustmentId: Id<"packageAdjustments">;
-	packageId: Id<"packages">;
-	stripeCustomerId: string;
-	quantity: number;
-};
 
 type PackageAdjustmentInvoiceIdempotencyStep = "create" | "item" | "finalize" | "send";
 
@@ -63,55 +22,78 @@ function packageAdjustmentInvoiceIdempotencyKey(
 	return `package-adjustment-invoice-${step}-${adjustmentId}`;
 }
 
-export function createAndSendPackageAdjustmentStripeInvoice(
+export function createPackageAdjustmentStripeInvoice(
 	stripe: StripeClient,
-	input: CreatePackageAdjustmentStripeInvoiceInput
-): ResultAsync<{ stripeInvoiceId: string }, StripeApiFailure> {
-	const remotePodcastLabel = getCustomerAddonDisplayLabel("Remote Podcast");
-	const unitAmount = audToStripeUnitAmount(REMOTE_PODCAST_ADJUSTMENT_RATE);
-
+	adjustmentId: Id<"packageAdjustments">,
+	params: Stripe.InvoiceCreateParams
+) {
 	return tryPromise({
-		try: async () => {
-			const invoice = await stripe.invoices.create(
-				{
-					customer: input.stripeCustomerId,
-					collection_method: "send_invoice",
-					days_until_due: PACKAGE_ADJUSTMENT_STRIPE_INVOICE_DAYS_UNTIL_DUE,
-					metadata: { adjustmentId: input.adjustmentId, packageId: input.packageId }
-				},
-				{ idempotencyKey: packageAdjustmentInvoiceIdempotencyKey(input.adjustmentId, "create") }
-			);
+		try: () =>
+			stripe.invoices.create(params, {
+				idempotencyKey: packageAdjustmentInvoiceIdempotencyKey(adjustmentId, "create")
+			}),
+		catch: stripeApiFailureReason
+	}).map((invoice) => invoice.id);
+}
 
-			const productId = await getPackageAdjustmentRemotePodcastProductId(
-				stripe,
-				remotePodcastLabel
-			);
+export function findPackageAdjustmentStripeProduct(
+	stripe: StripeClient,
+	params: Stripe.ProductSearchParams
+) {
+	return tryPromise({
+		try: () => stripe.products.search(params),
+		catch: stripeApiFailureReason
+	}).map((products) => products.data[0]?.id);
+}
 
-			await stripe.invoiceItems.create(
-				{
-					customer: input.stripeCustomerId,
-					invoice: invoice.id,
-					quantity: input.quantity,
-					price_data: {
-						currency: BOOKING_INVOICE_CURRENCY.toLowerCase(),
-						product: productId,
-						unit_amount: unitAmount
-					},
-					description: `${remotePodcastLabel} (package adjustment)`
-				},
-				{ idempotencyKey: packageAdjustmentInvoiceIdempotencyKey(input.adjustmentId, "item") }
-			);
+export function createPackageAdjustmentStripeProduct(
+	stripe: StripeClient,
+	params: Stripe.ProductCreateParams
+) {
+	return tryPromise({
+		try: () => stripe.products.create(params),
+		catch: stripeApiFailureReason
+	}).map((product) => product.id);
+}
 
-			const finalizedInvoice = await stripe.invoices.finalizeInvoice(invoice.id, undefined, {
-				idempotencyKey: packageAdjustmentInvoiceIdempotencyKey(input.adjustmentId, "finalize")
-			});
+export function createPackageAdjustmentStripeInvoiceItem(
+	stripe: StripeClient,
+	adjustmentId: Id<"packageAdjustments">,
+	params: Stripe.InvoiceItemCreateParams
+) {
+	return tryPromise({
+		try: () =>
+			stripe.invoiceItems.create(params, {
+				idempotencyKey: packageAdjustmentInvoiceIdempotencyKey(adjustmentId, "item")
+			}),
+		catch: stripeApiFailureReason
+	}).map(() => null);
+}
 
-			await stripe.invoices.sendInvoice(finalizedInvoice.id, undefined, {
-				idempotencyKey: packageAdjustmentInvoiceIdempotencyKey(input.adjustmentId, "send")
-			});
+export function finalizePackageAdjustmentStripeInvoice(
+	stripe: StripeClient,
+	adjustmentId: Id<"packageAdjustments">,
+	stripeInvoiceId: string
+) {
+	return tryPromise({
+		try: () =>
+			stripe.invoices.finalizeInvoice(stripeInvoiceId, undefined, {
+				idempotencyKey: packageAdjustmentInvoiceIdempotencyKey(adjustmentId, "finalize")
+			}),
+		catch: stripeApiFailureReason
+	}).map((invoice) => invoice.id);
+}
 
-			return finalizedInvoice.id;
-		},
-		catch: (cause) => stripeApiFailureReason(cause)
-	}).map((stripeInvoiceId) => ({ stripeInvoiceId }));
+export function sendPackageAdjustmentStripeInvoice(
+	stripe: StripeClient,
+	adjustmentId: Id<"packageAdjustments">,
+	stripeInvoiceId: string
+) {
+	return tryPromise({
+		try: () =>
+			stripe.invoices.sendInvoice(stripeInvoiceId, undefined, {
+				idempotencyKey: packageAdjustmentInvoiceIdempotencyKey(adjustmentId, "send")
+			}),
+		catch: stripeApiFailureReason
+	}).map(() => null);
 }

@@ -8,7 +8,10 @@ import { action, internalAction, type ActionCtx } from "#convex/_generated/serve
 import { requirePermissionActions } from "#convex/services/requirePermissionActions";
 import {
 	claimPackageAdjustmentInvoiceEmailForSend,
-	createSendAndRecordPackageAdjustmentInvoice,
+	createPackageAdjustmentInvoiceDraft,
+	recordFailedPackageAdjustmentInvoice,
+	recordSentPackageAdjustmentInvoice,
+	sendPackageAdjustmentInvoiceDraft,
 	type SendPackageAdjustmentInvoiceError
 } from "#convex/services/packages/packageAdjustmentInvoiceSend";
 
@@ -51,6 +54,11 @@ function sendPackageAdjustmentInvoiceHandler(
 ): ResultAsync<null, SendPackageAdjustmentInvoiceError> {
 	return claimPackageAdjustmentInvoiceEmailForSend(ctx, args, args.claimedAt).andThen(
 		(invoiceInput) =>
-			createSendAndRecordPackageAdjustmentInvoice(ctx, args, args.claimedAt, invoiceInput)
+			createPackageAdjustmentInvoiceDraft(args.adjustmentId, invoiceInput)
+				.andThen((invoice) => sendPackageAdjustmentInvoiceDraft(args.adjustmentId, invoice))
+				.orElse((failure) => recordFailedPackageAdjustmentInvoice(ctx, args, failure))
+				.andThen((invoice) =>
+					recordSentPackageAdjustmentInvoice(ctx, args, args.claimedAt, invoice)
+				)
 	);
 }

@@ -1,8 +1,8 @@
 /**
- * These tests cover Stripe adjustment invoice due-date configuration.
+ * Stripe adjustment invoice terms match the package payment window.
  *
- * 1. Due date alignment
- *    Stripe invoice due days must match the package adjustment payment window.
+ * 1. Invoice terms
+ *    Due dates match the seven-day adjustment payment window.
  */
 import { describe, expect, test } from "vitest";
 import { PACKAGE_ADJUSTMENT_PAYMENT_DUE_MS } from "#convex/lib/packages/packageAdjustments";
