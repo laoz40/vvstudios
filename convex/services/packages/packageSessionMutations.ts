@@ -1,5 +1,4 @@
 import { err, errAsync, ok, okAsync, type ResultAsync as ResultAsyncType } from "neverthrow";
-import { api } from "#convex/_generated/api";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
 import { getBookingAvailabilitySettings } from "#convex/lib/booking/bookingSettings";
@@ -23,7 +22,6 @@ import {
 } from "#convex/lib/packages/packageLookup";
 import { sessionConsumesPackageCapacity } from "#convex/lib/packages/packageSessionCapacity";
 import type { SessionAvailabilitySettings } from "#convex/lib/sessions/sessionCalendarTime";
-import { okOrThrow } from "#convex/lib/result";
 import { getSessionStartAt } from "#convex/lib/sessions/sessionAdminEdit";
 import { env } from "#convex/env";
 import { getPackageSessionAddons } from "#studio/features/booking-form/lib/booking-form-model";
@@ -70,9 +68,8 @@ function loadSettingsForEditableSession(
 		return err({ reason: "PACKAGE_BOOKING_NOT_FOUND" as const });
 	}
 
-	return okOrThrow<SessionAvailabilitySettings>(ctx.runQuery(api.bookingSettings.get, {})).map(
-		(settings: SessionAvailabilitySettings) =>
-			attachAvailabilitySettingsToSession(packageRecord, session, settings)
+	return getBookingAvailabilitySettings(ctx).map((settings: SessionAvailabilitySettings) =>
+		attachAvailabilitySettingsToSession(packageRecord, session, settings)
 	);
 }
 
