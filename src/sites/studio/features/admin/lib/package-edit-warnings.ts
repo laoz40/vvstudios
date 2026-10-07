@@ -24,7 +24,7 @@ const packageEditFieldLabels: Record<PackageEditWarningField, string> = {
 	customerName: "Customer name",
 	customerPhone: "Phone number",
 	duration: "Session duration",
-	essentialEditQuantity: "Essential Edit quantity",
+	essentialEditQuantity: "Rough Cut quantity",
 	handcraftedClipsQuantity: "Handcrafted Clips quantity",
 	expiresDate: "Package expiry date",
 	expiresTime: "Package expiry time",

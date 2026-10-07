@@ -40,7 +40,7 @@ const sessionEditFieldLabels: Record<SessionEditWarningField, string> = {
 	date: "Session date",
 	duration: "Session duration",
 	email: "Customer email",
-	essentialEditQuantity: "Essential Edit quantity",
+	essentialEditQuantity: "Rough Cut quantity",
 	handcraftedClipsQuantity: "Handcrafted Clips quantity",
 	name: "Customer name",
 	notes: "Notes",

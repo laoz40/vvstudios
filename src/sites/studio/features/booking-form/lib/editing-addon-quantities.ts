@@ -12,7 +12,7 @@ const dashboardAddonLabelMap = {
 	"Remote Podcast": "Remote",
 	"4K UHD Recording": "4K",
 	Teleprompter: "Tele",
-	"Essential Edit": "Min Edit",
+	"Essential Edit": getCustomerAddonDisplayLabel("Essential Edit"),
 	"Complete Edit": "Full Edit",
 	"Clip Volume Pack": "Vol Clips",
 	"Handcrafted Clips": "HC Clips"
