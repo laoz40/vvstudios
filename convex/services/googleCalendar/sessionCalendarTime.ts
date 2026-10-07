@@ -13,7 +13,7 @@ export function getDateAvailabilityRange(
 	{ timeMax: string; timeMin: string },
 	Exclude<SessionTimeParseError, { reason: "BOOKING_INVALID_DURATION" }>
 > {
-	return getDateAvailabilityEndDateTime(endDate, timeZone).andThen(
-		mapDateAvailabilityRangeFromStartStep(startDate, timeZone)
+	return getDateAvailabilityEndDateTime(endDate, timeZone).andThen((timeMaxDate) =>
+		mapDateAvailabilityRangeFromStartStep(startDate, timeZone, timeMaxDate)
 	);
 }

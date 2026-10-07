@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { CircleAlert } from "lucide-react";
 import { Badge } from "#/components/ui/badge";
 import { Button } from "#/components/ui/button";
@@ -304,12 +304,13 @@ function SessionAmountCell({ rowId, session }: { rowId: string; session: Session
 
 	const showCents = getAudAmountRowShowCents(rowAmounts);
 
-	const receiptAmountLabel =
-		receiptAmount !== null
-			? formatAudAmount(receiptAmount, { showCents })
-			: showReceiptAmount
-				? "-"
-				: null;
+	let receiptAmountLabel: string | null = null;
+
+	if (receiptAmount !== null) {
+		receiptAmountLabel = formatAudAmount(receiptAmount, { showCents });
+	} else if (showReceiptAmount) {
+		receiptAmountLabel = "-";
+	}
 
 	const stripeInvoiceAmountLabel =
 		stripeInvoiceAmount !== null ? formatAudAmount(stripeInvoiceAmount, { showCents }) : null;
@@ -379,6 +380,49 @@ export function SessionTableRow({ onReceiptSearch, session }: SessionTableRowPro
 	const deliverablesEmailAction = useDeliverablesEmailAction(session);
 	const deliverableStatus = isDeliverableSession(session) ? getDeliverableStatus(session) : null;
 	const pastCellClassName = isPastSession ? "opacity-70" : undefined;
+	let deliverableStatusContent: ReactNode = null;
+
+	if (deliverableStatus === "review") {
+		deliverableStatusContent = (
+			<button
+				type="button"
+				onClick={() => deliverablesEmailAction.setIsDeliverablesEmailDialogOpen(true)}>
+				<Badge
+					variant={deliverableStatusBadgeVariantMap.review}
+					className={deliverableStatusBadgeClassNameMap.review}>
+					{deliverableStatusLabelMap.review}
+				</Badge>
+			</button>
+		);
+	} else if (deliverableStatus) {
+		deliverableStatusContent = (
+			<Badge
+				variant={deliverableStatusBadgeVariantMap[deliverableStatus]}
+				className={deliverableStatusBadgeClassNameMap[deliverableStatus]}>
+				{deliverableStatusLabelMap[deliverableStatus]}
+			</Badge>
+		);
+	}
+
+	let assignedEditorContent: ReactNode = null;
+
+	if (assignedEditorDisplayName) {
+		assignedEditorContent = (
+			<SessionEditorNameCell
+				editorName={assignedEditorDisplayName}
+				onSearch={onReceiptSearch}
+				rowId={session._id}
+				showDriveAlert={session.hasDriveWorkflowFailure === true}
+			/>
+		);
+	} else if (session.hasDriveWorkflowFailure) {
+		assignedEditorContent = (
+			<p className="flex items-center justify-center gap-1 text-xs text-muted-foreground">
+				<DriveWorkflowAttentionIcon />
+				<span>Google Drive</span>
+			</p>
+		);
+	}
 
 	return (
 		<TableRow
@@ -446,38 +490,8 @@ export function SessionTableRow({ onReceiptSearch, session }: SessionTableRowPro
 			</TableCell>
 			<TableCell>
 				<div className="flex flex-col gap-1">
-					<div className="flex justify-center">
-						{deliverableStatus === "review" ? (
-							<button
-								type="button"
-								onClick={() => deliverablesEmailAction.setIsDeliverablesEmailDialogOpen(true)}>
-								<Badge
-									variant={deliverableStatusBadgeVariantMap.review}
-									className={deliverableStatusBadgeClassNameMap.review}>
-									{deliverableStatusLabelMap.review}
-								</Badge>
-							</button>
-						) : deliverableStatus ? (
-							<Badge
-								variant={deliverableStatusBadgeVariantMap[deliverableStatus]}
-								className={deliverableStatusBadgeClassNameMap[deliverableStatus]}>
-								{deliverableStatusLabelMap[deliverableStatus]}
-							</Badge>
-						) : null}
-					</div>
-					{assignedEditorDisplayName ? (
-						<SessionEditorNameCell
-							editorName={assignedEditorDisplayName}
-							onSearch={onReceiptSearch}
-							rowId={session._id}
-							showDriveAlert={session.hasDriveWorkflowFailure === true}
-						/>
-					) : session.hasDriveWorkflowFailure ? (
-						<p className="flex items-center justify-center gap-1 text-xs text-muted-foreground">
-							<DriveWorkflowAttentionIcon />
-							<span>Google Drive</span>
-						</p>
-					) : null}
+					<div className="flex justify-center">{deliverableStatusContent}</div>
+					{assignedEditorContent}
 				</div>
 			</TableCell>
 			<TableCell className={pastCellClassName}>

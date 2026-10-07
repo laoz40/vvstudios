@@ -56,25 +56,27 @@ export function bookingReceiptNumberFromArtifacts({
 	return { receiptNumber: artifacts.data.receipt.number, parsedBooking };
 }
 
-export function sendBookingReceiptCustomerEmail(booking: Doc<"bookings">) {
-	return (step: BookingReceiptRenderedStep) =>
-		sendEmail({
-			to: [booking.email],
-			subject: `Studio booking confirmed - ${formatSessionDateShort(booking.date)}`,
-			html: step.artifacts.emailHtml,
-			attachments: [{ ...step.artifacts.pdf, content: step.pdfContent }]
-		}).map(() => ({ artifacts: step.artifacts, parsedBooking: step.parsedBooking }));
+export function sendBookingReceiptCustomerEmail(
+	booking: Doc<"bookings">,
+	step: BookingReceiptRenderedStep
+) {
+	return sendEmail({
+		to: [booking.email],
+		subject: `Studio booking confirmed - ${formatSessionDateShort(booking.date)}`,
+		html: step.artifacts.emailHtml,
+		attachments: [{ ...step.artifacts.pdf, content: step.pdfContent }]
+	}).map(() => ({ artifacts: step.artifacts, parsedBooking: step.parsedBooking }));
 }
 
 export function sendPackageReceiptCustomerEmail(
 	packageRecord: PackageInvoiceInput,
-	paidAt: number
+	paidAt: number,
+	step: PackageReceiptRenderedStep
 ) {
-	return (step: PackageReceiptRenderedStep) =>
-		sendEmail({
-			to: [packageRecord.email],
-			subject: `Your ${packageRecord.packageSize}-Session Package confirmed — schedule your sessions (${formatTimestampDateShort(paidAt)})`,
-			html: step.artifacts.emailHtml,
-			attachments: [{ ...step.artifacts.pdf, content: step.pdfContent }]
-		}).map(() => ({ artifacts: step.artifacts }));
+	return sendEmail({
+		to: [packageRecord.email],
+		subject: `Your ${packageRecord.packageSize}-Session Package confirmed — schedule your sessions (${formatTimestampDateShort(paidAt)})`,
+		html: step.artifacts.emailHtml,
+		attachments: [{ ...step.artifacts.pdf, content: step.pdfContent }]
+	}).map(() => ({ artifacts: step.artifacts }));
 }

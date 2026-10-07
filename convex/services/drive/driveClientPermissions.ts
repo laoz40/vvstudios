@@ -18,12 +18,17 @@ export function requireClientDrivePermissionsAndSendAssetsEmail(
 	args: { bookingId: Id<"bookings">; attempt: "automatic" | "retry" }
 ): ResultAsync<null, DriveClientPermissionsError> {
 	return loadReadyBookingDriveFolders(ctx, args.bookingId)
-		.andThen((setup) =>
-			requireClientDrivePermissions(ctx, setup).orElse((error) =>
-				recordClientDrivePermissionsFailure(ctx, setup, error)
-			)
-		)
+		.andThen((setup) => checkAndRecordClientDrivePermissions(ctx, setup))
 		.andThen(() => sendClientAssetsFolderEmail(ctx, args.bookingId, args.attempt));
+}
+
+function checkAndRecordClientDrivePermissions(
+	ctx: ActionCtx,
+	setup: Parameters<typeof requireClientDrivePermissions>[1]
+) {
+	return requireClientDrivePermissions(ctx, setup).orElse((error) =>
+		recordClientDrivePermissionsFailure(ctx, setup, error)
+	);
 }
 
 export function syncBookingDriveClientIdForRetry(

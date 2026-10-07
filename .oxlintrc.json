@@ -22,6 +22,7 @@
 	"rules": {
 		"@typescript-eslint/ban-ts-comment": "error",
 		"no-array-constructor": "error",
+		"no-nested-ternary": "error",
 		"@typescript-eslint/no-duplicate-enum-values": "error",
 		"@typescript-eslint/no-empty-object-type": "error",
 		"@typescript-eslint/no-extra-non-null-assertion": "error",
@@ -234,7 +235,7 @@
 			"files": ["convex/lib/**"],
 			"rules": {
 				"convex-layers/no-lib-loader-orchestration": "error",
-				"neverthrow/no-export-okorthrow-on-call": "warn"
+				"neverthrow/no-export-okorthrow-on-call": "error"
 			}
 		},
 		{

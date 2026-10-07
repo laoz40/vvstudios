@@ -8,8 +8,8 @@ export function validateListedDriveFolderTreeEmpty(
 	areChildrenEmpty: (
 		drive: DriveClient,
 		children: ListedDriveChild[]
-	) => ResultAsync<boolean, DriveError>
+	) => ResultAsync<boolean, DriveError>,
+	children: ListedDriveChild[]
 ) {
-	return (children: ListedDriveChild[]) =>
-		children.length === 0 ? okAsync(true) : areChildrenEmpty(drive, children);
+	return children.length === 0 ? okAsync(true) : areChildrenEmpty(drive, children);
 }

@@ -93,6 +93,25 @@ export function SessionsTable({
 		);
 	}
 
+	let emptySessionRows = (
+		<TableRow>
+			<TableCell
+				colSpan={11}
+				className="h-24 text-center text-muted-foreground">
+				No sessions yet.
+			</TableCell>
+		</TableRow>
+	);
+
+	if (isLoadingSessions) {
+		emptySessionRows = (
+			<AdminTableLoadingRow
+				colSpan={11}
+				label="Loading sessions"
+			/>
+		);
+	}
+
 	return (
 		<section className="flex flex-col gap-4">
 			<SessionsTableFilters
@@ -141,28 +160,15 @@ export function SessionsTable({
 						</TableRow>
 					</TableHeader>
 					<TableBody>
-						{sessions.length > 0 ? (
-							sessions.map((session) => (
-								<SessionTableRow
-									key={session._id}
-									onReceiptSearch={onSearchQueryChange}
-									session={session}
-								/>
-							))
-						) : isLoadingSessions ? (
-							<AdminTableLoadingRow
-								colSpan={11}
-								label="Loading sessions"
-							/>
-						) : (
-							<TableRow>
-								<TableCell
-									colSpan={11}
-									className="h-24 text-center text-muted-foreground">
-									No sessions yet.
-								</TableCell>
-							</TableRow>
-						)}
+						{sessions.length > 0
+							? sessions.map((session) => (
+									<SessionTableRow
+										key={session._id}
+										onReceiptSearch={onSearchQueryChange}
+										session={session}
+									/>
+								))
+							: emptySessionRows}
 					</TableBody>
 				</Table>
 			</div>

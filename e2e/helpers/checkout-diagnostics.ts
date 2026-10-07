@@ -94,12 +94,15 @@ export async function captureCheckoutDiagnostics(page: Page) {
 
 			observed.add(element);
 
-			const category =
-				text.includes("time was just taken") || text.includes("time unavailable")
-					? "visible-booking-error"
-					: text.includes("starting checkout") || text.includes("start checkout")
-						? "visible-checkout-error"
-						: "visible-notification";
+			let category = "visible-notification";
+
+			if (text.includes("starting checkout") || text.includes("start checkout")) {
+				category = "visible-checkout-error";
+			}
+
+			if (text.includes("time was just taken") || text.includes("time unavailable")) {
+				category = "visible-booking-error";
+			}
 
 			entries.push(category);
 		};

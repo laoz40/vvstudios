@@ -67,10 +67,18 @@ export function loadValidRescheduleLinkAndSession(
 		.andThen((tokenHash: string) => lookupRescheduleLinkByTokenHash(ctx, tokenHash))
 		.andThen(validateActiveRescheduleLink)
 		.andThen((link: Doc<"bookingRescheduleLinks">) =>
-			getBookingRow(ctx, link.bookingId).andThen((session) =>
-				validateRescheduleLinkSession(args, { link, session })
-			)
+			validateLoadedRescheduleLinkSession(ctx, args, link)
 		);
+}
+
+function validateLoadedRescheduleLinkSession(
+	ctx: QueryCtx,
+	args: { now: number; token: string },
+	link: Doc<"bookingRescheduleLinks">
+) {
+	return getBookingRow(ctx, link.bookingId).andThen((session) =>
+		validateRescheduleLinkSession(args, { link, session })
+	);
 }
 
 export function writeAdminRescheduleLink(ctx: MutationCtx, args: { bookingId: Id<"bookings"> }) {

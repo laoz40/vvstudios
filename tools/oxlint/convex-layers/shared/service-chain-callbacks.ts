@@ -34,7 +34,10 @@ export function collectLocalFunctions(program: ESTree.Program): Map<string, Func
 			continue;
 		}
 
-		if (statement.declaration?.type === "FunctionDeclaration" && statement.declaration.id !== null) {
+		if (
+			statement.declaration?.type === "FunctionDeclaration" &&
+			statement.declaration.id !== null
+		) {
 			locals.set(statement.declaration.id.name, statement.declaration as FunctionDeclarationNode);
 		}
 
@@ -79,7 +82,11 @@ function returnedInnerArrow(
 	}
 
 	const statement = node.body[0];
-	if (statement === undefined || statement.type !== "ReturnStatement" || statement.argument === null) {
+	if (
+		statement === undefined ||
+		statement.type !== "ReturnStatement" ||
+		statement.argument === null
+	) {
 		return null;
 	}
 
@@ -128,20 +135,4 @@ export function isPassThroughNamedCall(arg: ESTree.ArrowFunctionExpression): boo
 	const body = arg.body;
 
 	return body.type === "CallExpression" && body.callee.type === "Identifier";
-}
-
-export function isInlineBlockCallback(node: ESTree.Expression | ESTree.SpreadElement): boolean {
-	if (node.type === "SpreadElement") {
-		return false;
-	}
-
-	if (node.type === "FunctionExpression") {
-		return true;
-	}
-
-	if (node.type !== "ArrowFunctionExpression") {
-		return false;
-	}
-
-	return node.body.type === "BlockStatement";
 }

@@ -132,17 +132,9 @@ export function createPendingBookingForStripeCheckout(
 	},
 	CreateEmbeddedCheckoutSessionError
 > {
-	return requireValidBookingEmailDomain(booking.email).andThen(
-		createPendingSessionForCheckoutDraft.bind(null, ctx, booking)
+	return requireValidBookingEmailDomain(booking.email).andThen(() =>
+		createPendingSessionForCheckoutDraft(ctx, booking)
 	);
-}
-
-function createEmbeddedBookingCheckout(stripe: ReturnType<typeof getStripeClient>) {
-	return createEmbeddedStripeCheckoutSession.bind(null, stripe);
-}
-
-function linkPendingBookingCheckout(ctx: ActionCtx) {
-	return linkStripeCheckoutToPendingBooking.bind(null, ctx);
 }
 
 export function openEmbeddedBookingStripeCheckout(
@@ -162,8 +154,8 @@ export function openEmbeddedBookingStripeCheckout(
 		bookingId: checkoutDraft.bookingId,
 		lineItems: checkoutDraft.lineItems
 	})
-		.andThen(createEmbeddedBookingCheckout(stripe))
-		.andThen(linkPendingBookingCheckout(ctx));
+		.andThen((draft) => createEmbeddedStripeCheckoutSession(stripe, draft))
+		.andThen((draft) => linkStripeCheckoutToPendingBooking(ctx, draft));
 }
 
 function deletePendingSessionAfterClose(

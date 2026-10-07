@@ -85,14 +85,6 @@ function createPendingPackageForCheckout(ctx: ActionCtx, validRequest: ParsedPac
 	return createPendingPackage(ctx, validRequest).andThen(buildPendingPackageCheckoutDraft);
 }
 
-function createEmbeddedPackageCheckout(stripe: ReturnType<typeof getStripeClient>) {
-	return createEmbeddedStripePackageCheckoutSession.bind(null, stripe);
-}
-
-function linkPendingPackageCheckout(ctx: ActionCtx) {
-	return linkStripeCheckoutToPendingPackage.bind(null, ctx);
-}
-
 export function createPendingPackageForStripeCheckout(
 	ctx: ActionCtx,
 	validRequest: ParsedPackageRequest
@@ -116,8 +108,8 @@ export function openEmbeddedPackageStripeCheckout(
 		lineItems: checkoutDraft.checkoutLineItems.lineItems,
 		discount: checkoutDraft.checkoutLineItems.discount
 	})
-		.andThen(createEmbeddedPackageCheckout(stripe))
-		.andThen(linkPendingPackageCheckout(ctx));
+		.andThen((draft) => createEmbeddedStripePackageCheckoutSession(stripe, draft))
+		.andThen((draft) => linkStripeCheckoutToPendingPackage(ctx, draft));
 }
 
 function mapAbandonPackageOutcome(outcome: CloseEmbeddedPackageCheckoutSessionSuccess["outcome"]) {

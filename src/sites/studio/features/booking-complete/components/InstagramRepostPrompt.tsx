@@ -89,6 +89,16 @@ export function InstagramRepostPrompt({ target }: InstagramRepostPromptProps): R
 		return true;
 	}
 
+	let submitButtonLabel = "Submit";
+
+	if (isSubmitting) {
+		submitButtonLabel = "Saving...";
+	}
+
+	if (isSubmitted) {
+		submitButtonLabel = "Submitted";
+	}
+
 	return (
 		<section className="rounded-lg border bg-background/60 p-4 shadow-sm">
 			<div className="flex flex-col gap-3">
@@ -114,7 +124,7 @@ export function InstagramRepostPrompt({ target }: InstagramRepostPromptProps): R
 						variant="secondary"
 						className="sm:w-auto"
 						disabled={isSubmitting || isSubmitted}>
-						{isSubmitted ? "Submitted" : isSubmitting ? "Saving..." : "Submit"}
+						{submitButtonLabel}
 					</Button>
 				</form>
 			</div>
