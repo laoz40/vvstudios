@@ -2,7 +2,7 @@
  * These tests cover booking and package payment claim idempotency and recoverable failure guards.
  *
  * 1. First claim wins
- *    Calling the payment claim twice must keep the first Stripe event details.
+ *    Calling the payment claim twice must keep the first Stripe event details and paid amount.
  *
  * 2. Stale confirmation failure
  *    A delayed confirmation failure must not regress a booking that already reached a later state.
@@ -51,6 +51,7 @@ describe("booking payment completion", () => {
 			bookingConfirmationEventId: "evt-first",
 			paymentCompletedAt: claimedBooking?.paymentCompletedAt,
 			stripePaymentIntentId: "pi-1",
+			originalPaidAmount: 200,
 			stripeSessionId: "cs-1"
 		});
 	});
@@ -114,6 +115,7 @@ describe("package payment completion", () => {
 		expect(await readPackage(t, packageId)).toMatchObject({
 			packageCheckoutClaimedAt: claimedPackage?.packageCheckoutClaimedAt,
 			stripePaymentIntentId: "pi-1",
+			originalPaidAmount: 200,
 			stripeSessionId: "cs-1"
 		});
 	});
@@ -150,6 +152,7 @@ async function claimBooking(t: TestClient, bookingId: Id<"bookings">, stripeEven
 		bookingId,
 		stripeSessionId: "cs-1",
 		stripePaymentIntentId: "pi-1",
+		originalPaidAmount: 200,
 		stripeEventId
 	});
 }
@@ -189,7 +192,8 @@ async function claimPackage(t: TestClient, packageId: Id<"packages">) {
 	return await t.mutation(internal.packageCheckout.claimPackageCheckoutPayment, {
 		packageId,
 		stripeSessionId: "cs-1",
-		stripePaymentIntentId: "pi-1"
+		stripePaymentIntentId: "pi-1",
+		originalPaidAmount: 200
 	});
 }
 

@@ -6,6 +6,7 @@ import {
 } from "#studio/features/booking-form/lib/booking-form-model";
 
 export type SessionRecord = Doc<"bookings"> & {
+	paidAmount?: number | null;
 	assignedEditorDisplayName?: string;
 	hasDriveWorkflowFailure?: boolean;
 	linkedPackageSize?: 4 | 8 | 12;
@@ -13,6 +14,15 @@ export type SessionRecord = Doc<"bookings"> & {
 	packageStripeCustomerId?: string;
 	stripeInvoicesSummary?: { paymentStatus: "paid" | "unpaid"; totalAmount: number } | null;
 };
+
+export function getSessionPaidBookingAmount(session: SessionRecord) {
+	if (session.originalPaidAmount === undefined) return null;
+
+	return (
+		session.originalPaidAmount +
+		(session.paidRemainingBalance ? (session.remainingBalanceAmount ?? 0) : 0)
+	);
+}
 
 export function toAdminSessionDuration(
 	duration: string | undefined

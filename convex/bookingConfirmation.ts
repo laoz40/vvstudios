@@ -17,6 +17,7 @@ export const claimBookingConfirmation = internalMutation({
 	args: {
 		bookingId: v.string(),
 		stripeSessionId: v.string(),
+		originalPaidAmount: v.optional(v.number()),
 		stripePaymentIntentId: v.optional(v.string()),
 		stripeEventId: v.string()
 	},

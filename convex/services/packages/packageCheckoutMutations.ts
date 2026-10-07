@@ -28,6 +28,7 @@ type ClaimPackageCheckoutPaymentArgs = {
 	packageId: string;
 	stripeSessionId: string;
 	stripePaymentIntentId?: string;
+	originalPaidAmount?: number;
 };
 
 function attachCheckoutClaimStatus(
@@ -66,6 +67,7 @@ function finalizePackageCheckoutClaim(
 
 	return patchPackageCheckoutClaimed(ctx, packageFromDb._id, {
 		packageCheckoutClaimedAt: now,
+		originalPaidAmount: args.originalPaidAmount,
 		stripePaymentIntentId: args.stripePaymentIntentId
 	}).map(() => ({ outcome: "claimed" as const, packageId }));
 }

@@ -19,6 +19,7 @@ export const claimPackageCheckoutPayment = internalMutation({
 	args: {
 		packageId: v.string(),
 		stripeSessionId: v.string(),
+		originalPaidAmount: v.optional(v.number()),
 		stripePaymentIntentId: v.optional(v.string())
 	},
 	handler: (ctx, args) => runClaimPackageCheckoutPayment(ctx, args).match(tupleOk, tupleErr)

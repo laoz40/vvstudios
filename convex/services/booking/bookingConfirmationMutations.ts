@@ -39,6 +39,7 @@ export type ClaimBookingConfirmationArgs = {
 	bookingId: string;
 	stripeSessionId: string;
 	stripePaymentIntentId?: string;
+	originalPaidAmount?: number;
 	stripeEventId: string;
 };
 
@@ -237,6 +238,7 @@ export function writeBookingStripeConfirmationClaim(
 		bookingConfirmationClaimedAt: now,
 		bookingConfirmationEventId: args.stripeEventId,
 		stripeSessionId: args.stripeSessionId,
+		originalPaidAmount: args.originalPaidAmount,
 		stripePaymentIntentId: args.stripePaymentIntentId
 	}).map(() => claimedBookingConfirmationOutcome(session));
 }

@@ -8,6 +8,9 @@ import {
 } from "#convex/lib/packages/packageScheduling";
 import { getDriveWorkflowFailureForBooking } from "#convex/lib/drive/driveStatus";
 import {
+	calculatePaidAmount,
+	listStripeInvoicesForPackage,
+	listStripeInvoicesForBookings,
 	listStripeInvoicesForBooking,
 	summarizeStripeInvoices
 } from "#convex/lib/stripe/stripeInvoices";
@@ -457,16 +460,26 @@ async function loadAdminSessionListRows(ctx: QueryCtx, sessionsPage: Doc<"bookin
 				listStripeInvoicesForBooking(ctx, session._id)
 			]);
 
-			const stripeInvoicesSummary = summarizeStripeInvoices(stripeInvoicesResult.unwrapOr([]));
+			const invoices = stripeInvoicesResult.unwrapOr([]);
+
+			const stripeInvoicesSummary = summarizeStripeInvoices(invoices);
+
+			const paidAmount = calculatePaidAmount({
+				originalPaidAmount: session.originalPaidAmount ?? null,
+				invoices,
+				paidRemainingBalanceAmount: session.paidRemainingBalance
+					? session.remainingBalanceAmount
+					: 0
+			});
 
 			if (!session.packageId) {
-				return { ...session, hasDriveWorkflowFailure, stripeInvoicesSummary };
+				return { ...session, hasDriveWorkflowFailure, stripeInvoicesSummary, paidAmount };
 			}
 
 			const packageRecord = await ctx.db.get("packages", session.packageId);
 
 			if (!packageRecord) {
-				return { ...session, hasDriveWorkflowFailure, stripeInvoicesSummary };
+				return { ...session, hasDriveWorkflowFailure, stripeInvoicesSummary, paidAmount };
 			}
 
 			const packageSessionsResult = await getCapacityConsumingPackageSessions(
@@ -481,10 +494,22 @@ async function loadAdminSessionListRows(ctx: QueryCtx, sessionsPage: Doc<"bookin
 
 			const packageSessions = packageSessionsResult.value;
 
+			const [packageInvoices, sessionInvoices] = await Promise.all([
+				listStripeInvoicesForPackage(ctx, packageRecord._id),
+				listStripeInvoicesForBookings(
+					ctx,
+					packageSessionsResult.value.map((booking) => booking._id)
+				)
+			]);
+
 			return {
 				...session,
 				hasDriveWorkflowFailure,
 				stripeInvoicesSummary,
+				paidAmount: calculatePaidAmount({
+					originalPaidAmount: packageRecord.originalPaidAmount ?? null,
+					invoices: [...packageInvoices.unwrapOr([]), ...sessionInvoices.unwrapOr([])]
+				}),
 				linkedPackageSize: packageRecord.packageSize,
 				packageStripeCustomerId: packageRecord.stripeCustomerId,
 				packageSessionPosition: sessionConsumesPackageCapacity(session)

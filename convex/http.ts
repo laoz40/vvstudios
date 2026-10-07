@@ -36,6 +36,14 @@ function getStripePaymentIntentId(
 	return objectPaymentIntent.success ? objectPaymentIntent.data.id : undefined;
 }
 
+function getCheckoutPaidAmount(session: Stripe.Checkout.Session) {
+	return session.payment_status === "paid" &&
+		session.currency === "aud" &&
+		session.amount_total !== null
+		? session.amount_total / 100
+		: undefined;
+}
+
 async function handleCompletedCheckout(
 	ctx: ActionCtx,
 	event: Stripe.CheckoutSessionCompletedEvent
@@ -49,6 +57,7 @@ async function handleCompletedCheckout(
 		const checkoutCompletion = await completePackageCheckoutService(ctx, {
 			packageId,
 			stripeSessionId: session.id,
+			originalPaidAmount: getCheckoutPaidAmount(session),
 			stripePaymentIntentId
 		});
 
@@ -108,6 +117,7 @@ async function handleCompletedCheckout(
 	const checkoutCompletion = await completeSessionCheckoutService(ctx, {
 		bookingId,
 		stripeSessionId: session.id,
+		originalPaidAmount: getCheckoutPaidAmount(session),
 		stripePaymentIntentId,
 		stripeEventId: event.id
 	});

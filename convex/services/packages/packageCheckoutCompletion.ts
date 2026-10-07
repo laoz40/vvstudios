@@ -42,7 +42,12 @@ function mapPackageCheckoutCompletionFailed(error: CompleteClaimedPackageCheckou
 
 export function completePackageCheckoutService(
 	ctx: ActionCtx,
-	args: { packageId: string; stripeSessionId: string; stripePaymentIntentId?: string }
+	args: {
+		packageId: string;
+		stripeSessionId: string;
+		stripePaymentIntentId?: string;
+		originalPaidAmount?: number;
+	}
 ): ResultAsync<CompletePackageCheckoutSuccess, CompletePackageCheckoutFailure> {
 	return fromConvexTuple(
 		ctx.runMutation(internal.packageCheckout.claimPackageCheckoutPayment, args)

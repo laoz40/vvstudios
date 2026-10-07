@@ -1,4 +1,4 @@
-import { okAsync, type ResultAsync } from "neverthrow";
+import { okAsync, ResultAsync } from "neverthrow";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
 import { okOrThrow } from "#convex/lib/result";
@@ -25,6 +25,34 @@ export type StripeInvoiceInsertResult = {
 
 function sumStripeInvoiceLineItems(lineItems: StripeInvoiceLineItem[]) {
 	return lineItems.reduce((total, lineItem) => total + lineItem.amount, 0);
+}
+
+export function calculatePaidAmount({
+	originalPaidAmount,
+	invoices,
+	paidRemainingBalanceAmount = 0
+}: {
+	originalPaidAmount: number | null;
+	invoices: Doc<"stripeInvoices">[];
+	paidRemainingBalanceAmount?: number;
+}) {
+	if (originalPaidAmount === null) return null;
+
+	const paidInvoices = invoices.reduce(
+		(total, invoice) => total + (invoice.paymentStatus === "paid" ? invoice.totalAmount : 0),
+		0
+	);
+
+	return Math.round((originalPaidAmount + paidInvoices + paidRemainingBalanceAmount) * 100) / 100;
+}
+
+export function listStripeInvoicesForBookings(
+	ctx: QueryCtx | MutationCtx,
+	bookingIds: Id<"bookings">[]
+) {
+	return ResultAsync.combine(
+		bookingIds.map((bookingId) => listStripeInvoicesForBooking(ctx, bookingId))
+	).map((groups) => groups.flat());
 }
 
 export function summarizeStripeInvoices(
