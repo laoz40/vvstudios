@@ -470,12 +470,26 @@ async function insertSeedPackage(
 	const packageSize = PACKAGE_SIZES[args.index % PACKAGE_SIZES.length] ?? 8;
 	const singleSessionAmount = 200;
 	const packageSubtotalAmount = singleSessionAmount * packageSize;
-	const discountPercent = packageSize === 12 ? 15 : packageSize === 8 ? 10 : 0;
+	let discountPercent = 0;
+
+	if (packageSize === 12) {
+		discountPercent = 15;
+	} else if (packageSize === 8) {
+		discountPercent = 10;
+	}
+
 	const discountAmount = Math.round(packageSubtotalAmount * (discountPercent / 100));
 	const totalDueAmount = packageSubtotalAmount - discountAmount;
 	const createdAt = args.now - args.index * 3_600_000;
 
 	const contact = seedContactFields(args.personaIndex);
+	let receiptEmailStatus: "pending" | "sent" | undefined;
+
+	if (status === "paid") {
+		receiptEmailStatus = "sent";
+	} else if (status === "pending_payment") {
+		receiptEmailStatus = "pending";
+	}
 
 	const packageFields = {
 		...contact,
@@ -497,12 +511,7 @@ async function insertSeedPackage(
 			status === "paid"
 				? `RCP-${contact.name.split(" ").pop()?.toUpperCase() ?? "PKG"}-${String(args.index).padStart(3, "0")}`
 				: undefined,
-		receiptEmailStatus:
-			status === "paid"
-				? ("sent" as const)
-				: status === "pending_payment"
-					? ("pending" as const)
-					: undefined,
+		receiptEmailStatus,
 		notes: args.index % 5 === 0 ? `Follow up with ${contact.name} about scheduling` : undefined
 	};
 

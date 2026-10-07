@@ -117,7 +117,7 @@ export function shouldRecordDriveSetupFailure(error: SetupError) {
 
 export function validateDriveSetup(
 	setupInfo: DriveSetupInfo | null,
-	expectedTiming?: { sessionStartAt: number; duration: string }
+	expectedTiming?: { sessionStartAt?: number; duration?: string }
 ) {
 	if (setupInfo === null) return err({ reason: "BOOKING_NOT_FOUND" as const });
 
@@ -126,7 +126,8 @@ export function validateDriveSetup(
 	}
 
 	if (
-		expectedTiming !== undefined &&
+		expectedTiming?.sessionStartAt !== undefined &&
+		expectedTiming.duration !== undefined &&
 		(setupInfo.booking.sessionStartAt !== expectedTiming.sessionStartAt ||
 			setupInfo.booking.duration !== expectedTiming.duration)
 	) {

@@ -47,8 +47,8 @@ function areListedDriveChildrenEmpty(
 }
 
 export function isDriveFolderTreeEmpty(drive: DriveClient, folderId: string) {
-	return listDriveFolderChildren(drive, folderId).andThen(
-		validateListedDriveFolderTreeEmpty(drive, areListedDriveChildrenEmpty)
+	return listDriveFolderChildren(drive, folderId).andThen((children) =>
+		validateListedDriveFolderTreeEmpty(drive, areListedDriveChildrenEmpty, children)
 	);
 }
 

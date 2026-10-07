@@ -151,7 +151,14 @@ function parseRelativeDay(
 	timeZone: string,
 	now: Date
 ): AdminSearchSessionStartRange {
-	const dayOffset = keyword === "today" ? 0 : keyword === "tomorrow" ? 1 : -1;
+	let dayOffset = -1;
+
+	if (keyword === "today") {
+		dayOffset = 0;
+	} else if (keyword === "tomorrow") {
+		dayOffset = 1;
+	}
+
 	const { dayEnd, dayStart } = getTimeZoneDayRange(now, timeZone, dayOffset);
 
 	return { rangeEnd: dayEnd, rangeStart: dayStart };

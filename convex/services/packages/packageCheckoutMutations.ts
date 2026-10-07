@@ -88,9 +88,7 @@ export function claimPackageCheckoutPayment(
 			getPackageFromDb(ctx, normalizedPackageId)
 		)
 		.andThen((packageFromDb: Doc<"packages">) =>
-			validatePackageClaimStripeSession(packageFromDb, args.stripeSessionId).map(
-				() => packageFromDb
-			)
+			validatePackageClaimStripeSession(packageFromDb, args.stripeSessionId)
 		)
 		.andThen(attachClaimStatusToPackage)
 		.andThen((value) => finalizePackageCheckoutClaim(ctx, args, value));

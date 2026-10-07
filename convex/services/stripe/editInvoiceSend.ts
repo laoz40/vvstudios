@@ -74,10 +74,16 @@ export function backfillCheckoutPayments(
 	{ reason: string }
 > {
 	return fromConvexTuple(ctx.runQuery(internal.editInvoices.getMissingPayments, args)).andThen(
-		(page) =>
-			ResultAsync.combine(page.page.map((record) => cacheCheckoutPayment(ctx, record))).map(
-				(results) => ({ continueCursor: page.continueCursor, isDone: page.isDone, results })
-			)
+		(page) => cacheCheckoutPaymentPage(ctx, page)
+	);
+}
+
+function cacheCheckoutPaymentPage(
+	ctx: ActionCtx,
+	page: { page: (Doc<"bookings"> | Doc<"packages">)[]; continueCursor: string; isDone: boolean }
+) {
+	return ResultAsync.combine(page.page.map((record) => cacheCheckoutPayment(ctx, record))).map(
+		(results) => ({ continueCursor: page.continueCursor, isDone: page.isDone, results })
 	);
 }
 
@@ -123,19 +129,37 @@ function validateInvoiceDraftTiming(
 	ctx: ActionCtx,
 	draft: Extract<EditInvoiceDraft, { kind: "booking" }>
 ) {
-	return requireEditSessionsPermissionAndLoadBooking(ctx, draft.values.bookingId).andThen(
-		(session) =>
-			loadAdminSessionEditDeps(ctx).andThen(({ client, settings }) =>
-				validateSessionTimingEdit({
-					bypassAvailabilitySettings: session.status !== "failed",
-					calendar: client.calendar,
-					calendarIds: client.calendarIds,
-					existing: session,
-					next: draft.values,
-					settings,
-					timeZone: client.timeZone
-				})
-			)
+	return requireEditSessionsPermissionAndLoadBooking(ctx, draft.values.bookingId)
+		.andThen((session) => loadSessionEditContext(ctx, session))
+		.andThen(({ session, client, settings }) =>
+			validateSessionTimingEdit({
+				bypassAvailabilitySettings: session.status !== "failed",
+				calendar: client.calendar,
+				calendarIds: client.calendarIds,
+				existing: session,
+				next: draft.values,
+				settings,
+				timeZone: client.timeZone
+			})
+		);
+}
+
+type SessionEditContext = Omit<
+	Parameters<typeof syncAdminBookingGoogleCalendarAndDb>[0],
+	"ctx" | "args"
+>;
+
+function loadSessionEditContext(ctx: ActionCtx, session: Doc<"bookings">) {
+	return loadAdminSessionEditDeps(ctx).map((dependencies) => ({ ...dependencies, session }));
+}
+
+function saveSessionEditAndNotifyHost(
+	ctx: ActionCtx,
+	args: Extract<EditInvoiceDraft, { kind: "booking" }>["values"],
+	context: SessionEditContext
+) {
+	return syncAdminBookingGoogleCalendarAndDb({ ctx, args, ...context }).andThen((result) =>
+		notifyHostIfNeeded(ctx, args, context.session, context.settings, result)
 	);
 }
 
@@ -149,13 +173,9 @@ function saveBookingOrPackageChanges(
 		);
 	const args = draft.values;
 
-	return requireEditSessionsPermissionAndLoadBooking(ctx, args.bookingId).andThen((session) =>
-		loadAdminSessionEditDeps(ctx).andThen(({ client, settings }) =>
-			syncAdminBookingGoogleCalendarAndDb({ ctx, args, session, client, settings }).andThen(
-				(result) => notifyHostIfNeeded(ctx, args, session, settings, result)
-			)
-		)
-	);
+	return requireEditSessionsPermissionAndLoadBooking(ctx, args.bookingId)
+		.andThen((session) => loadSessionEditContext(ctx, session))
+		.andThen((context) => saveSessionEditAndNotifyHost(ctx, args, context));
 }
 
 export function saveNonbillableChanges(

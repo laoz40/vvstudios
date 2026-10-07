@@ -17,6 +17,6 @@ export function inviteEmployeeByEmail(emailInput: string) {
 	const email = parsedEmail.value;
 
 	return emailDomainCanReceiveMailAsync(email)
-		.andThen(rejectUninvitableEmailDomain(email))
+		.andThen((canReceiveMail) => rejectUninvitableEmailDomain(email, canReceiveMail))
 		.andThen(inviteEmployeeAfterDomainCheck);
 }

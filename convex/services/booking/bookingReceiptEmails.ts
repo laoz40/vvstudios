@@ -155,7 +155,7 @@ export function sendBookingReceiptEmailsForBooking(
 		rescheduleUrl: options.rescheduleUrl
 	})
 		.andThen(attachPdfToBookingReceiptArtifacts)
-		.andThen(sendBookingReceiptCustomerEmail(booking))
+		.andThen((step) => sendBookingReceiptCustomerEmail(booking, step))
 		.andThen((_value) => maybeSendBookingReceiptHostEmail(booking, options, _value));
 }
 
@@ -176,6 +176,6 @@ export function sendPackageReceiptEmailsForPackage(
 		scheduleExpiresAtLabel: expiresAt === undefined ? undefined : formatTimestampDateLong(expiresAt)
 	})
 		.andThen(attachPdfToPackageReceiptArtifacts)
-		.andThen(sendPackageReceiptCustomerEmail(packageRecord, paidAt))
+		.andThen((step) => sendPackageReceiptCustomerEmail(packageRecord, paidAt, step))
 		.andThen((_value) => maybeSendPackageReceiptHostEmail(packageRecord, paidAt, options, _value));
 }

@@ -26,12 +26,7 @@ export function loadValidatedDriveSetup(
 	return fromConvexTuple(
 		ctx.runQuery(internal.sessionsDriveInternal.getDriveSetup, { bookingId: args.bookingId })
 	).andThen((setupInfo: DriveSetupInfo | null) =>
-		validateDriveSetup(
-			setupInfo,
-			args.sessionStartAt !== undefined && args.duration !== undefined
-				? { sessionStartAt: args.sessionStartAt, duration: args.duration }
-				: undefined
-		)
+		validateDriveSetup(setupInfo, { sessionStartAt: args.sessionStartAt, duration: args.duration })
 	);
 }
 

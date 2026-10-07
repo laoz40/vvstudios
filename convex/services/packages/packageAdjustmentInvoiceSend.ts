@@ -102,10 +102,18 @@ export function sendPackageAdjustmentInvoiceDraft(
 
 	return finalizePackageAdjustmentStripeInvoice(stripe, adjustmentId, stripeInvoiceId).andThen(
 		(finalizedInvoiceId) =>
-			sendPackageAdjustmentStripeInvoice(stripe, adjustmentId, finalizedInvoiceId).map(() => ({
-				stripeInvoiceId: finalizedInvoiceId
-			}))
+			sendFinalizedPackageAdjustmentInvoice(stripe, adjustmentId, finalizedInvoiceId)
 	);
+}
+
+function sendFinalizedPackageAdjustmentInvoice(
+	stripe: StripeClient,
+	adjustmentId: Id<"packageAdjustments">,
+	finalizedInvoiceId: string
+) {
+	return sendPackageAdjustmentStripeInvoice(stripe, adjustmentId, finalizedInvoiceId).map(() => ({
+		stripeInvoiceId: finalizedInvoiceId
+	}));
 }
 
 export function recordSentPackageAdjustmentInvoice(
