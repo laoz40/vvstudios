@@ -64,7 +64,13 @@ export const listSessions = query({
 		includeStale: v.optional(v.boolean()),
 		searchQuery: v.optional(v.string())
 	},
-	handler: (ctx, args) => listSessionsService(ctx, args)
+	handler: (ctx, args) =>
+		listSessionsService(ctx, args).match(
+			(page) => page,
+			(error) => {
+				throw new ConvexError(error);
+			}
+		)
 });
 
 export const listActiveEditors = query({

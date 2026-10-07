@@ -1,5 +1,5 @@
 import { paginationOptsValidator } from "convex/server";
-import { v } from "convex/values";
+import { ConvexError, v } from "convex/values";
 import { tupleErr, tupleOk } from "#/lib/result";
 import { internalMutation, internalQuery, mutation, query } from "#convex/_generated/server";
 import { bookingDetailsFieldsValidator } from "#convex/services/booking/bookingFormValidators";
@@ -56,7 +56,13 @@ export const listPackages = query({
 		includeStale: v.optional(v.boolean()),
 		searchQuery: v.optional(v.string())
 	},
-	handler: (ctx, args) => listAdminPackagesPage(ctx, args)
+	handler: (ctx, args) =>
+		listAdminPackagesPage(ctx, args).match(
+			(page) => page,
+			(error) => {
+				throw new ConvexError(error);
+			}
+		)
 });
 
 export const updatePackageFromAdmin = mutation({

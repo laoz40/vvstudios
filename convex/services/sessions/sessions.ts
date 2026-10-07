@@ -1,4 +1,3 @@
-import { ConvexError } from "convex/values";
 import { err, ok } from "neverthrow";
 import {
 	searchBlobPatchForBookingAsync,
@@ -24,17 +23,10 @@ type ListSessionsArgs = PaginationArgs & {
 	searchQuery?: string;
 };
 
-export async function listSessionsService(ctx: QueryCtx, args: ListSessionsArgs) {
-	await requirePermission(ctx, "view:sensitive-booking-data").match(
-		() => null,
-		(authError) => {
-			throw new ConvexError(authError);
-		}
+export function listSessionsService(ctx: QueryCtx, args: ListSessionsArgs) {
+	return requirePermission(ctx, "view:sensitive-booking-data").map(() =>
+		listAdminSessions(ctx, args)
 	);
-
-	// usePaginatedQuery requires the raw Convex PaginationResult, not our Result tuple.
-	// Auth failures throw above so the hook can keep native cursor/page handling.
-	return listAdminSessions(ctx, args);
 }
 
 export function buildPublicSessionStatusResponse(session: Doc<"bookings">) {
