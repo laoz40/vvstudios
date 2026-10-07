@@ -38,7 +38,7 @@ export type ParsedSessionEditDraft =
 
 export type SessionEditSaveOutcome = "error" | "replacement-created" | "updated";
 
-const sessionUpdateErrorMessageMap = {
+export const sessionUpdateErrorMessageMap = {
 	NOT_AUTHENTICATED: "You are not signed in.",
 	NOT_AUTHORIZED: "You do not have access to update sessions.",
 	BOOKING_NOT_FOUND: "That session no longer exists.",
@@ -92,7 +92,7 @@ export function parseSessionEditDraft(values: SessionEditDraft): ParsedSessionEd
 	return { status: "ok", parsedValues: parsedValues.data };
 }
 
-function buildSessionUpdateInput(session: SessionRecord, parsedValues: ParsedSessionValues) {
+export function buildSessionUpdateInput(session: SessionRecord, parsedValues: ParsedSessionValues) {
 	const input: SessionUpdateInput = {
 		bookingId: session._id,
 		name: parsedValues.name,

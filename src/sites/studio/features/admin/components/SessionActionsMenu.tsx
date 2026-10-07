@@ -69,35 +69,6 @@ function canSetDeliverablesStatusToSent(details: SessionActionDetails) {
 	return details.canManageConfirmedSession && details.isPastSession;
 }
 
-function SessionPackageStripeInvoiceMenuItem({
-	packageInvoiceActions
-}: {
-	packageInvoiceActions: ReturnType<typeof usePackageInvoiceActions>;
-}) {
-	if (!packageInvoiceActions.hasStripeCustomer) {
-		return null;
-	}
-
-	return (
-		<>
-			<DropdownMenuSeparator />
-			<AnimatedDropdownMenuItem
-				disabled={packageInvoiceActions.isSendingStripeInvoice}
-				onSelect={() => packageInvoiceActions.setIsStripeInvoiceDialogOpen(true)}
-				renderIcon={(iconRef) => (
-					<BrandStripeIcon
-						ref={iconRef}
-						size={16}
-						aria-hidden
-						className="shrink-0 text-current"
-					/>
-				)}>
-				Create Stripe invoice
-			</AnimatedDropdownMenuItem>
-		</>
-	);
-}
-
 function getSessionArchiveActionLabel(isUpdatingArchive: boolean, isArchived: boolean) {
 	if (isUpdatingArchive) {
 		return isArchived ? "Unarchiving" : "Archiving";
@@ -359,6 +330,7 @@ export function SessionActionsMenu({
 								{showSessionBillingActions ? (
 									<>
 										<DropdownMenuSeparator />
+
 										{invoiceActions.hasStripeCustomer ? (
 											<>
 												<AnimatedDropdownMenuItem
@@ -389,21 +361,6 @@ export function SessionActionsMenu({
 														: "Download receipt"}
 												</AnimatedDropdownMenuItem>
 											</>
-										) : null}
-										{invoiceActions.hasStripeCustomer ? (
-											<AnimatedDropdownMenuItem
-												disabled={invoiceActions.isSendingStripeInvoice}
-												onSelect={() => invoiceActions.setIsStripeInvoiceDialogOpen(true)}
-												renderIcon={(iconRef) => (
-													<BrandStripeIcon
-														ref={iconRef}
-														size={16}
-														aria-hidden
-														className="shrink-0 text-current"
-													/>
-												)}>
-												Create Stripe invoice
-											</AnimatedDropdownMenuItem>
 										) : null}
 										{invoiceActions.hasStripeBillingInvoices ? (
 											<AnimatedDropdownMenuItem
@@ -440,10 +397,20 @@ export function SessionActionsMenu({
 										) : null}
 									</>
 								) : null}
-								{!showSessionBillingActions ? (
-									<SessionPackageStripeInvoiceMenuItem
-										packageInvoiceActions={packageInvoiceActions}
-									/>
+
+								{!showSessionBillingActions && packageInvoiceActions.hasStripeBillingInvoices ? (
+									<AnimatedDropdownMenuItem
+										onSelect={() => packageInvoiceActions.setIsStripeBillingDialogOpen(true)}
+										renderIcon={(iconRef) => (
+											<BrandStripeIcon
+												ref={iconRef}
+												size={16}
+												aria-hidden
+												className="shrink-0 text-current"
+											/>
+										)}>
+										View package Stripe invoices
+									</AnimatedDropdownMenuItem>
 								) : null}
 							</>
 						) : (

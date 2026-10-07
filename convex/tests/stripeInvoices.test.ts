@@ -12,6 +12,8 @@
  *
  * 4. Adjustment invoice record
  *    Marking a package adjustment invoice sent also stores one stripeInvoices row.
+ * 5. Credits
+ *    Credit lines must leave a positive invoice total in whole cents.
  */
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { bookingDocument, packageDocument } from "#convex/tests/insertDocumentDefaults";
@@ -34,6 +36,28 @@ afterEach(() => {
 });
 
 describe("stripe invoice persistence", () => {
+	test.each([-0.3, -0.4])(
+		"rejects credits that leave a nonpositive invoice total (%s)",
+		async (credit) => {
+			const t = createConvexTest();
+			const bookingId = await seedBooking(t);
+
+			const result = await t
+				.withIdentity(adminIdentity)
+				.action(api.stripeInvoicing.sendBookingStripeInvoice, {
+					bookingId,
+					lineItems: [
+						{ description: "Item A", amount: 0.1 },
+						{ description: "Item B", amount: 0.2 },
+						{ description: "Credit", amount: credit }
+					],
+					requestId: "req_zero_total"
+				});
+
+			expect(result[0]).toEqual({ reason: "INVALID_LINE_ITEMS" });
+		}
+	);
+
 	test("stores one unpaid booking invoice record", async () => {
 		const t = createConvexTest();
 		const bookingId = await seedBooking(t);

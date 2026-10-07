@@ -278,6 +278,7 @@ export default defineSchema({
 
 		// Stripe data
 		stripeSessionId: v.optional(v.string()),
+		originalPaidAmount: v.optional(v.number()),
 		stripePaymentIntentId: v.optional(v.string()),
 		stripeCustomerId: v.optional(v.string()),
 
@@ -388,6 +389,7 @@ export default defineSchema({
 
 		// Stripe data
 		stripeSessionId: v.optional(v.string()),
+		originalPaidAmount: v.optional(v.number()),
 		stripePaymentIntentId: v.optional(v.string()),
 		stripeCustomerId: v.optional(v.string())
 	})

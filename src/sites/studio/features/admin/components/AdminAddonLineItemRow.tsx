@@ -12,6 +12,7 @@ import {
 import {
 	ADDON_OPTIONS,
 	DELIVERABLE_COUNT_OPTIONS,
+	getCustomerAddonDisplayLabel,
 	type BookingAddon
 } from "#studio/features/booking-form/lib/booking-form-model";
 import {
@@ -81,7 +82,7 @@ export function AdminAddonLineItemRow({
 							<SelectItem
 								key={addon}
 								value={addon}>
-								{addon}
+								{getCustomerAddonDisplayLabel(addon)}
 							</SelectItem>
 						))}
 					</SelectContent>

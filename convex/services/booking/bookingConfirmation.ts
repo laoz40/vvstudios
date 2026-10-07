@@ -24,6 +24,7 @@ type ClaimBookingConfirmationArgs = {
 	bookingId: string;
 	stripeSessionId: string;
 	stripePaymentIntentId?: string;
+	originalPaidAmount?: number;
 	stripeEventId: string;
 };
 

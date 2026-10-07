@@ -14,7 +14,7 @@ import {
 	buildDurationUpgradeBillableLine,
 	type BillableSessionScope
 } from "#studio/features/booking-form/lib/billable-line-items";
-import { ADDON_PRICES, type PackageSize } from "#studio/features/booking-form/lib/booking-pricing";
+import { ADDON_PRICES } from "#studio/features/booking-form/lib/booking-pricing";
 import type { ParsedStripeInvoiceLineItem } from "#studio/features/admin/lib/stripe-invoice-line-items";
 
 const DURATION_UPGRADE_SELECTION_PREFIX = "duration_upgrade:";
@@ -35,30 +35,6 @@ export type StripeInvoiceLineItemDraft = {
 	quantity: (typeof DELIVERABLE_COUNT_OPTIONS)[number] | "";
 	applyToEverySession: boolean;
 };
-
-export function createStripeInvoiceContext(
-	duration: string,
-	sessionCount: 1 | PackageSize = 1
-): StripeInvoiceContext | null {
-	const currentDuration = DURATION_OPTIONS.find((option) => option === duration);
-
-	if (!currentDuration) {
-		return null;
-	}
-
-	return { currentDuration, sessionCount };
-}
-
-export function createStripeInvoiceLineItemDraft(): StripeInvoiceLineItemDraft {
-	return {
-		id: crypto.randomUUID(),
-		kind: "",
-		newDuration: "",
-		addon: "",
-		quantity: "",
-		applyToEverySession: false
-	};
-}
 
 function calculateDurationUpgradeLineItem(
 	context: StripeInvoiceContext,
@@ -161,30 +137,6 @@ function getStripeInvoiceAddonOptions() {
 
 function addonRequiresQuantity(addon: BookingAddon) {
 	return isQuantityTrackedAddon(addon);
-}
-
-export function isStripeInvoiceLineItemQuantityDisabled(draft: StripeInvoiceLineItemDraft) {
-	if (draft.kind === "duration_upgrade") {
-		return true;
-	}
-
-	if (draft.kind !== "addon" || draft.addon === "") {
-		return true;
-	}
-
-	return !addonRequiresQuantity(draft.addon);
-}
-
-export function getStripeInvoiceLineItemQuantityValue(draft: StripeInvoiceLineItemDraft) {
-	if (draft.kind === "duration_upgrade") {
-		return "1";
-	}
-
-	if (draft.kind !== "addon" || draft.addon === "") {
-		return "";
-	}
-
-	return addonRequiresQuantity(draft.addon) ? draft.quantity : "1";
 }
 
 function isStripeInvoiceAddon(value: string): value is BookingAddon {

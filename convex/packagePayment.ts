@@ -3,10 +3,7 @@
 import { v } from "convex/values";
 import { action } from "#convex/_generated/server";
 import { tupleErr, tupleOk } from "#/lib/result";
-import {
-	bookingAddonQuantitiesValidator,
-	bookingAddonsValidator
-} from "#convex/services/booking/bookingFormValidators";
+import { bookingDetailsFieldsValidator } from "#convex/services/booking/bookingFormValidators";
 import {
 	closeAbandonedPackageStripeCheckout,
 	createPendingPackageForStripeCheckout,
@@ -22,15 +19,7 @@ import {
 
 export const createPackageCheckoutSession = action({
 	args: {
-		name: v.string(),
-		phone: v.string(),
-		accountName: v.string(),
-		abn: v.optional(v.string()),
-		email: v.string(),
-		duration: v.string(),
-		addons: bookingAddonsValidator,
-		...bookingAddonQuantitiesValidator,
-		notes: v.optional(v.string()),
+		...bookingDetailsFieldsValidator,
 		packageSize: v.union(v.literal(4), v.literal(8), v.literal(12))
 	},
 	handler: async (ctx, args) => {

@@ -479,7 +479,7 @@ async function insertSeedPackage(
 
 	const packageFields = {
 		...contact,
-		duration: "1 hour",
+		duration: "1h",
 		// SAFETY: Seed packages start with no addons; empty array matches the table validator.
 		addons: [] as Doc<"packages">["addons"],
 		packageSize,
@@ -537,7 +537,7 @@ async function insertSeedBooking(
 		date,
 		time,
 		sessionStartAt,
-		duration: "1 hour",
+		duration: "1h",
 		service,
 		// SAFETY: Seed bookings start with no addons; empty array matches the table validator.
 		addons: [] as Doc<"bookings">["addons"],

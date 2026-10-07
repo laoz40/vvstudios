@@ -91,14 +91,17 @@ function PackageAmountCell({
 	rowId: AdminPackageRow["id"];
 }) {
 	const rowAmounts = [
-		packageRow.totalDueAmount,
+		packageRow.originalPaidAmount,
 		packageRow.adjustment?.totalAmount,
 		packageRow.customStripeInvoices?.totalAmount
 	].filter((amount): amount is number => amount !== undefined);
 
 	const showCents = getAudAmountRowShowCents(rowAmounts);
 
-	const totalDueLabel = formatAudAmount(packageRow.totalDueAmount, { showCents });
+	const originalPaidLabel =
+		packageRow.originalPaidAmount === undefined
+			? "-"
+			: formatAudAmount(packageRow.originalPaidAmount, { showCents });
 
 	const adjustmentLabel = packageRow.adjustment
 		? formatAudAmount(packageRow.adjustment.totalAmount, { showCents })
@@ -110,13 +113,16 @@ function PackageAmountCell({
 
 	return (
 		<div className="flex flex-col items-end gap-1">
-			<p className="text-green">
+			<p
+				className={
+					packageRow.originalPaidAmount === undefined ? "text-muted-foreground" : "text-green"
+				}>
 				<PrivacySensitiveText
 					rowId={rowId}
-					value={totalDueLabel}
-					label="package amount"
+					value={originalPaidLabel}
+					label="original payment"
 					copyable={false}>
-					{totalDueLabel}
+					{originalPaidLabel}
 				</PrivacySensitiveText>
 			</p>
 			{packageRow.adjustment && adjustmentLabel ? (

@@ -17,6 +17,7 @@ export function patchBookingStripeConfirmationClaim(
 		bookingConfirmationEventId: string;
 		stripeSessionId: string;
 		stripePaymentIntentId?: string;
+		originalPaidAmount?: number;
 	}
 ) {
 	return okOrThrow(ctx.db.patch("bookings", bookingId, patch).then(() => null));

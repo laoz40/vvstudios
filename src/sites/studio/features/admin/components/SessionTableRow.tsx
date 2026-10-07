@@ -29,6 +29,7 @@ import { useDeliverablesEmailAction } from "#studio/features/admin/hooks/useDeli
 import {
 	formatAdminDashboardDuration,
 	getPackageSessionProgressLabel,
+	getSessionPaidBookingAmount,
 	type SessionRecord
 } from "#studio/features/admin/lib/admin-sessions";
 import {
@@ -36,7 +37,6 @@ import {
 	getAudAmountRowShowCents
 } from "#studio/features/admin/lib/remaining-balance";
 import { getStripeInvoiceAmountClassName } from "#studio/features/admin/lib/stripe-invoice-billing";
-import { calculateBookingReceiptAmounts } from "#studio/features/booking-invoice/lib/calculate-booking-receipt-amounts";
 import { formatAdminSearchNarrowQuery } from "#studio/features/admin/lib/admin-search-narrow";
 import {
 	formatShortMonthFullDate,
@@ -291,12 +291,10 @@ function SessionAmountCell({ rowId, session }: { rowId: string; session: Session
 	const stripeInvoicesSummary = session.stripeInvoicesSummary;
 
 	if (!showReceiptAmount && !stripeInvoicesSummary) {
-		return <p className={packageSessionProgressLabel ? "text-muted-foreground" : undefined}>-</p>;
+		return <p className="text-muted-foreground">-</p>;
 	}
 
-	const receiptAmount = showReceiptAmount
-		? calculateBookingReceiptAmounts(session).totalPaidAmount
-		: null;
+	const receiptAmount = showReceiptAmount ? getSessionPaidBookingAmount(session) : null;
 
 	const stripeInvoiceAmount = stripeInvoicesSummary?.totalAmount ?? null;
 
@@ -307,7 +305,11 @@ function SessionAmountCell({ rowId, session }: { rowId: string; session: Session
 	const showCents = getAudAmountRowShowCents(rowAmounts);
 
 	const receiptAmountLabel =
-		receiptAmount !== null ? formatAudAmount(receiptAmount, { showCents }) : null;
+		receiptAmount !== null
+			? formatAudAmount(receiptAmount, { showCents })
+			: showReceiptAmount
+				? "-"
+				: null;
 
 	const stripeInvoiceAmountLabel =
 		stripeInvoiceAmount !== null ? formatAudAmount(stripeInvoiceAmount, { showCents }) : null;
@@ -315,11 +317,11 @@ function SessionAmountCell({ rowId, session }: { rowId: string; session: Session
 	return (
 		<div className="flex flex-col items-end gap-1">
 			{receiptAmountLabel ? (
-				<p className="text-green">
+				<p className={receiptAmount === null ? "text-muted-foreground" : "text-green"}>
 					<PrivacySensitiveText
 						rowId={rowId}
 						value={receiptAmountLabel}
-						label="session amount"
+						label="original payment"
 						copyable={false}>
 						{receiptAmountLabel}
 					</PrivacySensitiveText>

@@ -1,9 +1,10 @@
+import { useEditInvoice } from "#studio/features/admin/hooks/useEditInvoice";
 import { useState } from "react";
 import { useMutation } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { toast } from "sonner";
 import { api } from "#convex/_generated/api";
-import { exhaustiveCheck, tryCatch, type UnexpectedError } from "#/lib/result";
+import { tryCatch, type UnexpectedError } from "#/lib/result";
 import type { PackageEditDraft } from "#studio/features/admin/lib/package-edit-draft-store";
 import type { AdminPackageRow } from "#studio/features/admin/lib/admin-packages";
 import { getPackageEditWarningState } from "#studio/features/admin/lib/package-edit-warnings";
@@ -94,41 +95,31 @@ function parsePackageEditValues(values: PackageEditDraft) {
 	return parsedValues.data;
 }
 
-function showPackageUpdateError(
-	error: NonNullable<UpdatePackageFromAdminResult[0]> | UnexpectedError
-) {
-	const reason = error.reason;
+type PackageUpdateError = NonNullable<UpdatePackageFromAdminResult[0]> | UnexpectedError;
 
-	switch (reason) {
-		case "NOT_AUTHENTICATED":
-			toast.error("You are not signed in.");
-			break;
-		case "NOT_AUTHORIZED":
-			toast.error("You do not have access to update packages.");
-			break;
-		case "PACKAGE_NOT_FOUND":
-			toast.error("This package no longer exists.");
-			break;
-		case "PACKAGE_SIZE_BELOW_BOOKED_SESSIONS":
-			toast.error("Package sessions cannot be lower than booked sessions.");
-			break;
-		case "INVALID_BOOKING_DATA":
-			toast.error("Please check the package details.");
-			break;
-		case "PACKAGE_INVALID_EXPIRY":
-			toast.error("Enter a valid package expiry window.");
-			break;
-		case "UNEXPECTED_ERROR":
-			toast.error("Something went wrong while updating the package.");
-			break;
-		default:
-			exhaustiveCheck(reason);
-	}
+const packageUpdateErrors = {
+	NOT_AUTHENTICATED: "You are not signed in.",
+	NOT_AUTHORIZED: "You do not have access to update packages.",
+	PACKAGE_NOT_FOUND: "This package no longer exists.",
+	PACKAGE_SIZE_BELOW_BOOKED_SESSIONS: "Package sessions cannot be lower than booked sessions.",
+	INVALID_BOOKING_DATA: "Please check the package details.",
+	PACKAGE_INVALID_EXPIRY: "Enter a valid package expiry window.",
+	UNEXPECTED_ERROR: "Something went wrong while updating the package."
+} satisfies Record<PackageUpdateError["reason"], string>;
+
+function showPackageUpdateError(error: PackageUpdateError) {
+	toast.error(packageUpdateErrors[error.reason]);
 }
 
 export function usePackageEditAction(packageRow: AdminPackageRow) {
 	const updatePackage = useMutation(api.packages.updatePackageFromAdmin);
 	const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+
+	const invoice = useEditInvoice({ kind: "package", packageId: packageRow.id }, () => {
+		setIsEditDialogOpen(false);
+		setIsEditConfirmationDialogOpen(false);
+	});
+
 	const [isEditConfirmationDialogOpen, setIsEditConfirmationDialogOpen] = useState(false);
 	const [pendingEditDraft, setPendingEditDraft] = useState<PackageEditDraft | null>(null);
 
@@ -137,6 +128,25 @@ export function usePackageEditAction(packageRow: AdminPackageRow) {
 	> | null>(null);
 
 	const [isSaving, setIsSaving] = useState(false);
+
+	async function reviewPackageChanges(
+		values: PackageEditDraft,
+		parsedValues: ParsedPackageValues,
+		warningState: ReturnType<typeof getPackageEditWarningState>
+	) {
+		setPendingEditDraft(values);
+		setPendingEditWarningState(warningState);
+		setIsEditConfirmationDialogOpen(true);
+
+		if (warningState.pricingFieldLabels.length > 0) {
+			setIsSaving(true);
+			await invoice.reviewInvoice({
+				kind: "package",
+				values: buildPackageUpdateInput(packageRow, values, parsedValues)
+			});
+			setIsSaving(false);
+		}
+	}
 
 	async function saveEditPackage(
 		values: PackageEditDraft,
@@ -152,9 +162,7 @@ export function usePackageEditAction(packageRow: AdminPackageRow) {
 			const warningState = getPackageEditWarningState(packageRow, values);
 
 			if (warningState.requiresConfirmation) {
-				setPendingEditDraft(values);
-				setPendingEditWarningState(warningState);
-				setIsEditConfirmationDialogOpen(true);
+				await reviewPackageChanges(values, parsedValues, warningState);
 
 				return;
 			}
@@ -163,6 +171,15 @@ export function usePackageEditAction(packageRow: AdminPackageRow) {
 		setIsSaving(true);
 
 		const updateInput = buildPackageUpdateInput(packageRow, values, parsedValues);
+
+		if (getPackageEditWarningState(packageRow, values).pricingFieldLabels.length > 0) {
+			const draft = { kind: "package" as const, values: updateInput };
+
+			await invoice.saveNonbillable(draft);
+			setIsSaving(false);
+
+			return;
+		}
 
 		const [error] = await tryCatch(updatePackage(updateInput));
 
@@ -175,6 +192,7 @@ export function usePackageEditAction(packageRow: AdminPackageRow) {
 
 		setIsEditDialogOpen(false);
 		toast.success("Package updated.");
+
 		setIsSaving(false);
 	}
 
@@ -203,12 +221,13 @@ export function usePackageEditAction(packageRow: AdminPackageRow) {
 	}
 
 	return {
+		invoice,
+		isEditDialogOpen,
 		closeEditConfirmationDialog,
 		handleConfirmEditPackage,
 		handleEditPackage,
 		isEditConfirmationDialogOpen,
-		isEditDialogOpen,
-		isSaving,
+		isSaving: isSaving || invoice.open,
 		pendingEditWarningState,
 		setIsEditConfirmationDialogOpen,
 		setIsEditDialogOpen

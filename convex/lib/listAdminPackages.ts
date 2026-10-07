@@ -5,6 +5,8 @@ import type { QueryCtx } from "#convex/_generated/server";
 import { exhaustiveCheck } from "#/lib/result";
 import { getCapacityConsumingPackageSessions } from "#convex/lib/packages/packageScheduling";
 import {
+	calculatePaidAmount,
+	listStripeInvoicesForBookings,
 	listStripeInvoicesForPackage,
 	summarizeCustomPackageStripeInvoices
 } from "#convex/lib/stripe/stripeInvoices";
@@ -310,7 +312,13 @@ function loadAdminPackageListRow(ctx: QueryCtx, packageFromDb: Doc<"packages">) 
 	).andThen((packageAdjustment) =>
 		getCapacityConsumingPackageSessions(ctx, packageFromDb._id, packageFromDb.packageSize).andThen(
 			(packageSessions) =>
-				listStripeInvoicesForPackage(ctx, packageFromDb._id).map((stripeInvoices) => {
+				ResultAsync.combine([
+					listStripeInvoicesForPackage(ctx, packageFromDb._id),
+					listStripeInvoicesForBookings(
+						ctx,
+						packageSessions.map((booking) => booking._id)
+					)
+				]).map(([stripeInvoices, sessionInvoices]) => {
 					const customStripeInvoicesSummary = summarizeCustomPackageStripeInvoices(stripeInvoices);
 
 					return {
@@ -327,6 +335,10 @@ function loadAdminPackageListRow(ctx: QueryCtx, packageFromDb: Doc<"packages">) 
 										paymentStatus: packageAdjustment.paymentStatus
 									}
 								: null,
+						paidAmount: calculatePaidAmount({
+							originalPaidAmount: packageFromDb.originalPaidAmount ?? null,
+							invoices: [...stripeInvoices, ...sessionInvoices]
+						}),
 						customStripeInvoicesSummary
 					};
 				})

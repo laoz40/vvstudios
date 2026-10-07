@@ -2,10 +2,8 @@ import { AdminEditConfirmationDialog } from "#studio/features/admin/components/A
 import { PackageEditDialog } from "#studio/features/admin/components/PackageEditDialog";
 import { PackageEmailConfirmationDialog } from "#studio/features/admin/components/PackageEmailConfirmationDialog";
 import { StripeBillingDialog } from "#studio/features/admin/components/StripeBillingDialog";
-import { StripeInvoiceDialog } from "#studio/features/admin/components/StripeInvoiceDialog";
 import type { usePackageActions } from "#studio/features/admin/hooks/usePackageActions";
 import type { AdminPackageRow } from "#studio/features/admin/lib/admin-packages";
-import { createStripeInvoiceContext } from "#studio/features/admin/lib/stripe-invoice-pricing";
 
 type PackageActionDialogsProps = {
 	actions: ReturnType<typeof usePackageActions>;
@@ -15,17 +13,13 @@ type PackageActionDialogsProps = {
 export function PackageActionDialogs({ actions, packageRow }: PackageActionDialogsProps) {
 	const { editAction, pendingAction } = actions;
 
-	const stripeInvoiceContext = createStripeInvoiceContext(
-		packageRow.duration,
-		packageRow.packageSize
-	);
-
 	return (
 		<>
 			<PackageEditDialog
 				open={editAction.isEditDialogOpen}
 				packageRow={packageRow}
 				onOpenChange={editAction.setIsEditDialogOpen}
+				billingSummary={{ paidAmount: packageRow.paidAmount ?? null }}
 				onSave={editAction.handleEditPackage}
 				isSaving={editAction.isSaving}
 			/>
@@ -37,24 +31,13 @@ export function PackageActionDialogs({ actions, packageRow }: PackageActionDialo
 				onOpenChange={actions.setIsStripeBillingDialogOpen}
 			/>
 
-			{actions.hasStripeCustomer && stripeInvoiceContext ? (
-				<StripeInvoiceDialog
-					open={actions.isStripeInvoiceDialogOpen}
-					customerEmail={packageRow.customerEmail}
-					customerName={packageRow.customerName}
-					hasStripeCustomer
-					invoiceContext={stripeInvoiceContext}
-					isSending={actions.isSendingStripeInvoice}
-					onOpenChange={actions.setIsStripeInvoiceDialogOpen}
-					onSend={actions.handleSendStripeInvoice}
-				/>
-			) : null}
 			<AdminEditConfirmationDialog
-				open={editAction.isEditConfirmationDialogOpen}
+				open={editAction.isEditConfirmationDialogOpen || editAction.invoice.open}
+				invoice={editAction.invoice}
 				isSaving={editAction.isSaving}
 				googleEventFieldLabels={editAction.pendingEditWarningState?.changedFieldLabels ?? []}
 				nonPricingTitle="Package Info Changes"
-				pricingTitle="Pricing Changes"
+				title="Confirm package changes"
 				description="Check what will change before saving."
 				onCancel={editAction.closeEditConfirmationDialog}
 				pricingFieldLabels={editAction.pendingEditWarningState?.pricingFieldLabels ?? []}

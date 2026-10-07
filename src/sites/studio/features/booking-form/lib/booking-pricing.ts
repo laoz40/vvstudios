@@ -62,10 +62,7 @@ export function formatBookingPriceWithCents(price: number) {
 export { getBookingAddonQuantityForForm as getBookingAddonQuantity };
 
 export function getBookingTotal(
-	values: {
-		addons: BookingFormValues["addons"];
-		duration: BookingFormValues["duration"] | "";
-	} & BookingAddonQuantities
+	values: { addons: BookingFormValues["addons"]; duration: string } & BookingAddonQuantities
 ) {
 	const addonQuantities = pickBookingAddonQuantities(values);
 

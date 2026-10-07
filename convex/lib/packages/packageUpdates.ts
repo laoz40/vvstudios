@@ -287,7 +287,11 @@ export function patchPackageStripeCheckoutIds(
 export function patchPackageCheckoutClaimed(
 	ctx: MutationCtx,
 	packageId: Id<"packages">,
-	patch: { packageCheckoutClaimedAt: number; stripePaymentIntentId?: string }
+	patch: {
+		packageCheckoutClaimedAt: number;
+		stripePaymentIntentId?: string;
+		originalPaidAmount?: number;
+	}
 ) {
 	return okOrThrow(ctx.db.patch("packages", packageId, patch).then(() => null));
 }

@@ -16,11 +16,9 @@ import { SessionEditDialog } from "#studio/features/admin/components/SessionEdit
 import { SessionAdminNotesDialog } from "#studio/features/admin/components/SessionAdminNotesDialog";
 import { LegacyCustomInvoicesDialog } from "#studio/features/admin/components/LegacyCustomInvoicesDialog";
 import { StripeBillingDialog } from "#studio/features/admin/components/StripeBillingDialog";
-import { StripeInvoiceDialog } from "#studio/features/admin/components/StripeInvoiceDialog";
 import { DeliverablesEmailDialog } from "#studio/features/admin/components/DeliverablesEmailDialog";
 import type { SessionActionDetails } from "#studio/features/admin/lib/admin-sessions";
 import type { SessionRecord } from "#studio/features/admin/lib/admin-sessions";
-import { createStripeInvoiceContext } from "#studio/features/admin/lib/stripe-invoice-pricing";
 import type { useSessionArchiveAndCancelActions } from "#studio/features/admin/hooks/useSessionArchiveAndCancelActions";
 import type { useDeliverablesEmailAction } from "#studio/features/admin/hooks/useDeliverablesEmailAction";
 import type { useEditAction } from "#studio/features/admin/hooks/useEditAction";
@@ -129,7 +127,7 @@ function SessionArchiveDialogHost({
 function ReplacementEventDialog({ editAction }: { editAction: ReturnType<typeof useEditAction> }) {
 	return (
 		<Dialog
-			open={editAction.isReplacementEventDialogOpen}
+			open={editAction.isReplacementEventDialogOpen && !editAction.invoice.open}
 			onOpenChange={editAction.setIsReplacementEventDialogOpen}>
 			<DialogContent className="sm:max-w-md">
 				<DialogHeader>
@@ -163,13 +161,6 @@ export function SessionActionsDialogs({
 	isAdminNotesDialogOpen,
 	onAdminNotesDialogOpenChange
 }: SessionActionsDialogsProps) {
-	const stripeInvoiceContext = createStripeInvoiceContext(session.duration);
-
-	const packageStripeInvoiceContext =
-		session.packageId && session.linkedPackageSize
-			? createStripeInvoiceContext(session.duration, session.linkedPackageSize)
-			: null;
-
 	return (
 		<>
 			<SessionAdminNotesDialog
@@ -226,32 +217,13 @@ export function SessionActionsDialogs({
 				onOpenChange={invoiceActions.setIsStripeBillingDialogOpen}
 			/>
 
-			{invoiceActions.hasStripeCustomer && stripeInvoiceContext ? (
-				<StripeInvoiceDialog
-					open={invoiceActions.isStripeInvoiceDialogOpen}
-					customerEmail={session.email}
-					customerName={session.name}
-					hasStripeCustomer
-					invoiceContext={stripeInvoiceContext}
-					isSending={invoiceActions.isSendingStripeInvoice}
-					onOpenChange={invoiceActions.setIsStripeInvoiceDialogOpen}
-					onSend={invoiceActions.handleSendStripeInvoice}
-				/>
-			) : null}
-
-			{packageInvoiceActions.hasStripeCustomer && packageStripeInvoiceContext ? (
-				<StripeInvoiceDialog
-					open={packageInvoiceActions.isStripeInvoiceDialogOpen}
-					customerEmail={session.email}
-					customerName={session.name}
-					hasStripeCustomer
-					invoiceContext={packageStripeInvoiceContext}
-					isSending={packageInvoiceActions.isSendingStripeInvoice}
-					onOpenChange={packageInvoiceActions.setIsStripeInvoiceDialogOpen}
-					onSend={packageInvoiceActions.handleSendStripeInvoice}
-				/>
-			) : null}
-
+			<StripeBillingDialog
+				open={packageInvoiceActions.isStripeBillingDialogOpen}
+				customerEmail={session.email}
+				customerName={session.name}
+				invoices={packageInvoiceActions.stripeBillingInvoices}
+				onOpenChange={packageInvoiceActions.setIsStripeBillingDialogOpen}
+			/>
 			<SessionArchiveDialogHost
 				session={session}
 				archiveAndCancelAction={archiveAndCancelAction}
@@ -272,12 +244,14 @@ export function SessionActionsDialogs({
 				session={session}
 				bookingId={details.customerSessionId}
 				onOpenChange={editAction.setIsEditDialogOpen}
+				billingSummary={{ paidAmount: session.paidAmount ?? null }}
 				onSave={editAction.handleEditBooking}
 				isSaving={editAction.isSaving}
 			/>
 
 			<AdminEditConfirmationDialog
-				open={editAction.isEditConfirmationDialogOpen}
+				open={editAction.isEditConfirmationDialogOpen || editAction.invoice.open}
+				invoice={editAction.invoice}
 				isSaving={editAction.isSaving}
 				googleEventFieldLabels={editAction.pendingEditWarningState?.googleEventFieldLabels ?? []}
 				driveIdentityFieldLabels={

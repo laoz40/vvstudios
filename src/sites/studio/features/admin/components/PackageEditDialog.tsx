@@ -1,4 +1,8 @@
-import { useMemo } from "react";
+import {
+	EditPriceSummary,
+	type EditPaymentSummaryData
+} from "#studio/features/admin/components/EditPaymentSummary";
+import { useState } from "react";
 import { Store, useSelector } from "@tanstack/react-store";
 import { LoaderCircle, X } from "lucide-react";
 import {
@@ -22,10 +26,7 @@ import { Input } from "#/components/ui/input";
 import { Label } from "#/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "#/components/ui/radio-group";
 import { Textarea } from "#/components/ui/textarea";
-import {
-	DURATION_OPTIONS,
-	pickBookingAddonQuantities
-} from "#studio/features/booking-form/lib/booking-form-model";
+import { DURATION_OPTIONS } from "#studio/features/booking-form/lib/booking-form-model";
 import {
 	calculatePackageAmounts,
 	isPackageSize,
@@ -35,10 +36,6 @@ import {
 	adminOptionButtonClassName,
 	adminOptionRowClassName
 } from "#studio/features/admin/lib/admin-form-styles";
-import {
-	formatAudAmount,
-	getAudAmountRowShowCents
-} from "#studio/features/admin/lib/remaining-balance";
 import type { AdminPackageRow } from "#studio/features/admin/lib/admin-packages";
 import { usePackageEditPricingValues } from "#studio/features/admin/hooks/usePackageEditPricingValues";
 import {
@@ -53,6 +50,7 @@ import { toOptionId } from "#studio/lib/bookingdatetime";
 type PackageEditDialogProps = {
 	open: boolean;
 	isSaving: boolean;
+	billingSummary?: EditPaymentSummaryData | null;
 	packageRow: AdminPackageRow;
 	onOpenChange: (open: boolean) => void;
 	onSave: (values: PackageEditDraft) => Promise<void>;
@@ -63,21 +61,6 @@ const compactFieldClassName = "grid gap-1.5";
 const accordionTriggerClassName = "!py-3 !text-base !font-bold hover:!text-primary";
 
 const accordionContentClassName = "space-y-3 pb-3 pt-1 text-sm md:text-sm md:pb-3";
-
-function formatSignedPriceDifference(diff: number, showCents: boolean) {
-	const sign = diff > 0 ? "+" : "-";
-
-	return `(${sign}${formatAudAmount(Math.abs(diff), { showCents })})`;
-}
-
-function getPackageDraftTotal(draft: PackageEditDraft) {
-	return calculatePackageAmounts({
-		addons: draft.addons,
-		duration: draft.duration,
-		packageSize: draft.packageSize,
-		...pickBookingAddonQuantities(draft)
-	}).totalDueAmount;
-}
 
 type PackageEditFieldProps = { isSaving: boolean };
 
@@ -416,37 +399,28 @@ function PackageEditAddonsSection({
 	);
 }
 
-function PackageEditPriceSummary({ originalPrice }: { originalPrice: number }) {
+function PackageEditPriceSummary({
+	originalPrice,
+	billingSummary
+}: {
+	originalPrice: number;
+	billingSummary?: EditPaymentSummaryData | null;
+}) {
 	const pricingValues = usePackageEditPricingValues();
 	const newPrice = calculatePackageAmounts(pricingValues).totalDueAmount;
-	const priceDifference = newPrice - originalPrice;
-	const showPriceCents = getAudAmountRowShowCents([originalPrice, newPrice, priceDifference]);
 
 	return (
-		<div className="flex flex-wrap items-center gap-x-6 gap-y-1 border-t pt-3 text-sm tabular-nums">
-			<p>
-				Total:{" "}
-				<span className="font-medium">
-					{formatAudAmount(originalPrice, { showCents: showPriceCents })}
-				</span>
-			</p>
-			{priceDifference !== 0 ? (
-				<p>
-					New:{" "}
-					<span className="font-medium">
-						{formatAudAmount(newPrice, { showCents: showPriceCents })}
-					</span>{" "}
-					<span className="text-muted-foreground">
-						{formatSignedPriceDifference(priceDifference, showPriceCents)}
-					</span>
-				</p>
-			) : null}
-		</div>
+		<EditPriceSummary
+			currentTotal={originalPrice}
+			newTotal={newPrice}
+			summary={billingSummary}
+		/>
 	);
 }
 
 type PackageEditDialogFormProps = {
 	isSaving: boolean;
+	billingSummary?: EditPaymentSummaryData | null;
 	packageRow: AdminPackageRow;
 	onOpenChange: (open: boolean) => void;
 	onSave: (values: PackageEditDraft) => Promise<void>;
@@ -456,10 +430,13 @@ function PackageEditDialogForm({
 	isSaving,
 	packageRow,
 	onOpenChange,
-	onSave
+	onSave,
+	billingSummary
 }: PackageEditDialogFormProps) {
-	const draftStore = useMemo(() => new Store(buildPackageEditDraft(packageRow)), [packageRow]);
-	const originalPrice = getPackageDraftTotal(buildPackageEditDraft(packageRow));
+	const [draftStore] = useState(() => new Store(buildPackageEditDraft(packageRow)));
+	const originalPrice = packageRow.totalDueAmount;
+
+	const paymentSummary = billingSummary;
 
 	return (
 		<PackageEditDraftStoreContext value={draftStore}>
@@ -518,7 +495,10 @@ function PackageEditDialogForm({
 					</AccordionItem>
 				</Accordion>
 
-				<PackageEditPriceSummary originalPrice={originalPrice} />
+				<PackageEditPriceSummary
+					originalPrice={originalPrice}
+					billingSummary={paymentSummary}
+				/>
 
 				<DialogFooter className="gap-2">
 					<Button
@@ -546,7 +526,8 @@ export function PackageEditDialog({
 	isSaving,
 	packageRow,
 	onOpenChange,
-	onSave
+	onSave,
+	billingSummary
 }: PackageEditDialogProps) {
 	return (
 		<Dialog
@@ -597,6 +578,7 @@ export function PackageEditDialog({
 						packageRow={packageRow}
 						onOpenChange={onOpenChange}
 						onSave={onSave}
+						billingSummary={billingSummary}
 					/>
 				) : null}
 			</DialogContent>

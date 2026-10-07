@@ -7,6 +7,7 @@ import type { BookingAddon } from "#studio/features/booking-form/lib/booking-for
 export type AdminPackageStatus = Doc<"packages">["status"];
 
 export type AdminPackageRecord = Doc<"packages"> & {
+	paidAmount?: number | null;
 	bookedSessions?: number;
 	areSessionsComplete: boolean;
 	adjustment?: {
@@ -37,6 +38,8 @@ export type AdminPackageRow = {
 	essentialEditQuantity?: string;
 	handcraftedClipsQuantity?: string;
 	totalDueAmount: number;
+	originalPaidAmount?: number;
+	paidAmount?: number | null;
 	adjustment: {
 		id: Doc<"packageAdjustments">["_id"];
 		totalAmount: number;
@@ -240,6 +243,8 @@ export function mapPackageToAdminRow(packageRecord: AdminPackageRecord): AdminPa
 		essentialEditQuantity: packageRecord.essentialEditQuantity,
 		handcraftedClipsQuantity: packageRecord.handcraftedClipsQuantity,
 		totalDueAmount: packageRecord.totalDueAmount,
+		originalPaidAmount: packageRecord.originalPaidAmount,
+		paidAmount: packageRecord.paidAmount,
 		adjustment: packageRecord.adjustment
 			? {
 					id: packageRecord.adjustment._id,
