@@ -85,8 +85,7 @@ function PackageInvoiceActions({
 		isActionPending,
 		pendingAction,
 		setIsAdjustmentInvoiceDialogOpen,
-		setIsStripeBillingDialogOpen,
-		setIsStripeInvoiceDialogOpen
+		setIsStripeBillingDialogOpen
 	} = actions;
 
 	return (
@@ -114,21 +113,7 @@ function PackageInvoiceActions({
 						: "Retry adjustment invoice"}
 				</AnimatedDropdownMenuItem>
 			) : null}
-			{actions.hasStripeCustomer ? (
-				<AnimatedDropdownMenuItem
-					disabled={isActionPending || actions.isSendingStripeInvoice}
-					onSelect={() => setIsStripeInvoiceDialogOpen(true)}
-					renderIcon={(iconRef) => (
-						<BrandStripeIcon
-							ref={iconRef}
-							size={16}
-							aria-hidden
-							className="shrink-0 text-current"
-						/>
-					)}>
-					Create Stripe invoice
-				</AnimatedDropdownMenuItem>
-			) : null}
+
 			{actions.hasStripeBillingInvoices ? (
 				<AnimatedDropdownMenuItem
 					disabled={isActionPending}

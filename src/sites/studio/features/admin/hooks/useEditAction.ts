@@ -1,9 +1,11 @@
+import { useEditInvoice } from "#studio/features/admin/hooks/useEditInvoice";
 import { useState } from "react";
 import { useAction } from "convex/react";
 import { toast } from "sonner";
 import { api } from "#convex/_generated/api";
 import type { SessionEditDraft } from "#studio/features/admin/components/SessionEditDialog";
 import {
+	buildSessionUpdateInput,
 	parseSessionEditDraft,
 	performSessionEditSave
 } from "#studio/features/admin/lib/session-edit";
@@ -13,6 +15,12 @@ import type { SessionRecord } from "#studio/features/admin/lib/admin-sessions";
 export function useEditAction(session: SessionRecord) {
 	const updateSession = useAction(api.googleCalendar.updateSessionFromAdmin);
 	const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+
+	const invoice = useEditInvoice({ kind: "booking", bookingId: session._id }, () => {
+		setIsEditDialogOpen(false);
+		setIsEditConfirmationDialogOpen(false);
+	});
+
 	const [isReplacementEventDialogOpen, setIsReplacementEventDialogOpen] = useState(false);
 	const [isEditConfirmationDialogOpen, setIsEditConfirmationDialogOpen] = useState(false);
 	const [pendingEditDraft, setPendingEditDraft] = useState<SessionEditDraft | null>(null);
@@ -43,27 +51,51 @@ export function useEditAction(session: SessionRecord) {
 				setPendingEditWarningState(warningState);
 				setIsEditConfirmationDialogOpen(true);
 
+				if (warningState.pricingFieldLabels.length > 0) {
+					setIsSaving(true);
+					await invoice.reviewInvoice({
+						kind: "booking",
+						values: buildSessionUpdateInput(session, parsedDraft.parsedValues)
+					});
+					setIsSaving(false);
+				}
+
 				return;
 			}
 		}
 
 		setIsSaving(true);
-		const outcome = await performSessionEditSave(session, parsedDraft, updateSession);
-		setIsSaving(false);
 
-		if (outcome === "error") {
-			return;
+		if (getSessionEditWarningState(session, values).pricingFieldLabels.length > 0) {
+			const draft = {
+				kind: "booking" as const,
+				values: buildSessionUpdateInput(session, parsedDraft.parsedValues)
+			};
+
+			await invoice.saveNonbillable(draft);
+		} else {
+			await saveOrdinarySessionEdit(parsedDraft);
 		}
 
+		setIsSaving(false);
+	}
+
+	async function saveOrdinarySessionEdit(
+		parsedDraft: Extract<ReturnType<typeof parseSessionEditDraft>, { status: "ok" }>
+	) {
+		const outcome = await performSessionEditSave(session, parsedDraft, updateSession);
+
+		if (outcome === "error") return;
+
+		setIsEditDialogOpen(false);
+
 		if (outcome === "replacement-created") {
-			setIsEditDialogOpen(false);
 			setIsReplacementEventDialogOpen(true);
 			toast.success("Booking updated. Replacement Calendar event created.");
 
 			return;
 		}
 
-		setIsEditDialogOpen(false);
 		toast.success("Booking updated.");
 	}
 
@@ -92,15 +124,16 @@ export function useEditAction(session: SessionRecord) {
 	}
 
 	return {
+		invoice,
 		closeEditConfirmationDialog,
 		handleConfirmEditBooking,
 		handleEditBooking,
 		isEditConfirmationDialogOpen,
-		isEditDialogOpen,
 		isReplacementEventDialogOpen,
-		isSaving,
+		isSaving: isSaving || invoice.open,
 		pendingEditWarningState,
 		setIsEditConfirmationDialogOpen,
+		isEditDialogOpen,
 		setIsEditDialogOpen,
 		setIsReplacementEventDialogOpen
 	};

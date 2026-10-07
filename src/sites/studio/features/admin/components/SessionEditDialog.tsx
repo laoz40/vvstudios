@@ -1,4 +1,8 @@
-import { useMemo } from "react";
+import {
+	EditPriceSummary,
+	type EditPaymentSummaryData
+} from "#studio/features/admin/components/EditPaymentSummary";
+import { useState } from "react";
 import { Store, useSelector } from "@tanstack/react-store";
 import { LoaderCircle, X } from "lucide-react";
 import {
@@ -28,10 +32,7 @@ import {
 	adminOptionButtonClassName,
 	adminOptionRowClassName
 } from "#studio/features/admin/lib/admin-form-styles";
-import {
-	formatAudAmount,
-	getAudAmountRowShowCents
-} from "#studio/features/admin/lib/remaining-balance";
+import { formatAudAmount } from "#studio/features/admin/lib/remaining-balance";
 import { getBookingTotal } from "#studio/features/booking-form/lib/booking-pricing";
 import { useSessionEditPricingValues } from "#studio/features/admin/hooks/useSessionEditPricingValues";
 import {
@@ -54,6 +55,7 @@ export type SessionEditDialogProps = {
 	onOpenChange: (open: boolean) => void;
 	onSave: (values: SessionEditDraft) => Promise<void>;
 	isSaving: boolean;
+	billingSummary?: EditPaymentSummaryData | null;
 };
 
 const compactFieldClassName = "grid gap-1.5";
@@ -61,12 +63,6 @@ const compactFieldClassName = "grid gap-1.5";
 const accordionTriggerClassName = "!py-3 !text-base !font-bold hover:!text-primary";
 
 const accordionContentClassName = "space-y-3 pb-3 pt-1 text-sm md:text-sm md:pb-3";
-
-function formatSignedPriceDifference(diff: number, showCents: boolean) {
-	const sign = diff > 0 ? "+" : "-";
-
-	return `(${sign}${formatAudAmount(Math.abs(diff), { showCents })})`;
-}
 
 type SessionEditFieldProps = { isSaving: boolean };
 
@@ -402,32 +398,22 @@ function SessionEditAddonsSection({
 	);
 }
 
-function SessionEditPriceSummary({ originalPrice }: { originalPrice: number }) {
+function SessionEditPriceSummary({
+	originalPrice,
+	billingSummary
+}: {
+	originalPrice: number;
+	billingSummary?: EditPaymentSummaryData | null;
+}) {
 	const pricingValues = useSessionEditPricingValues();
 	const newPrice = getBookingTotal(pricingValues);
-	const priceDifference = newPrice - originalPrice;
-	const showPriceCents = getAudAmountRowShowCents([originalPrice, newPrice, priceDifference]);
 
 	return (
-		<div className="flex flex-wrap items-center gap-x-6 gap-y-1 border-t pt-3 text-sm tabular-nums">
-			<p>
-				Total:{" "}
-				<span className="font-medium">
-					{formatAudAmount(originalPrice, { showCents: showPriceCents })}
-				</span>
-			</p>
-			{priceDifference !== 0 ? (
-				<p>
-					New:{" "}
-					<span className="font-medium">
-						{formatAudAmount(newPrice, { showCents: showPriceCents })}
-					</span>{" "}
-					<span className="text-muted-foreground">
-						{formatSignedPriceDifference(priceDifference, showPriceCents)}
-					</span>
-				</p>
-			) : null}
-		</div>
+		<EditPriceSummary
+			currentTotal={originalPrice}
+			newTotal={newPrice}
+			summary={billingSummary}
+		/>
 	);
 }
 
@@ -437,6 +423,7 @@ type SessionEditDialogFormProps = {
 	onOpenChange: (open: boolean) => void;
 	onSave: (values: SessionEditDraft) => Promise<void>;
 	isSaving: boolean;
+	billingSummary?: EditPaymentSummaryData | null;
 };
 
 function SessionEditDialogForm({
@@ -444,10 +431,13 @@ function SessionEditDialogForm({
 	bookingId,
 	onOpenChange,
 	onSave,
-	isSaving
+	isSaving,
+	billingSummary
 }: SessionEditDialogFormProps) {
-	const draftStore = useMemo(() => new Store(buildSessionEditDraft(session)), [session]);
+	const [draftStore] = useState(() => new Store(buildSessionEditDraft(session)));
 	const originalPrice = getBookingTotal(buildSessionEditDraft(session));
+
+	const paymentSummary = session.packageId ? null : billingSummary;
 
 	return (
 		<SessionEditDraftStoreContext value={draftStore}>
@@ -506,7 +496,18 @@ function SessionEditDialogForm({
 					</AccordionItem>
 				</Accordion>
 
-				<SessionEditPriceSummary originalPrice={originalPrice} />
+				<SessionEditPriceSummary
+					originalPrice={originalPrice}
+					billingSummary={paymentSummary}
+				/>
+				{session.packageId &&
+				billingSummary?.paidAmount !== null &&
+				billingSummary?.paidAmount !== undefined ? (
+					<p className="text-sm">
+						Package paid: {formatAudAmount(billingSummary.paidAmount)}. Remote Podcast is invoiced
+						with the package adjustment.
+					</p>
+				) : null}
 
 				<DialogFooter className="gap-2">
 					<Button
@@ -535,7 +536,8 @@ export function SessionEditDialog({
 	bookingId,
 	onOpenChange,
 	onSave,
-	isSaving
+	isSaving,
+	billingSummary
 }: SessionEditDialogProps) {
 	return (
 		<Dialog
@@ -587,6 +589,7 @@ export function SessionEditDialog({
 						onOpenChange={onOpenChange}
 						onSave={onSave}
 						isSaving={isSaving}
+						billingSummary={billingSummary}
 					/>
 				) : null}
 			</DialogContent>
