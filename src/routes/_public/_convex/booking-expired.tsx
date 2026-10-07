@@ -26,11 +26,11 @@ function BookingExpiredPage() {
 		stripeSessionId ? { stripeSessionId } : "skip"
 	);
 
-	const supportReference = booking
-		? Number.isFinite(booking.pendingPaymentCreatedAt)
-			? formatBookingInvoiceNumber(booking._id, booking.pendingPaymentCreatedAt)
-			: null
-		: null;
+	let supportReference: string | null = null;
+
+	if (booking && Number.isFinite(booking.pendingPaymentCreatedAt)) {
+		supportReference = formatBookingInvoiceNumber(booking._id, booking.pendingPaymentCreatedAt);
+	}
 
 	return (
 		<main className="mx-auto flex min-h-screen w-full max-w-3xl flex-1 flex-col justify-center gap-6 px-4 py-8 sm:gap-8 sm:px-6 sm:py-10">

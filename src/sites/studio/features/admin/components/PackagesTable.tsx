@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, type ReactNode } from "react";
 import { TableCell, TableRow } from "#/components/ui/table";
 import { FixedDataTable } from "#studio/components/FixedDataTable";
 import {
@@ -73,6 +73,36 @@ export function PackagesTable({
 		window.scrollTo({ top: 0 });
 	}
 
+	let packageRows: ReactNode = (
+		<TableRow>
+			<TableCell
+				colSpan={9}
+				className="h-24 text-center text-muted-foreground">
+				No packages. L business.
+			</TableCell>
+		</TableRow>
+	);
+
+	if (isLoadingPackages) {
+		packageRows = (
+			<AdminTableLoadingRow
+				colSpan={9}
+				label="Loading packages"
+			/>
+		);
+	}
+
+	if (visiblePackages.length > 0) {
+		packageRows = visiblePackages.map((packageRow) => (
+			<PackageTableRow
+				key={packageRow.id}
+				onReceiptSearch={onSearchQueryChange}
+				onViewPackageSessions={onViewPackageSessions}
+				packageRow={packageRow}
+			/>
+		));
+	}
+
 	return (
 		<section className="flex flex-col gap-4">
 			<PackagesTableFilters
@@ -126,29 +156,7 @@ export function PackagesTable({
 						},
 						{ key: "actions", colClassName: "w-6", header: null }
 					]}>
-					{visiblePackages.length > 0 ? (
-						visiblePackages.map((packageRow) => (
-							<PackageTableRow
-								key={packageRow.id}
-								onReceiptSearch={onSearchQueryChange}
-								onViewPackageSessions={onViewPackageSessions}
-								packageRow={packageRow}
-							/>
-						))
-					) : isLoadingPackages ? (
-						<AdminTableLoadingRow
-							colSpan={9}
-							label="Loading packages"
-						/>
-					) : (
-						<TableRow>
-							<TableCell
-								colSpan={9}
-								className="h-24 text-center text-muted-foreground">
-								No packages. L business.
-							</TableCell>
-						</TableRow>
-					)}
+					{packageRows}
 				</FixedDataTable>
 			</div>
 

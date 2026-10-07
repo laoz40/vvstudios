@@ -37,12 +37,15 @@ async function readStream(stream: AsyncIterable<unknown>) {
 			throw new TypeError("PDF stream emitted an unsupported chunk type.");
 		}
 
-		const bytes =
-			parsedChunk.data instanceof Uint8Array
-				? parsedChunk.data
-				: parsedChunk.data instanceof ArrayBuffer
-					? new Uint8Array(parsedChunk.data)
-					: new TextEncoder().encode(parsedChunk.data);
+		let bytes: Uint8Array;
+
+		if (parsedChunk.data instanceof Uint8Array) {
+			bytes = parsedChunk.data;
+		} else if (parsedChunk.data instanceof ArrayBuffer) {
+			bytes = new Uint8Array(parsedChunk.data);
+		} else {
+			bytes = new TextEncoder().encode(parsedChunk.data);
+		}
 
 		chunks.push(bytes);
 		totalLength += bytes.byteLength;

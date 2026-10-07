@@ -132,6 +132,25 @@ export function EmployeesTable({
 		toast.success(editor.isActive ? "Contractor retired" : "Contractor reactivated");
 	}
 
+	let emptyEmployeeRows = (
+		<TableRow>
+			<TableCell
+				colSpan={7}
+				className="h-24 text-center text-muted-foreground">
+				No contractors to show.
+			</TableCell>
+		</TableRow>
+	);
+
+	if (isLoadingEmployees) {
+		emptyEmployeeRows = (
+			<AdminTableLoadingRow
+				colSpan={7}
+				label="Loading contractors"
+			/>
+		);
+	}
+
 	return (
 		<>
 			<section className="flex flex-col gap-4">
@@ -207,110 +226,97 @@ export function EmployeesTable({
 							</TableRow>
 						</TableHeader>
 						<TableBody>
-							{visibleEditors.length > 0 ? (
-								visibleEditors.map((editor) => {
-									const isUpdatingThisEditor = updatingEditorToken === editor.tokenIdentifier;
-									let accessActionIcon = editor.isActive ? <UserRoundXIcon /> : <CheckIcon />;
+							{visibleEditors.length > 0
+								? visibleEditors.map((editor) => {
+										const isUpdatingThisEditor = updatingEditorToken === editor.tokenIdentifier;
+										let accessActionIcon = editor.isActive ? <UserRoundXIcon /> : <CheckIcon />;
 
-									let accessActionLabel = editor.isActive
-										? "Retire contractor"
-										: "Reactivate contractor";
+										let accessActionLabel = editor.isActive
+											? "Retire contractor"
+											: "Reactivate contractor";
 
-									if (isUpdatingThisEditor) {
-										accessActionIcon = <LoaderCircleIcon className="animate-spin" />;
-										accessActionLabel = editor.isActive ? "Retiring" : "Reactivating";
-									}
+										if (isUpdatingThisEditor) {
+											accessActionIcon = <LoaderCircleIcon className="animate-spin" />;
+											accessActionLabel = editor.isActive ? "Retiring" : "Reactivating";
+										}
 
-									return (
-										<TableRow key={editor.tokenIdentifier}>
-											<TableCell>
-												<Badge className={editorWorkStatusBadgeClassNames[editor.workStatus]}>
-													{editorWorkStatusLabels[editor.workStatus]}
-												</Badge>
-											</TableCell>
-											<TableCell className="font-medium">
-												<PrivacySensitiveText
-													rowId={editor.tokenIdentifier}
-													value={editor.displayName || "Unnamed contractor"}
-													label="contractor name"
-													copyable={false}>
-													{editor.displayName || "Unnamed contractor"}
-												</PrivacySensitiveText>
-											</TableCell>
-											<TableCell>
-												<PrivacySensitiveText
-													rowId={editor.tokenIdentifier}
-													value={editor.email}
-													label="email"
-													copyable={false}>
-													{editor.email}
-												</PrivacySensitiveText>
-											</TableCell>
-											<TableCell>{formatLastAssignedAt(editor.lastAssignedAt)}</TableCell>
-											<TableCell>{editor.totalEdits}</TableCell>
-											<TableCell
-												className="truncate text-muted-foreground select-text"
-												title={editor.notes}>
-												{editor.notes || "-"}
-											</TableCell>
-											<TableCell>
-												<DropdownMenu
-													modal={false}
-													open={openActionsEditorToken === editor.tokenIdentifier}
-													onOpenChange={(open) => {
-														if (isUpdatingThisEditor) return;
-														setOpenActionsEditorToken(open ? editor.tokenIdentifier : null);
-													}}>
-													<DropdownMenuTrigger asChild>
-														<Button
-															variant="ghost"
-															size="icon-sm"
-															disabled={updatingEditorToken !== null}>
-															<span className="sr-only">Open contractor actions</span>
-															<MoreHorizontalIcon aria-hidden />
-														</Button>
-													</DropdownMenuTrigger>
-													<DropdownMenuContent align="end">
-														<DropdownMenuGroup>
-															<DropdownMenuItem
-																className="cursor-pointer"
-																disabled={isUpdatingThisEditor}
-																onSelect={() => setNotesDialog({ status: "open", editor })}>
-																<NotebookPenIcon />
-																Edit notes
-															</DropdownMenuItem>
-															<DropdownMenuItem
-																variant={editor.isActive ? "destructive" : "default"}
-																className="cursor-pointer"
-																disabled={isUpdatingThisEditor}
-																onSelect={(event) => {
-																	event.preventDefault();
-																	void handleAccessChange(editor);
-																}}>
-																{accessActionIcon}
-																{accessActionLabel}
-															</DropdownMenuItem>
-														</DropdownMenuGroup>
-													</DropdownMenuContent>
-												</DropdownMenu>
-											</TableCell>
-										</TableRow>
-									);
-								})
-							) : isLoadingEmployees ? (
-								<AdminTableLoadingRow
-									colSpan={7}
-									label="Loading contractors"
-								/>
-							) : (
-								<TableRow>
-									<TableCell
-										colSpan={7}
-										className="h-24 text-center text-muted-foreground">
-										No contractors to show.
-									</TableCell>
-								</TableRow>
-							)}
+										return (
+											<TableRow key={editor.tokenIdentifier}>
+												<TableCell>
+													<Badge className={editorWorkStatusBadgeClassNames[editor.workStatus]}>
+														{editorWorkStatusLabels[editor.workStatus]}
+													</Badge>
+												</TableCell>
+												<TableCell className="font-medium">
+													<PrivacySensitiveText
+														rowId={editor.tokenIdentifier}
+														value={editor.displayName || "Unnamed contractor"}
+														label="contractor name"
+														copyable={false}>
+														{editor.displayName || "Unnamed contractor"}
+													</PrivacySensitiveText>
+												</TableCell>
+												<TableCell>
+													<PrivacySensitiveText
+														rowId={editor.tokenIdentifier}
+														value={editor.email}
+														label="email"
+														copyable={false}>
+														{editor.email}
+													</PrivacySensitiveText>
+												</TableCell>
+												<TableCell>{formatLastAssignedAt(editor.lastAssignedAt)}</TableCell>
+												<TableCell>{editor.totalEdits}</TableCell>
+												<TableCell
+													className="truncate text-muted-foreground select-text"
+													title={editor.notes}>
+													{editor.notes || "-"}
+												</TableCell>
+												<TableCell>
+													<DropdownMenu
+														modal={false}
+														open={openActionsEditorToken === editor.tokenIdentifier}
+														onOpenChange={(open) => {
+															if (isUpdatingThisEditor) return;
+															setOpenActionsEditorToken(open ? editor.tokenIdentifier : null);
+														}}>
+														<DropdownMenuTrigger asChild>
+															<Button
+																variant="ghost"
+																size="icon-sm"
+																disabled={updatingEditorToken !== null}>
+																<span className="sr-only">Open contractor actions</span>
+																<MoreHorizontalIcon aria-hidden />
+															</Button>
+														</DropdownMenuTrigger>
+														<DropdownMenuContent align="end">
+															<DropdownMenuGroup>
+																<DropdownMenuItem
+																	className="cursor-pointer"
+																	disabled={isUpdatingThisEditor}
+																	onSelect={() => setNotesDialog({ status: "open", editor })}>
+																	<NotebookPenIcon />
+																	Edit notes
+																</DropdownMenuItem>
+																<DropdownMenuItem
+																	variant={editor.isActive ? "destructive" : "default"}
+																	className="cursor-pointer"
+																	disabled={isUpdatingThisEditor}
+																	onSelect={(event) => {
+																		event.preventDefault();
+																		void handleAccessChange(editor);
+																	}}>
+																	{accessActionIcon}
+																	{accessActionLabel}
+																</DropdownMenuItem>
+															</DropdownMenuGroup>
+														</DropdownMenuContent>
+													</DropdownMenu>
+												</TableCell>
+											</TableRow>
+										);
+									})
+								: emptyEmployeeRows}
 						</TableBody>
 					</Table>
 				</div>

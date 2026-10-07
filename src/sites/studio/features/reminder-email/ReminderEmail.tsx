@@ -10,6 +10,7 @@ import {
 	Section,
 	Text
 } from "@react-email/components";
+import type { ReactNode } from "react";
 import { BOOKING_INVOICE_BUSINESS } from "#studio/features/booking-invoice/lib/constants";
 import { EmailFooter } from "#studio/components/email/EmailFooter";
 
@@ -36,6 +37,28 @@ export function ReminderEmail({
 	service,
 	signoffName
 }: ReminderEmailProps) {
+	let rescheduleContent: ReactNode = null;
+
+	if (rescheduleUrl) {
+		rescheduleContent = (
+			<>
+				<Text style={paragraph}>You can reschedule this booking using the private link below.</Text>
+				<Button
+					href={rescheduleUrl}
+					style={button}>
+					Reschedule booking
+				</Button>
+			</>
+		);
+	} else if (isPackageSession) {
+		rescheduleContent = (
+			<Text style={paragraph}>
+				To reschedule this package session, open your package session scheduling email and edit the
+				session date and time there.
+			</Text>
+		);
+	}
+
 	return (
 		<Html>
 			<Head>
@@ -109,23 +132,7 @@ export function ReminderEmail({
 
 					<Section style={section}>
 						<Text style={sectionTitle}>Need to change your time?</Text>
-						{rescheduleUrl ? (
-							<>
-								<Text style={paragraph}>
-									You can reschedule this booking using the private link below.
-								</Text>
-								<Button
-									href={rescheduleUrl}
-									style={button}>
-									Reschedule booking
-								</Button>
-							</>
-						) : isPackageSession ? (
-							<Text style={paragraph}>
-								To reschedule this package session, open your package session scheduling email and
-								edit the session date and time there.
-							</Text>
-						) : null}
+						{rescheduleContent}
 					</Section>
 					<Section style={section}>
 						<Text style={sectionTitle}>Studio location</Text>
