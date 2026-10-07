@@ -22,7 +22,7 @@ export function AdminTableInfoPopover({
 					type="button"
 					aria-label={content}
 					className={cn(
-						"font-inherit m-0 inline-block max-w-full min-w-0 cursor-pointer border-0 bg-transparent p-0 text-left text-inherit",
+						"font-inherit m-0 inline-block max-w-full min-w-0 cursor-pointer border-0 bg-transparent p-0 text-left text-inherit select-text",
 						triggerClassName,
 						className
 					)}>
