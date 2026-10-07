@@ -273,7 +273,7 @@ function SessionNotesCell({
 	return (
 		<button
 			type="button"
-			className="w-full text-left text-sm whitespace-normal text-muted-foreground"
+			className="w-full text-left text-sm whitespace-normal text-muted-foreground select-text"
 			onClick={toggleNotesView}>
 			<span className="font-medium text-foreground">{notesLabel}: </span>
 			{notesText}
@@ -361,7 +361,7 @@ function PackageSessionProgress({
 		<Button
 			type="button"
 			variant="link"
-			className="h-auto p-0 text-sm font-medium text-foreground"
+			className="h-auto p-0 text-sm font-medium text-foreground select-text"
 			onClick={() => onReceiptSearch(formatAdminSearchNarrowQuery("receipt", receiptNumber))}>
 			{label}
 		</Button>

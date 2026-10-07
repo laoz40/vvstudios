@@ -68,7 +68,7 @@ export function PrivacySensitiveText({
 		return (
 			<button
 				type="button"
-				className="cursor-pointer text-left"
+				className="cursor-pointer text-left select-text"
 				onClick={() => toggleRowPrivacy(rowId)}
 				aria-label={`Hide ${label}`}>
 				{children}

@@ -249,7 +249,7 @@ export function EmployeesTable({
 											<TableCell>{formatLastAssignedAt(editor.lastAssignedAt)}</TableCell>
 											<TableCell>{editor.totalEdits}</TableCell>
 											<TableCell
-												className="truncate text-muted-foreground"
+												className="truncate text-muted-foreground select-text"
 												title={editor.notes}>
 												{editor.notes || "-"}
 											</TableCell>

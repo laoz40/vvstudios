@@ -111,13 +111,13 @@ export function CopyableText({ value, label, children, onTextClick }: CopyableTe
 			{onTextClick ? (
 				<button
 					type="button"
-					className="cursor-pointer text-left"
+					className="cursor-pointer text-left select-text"
 					onClick={onTextClick}
 					aria-label={`Hide ${label}`}>
 					{children}
 				</button>
 			) : (
-				<span>{children}</span>
+				<span className="select-text">{children}</span>
 			)}
 			<AnimatedIconButton
 				type="button"

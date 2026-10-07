@@ -246,7 +246,7 @@ export function PackageTableRow({
 				<Button
 					type="button"
 					variant="link"
-					className="h-auto flex-col items-start gap-1 p-0 text-left"
+					className="h-auto flex-col items-start gap-1 p-0 text-left select-text"
 					disabled={!packageRow.receiptNumber}
 					onClick={() => {
 						if (packageRow.receiptNumber) {
