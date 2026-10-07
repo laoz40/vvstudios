@@ -6,7 +6,6 @@ import { isConvexServiceFile } from "../shared/paths.ts";
 import {
 	collectLocalFunctions,
 	isCurriedFactoryFunction,
-	isInlineBlockCallback,
 	isPassThroughNamedCall,
 	resolveCalleeToLocal
 } from "../shared/service-chain-callbacks.ts";
@@ -28,24 +27,27 @@ function isResultChainCall(node: ESTree.CallExpression): boolean {
 
 function isCurriedFactoryCall(
 	node: ESTree.CallExpression,
-	locals: Map<string, ReturnType<typeof collectLocalFunctions> extends Map<string, infer V> ? V : never>
+	locals: Map<
+		string,
+		ReturnType<typeof collectLocalFunctions> extends Map<string, infer V> ? V : never
+	>
 ): boolean {
 	const calleeFn = resolveCalleeToLocal(node, locals);
 
 	return calleeFn !== null && isCurriedFactoryFunction(calleeFn);
 }
 
-/** Service Result chains: named steps or pass-through calls; no block inline callbacks or curried factories. */
+/** Service Result chains use named steps or forwarding calls without inline decisions. */
 export const noInlineCallbackInServiceChainsRule = defineRule({
 	meta: {
 		type: "problem",
 		docs: {
 			description:
-				"Disallow inline block callbacks and curried factory calls as the first argument to .andThen or .asyncAndThen in convex/services/**."
+				"Allow only named functions and pass-through calls as the first argument to .andThen or .asyncAndThen in convex/services/**."
 		},
 		messages: {
 			inlineCallback:
-				"Use a named function reference or a pass-through call like `.andThen((v) => step(ctx, v))`, not an inline block callback, in service Result chains.",
+				"Use a named function reference or a pass-through call like `.andThen((v) => step(ctx, v))`, without inline branching or chaining, in service Result chains.",
 			curriedFactory:
 				"Prefer a full-arg named step and `.andThen((v) => step(ctx, v))` instead of a curried factory call like `step(ctx)` in service Result chains."
 		}
@@ -57,7 +59,28 @@ export const noInlineCallbackInServiceChainsRule = defineRule({
 
 		const locals = collectLocalFunctions(context.sourceCode.ast);
 
+		function reportInlineDecision(node: ESTree.ConditionalExpression | ESTree.LogicalExpression) {
+			const ancestors: ESTree.Node[] = [];
+			for (let ancestor: ESTree.Node | null = node.parent; ancestor; ancestor = ancestor.parent) {
+				ancestors.unshift(ancestor);
+			}
+			const chain = ancestors.findLast(
+				(ancestor) => ancestor.type === "CallExpression" && isResultChainCall(ancestor)
+			);
+			if (chain?.type !== "CallExpression") return;
+
+			const callback = chain.arguments[0];
+			if (callback?.type !== "ArrowFunctionExpression" || !ancestors.includes(callback)) return;
+
+			// Other callback shapes already receive the general diagnostic.
+			if (!isPassThroughNamedCall(callback)) return;
+
+			context.report({ node, messageId: "inlineCallback" });
+		}
+
 		return {
+			ConditionalExpression: reportInlineDecision,
+			LogicalExpression: reportInlineDecision,
 			CallExpression(node: ESTree.CallExpression) {
 				if (!isResultChainCall(node)) {
 					return;
@@ -65,11 +88,6 @@ export const noInlineCallbackInServiceChainsRule = defineRule({
 
 				const firstArg = node.arguments[0];
 				if (firstArg === undefined) {
-					return;
-				}
-
-				if (isInlineBlockCallback(firstArg)) {
-					context.report({ node: firstArg, messageId: "inlineCallback" });
 					return;
 				}
 
@@ -83,7 +101,11 @@ export const noInlineCallbackInServiceChainsRule = defineRule({
 
 				if (firstArg.type === "CallExpression" && isCurriedFactoryCall(firstArg, locals)) {
 					context.report({ node: firstArg, messageId: "curriedFactory" });
+
+					return;
 				}
+
+				context.report({ node: firstArg, messageId: "inlineCallback" });
 			}
 		};
 	}
