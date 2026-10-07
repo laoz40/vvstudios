@@ -37,6 +37,12 @@ Writing code is cheap, which makes over-engineering easy. Counter it by borrowin
 
 ## Helpers and modules
 
+During review, account for every added or changed helper, including private functions and inline callbacks. For each, check its responsibility, layer, name, and whether callers gain anything from the extraction. Report all findings rather than stopping after one example.
+
+For Convex changes, pure calculations, formatting, draft transformations, and checks on supplied values belong in the nearest `convex/lib/` module, even with only one caller. Services select and compose these steps and load their inputs. Keep permission workflows and calls to other services in services; moving a whole workflow into lib is not a placement fix. See [convex-three-layers.md](./convex-three-layers.md).
+
+Judge names by what the value represents or the function accomplishes. A forwarding wrapper needs a concrete responsibility beyond passing arguments to another function. Lint covers syntactic patterns; passing lint does not establish that helper placement, naming, or extraction is sound.
+
 - Before adding a helper, check whether a similar function already exists in the codebase.
 - Do not add wrapper functions, inline return arrows, barrel files, or factory helpers. Restructure instead: split hooks, extract a component, or move logic into `lib/` files. If linting errors appear, the structure likely needs a cleaner shape.
 - Every extraction must own real responsibility. If it only forwards or reconnects a split, undo the split and restructure.
@@ -50,7 +56,7 @@ Writing code is cheap, which makes over-engineering easy. Counter it by borrowin
 
 ## TypeScript
 
-- Do not use nested ternaries and nested `if` statements for branching.
+- Do not use nested `if` statements for branching.
 - Use discriminated unions for app state. Avoid boolean flags and optional fields that allow invalid combinations.
 - Handle every union variant with an `exhaustiveCheck` default.
 - Parse boundary data once with Zod.
