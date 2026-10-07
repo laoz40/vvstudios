@@ -55,7 +55,7 @@ export function validateStripeInvoiceLineItems(
 		if (
 			lineItem.description.trim().length === 0 ||
 			!Number.isFinite(lineItem.amount) ||
-			lineItem.amount <= 0 ||
+			lineItem.amount === 0 ||
 			hasFractionalCents
 		) {
 			return err({ reason: "INVALID_LINE_ITEMS" });
@@ -67,7 +67,12 @@ export function validateStripeInvoiceLineItems(
 		});
 	}
 
-	return ok(normalizedLineItems);
+	return normalizedLineItems.reduce(
+		(total, line) => total + audToStripeUnitAmount(line.amount),
+		0
+	) > 0
+		? ok(normalizedLineItems)
+		: err({ reason: "INVALID_LINE_ITEMS" });
 }
 
 export function createAndSendStripeInvoice(

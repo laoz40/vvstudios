@@ -2,10 +2,7 @@ import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
 import { tupleErr, tupleOk } from "#/lib/result";
 import { internalMutation, internalQuery, mutation, query } from "#convex/_generated/server";
-import {
-	bookingAddonQuantitiesValidator,
-	bookingAddonsValidator
-} from "#convex/services/booking/bookingFormValidators";
+import { bookingDetailsFieldsValidator } from "#convex/services/booking/bookingFormValidators";
 import {
 	archivePackageFromAdmin,
 	loadAdminPackageUpdateValidation,
@@ -39,15 +36,7 @@ export const checkPackageSubmitRateLimit = internalMutation({
 
 export const createPendingPackage = internalMutation({
 	args: {
-		name: v.string(),
-		phone: v.string(),
-		accountName: v.string(),
-		abn: v.optional(v.string()),
-		email: v.string(),
-		duration: v.string(),
-		addons: bookingAddonsValidator,
-		...bookingAddonQuantitiesValidator,
-		notes: v.optional(v.string()),
+		...bookingDetailsFieldsValidator,
 		packageSize: v.union(v.literal(4), v.literal(8), v.literal(12)),
 		singleSessionAmount: v.number(),
 		packageSubtotalAmount: v.number(),
@@ -73,15 +62,7 @@ export const listPackages = query({
 export const updatePackageFromAdmin = mutation({
 	args: {
 		packageId: v.id("packages"),
-		name: v.string(),
-		phone: v.string(),
-		accountName: v.string(),
-		abn: v.optional(v.string()),
-		email: v.string(),
-		duration: v.string(),
-		addons: bookingAddonsValidator,
-		...bookingAddonQuantitiesValidator,
-		notes: v.optional(v.string()),
+		...bookingDetailsFieldsValidator,
 		packageSize: v.union(v.literal(4), v.literal(8), v.literal(12)),
 		expiresAt: v.optional(v.number())
 	},
