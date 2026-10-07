@@ -1,4 +1,3 @@
-import { ConvexError } from "convex/values";
 import type { PaginationOptions } from "convex/server";
 import type { QueryCtx } from "#convex/_generated/server";
 import { listAdminPackages } from "#convex/lib/listAdminPackages";
@@ -12,17 +11,6 @@ type ListAdminPackagesArgs = {
 	searchQuery?: string;
 };
 
-function listAdminPackagesForArgs(ctx: QueryCtx, args: ListAdminPackagesArgs) {
-	return listAdminPackages(ctx, args);
-}
-
 export function listAdminPackagesPage(ctx: QueryCtx, args: ListAdminPackagesArgs) {
-	return requirePermission(ctx, "view:packages")
-		.andThen(() => listAdminPackagesForArgs(ctx, args))
-		.match(
-			(packagesPage) => packagesPage,
-			(error) => {
-				throw new ConvexError(error);
-			}
-		);
+	return requirePermission(ctx, "view:packages").andThen(() => listAdminPackages(ctx, args));
 }
