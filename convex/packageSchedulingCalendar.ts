@@ -4,7 +4,10 @@ import { v } from "convex/values";
 import { tupleErr, tupleOk, type Result } from "#/lib/result";
 import { DURATION_OPTIONS, SERVICES } from "#studio/features/booking-form/lib/booking-form-model";
 import { action, internalAction } from "#convex/_generated/server";
-import { bookingAddonsValidator } from "#convex/services/booking/bookingFormValidators";
+import {
+	bookingAddonQuantitiesValidator,
+	bookingAddonsValidator
+} from "#convex/services/booking/bookingFormValidators";
 import {
 	groupPackageBusyWindowsByMonth,
 	loadPackageBookableRangeBusyWindows,
@@ -30,6 +33,7 @@ const packageCalendarBookingValidator = v.object({
 
 const packageCalendarDetailsValidator = v.object({
 	addons: bookingAddonsValidator,
+	...bookingAddonQuantitiesValidator,
 	date: v.string(),
 	duration: v.union(...DURATION_OPTIONS.map((duration) => v.literal(duration))),
 	email: v.string(),

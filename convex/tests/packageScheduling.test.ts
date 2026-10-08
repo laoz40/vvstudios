@@ -4,10 +4,11 @@
  * 1. Public scheduling-link access
  *    Unknown, unpaid, disabled, and expired links cannot read package scheduling data.
  *
- * 2. Invalid scheduling token
- *    An unknown or expired token cannot create any records.
+ * 2. Scheduling token validation
+ *    Unknown and expired tokens cannot create records, while a valid paid token creates a session.
  */
-import { beforeEach, describe, expect, test, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
+import { google } from "googleapis";
 import { packageDocument } from "#convex/tests/insertDocumentDefaults";
 import { api } from "#convex/_generated/api";
 import { hashRescheduleToken } from "#convex/lib/sessions/sessionRescheduleLinks";
@@ -22,11 +23,32 @@ const target = {
 	remotePodcast: false
 };
 
+function sendCalendarRequest(input: RequestInfo | URL, init?: RequestInit) {
+	const url = new URL(input instanceof Request ? input.url : input);
+
+	if (init?.method === "POST") return Promise.resolve(Response.json({ id: "created_event" }));
+
+	if (url.pathname.endsWith("/events")) return Promise.resolve(Response.json({ items: [] }));
+
+	return Promise.resolve(Response.json({ status: "confirmed" }));
+}
+
 type TestClient = ReturnType<typeof createConvexTest>;
 
 beforeEach(() => {
 	vi.spyOn(Date, "now").mockReturnValue(now);
+
+	const calendar = google.calendar({
+		version: "v3",
+		auth: "test-api-key",
+		fetchImplementation: sendCalendarRequest,
+		retry: false
+	});
+
+	vi.spyOn(google, "calendar").mockReturnValue(calendar);
 });
+
+afterEach(() => vi.restoreAllMocks());
 
 describe("package scheduling link access", () => {
 	test.each([
@@ -72,6 +94,23 @@ describe("package session creation validation", () => {
 
 		expect(result).toEqual([{ reason: "PACKAGE_LINK_INVALID" }, null]);
 		expect(await readBookings(t)).toEqual([]);
+		const validPackage = await seedPackage(t, {}, "valid-schedule-token");
+		await seedSettings(t);
+
+		const validResult = await t.action(api.packageScheduling.createPackageSession, {
+			token: validPackage.token,
+			...target
+		});
+
+		expect(validResult[0]).toBeNull();
+		expect(
+			await t.query(api.packageScheduling.getPackageByToken, { token: validPackage.token })
+		).toMatchObject([
+			null,
+			expect.objectContaining({
+				sessions: [expect.objectContaining({ date: "2030-01-11", time: "10:00" })]
+			})
+		]);
 	});
 
 	test("rejects an expired package without creating records", async () => {
@@ -82,6 +121,23 @@ describe("package session creation validation", () => {
 
 		expect(result).toEqual([{ reason: "PACKAGE_LINK_EXPIRED" }, null]);
 		expect(await readBookings(t)).toEqual([]);
+		const validPackage = await seedPackage(t, {}, "valid-schedule-token");
+		await seedSettings(t);
+
+		const validResult = await t.action(api.packageScheduling.createPackageSession, {
+			token: validPackage.token,
+			...target
+		});
+
+		expect(validResult[0]).toBeNull();
+		expect(
+			await t.query(api.packageScheduling.getPackageByToken, { token: validPackage.token })
+		).toMatchObject([
+			null,
+			expect.objectContaining({
+				sessions: [expect.objectContaining({ date: "2030-01-11", time: "10:00" })]
+			})
+		]);
 	});
 });
 
@@ -129,4 +185,17 @@ async function seedPackage(
 
 async function readBookings(t: TestClient) {
 	return await t.run((ctx) => ctx.db.query("bookings").collect());
+}
+
+async function seedSettings(t: TestClient) {
+	await t.run((ctx) =>
+		ctx.db.insert("bookingSettings", {
+			key: "main",
+			leadTimeMinutes: 60,
+			eventBufferMinutes: 15,
+			maxDaysAhead: 30,
+			weekSchedule: Array.from({ length: 7 }, () => ({ startTime: "09:00", endTime: "17:00" })),
+			updatedAt: now
+		})
+	);
 }
