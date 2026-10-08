@@ -1,9 +1,9 @@
 import { motion, useReducedMotion } from "motion/react";
-import { Field, FieldDescription, FieldError, FieldLabel, FieldTitle } from "#/components/ui/field";
+import { Field, FieldError, FieldLabel, FieldLegend, FieldSet } from "#/components/ui/field";
 import { RadioGroup, RadioGroupItem } from "#/components/ui/radio-group";
 import { useBookingFormContext } from "#studio/features/booking-form/lib/booking-form-context";
 import {
-	BOOKING_ADDON_QUANTITY_FIELD_NAMES,
+	BOOKING_ADDON_QUANTITY_FIELD_CONFIG,
 	bookingFieldBlurValidator,
 	DELIVERABLE_COUNT_OPTIONS,
 	isDeliverableCountOption,
@@ -12,39 +12,71 @@ import {
 import { getRevealMotionProps } from "#studio/features/booking-form/lib/booking-form-styles";
 
 type BookingAddonQuantityFieldProps = {
-	description: string;
-	fieldName: (typeof BOOKING_ADDON_QUANTITY_FIELD_NAMES)[number];
-	label: string;
+	addon: keyof typeof BOOKING_ADDON_QUANTITY_FIELD_CONFIG;
+	isPackageBooking: boolean;
 	shouldShowFieldError: boolean;
 };
 
 export function BookingAddonQuantityField({
-	description,
-	fieldName,
-	label,
+	addon,
+	isPackageBooking,
 	shouldShowFieldError
 }: BookingAddonQuantityFieldProps) {
 	const formApi = useBookingFormContext();
 	const FormField = formApi.Field;
 	const shouldReduceMotion = useReducedMotion();
 	const revealMotionProps = getRevealMotionProps(shouldReduceMotion === true);
+	const config = BOOKING_ADDON_QUANTITY_FIELD_CONFIG[addon];
+	const { fieldName, unitLabels } = config;
+	const label = isPackageBooking ? config.labels.multi : config.labels.single;
+	const description = config.description;
+	const labelId = `${fieldName}-label`;
+	const descriptionId = `${fieldName}-description`;
+	const errorId = `${fieldName}-error`;
 
 	return (
 		<motion.div
-			key={fieldName}
 			{...revealMotionProps}
-			className="overflow-hidden">
+			className="mx-3 overflow-hidden rounded-b-lg border border-t-0 bg-input/30 sm:mx-4">
 			<FormField
 				name={fieldName}
 				validators={bookingFieldBlurValidator(fieldName)}>
-				{(quantityField) => (
-					<Field
-						data-field-name={fieldName}
-						className="gap-3 pt-2">
-						<div className="space-y-2">
-							<div className="flex flex-wrap items-center gap-x-5 gap-y-3">
-								<FieldTitle className="text-base">{label}:</FieldTitle>
+				{(quantityField) => {
+					const errors = toFieldErrorObjects(quantityField.state.meta.errors);
+
+					const isInvalid =
+						(quantityField.state.meta.isBlurred || shouldShowFieldError) && errors.length > 0;
+
+					const describedBy =
+						[description ? descriptionId : null, isInvalid ? errorId : null]
+							.filter(Boolean)
+							.join(" ") || undefined;
+
+					return (
+						<Field
+							data-field-name={fieldName}
+							data-invalid={isInvalid}
+							className="gap-2 p-4">
+							<FieldSet className="gap-2">
+								<FieldLegend
+									variant="label"
+									className="mb-2">
+									<span id={labelId}>{label}</span>
+									{description ? (
+										<>
+											{" "}
+											<span
+												id={descriptionId}
+												className="font-normal text-muted-foreground">
+												({description})
+											</span>
+										</>
+									) : null}
+								</FieldLegend>
 								<RadioGroup
+									aria-labelledby={labelId}
+									aria-describedby={describedBy}
+									aria-invalid={isInvalid}
 									value={quantityField.state.value}
 									onValueChange={(value) => {
 										if (isDeliverableCountOption(value)) {
@@ -52,27 +84,33 @@ export function BookingAddonQuantityField({
 											quantityField.handleBlur();
 										}
 									}}
-									className="flex flex-wrap gap-x-5 gap-y-3">
+									className="grid grid-cols-4 gap-2">
 									{DELIVERABLE_COUNT_OPTIONS.map((count) => (
 										<FieldLabel
 											key={count}
-											className="flex cursor-pointer items-center gap-2 text-sm font-medium has-data-[state=checked]:bg-transparent dark:has-data-[state=checked]:bg-transparent">
+											htmlFor={`${fieldName}-${count}`}
+											className="relative min-h-9 w-full cursor-pointer items-center justify-center rounded-md border border-transparent bg-input/40 px-3 py-2 font-normal shadow-md shadow-background/40 transition-[background-color,border-color,box-shadow] hover:border-primary/40 hover:bg-primary/10 hover:shadow-lg has-focus-visible:ring-2 has-focus-visible:ring-ring has-focus-visible:ring-offset-2 has-focus-visible:ring-offset-background has-data-[state=checked]:border-primary/40 has-data-[state=checked]:bg-primary/10">
 											<RadioGroupItem
+												id={`${fieldName}-${count}`}
 												value={count}
-												className="size-5 data-[state=checked]:border-primary data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
+												className="sr-only"
+												aria-label={`${count} ${count === "1" ? unitLabels.single : unitLabels.plural}`}
+												aria-invalid={isInvalid}
 											/>
 											<span>{count}</span>
 										</FieldLabel>
 									))}
 								</RadioGroup>
-							</div>
-							<FieldDescription className="italic">{description}</FieldDescription>
-						</div>
-						{quantityField.state.meta.isBlurred || shouldShowFieldError ? (
-							<FieldError errors={toFieldErrorObjects(quantityField.state.meta.errors)} />
-						) : null}
-					</Field>
-				)}
+							</FieldSet>
+							{isInvalid ? (
+								<FieldError
+									id={errorId}
+									errors={errors}
+								/>
+							) : null}
+						</Field>
+					);
+				}}
 			</FormField>
 		</motion.div>
 	);

@@ -1,11 +1,6 @@
-import { type ComponentProps, type ComponentType } from "react";
-import {
-	Field,
-	FieldContent,
-	FieldDescription,
-	FieldLabel,
-	FieldTitle
-} from "#/components/ui/field";
+import { type ComponentProps, type ComponentType, type ReactNode } from "react";
+import { Field, FieldContent, FieldDescription, FieldTitle } from "#/components/ui/field";
+import { Label } from "#/components/ui/label";
 import { cn } from "#/lib/utils";
 import { BookingSelectionCheck } from "#studio/features/booking-form/components/BookingSelectionCheck";
 import {
@@ -13,7 +8,11 @@ import {
 	transitionClassName
 } from "#studio/features/booking-form/lib/booking-form-styles";
 import type { BookingAddon } from "#studio/features/booking-form/lib/booking-form-model";
-import { getCustomerAddonDisplayLabel } from "#studio/features/booking-form/lib/booking-form-model";
+import {
+	BOOKING_ADDON_QUANTITY_FIELD_CONFIG,
+	isQuantityTrackedAddon,
+	getCustomerAddonDisplayLabel
+} from "#studio/features/booking-form/lib/booking-form-model";
 import {
 	ADDON_PRICES,
 	formatBookingPrice
@@ -45,7 +44,7 @@ const addonCardCopy = {
 	},
 	"Complete Edit": {
 		description:
-			"Opens strong and keeps people watching. Intro snippet with subtitles & b-roll. Filler words and silences are cut.",
+			"Instantly engages audiences with intro snippet, subtitles & B-roll. Filler words and silences are cut.",
 		icon: WandSparkles
 	},
 	"Clip Volume Pack": {
@@ -68,6 +67,7 @@ const addonCardCopy = {
 
 export interface BookingAddonCardProps {
 	addon: BookingAddon;
+	children?: ReactNode;
 	checked: boolean;
 	disabled?: boolean;
 	onCheckedChange: (addon: BookingAddon, checked: boolean) => void;
@@ -75,6 +75,7 @@ export interface BookingAddonCardProps {
 
 export function BookingAddonCard({
 	addon,
+	children,
 	checked,
 	disabled = false,
 	onCheckedChange
@@ -84,55 +85,67 @@ export function BookingAddonCard({
 	const addonId = `addon-${toOptionId(addon)}`;
 	const addonLabel = getCustomerAddonDisplayLabel(addon);
 
+	const priceUnit = isQuantityTrackedAddon(addon)
+		? BOOKING_ADDON_QUANTITY_FIELD_CONFIG[addon].priceUnit
+		: null;
+
 	return (
-		<FieldLabel
-			htmlFor={addonId}
-			data-state={checked ? "checked" : "unchecked"}
-			className={cn(
-				"pressable w-full cursor-pointer rounded-lg border bg-input/30 shadow-lg shadow-background/25 has-focus-visible:border-primary has-focus-visible:ring-2 has-focus-visible:ring-ring has-focus-visible:ring-offset-2 has-focus-visible:ring-offset-background",
-				disabled && "cursor-not-allowed opacity-50",
-				transitionClassName,
-				getCardStateClassName(checked),
-				checked && "shadow-primary/20"
-			)}>
-			<Field
-				orientation="horizontal"
-				className="items-center justify-between gap-4 rounded-lg px-4 py-6">
-				<input
-					id={addonId}
-					type="checkbox"
-					checked={checked}
-					aria-label={addonLabel}
-					disabled={disabled}
-					onChange={(event) => onCheckedChange(addon, event.target.checked)}
-					className="sr-only"
-				/>
-				<div className="flex min-w-0 items-center gap-4">
-					<div className="flex shrink-0 items-center justify-center text-primary">
-						<Icon className="size-8" />
-					</div>
-					<FieldContent className="min-w-0 gap-1">
-						<div className="flex w-full min-w-0 items-center justify-between gap-2 sm:contents">
-							<div className="flex min-w-0 items-center gap-2 sm:contents">
-								<FieldTitle className="text-base sm:w-fit sm:whitespace-nowrap">
-									{addonLabel}
-								</FieldTitle>
-								{checked ? <BookingSelectionCheck className="sm:hidden" /> : null}
-							</div>
-							<span className="shrink-0 text-base font-semibold text-primary sm:hidden">
-								+{formatBookingPrice(ADDON_PRICES[addon])}
-							</span>
+		<div className="isolate w-full">
+			<Label
+				htmlFor={addonId}
+				data-state={checked ? "checked" : "unchecked"}
+				className={cn(
+					"pressable relative z-10 w-full cursor-pointer rounded-lg border bg-input/30 shadow-lg shadow-background/25 has-focus-visible:ring-2 has-focus-visible:ring-ring has-focus-visible:ring-offset-2 has-focus-visible:ring-offset-background",
+					disabled && "cursor-not-allowed opacity-50",
+					transitionClassName,
+					getCardStateClassName(checked)
+				)}>
+				<Field
+					orientation="horizontal"
+					className="items-center justify-between gap-4 rounded-lg px-4 py-6">
+					<input
+						id={addonId}
+						type="checkbox"
+						checked={checked}
+						aria-label={addonLabel}
+						disabled={disabled}
+						onChange={(event) => onCheckedChange(addon, event.target.checked)}
+						className="sr-only"
+					/>
+					<div className="flex min-w-0 items-center gap-4">
+						<div className="flex shrink-0 items-center justify-center text-primary">
+							<Icon className="size-8" />
 						</div>
-						<FieldDescription className="text-pretty">{addonCopy.description}</FieldDescription>
-					</FieldContent>
-				</div>
-				<div className="hidden shrink-0 items-center gap-2 sm:flex">
-					{checked ? <BookingSelectionCheck /> : null}
-					<span className="text-base font-semibold text-primary">
-						+{formatBookingPrice(ADDON_PRICES[addon])}
-					</span>
-				</div>
-			</Field>
-		</FieldLabel>
+						<FieldContent className="min-w-0 gap-1">
+							<div className="flex w-full min-w-0 items-center justify-between gap-2 sm:contents">
+								<div className="flex min-w-0 items-center gap-2 sm:contents">
+									<FieldTitle className="text-base sm:w-fit sm:whitespace-nowrap">
+										{addonLabel}
+									</FieldTitle>
+									{checked ? <BookingSelectionCheck className="sm:hidden" /> : null}
+								</div>
+								<span className="shrink-0 text-base font-semibold whitespace-nowrap text-primary sm:hidden">
+									+{formatBookingPrice(ADDON_PRICES[addon])}
+									{priceUnit ? (
+										<span className="font-normal text-muted-foreground">/{priceUnit}</span>
+									) : null}
+								</span>
+							</div>
+							<FieldDescription className="text-pretty">{addonCopy.description}</FieldDescription>
+						</FieldContent>
+					</div>
+					<div className="hidden shrink-0 items-center gap-2 sm:flex">
+						{checked ? <BookingSelectionCheck /> : null}
+						<span className="text-base font-semibold text-primary">
+							+{formatBookingPrice(ADDON_PRICES[addon])}
+							{priceUnit ? (
+								<span className="ml-1 font-normal text-muted-foreground">per {priceUnit}</span>
+							) : null}
+						</span>
+					</div>
+				</Field>
+			</Label>
+			{children}
+		</div>
 	);
 }
