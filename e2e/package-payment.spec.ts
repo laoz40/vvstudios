@@ -27,6 +27,7 @@ import {
 	expectFirstPackageSessionScheduled,
 	scheduleFirstPackageSession
 } from "./helpers/package-schedule-form";
+import { captureCheckoutDiagnostics } from "./helpers/checkout-diagnostics";
 import { waitForPackageScheduleUrl } from "./helpers/resend";
 
 const resendApiKey = process.env.E2E_RESEND_API_KEY ?? process.env.RESEND_API_KEY;
@@ -45,9 +46,10 @@ test.describe("package payment", () => {
 		test.setTimeout(270_000);
 
 		const startedAt = new Date();
-		const bookingSlot = getE2eBookingSlotOffset(test.info().parallelIndex);
 
 		await page.goto("/book");
+		const diagnostics = await captureCheckoutDiagnostics(page);
+		let stage = "package checkout";
 
 		try {
 			const contactDetails = await fillPackageBookingForm(page, { packageSize });
@@ -55,8 +57,12 @@ test.describe("package payment", () => {
 			await expectTermsDialog(page);
 			await agreeToTerms(page);
 			await expectPaymentModal(page);
+
+			stage = "Stripe payment confirmation";
 			await completeStripePayment(page);
 			await expectBookingConfirmed(page, { packageSize });
+
+			stage = "scheduling email delivery";
 
 			const scheduleUrl = await waitForPackageScheduleUrl({
 				apiKey: resendApiKey!,
@@ -65,10 +71,18 @@ test.describe("package payment", () => {
 				since: startedAt
 			});
 
+			stage = "first session scheduling";
 			await page.goto(scheduleUrl);
-			await scheduleFirstPackageSession(page, bookingSlot);
+			await scheduleFirstPackageSession(page, getE2eBookingSlotOffset(test.info().parallelIndex));
 			await expectFirstPackageSessionScheduled(page, packageSize);
+		} catch (error) {
+			throw new Error(
+				`Package payment failed during ${stage}.\n${diagnostics.format(await diagnostics.dispose())}`,
+				{ cause: error }
+			);
 		} finally {
+			await diagnostics.dispose();
+
 			if (page.url().includes("/book")) {
 				await closePaymentModal(page);
 			}
