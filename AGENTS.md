@@ -38,7 +38,6 @@ Before opening PR:
   - `dead-code`
   - `dupes`
   - `test:e2e` and related `test:e2e:*` scripts when the change touches those flows.
-- Use `code-review` skill within a subagent.
 
 - Do not run `build` unless asked.
 - Do not start the dev server if one is already running.

@@ -40,6 +40,26 @@ Red flags:
 - Test name describes HOW not WHAT
 - Tautological: expected value restates the implementation
 
+## Test behavior, not implementation
+
+Apply these checks whenever you write, change, or keep a test. Call the code the way its users do, with one concrete input, inside the test body. Assert the result they observe against an independent literal expected value.
+
+Before keeping a test, ask whether it would still pass if every function it imports returned `undefined`. If yes, rewrite the assertion or delete the test. Passing this check is necessary, not sufficient: `toBeDefined`, `toBeTruthy`, `toBeInstanceOf`, and `toBeGreaterThan(0)` can reject `undefined` while still failing to specify the expected behavior.
+
+Look for these low-value shapes:
+
+- Weak or no assertion: no `expect`, or only existence, truthiness, type, non-throwing, or broad numeric checks.
+- Mock or absence only: only checking calls, no calls, `undefined`, an empty collection, or inequality with a wrong value.
+- Self-referential expectations: `expect(f(a)).toBe(f(a))`, or deriving an expected URL using the same builder the subject uses.
+- Constant pins: restating a hand-maintained constant, config default, table row, or prompt string. Test the mechanism that reads the value instead. A constant pin blocks edits without proving behavior.
+- Fixture asserts fixture: asserting data the test constructed or computed in `beforeEach`, without exercising the subject inside the test body.
+
+Rewrite with concrete behavior, for example `expect(slugify("Hello, World!")).toBe("hello-world")`. For an absence, assert the presence on another input in the same test. For a boundary mock, assert the concrete payload it received or the observable state after the call, rather than merely checking that it was called. This does not permit mocking internal collaborators.
+
+When no behavioral assertion exists, delete the test. Such tests consume CI time and review attention without detecting the intended defects.
+
+Keep tests of relationships across table rows, such as shared keys or existing parents, and compile-time checks in `*.test-d.ts` files.
+
 ## When to mock
 
 Mock at system boundaries only:
