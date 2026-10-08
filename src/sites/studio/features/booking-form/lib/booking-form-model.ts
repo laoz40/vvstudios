@@ -62,57 +62,57 @@ export type BookingAddonQuantities = {
 export const BOOKING_ADDON_QUANTITY_FIELD_CONFIG = {
 	"Essential Edit": {
 		fieldName: "essentialEditQuantity",
-		requiredMessage: "Number of rough cuts is required.",
-		labels: { multi: "Number of Rough Cuts Per Session", single: "Number of Rough Cuts" },
-		descriptions: {
-			multi:
-				"Select how many episodes or projects you want edited for each session. Each Rough Cut adds $100.",
-			single: "Charged per episode or project you want edited from this session."
-		}
+		requiredMessage: "Choose how many episodes or videos you want edited.",
+		priceUnit: "video",
+		unitLabels: { single: "episode / video", plural: "episodes / videos" },
+		labels: {
+			multi: "How many episodes or videos would you like edited per session?",
+			single: "How many episodes or videos would you like edited?"
+		},
+		description: null
 	},
 	"Complete Edit": {
 		fieldName: "completeEditQuantity",
-		requiredMessage: "Number of complete edits is required.",
-		labels: { multi: "Number of Complete Edits Per Session", single: "Number of Complete Edits" },
-		descriptions: {
-			multi:
-				"Select how many episodes or projects you want fully edited for each session. Each Complete Edit adds $249.",
-			single: "Charged per episode or project you want fully edited from this session."
-		}
+		requiredMessage: "Choose how many episodes or videos you want fully edited.",
+		priceUnit: "video",
+		unitLabels: { single: "episode / video", plural: "episodes / videos" },
+		labels: {
+			multi: "How many episodes or videos would you like fully edited per session?",
+			single: "How many episodes or videos would you like fully edited?"
+		},
+		description: null
 	},
 	"Clip Volume Pack": {
 		fieldName: "clipsPackageQuantity",
-		requiredMessage: "Number of Clip Volume Packs is required.",
+		requiredMessage: "Choose how many Clip Volume Packs you want.",
+		priceUnit: "pack",
+		unitLabels: { single: "pack", plural: "packs" },
 		labels: {
-			multi: "Number of Clip Volume Packs Per Session",
-			single: "Number of Clip Volume Packs"
+			multi: "How many clip packs would you like per session?",
+			single: "How many clip packs would you like?"
 		},
-		descriptions: {
-			multi:
-				"Select how many Clip Volume Packs you want for each session. Each 10-clip pack adds $80.",
-			single: "One pack includes 10 edited social media clips. Charged per pack."
-		}
+		description: "10 clips per pack"
 	},
 	"Handcrafted Clips": {
 		fieldName: "handcraftedClipsQuantity",
-		requiredMessage: "Number of handcrafted clips packs is required.",
+		requiredMessage: "Choose how many Handcrafted Clips packs you want.",
+		priceUnit: "pack",
+		unitLabels: { single: "pack", plural: "packs" },
 		labels: {
-			multi: "Number of Handcrafted Clips Packs Per Session",
-			single: "Number of Handcrafted Clips Packs"
+			multi: "How many handcrafted clip packs would you like per session?",
+			single: "How many handcrafted clip packs would you like?"
 		},
-		descriptions: {
-			multi:
-				"Select how many Handcrafted Clips packs you want for each session. Each pack adds $199.",
-			single: "One pack includes 5 premium edited social media clips. Charged per pack."
-		}
+		description: "5 clips per pack"
 	}
 } as const satisfies Record<
 	(typeof QUANTITY_TRACKED_ADDONS)[number],
 	{
 		fieldName: BookingAddonQuantityFieldName;
 		requiredMessage: string;
+		priceUnit: string;
+		unitLabels: { single: string; plural: string };
 		labels: { multi: string; single: string };
-		descriptions: { multi: string; single: string };
+		description: string | null;
 	}
 >;
 

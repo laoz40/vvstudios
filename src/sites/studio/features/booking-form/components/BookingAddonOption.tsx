@@ -4,7 +4,6 @@ import { BookingAddonCard } from "#studio/features/booking-form/components/Booki
 import { BookingAddonQuantityField } from "#studio/features/booking-form/components/BookingAddonQuantityField";
 import { useBookingFormContext } from "#studio/features/booking-form/lib/booking-form-context";
 import {
-	BOOKING_ADDON_QUANTITY_FIELD_CONFIG,
 	isAddonAvailableForService,
 	isPackageUnavailableAddon,
 	isQuantityTrackedAddon,
@@ -40,32 +39,21 @@ export function BookingAddonOption({
 	}
 
 	return (
-		<div className="space-y-3">
-			<BookingAddonCard
-				addon={addon}
-				checked={isChecked}
-				disabled={isPackageBooking && isPackageUnavailableAddon(addon)}
-				onCheckedChange={handleCheckedChange}
-			/>
+		<BookingAddonCard
+			addon={addon}
+			checked={isChecked}
+			disabled={isPackageBooking && isPackageUnavailableAddon(addon)}
+			onCheckedChange={handleCheckedChange}>
 			<AnimatePresence initial={false}>
 				{isQuantityTrackedAddon(addon) && isChecked ? (
 					<BookingAddonQuantityField
-						key={BOOKING_ADDON_QUANTITY_FIELD_CONFIG[addon].fieldName}
-						fieldName={BOOKING_ADDON_QUANTITY_FIELD_CONFIG[addon].fieldName}
-						label={
-							isPackageBooking
-								? BOOKING_ADDON_QUANTITY_FIELD_CONFIG[addon].labels.multi
-								: BOOKING_ADDON_QUANTITY_FIELD_CONFIG[addon].labels.single
-						}
-						description={
-							isPackageBooking
-								? BOOKING_ADDON_QUANTITY_FIELD_CONFIG[addon].descriptions.multi
-								: BOOKING_ADDON_QUANTITY_FIELD_CONFIG[addon].descriptions.single
-						}
+						key={addon}
+						addon={addon}
+						isPackageBooking={isPackageBooking}
 						shouldShowFieldError={shouldShowFieldError}
 					/>
 				) : null}
 			</AnimatePresence>
-		</div>
+		</BookingAddonCard>
 	);
 }
