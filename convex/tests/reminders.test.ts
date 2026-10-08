@@ -2,8 +2,7 @@
  * These tests cover the daily reminder workflow and its delivery state.
  *
  * 1. Eligibility
- *    Records outside the supported lifecycle or date window, already sent reminders, and packages
- *    without remaining sessions are skipped.
+ *    Ineligible records stay unchanged while an eligible booking receives one delivered reminder.
  *
  * 2. Duplicate prevention
  *    Concurrent or replayed jobs can claim each reminder only once.
@@ -13,6 +12,7 @@
  *    reminder fields when cancelled.
  */
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
+import { z } from "zod";
 import { bookingDocument, packageDocument } from "#convex/tests/insertDocumentDefaults";
 import { internal } from "#convex/_generated/api";
 import type { Id } from "#convex/_generated/dataModel";
@@ -42,6 +42,7 @@ beforeEach(() => {
 
 afterEach(() => {
 	vi.useRealTimers();
+	vi.restoreAllMocks();
 });
 
 describe("daily reminder dispatch", () => {
@@ -65,6 +66,11 @@ describe("daily reminder dispatch", () => {
 
 	test("skips ineligible, out-of-range, already-sent, and fully-used records", async () => {
 		const t = createConvexTest();
+
+		const emailRequest = vi
+			.spyOn(globalThis, "fetch")
+			.mockResolvedValue(Response.json({ id: "email_reminder_1" }));
+
 		const cancelledBookingId = await seedBooking(t, { status: "cancelled" });
 
 		const outOfRangeBookingId = await seedBooking(t, {
@@ -72,6 +78,11 @@ describe("daily reminder dispatch", () => {
 		});
 
 		const alreadySentBookingId = await seedBooking(t, { reminderEmailSentAt: now - 1 });
+
+		const eligibleBookingId = await seedBooking(t, {
+			sessionStartAt: tomorrowSessionStartAt + 3,
+			email: "eligible@example.com"
+		});
 
 		const alreadySentExpiryPackageId = await seedPackage(t, {
 			expiresAt: expiryAt,
@@ -97,10 +108,28 @@ describe("daily reminder dispatch", () => {
 		expect(await readBooking(t, alreadySentBookingId)).toMatchObject({
 			reminderEmailSentAt: now - 1
 		});
+		expect(await readBooking(t, eligibleBookingId)).toMatchObject({ reminderEmailSentAt: now });
 		expect(await readPackage(t, alreadySentExpiryPackageId)).toMatchObject({
 			packageReminderState: { type: "expiry", status: "sent", sentAt: now - 1 }
 		});
 		expect(await readPackage(t, fullPackageId)).not.toHaveProperty("packageReminderState");
+
+		const emailPayloads = await Promise.all(
+			emailRequest.mock.calls.map(async ([input, init]) =>
+				z
+					.object({ to: z.array(z.string()), subject: z.string() })
+					.parse(await new Request(input, init).json())
+			)
+		);
+
+		expect(emailPayloads.map((payload) => payload.subject)).toEqual([
+			"Reminder: Your Studio Session Tomorrow - 03/01/30"
+		]);
+		expect(emailPayloads[0]?.to).toContain("eligible@example.com");
+
+		for (const payload of emailPayloads) {
+			expect(payload.to).not.toContain("customer@example.com");
+		}
 	});
 });
 
@@ -272,6 +301,7 @@ async function seedBooking(
 	t: TestClient,
 	overrides: Partial<{
 		packageId: Id<"packages">;
+		email: string;
 		reminderEmailClaimedAt: number;
 		reminderEmailFailureCode: string;
 		reminderEmailSentAt: number;
@@ -302,7 +332,7 @@ async function seedBooking(
 				name: "Reminder customer",
 				phone: "0400000000",
 				accountName: "Reminder account",
-				email: "customer@example.com",
+				email: overrides.email ?? "customer@example.com",
 				date: "2030-01-03",
 				time: "11:00",
 				sessionStartAt: tomorrowSessionStartAt,

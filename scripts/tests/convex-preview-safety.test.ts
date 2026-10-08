@@ -45,29 +45,54 @@ it("accepts only project preview deploy keys", () => {
 	}
 });
 
-it("accepts complete test-only defaults without seeding data", () => {
+it("accepts complete test-only defaults and rejects a live Stripe key", () => {
 	expect(() => validatePreviewIntegrations(defaults, approved, frontend)).not.toThrow();
+	expect(() =>
+		validatePreviewIntegrations(
+			{ ...defaults, STRIPE_SECRET_KEY: "sk_live_private" },
+			approved,
+			frontend
+		)
+	).toThrow(new Error("Preview Stripe keys must be test keys."));
 });
 
 describe("unsafe backend defaults", () => {
 	it.each([
-		["STRIPE_SECRET_KEY", "sk_live_private"],
-		["CLERK_SECRET_KEY", "sk_live_private"],
-		["GOOGLE_CALENDAR_ID", "production-calendar"],
-		["GOOGLE_CALENDAR_AVAILABILITY_IDS", "test-calendar,production-calendar"],
-		["GOOGLE_DRIVE_ROOT_FOLDER_ID", "production-folder"],
-		["STRIPE_CHECKOUT_RETURN_URL", "https://production.example/booking-complete"],
-		["GOOGLE_REFRESH_TOKEN", ""]
-	])("rejects unsafe %s without printing its value", (name, value) => {
+		["STRIPE_SECRET_KEY", "sk_live_private", "Preview Stripe keys must be test keys."],
+		["CLERK_SECRET_KEY", "sk_live_private", "Preview Clerk keys must be test keys."],
+		[
+			"GOOGLE_CALENDAR_ID",
+			"production-calendar",
+			"Preview calendar and availability calendars must match E2E_GOOGLE_CALENDAR_ID."
+		],
+		[
+			"GOOGLE_CALENDAR_AVAILABILITY_IDS",
+			"test-calendar,production-calendar",
+			"Preview calendar and availability calendars must match E2E_GOOGLE_CALENDAR_ID."
+		],
+		[
+			"GOOGLE_DRIVE_ROOT_FOLDER_ID",
+			"production-folder",
+			"Preview Drive folder must match E2E_GOOGLE_DRIVE_ROOT_FOLDER_ID."
+		],
+		[
+			"STRIPE_CHECKOUT_RETURN_URL",
+			"https://production.example/booking-complete",
+			"Preview Stripe return URL must target the local smoke-test app."
+		],
+		["GOOGLE_REFRESH_TOKEN", "", "Missing or invalid preview defaults: GOOGLE_REFRESH_TOKEN."]
+	])("rejects unsafe %s without printing its value", (name, value, message) => {
+		let diagnostic: unknown;
+
 		try {
 			validatePreviewIntegrations({ ...defaults, [name]: value }, approved, frontend);
-			throw new Error("Expected safety check to fail");
 		} catch (error) {
-			expect(error).toBeInstanceOf(Error);
-			expect(String(error)).not.toContain("Expected safety check to fail");
-
-			if (value) expect(String(error)).not.toContain(value);
+			diagnostic = error;
 		}
+
+		expect(diagnostic).toEqual(new Error(message));
+
+		if (value) expect(String(diagnostic)).not.toContain(value);
 	});
 });
 

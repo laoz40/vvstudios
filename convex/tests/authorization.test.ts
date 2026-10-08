@@ -20,7 +20,7 @@
  *    and allows admins through the shared guard.
  */
 import type { UserIdentity } from "convex/server";
-import { bookingDocument } from "#convex/tests/insertDocumentDefaults";
+import { bookingDocument, packageDocument } from "#convex/tests/insertDocumentDefaults";
 import { makeFunctionReference } from "convex/server";
 import { describe, expect, test } from "vitest";
 import { api } from "#convex/_generated/api";
@@ -78,14 +78,43 @@ describe("admin list authorization", () => {
 	test("allows an admin to read bookings and packages", async () => {
 		const t = createConvexTest();
 		const admin = t.withIdentity({ publicMetadata: { role: "admin" } });
+		const bookingId = await seedBooking(t);
+
+		const packageId = await t.run((ctx) =>
+			ctx.db.insert(
+				"packages",
+				packageDocument({
+					name: "Package customer",
+					phone: "0411111111",
+					accountName: "Package account",
+					email: "package@example.com",
+					duration: "1 hour",
+					addons: [],
+					packageSize: 4,
+					singleSessionAmount: 200,
+					packageSubtotalAmount: 800,
+					discountPercent: 10,
+					discountAmount: 80,
+					totalDueAmount: 720,
+					status: "paid",
+					archived: false,
+					createdAt: 1,
+					paidAt: 2
+				})
+			)
+		);
 
 		const [bookings, packages] = await Promise.all([
 			admin.query(api.sessions.listSessions, { paginationOpts }),
 			admin.query(api.packages.listPackages, { paginationOpts })
 		]);
 
-		expect(bookings.page).toEqual([]);
-		expect(packages.page).toEqual([]);
+		expect(bookings.page).toEqual([
+			expect.objectContaining({ _id: bookingId, name: "Test customer" })
+		]);
+		expect(packages.page).toEqual([
+			expect.objectContaining({ _id: packageId, name: "Package customer", totalDueAmount: 720 })
+		]);
 	});
 });
 

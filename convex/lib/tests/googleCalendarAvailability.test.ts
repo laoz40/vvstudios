@@ -2,7 +2,7 @@
  * Google Calendar event loading for availability checks.
  *
  * 1. getBusyWindowsInRange
- *    Turns calendar events into busy windows, skips ignored events, and merges calendars.
+ *    Turns calendar events into busy windows, skips only the ignored event, and retains both pages and calendars.
  */
 import type { calendar_v3 } from "googleapis/build/src/apis/calendar/v3";
 import { describe, expect, test } from "vitest";
@@ -56,15 +56,15 @@ describe("getBusyWindowsInRange", () => {
 			{
 				calendarId: "primary",
 				eventId: "evt-block",
-				start: blockingEvent.start?.dateTime,
-				end: blockingEvent.end?.dateTime
+				start: "2030-01-10T10:00:00+11:00",
+				end: "2030-01-10T11:00:00+11:00"
 			}
 		]);
 	});
 
-	test("ignores a matching event id when rescheduling the same calendar event", async () => {
+	test("ignores the rescheduled event while retaining other busy windows", async () => {
 		const busyWindows = await getBusyWindowsInRange({
-			calendar: calendarWithPages({ primary: [{ items: [blockingEvent] }] }),
+			calendar: calendarWithPages({ primary: [{ items: [blockingEvent, overlappingEvent] }] }),
 			calendarIds: ["primary"],
 			ignoredEvent: { calendarId: "primary", eventId: "evt-block" },
 			timeMax,
@@ -72,7 +72,14 @@ describe("getBusyWindowsInRange", () => {
 			timeZone
 		});
 
-		expect(busyWindows).toEqual([]);
+		expect(busyWindows).toEqual([
+			{
+				calendarId: "primary",
+				eventId: "evt-overlap",
+				start: "2030-01-10T10:30:00+11:00",
+				end: "2030-01-10T11:30:00+11:00"
+			}
+		]);
 	});
 
 	test("still returns an ignored event id from another calendar", async () => {
@@ -92,8 +99,8 @@ describe("getBusyWindowsInRange", () => {
 			{
 				calendarId: "room-b",
 				eventId: "evt-block",
-				start: blockingEvent.start?.dateTime,
-				end: blockingEvent.end?.dateTime
+				start: "2030-01-10T10:00:00+11:00",
+				end: "2030-01-10T11:00:00+11:00"
 			}
 		]);
 	});
@@ -114,14 +121,14 @@ describe("getBusyWindowsInRange", () => {
 			{
 				calendarId: "room-a",
 				eventId: "evt-block",
-				start: blockingEvent.start?.dateTime,
-				end: blockingEvent.end?.dateTime
+				start: "2030-01-10T10:00:00+11:00",
+				end: "2030-01-10T11:00:00+11:00"
 			},
 			{
 				calendarId: "room-b",
 				eventId: "evt-overlap",
-				start: overlappingEvent.start?.dateTime,
-				end: overlappingEvent.end?.dateTime
+				start: "2030-01-10T10:30:00+11:00",
+				end: "2030-01-10T11:30:00+11:00"
 			}
 		]);
 	});
@@ -137,6 +144,19 @@ describe("getBusyWindowsInRange", () => {
 			timeZone
 		});
 
-		expect(busyWindows).toHaveLength(2);
+		expect(busyWindows).toEqual([
+			{
+				calendarId: "primary",
+				eventId: "evt-block",
+				start: "2030-01-10T10:00:00+11:00",
+				end: "2030-01-10T11:00:00+11:00"
+			},
+			{
+				calendarId: "primary",
+				eventId: "evt-overlap",
+				start: "2030-01-10T10:30:00+11:00",
+				end: "2030-01-10T11:30:00+11:00"
+			}
+		]);
 	});
 });

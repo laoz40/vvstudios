@@ -57,5 +57,9 @@ describe("getPackageCheckoutClaimStatus", () => {
 		if (abandoned.isErr()) {
 			expect(abandoned.error).toEqual({ reason: "STRIPE_SESSION_MISMATCH" });
 		}
+
+		if (expired.isErr()) {
+			expect(expired.error).toEqual({ reason: "STRIPE_SESSION_MISMATCH" });
+		}
 	});
 });

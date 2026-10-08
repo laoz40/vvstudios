@@ -3,11 +3,11 @@
  *
  * 1. Session invoice totals
  *    Duration, add-ons, editing quantities, deposit, and a manual override must create a
- *    coherent, nonnegative invoice whose line items balance to the final total.
+ *    coherent, nonnegative invoice whose line items match independently calculated literal totals.
  *
  * 2. Custom invoice creation
  *    Only an admin with an existing session and a finite nonnegative total may create an invoice.
- *    Rejected requests must leave the database unchanged.
+ *    Rejected requests leave no invoice, and each rejection is paired with stored valid output.
  *
  * 3. Invoice downloads
  *    Public session and package receipt downloads enforce record existence, lifecycle state, and
@@ -59,9 +59,8 @@ describe("invoice financial integrity", () => {
 			createdAt: now
 		});
 
-		expect(data.lineItems.reduce((total, item) => total + item.amount, 0)).toBe(
-			data.amounts.totalDueAmount
-		);
+		expect(data.lineItems.reduce((total, item) => total + item.amount, 0)).toBe(709);
+		expect(data.amounts.totalDueAmount).toBe(709);
 		expect(data.lineItems).toEqual(
 			expect.arrayContaining([
 				expect.objectContaining({ description: "Rough Cut", quantity: 3, amount: 300 }),
@@ -193,6 +192,26 @@ describe("custom invoice creation", () => {
 
 		expect(result).toEqual([{ reason }, null]);
 		expect(await readCustomInvoices(t)).toEqual([]);
+		const validBookingId = await seedBooking(t);
+
+		const validResult = await t
+			.withIdentity(adminIdentity)
+			.mutation(api.customInvoices.createCustomInvoice, {
+				bookingId: validBookingId,
+				addons: [],
+				includeDepositLineItem: false,
+				customTotalDueAmount: 321
+			});
+
+		expect(validResult[0]).toBeNull();
+		expect(
+			await t
+				.withIdentity(adminIdentity)
+				.query(api.customInvoices.listCustomInvoicesForBooking, { bookingId: validBookingId })
+		).toMatchObject([
+			null,
+			[expect.objectContaining({ bookingId: validBookingId, customTotalDueAmount: 321 })]
+		]);
 	});
 
 	test.each([-1, Number.POSITIVE_INFINITY, Number.NaN])(
@@ -212,6 +231,26 @@ describe("custom invoice creation", () => {
 
 			expect(result).toEqual([{ reason: "INVALID_CUSTOM_TOTAL_DUE_AMOUNT" }, null]);
 			expect(await readCustomInvoices(t)).toEqual([]);
+			const validBookingId = await seedBooking(t);
+
+			const validResult = await t
+				.withIdentity(adminIdentity)
+				.mutation(api.customInvoices.createCustomInvoice, {
+					bookingId: validBookingId,
+					addons: [],
+					includeDepositLineItem: false,
+					customTotalDueAmount: 321
+				});
+
+			expect(validResult[0]).toBeNull();
+			expect(
+				await t
+					.withIdentity(adminIdentity)
+					.query(api.customInvoices.listCustomInvoicesForBooking, { bookingId: validBookingId })
+			).toMatchObject([
+				null,
+				[expect.objectContaining({ bookingId: validBookingId, customTotalDueAmount: 321 })]
+			]);
 		}
 	);
 
@@ -229,6 +268,24 @@ describe("custom invoice creation", () => {
 
 		expect(bookingResult).toEqual([{ reason: "BOOKING_NOT_FOUND" }, null]);
 		expect(await readCustomInvoices(t)).toEqual([]);
+		const validBookingId = await seedBooking(t);
+
+		const validResult = await admin.mutation(api.customInvoices.createCustomInvoice, {
+			bookingId: validBookingId,
+			addons: [],
+			includeDepositLineItem: false,
+			customTotalDueAmount: 321
+		});
+
+		expect(validResult[0]).toBeNull();
+		expect(
+			await admin.query(api.customInvoices.listCustomInvoicesForBooking, {
+				bookingId: validBookingId
+			})
+		).toMatchObject([
+			null,
+			[expect.objectContaining({ bookingId: validBookingId, customTotalDueAmount: 321 })]
+		]);
 	});
 
 	test("stores final numbered custom invoices for valid session sources", async () => {
@@ -243,12 +300,16 @@ describe("custom invoice creation", () => {
 			customTotalDueAmount: 321
 		});
 
-		const invoices = await readCustomInvoices(t);
+		const invoices = await t
+			.withIdentity(adminIdentity)
+			.query(api.customInvoices.listCustomInvoicesForBooking, { bookingId });
 
 		expect(bookingResult[0]).toBeNull();
-		expect(invoices).toHaveLength(1);
-		expect(invoices[0]).toMatchObject({ bookingId, customTotalDueAmount: 321 });
-		expect(invoices[0]?.invoiceNumber).toMatch(/^VV-20300110-/);
+		expect(invoices).toMatchObject([
+			null,
+			[expect.objectContaining({ bookingId, customTotalDueAmount: 321 })]
+		]);
+		expect(invoices[1]?.[0]?.invoiceNumber).toMatch(/^VV-20300110-/);
 	});
 });
 
@@ -260,12 +321,9 @@ describe("invoice download access", () => {
 			stripeSessionId: "missing"
 		});
 
-		const pendingId = await seedBooking(t, {
-			status: "pending_payment",
-			stripeSessionId: "pending"
-		});
+		await seedBooking(t, { status: "pending_payment", stripeSessionId: "pending" });
 
-		const expiredId = await seedBooking(t, {
+		await seedBooking(t, {
 			status: "confirmed",
 			stripeSessionId: "expired",
 			paymentCompletedAt: now - oneHour - 1
@@ -282,7 +340,6 @@ describe("invoice download access", () => {
 				stripeSessionId: "expired"
 			})
 		).toEqual([{ reason: "INVOICE_DOWNLOAD_EXPIRED" }, null]);
-		expect([pendingId, expiredId]).toHaveLength(2);
 	});
 
 	test("allows current public downloads for confirmed and email-failed sessions", async () => {
