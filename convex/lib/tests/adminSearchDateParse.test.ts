@@ -9,6 +9,9 @@
  *
  * 3. Relative days
  *    today, tomorrow, and yesterday from a fixed anchor instant.
+ *
+ * 4. Invalid dates
+ *    Rejects an impossible February date while accepting a valid February day.
  */
 import { describe, expect, test } from "vitest";
 import { parseAdminSearchDateValue } from "#convex/lib/adminSearch/adminSearchDateParse";
@@ -103,9 +106,12 @@ describe("parseAdminSearchDateValue", () => {
 		});
 	});
 
-	test("invalid calendar date", () => {
+	test("rejects an invalid calendar date while accepting a valid day", () => {
 		expect(
 			parseAdminSearchDateValue("31/2/2030", { now: summerAnchor, timeZone: sydneyTimeZone })
 		).toBeNull();
+		expect(
+			parseAdminSearchDateValue("28/2/2030", { now: summerAnchor, timeZone: sydneyTimeZone })
+		).toEqual({ rangeStart: 1898427600000, rangeEnd: 1898514000000 });
 	});
 });

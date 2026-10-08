@@ -1,12 +1,13 @@
 /**
- * Admin Stripe invoicing actions reject legacy records without a Stripe customer.
+ * Admin Stripe invoicing actions require a Stripe customer and persist sent invoices.
  *
  * 1. Booking invoice
- *    Sending a booking invoice without stripeCustomerId fails before Stripe is called.
+ *    Missing booking customers are rejected; a valid customer produces a persisted invoice.
  *
  * 2. Package invoice
- *    Sending a package invoice without stripeCustomerId fails before Stripe is called.
+ *    Missing package customers are rejected; a valid customer produces a persisted invoice.
  */
+import Stripe from "stripe";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { bookingDocument, packageDocument } from "#convex/tests/insertDocumentDefaults";
 import { api } from "#convex/_generated/api";
@@ -22,16 +23,32 @@ type TestClient = ReturnType<typeof createConvexTest>;
 beforeEach(() => {
 	vi.useFakeTimers();
 	vi.setSystemTime(now);
+	vi.spyOn(Stripe.StripeResource.prototype, "_makeRequest").mockImplementation((method, path) => {
+		if (path === "/v1/invoices") return Promise.resolve({ id: "in_admin_draft" });
+
+		if (path === "/v1/invoiceitems") return Promise.resolve({ id: "ii_admin_1" });
+
+		if (path === "/v1/invoices/in_admin_draft/finalize") {
+			return Promise.resolve({ id: "in_admin_finalized" });
+		}
+
+		if (path === "/v1/invoices/in_admin_finalized/send") {
+			return Promise.resolve({ id: "in_admin_finalized" });
+		}
+
+		throw new Error(`Unexpected Stripe request: ${method} ${path}`);
+	});
 });
 
 afterEach(() => {
 	vi.useRealTimers();
+	vi.restoreAllMocks();
 });
 
 describe("sendStripeInvoice without stripeCustomerId", () => {
 	test("rejects a booking invoice when the booking has no Stripe customer", async () => {
 		const t = createConvexTest();
-		const bookingId = await seedBookingWithoutStripeCustomer(t);
+		const bookingId = await seedBooking(t);
 		const admin = t.withIdentity(adminIdentity);
 
 		const result = await admin.action(api.stripeInvoicing.sendBookingStripeInvoice, {
@@ -48,11 +65,31 @@ describe("sendStripeInvoice without stripeCustomerId", () => {
 
 		expect(error).toBeNull();
 		expect(invoices).toEqual([]);
+
+		const validBookingId = await seedBooking(t, "cus_booking_valid");
+
+		const validResult = await admin.action(api.stripeInvoicing.sendBookingStripeInvoice, {
+			bookingId: validBookingId,
+			lineItems: [{ description: "Extra editing", amount: 120 }],
+			requestId: "req_booking_valid"
+		});
+
+		expect(validResult).toEqual([null, { stripeInvoiceId: "in_admin_finalized" }]);
+
+		const [validError, validInvoices] = await admin.query(
+			api.stripeInvoices.listStripeInvoicesForBooking,
+			{ bookingId: validBookingId }
+		);
+
+		expect(validError).toBeNull();
+		expect(validInvoices).toMatchObject([
+			{ stripeInvoiceId: "in_admin_finalized", totalAmount: 120, paymentStatus: "unpaid" }
+		]);
 	});
 
 	test("rejects a package invoice when the package has no Stripe customer", async () => {
 		const t = createConvexTest();
-		const packageId = await seedPackageWithoutStripeCustomer(t);
+		const packageId = await seedPackage(t);
 		const admin = t.withIdentity(adminIdentity);
 
 		const result = await admin.action(api.stripeInvoicing.sendPackageStripeInvoice, {
@@ -69,10 +106,30 @@ describe("sendStripeInvoice without stripeCustomerId", () => {
 
 		expect(error).toBeNull();
 		expect(invoices).toEqual([]);
+
+		const validPackageId = await seedPackage(t, "cus_package_valid");
+
+		const validResult = await admin.action(api.stripeInvoicing.sendPackageStripeInvoice, {
+			packageId: validPackageId,
+			lineItems: [{ description: "Extra package charge", amount: 80 }],
+			requestId: "req_package_valid"
+		});
+
+		expect(validResult).toEqual([null, { stripeInvoiceId: "in_admin_finalized" }]);
+
+		const [validError, validInvoices] = await admin.query(
+			api.stripeInvoices.listStripeInvoicesForPackage,
+			{ packageId: validPackageId }
+		);
+
+		expect(validError).toBeNull();
+		expect(validInvoices).toMatchObject([
+			{ stripeInvoiceId: "in_admin_finalized", totalAmount: 80, paymentStatus: "unpaid" }
+		]);
 	});
 });
 
-async function seedBookingWithoutStripeCustomer(t: TestClient) {
+async function seedBooking(t: TestClient, stripeCustomerId?: string) {
 	return await t.run((ctx) =>
 		ctx.db.insert(
 			"bookings",
@@ -90,13 +147,14 @@ async function seedBookingWithoutStripeCustomer(t: TestClient) {
 				status: "confirmed",
 				archived: false,
 				pendingPaymentCreatedAt: now,
-				paymentCompletedAt: now
+				paymentCompletedAt: now,
+				stripeCustomerId
 			})
 		)
 	);
 }
 
-async function seedPackageWithoutStripeCustomer(t: TestClient) {
+async function seedPackage(t: TestClient, stripeCustomerId?: string) {
 	return await t.run((ctx) =>
 		ctx.db.insert(
 			"packages",
@@ -117,7 +175,8 @@ async function seedPackageWithoutStripeCustomer(t: TestClient) {
 				archived: false,
 				createdAt: now,
 				receiptEmailStatus: "sent",
-				paidAt: now
+				paidAt: now,
+				stripeCustomerId
 			})
 		)
 	);

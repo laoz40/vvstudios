@@ -2,10 +2,9 @@
  * Payment summaries display verified money separately from edited totals.
  * 1. Loaded payments show the amount paid.
  * 2. Unknown payments display an unavailable status.
- * 3. The paid amount remains visible when it equals the current total.
- * 4. The invoice preview shows additions and adjustments with one invoice total.
- * 5. Pending payments show a loading status.
- * 6. Changed totals show the previous and new amounts on one line.
+ * 3. The invoice preview shows additions and adjustments with one invoice total.
+ * 4. Pending payments show a loading status.
+ * 5. Changed totals show the previous and new amounts on one line.
  */
 import { renderToStaticMarkup } from "react-dom/server";
 import { expect, test } from "vitest";
@@ -15,7 +14,7 @@ import {
 } from "#studio/features/admin/components/EditPaymentSummary";
 import { EditInvoicePreview } from "#studio/features/admin/components/EditInvoicePreview";
 
-test("shows verified payment when the total changes", () => {
+test("shows the verified paid amount", () => {
 	const html = renderToStaticMarkup(<EditPaymentSummary summary={{ paidAmount: 200 }} />);
 
 	expect(html).toContain("Paid:");
@@ -25,12 +24,6 @@ test("shows verified payment when the total changes", () => {
 test("shows when the paid amount is unavailable", () => {
 	expect(renderToStaticMarkup(<EditPaymentSummary summary={{ paidAmount: null }} />)).toContain(
 		"Unavailable"
-	);
-});
-
-test("keeps the loaded paid amount visible", () => {
-	expect(renderToStaticMarkup(<EditPaymentSummary summary={{ paidAmount: 200 }} />)).toContain(
-		"$200"
 	);
 });
 

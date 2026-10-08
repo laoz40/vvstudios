@@ -8,7 +8,7 @@
  *
  * 2. Repeated or outdated closeout
  *    Repeated or concurrent closeout jobs must still create only one adjustment. A job for an
- *    old package expiry must do nothing.
+ *    old package expiry must leave the package open, while the current expiry creates its invoice.
  *
  * 3. Email claim
  *    Only one sender may claim an invoice. A timed-out sender's late success or failure must not
@@ -21,7 +21,8 @@
  *    invoice.paid claims mark the adjustment paid once and reject mismatched Stripe invoice ids.
  *
  * 6. Deferred closeout
- *    Expiry waits for the last session, keeps the expiry guard, and ignores a later extension.
+ *    Completion and expiry wait for the last session, then create the concrete adjustment and
+ *    invoice delivery. Extending expiry prevents the deferred job from closing early.
  *
  * 7. Competing triggers
  *    Completion and expiry racing create one invoice and schedule one automatic delivery.
@@ -124,37 +125,73 @@ describe("package adjustment closeout", () => {
 	test("completion closeout waits until every package slot is scheduled", async () => {
 		const t = createConvexTest();
 		const packageId = await seedPaidPackage(t);
-		await Promise.all([
-			seedPackageSession(t, packageId, ["Remote Podcast"]),
-			seedPackageSession(t, packageId, []),
-			seedPackageSession(t, packageId, [])
-		]);
+		const remoteBookingId = await seedPackageSession(t, packageId, ["Remote Podcast"]);
+		await Promise.all([seedPackageSession(t, packageId, []), seedPackageSession(t, packageId, [])]);
 
 		await processCompletedPackage(t, packageId);
 
 		expect(await readAdjustments(t, packageId)).toEqual([]);
+
+		await seedPackageSession(t, packageId, []);
+		await processCompletedPackage(t, packageId);
+
+		const [adjustment] = await readAdjustments(t, packageId);
+		expect(adjustment).toMatchObject({
+			outcome: "invoice_required",
+			quantity: 1,
+			rate: 59,
+			remotePodcastBookingIds: [remoteBookingId],
+			totalAmount: 59,
+			trigger: "all_sessions_completed"
+		});
+		expect(await readScheduledJobs(t)).toContainEqual(
+			expect.objectContaining({
+				args: [{ adjustmentId: adjustment?._id, attempt: "automatic" }],
+				scheduledTime: now
+			})
+		);
 	});
 
 	test("completion closeout waits until every scheduled session has ended", async () => {
 		const t = createConvexTest();
 		const packageId = await seedPaidPackage(t);
-		await Promise.all([
+
+		const remoteBookingIds = await Promise.all([
 			seedPackageSession(t, packageId, ["Remote Podcast"]),
-			seedPackageSession(t, packageId, []),
-			seedPackageSession(t, packageId, []),
 			seedPackageSession(t, packageId, ["Remote Podcast"], { sessionStartAt: now + 60 * 60 * 1000 })
 		]);
+
+		await Promise.all([seedPackageSession(t, packageId, []), seedPackageSession(t, packageId, [])]);
 
 		await processCompletedPackage(t, packageId);
 
 		expect(await readAdjustments(t, packageId)).toEqual([]);
 		expect(await readScheduledJobs(t)).toHaveLength(1);
+
+		vi.setSystemTime(now + 2 * 60 * 60 * 1000);
+		await processCompletedPackage(t, packageId);
+
+		const [adjustment] = await readAdjustments(t, packageId);
+		expect(adjustment).toMatchObject({
+			outcome: "invoice_required",
+			quantity: 2,
+			rate: 59,
+			totalAmount: 118,
+			trigger: "all_sessions_completed"
+		});
+		expect(adjustment?.remotePodcastBookingIds.toSorted()).toEqual(remoteBookingIds.toSorted());
+		expect(await readScheduledJobs(t)).toContainEqual(
+			expect.objectContaining({
+				args: [{ adjustmentId: adjustment?._id, attempt: "automatic" }],
+				scheduledTime: now + 2 * 60 * 60 * 1000
+			})
+		);
 	});
 
 	test("ignores a closeout job for an old package expiry", async () => {
 		const t = createConvexTest();
 		const packageId = await seedPaidPackage(t);
-		await seedPackageSession(t, packageId, ["Remote Podcast"]);
+		const bookingId = await seedPackageSession(t, packageId, ["Remote Podcast"]);
 
 		await t.mutation(internal.packageScheduling.processPackageAdjustmentAtExpiry, {
 			packageId: packageId,
@@ -167,6 +204,26 @@ describe("package adjustment closeout", () => {
 
 		expect(await readAdjustments(t, packageId)).toEqual([]);
 		expect(scheduledJobs).toEqual([]);
+
+		await processExpiredPackage(t, packageId);
+
+		const [adjustment] = await readAdjustments(t, packageId);
+		expect(adjustment).toMatchObject({
+			outcome: "invoice_required",
+			quantity: 1,
+			rate: 59,
+			remotePodcastBookingIds: [bookingId],
+			totalAmount: 59,
+			trigger: "package_expired"
+		});
+
+		if (!adjustment) throw new Error("Expected an invoice adjustment");
+		expect(await readScheduledJobs(t)).toContainEqual(
+			expect.objectContaining({
+				args: [{ adjustmentId: adjustment._id, attempt: "automatic" }],
+				scheduledTime: now
+			})
+		);
 	});
 
 	test("repeated closeout creates only one adjustment", async () => {
@@ -277,10 +334,15 @@ describe("package adjustment closeout", () => {
 	test("a deferred expiry cannot close a package after its expiry is extended", async () => {
 		const t = createConvexTest();
 		const packageId = await seedPaidPackage(t);
-		await seedPackageSession(t, packageId, ["Remote Podcast"], { sessionStartAt: now });
+
+		const remoteBookingId = await seedPackageSession(t, packageId, ["Remote Podcast"], {
+			sessionStartAt: now
+		});
+
+		const extendedExpiryAt = now + 86_400_000;
 		await processExpiredPackage(t, packageId);
 
-		await t.run((ctx) => ctx.db.patch("packages", packageId, { expiresAt: now + 86_400_000 }));
+		await t.run((ctx) => ctx.db.patch("packages", packageId, { expiresAt: extendedExpiryAt }));
 		vi.setSystemTime(now + 60 * 60 * 1000);
 
 		expect(await processExpiredPackage(t, packageId)).toEqual([null, null]);
@@ -289,6 +351,30 @@ describe("package adjustment closeout", () => {
 		expect(await t.run((ctx) => ctx.db.get("packages", packageId))).toMatchObject({
 			archived: false
 		});
+
+		vi.setSystemTime(extendedExpiryAt);
+		expect(
+			await t.mutation(internal.packageScheduling.processPackageAdjustmentAtExpiry, {
+				packageId,
+				expectedExpiresAt: extendedExpiryAt
+			})
+		).toEqual([null, null]);
+
+		const [adjustment] = await readAdjustments(t, packageId);
+		expect(adjustment).toMatchObject({
+			outcome: "invoice_required",
+			quantity: 1,
+			rate: 59,
+			remotePodcastBookingIds: [remoteBookingId],
+			totalAmount: 59,
+			trigger: "package_expired"
+		});
+		expect(await readScheduledJobs(t)).toContainEqual(
+			expect.objectContaining({
+				args: [{ adjustmentId: adjustment?._id, attempt: "automatic" }],
+				scheduledTime: extendedExpiryAt
+			})
+		);
 	});
 });
 
