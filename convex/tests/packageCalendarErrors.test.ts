@@ -94,6 +94,8 @@ const session = {
 };
 
 beforeEach(() => {
+	vi.stubEnv("GOOGLE_CALENDAR_ID", "package-calendar-test");
+	vi.stubEnv("GOOGLE_CALENDAR_TIMEZONE", "Australia/Sydney");
 	calendarEventRequestBodies.length = 0;
 
 	const calendar = google.calendar({
@@ -111,7 +113,10 @@ beforeEach(() => {
 	events.delete.mockImplementation(() => Promise.resolve(new Response(null, { status: 204 })));
 });
 
-afterEach(() => vi.restoreAllMocks());
+afterEach(() => {
+	vi.restoreAllMocks();
+	vi.unstubAllEnvs();
+});
 
 describe("package Calendar operation errors", () => {
 	test("includes every add-on quantity in a created Calendar event", async () => {
@@ -122,7 +127,10 @@ describe("package Calendar operation errors", () => {
 			{ session: null, details: quantityDetails }
 		);
 
-		expect(result).toEqual([null, { googleCalendarId: "primary", googleEventId: "new_event" }]);
+		expect(result).toEqual([
+			null,
+			{ googleCalendarId: "package-calendar-test", googleEventId: "new_event" }
+		]);
 		expect(calendarEventRequestBodies).toMatchObject([{ description: quantityEventDescription }]);
 	});
 
