@@ -20,6 +20,7 @@
 		"lint": "node --experimental-strip-types tools/checks/merge-conflicts.ts && node --experimental-strip-types --test --test-concurrency=1 $(find tools/oxlint -name '*.test.ts' | sort) && NODE_OPTIONS=--experimental-strip-types oxlint .",
 		"lint:fix": "NODE_OPTIONS=--experimental-strip-types oxlint --fix .",
 		"typecheck": "tsc --noEmit",
+		"verify": "bash scripts/verify.sh",
 		"test": "vitest run",
 		"dead-code": "fallow dead-code",
 		"dupes": "fallow dupes",
