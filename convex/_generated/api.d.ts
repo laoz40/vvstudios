@@ -75,6 +75,7 @@ import type * as lib_googleCalendar_googleCalendarAvailability from "../lib/goog
 import type * as lib_googleCalendar_googleCalendarClient from "../lib/googleCalendar/googleCalendarClient.js";
 import type * as lib_googleCalendar_googleCalendarErrors from "../lib/googleCalendar/googleCalendarErrors.js";
 import type * as lib_googleCalendar_googleCalendarEventCalls from "../lib/googleCalendar/googleCalendarEventCalls.js";
+import type * as lib_googleCalendar_packageCalendarDetails from "../lib/googleCalendar/packageCalendarDetails.js";
 import type * as lib_listAdminPackages from "../lib/listAdminPackages.js";
 import type * as lib_listAdminSessions from "../lib/listAdminSessions.js";
 import type * as lib_packages_packageAdjustmentInvoicePayment from "../lib/packages/packageAdjustmentInvoicePayment.js";
@@ -184,6 +185,7 @@ import type * as services_feedback_feedbackEmail from "../services/feedback/feed
 import type * as services_feedback_submitFeedback from "../services/feedback/submitFeedback.js";
 import type * as services_googleCalendar_cancelBookingFromAdmin from "../services/googleCalendar/cancelBookingFromAdmin.js";
 import type * as services_googleCalendar_packageCalendarAvailability from "../services/googleCalendar/packageCalendarAvailability.js";
+import type * as services_googleCalendar_packageCalendarDetails from "../services/googleCalendar/packageCalendarDetails.js";
 import type * as services_googleCalendar_packageSchedulingCalendar from "../services/googleCalendar/packageSchedulingCalendar.js";
 import type * as services_googleCalendar_sessionAdminUpdate from "../services/googleCalendar/sessionAdminUpdate.js";
 import type * as services_googleCalendar_sessionCalendar from "../services/googleCalendar/sessionCalendar.js";
@@ -329,6 +331,7 @@ declare const fullApi: ApiFromModules<{
   "lib/googleCalendar/googleCalendarClient": typeof lib_googleCalendar_googleCalendarClient;
   "lib/googleCalendar/googleCalendarErrors": typeof lib_googleCalendar_googleCalendarErrors;
   "lib/googleCalendar/googleCalendarEventCalls": typeof lib_googleCalendar_googleCalendarEventCalls;
+  "lib/googleCalendar/packageCalendarDetails": typeof lib_googleCalendar_packageCalendarDetails;
   "lib/listAdminPackages": typeof lib_listAdminPackages;
   "lib/listAdminSessions": typeof lib_listAdminSessions;
   "lib/packages/packageAdjustmentInvoicePayment": typeof lib_packages_packageAdjustmentInvoicePayment;
@@ -438,6 +441,7 @@ declare const fullApi: ApiFromModules<{
   "services/feedback/submitFeedback": typeof services_feedback_submitFeedback;
   "services/googleCalendar/cancelBookingFromAdmin": typeof services_googleCalendar_cancelBookingFromAdmin;
   "services/googleCalendar/packageCalendarAvailability": typeof services_googleCalendar_packageCalendarAvailability;
+  "services/googleCalendar/packageCalendarDetails": typeof services_googleCalendar_packageCalendarDetails;
   "services/googleCalendar/packageSchedulingCalendar": typeof services_googleCalendar_packageSchedulingCalendar;
   "services/googleCalendar/sessionAdminUpdate": typeof services_googleCalendar_sessionAdminUpdate;
   "services/googleCalendar/sessionCalendar": typeof services_googleCalendar_sessionCalendar;
