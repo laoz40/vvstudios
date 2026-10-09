@@ -124,6 +124,86 @@ describe("stripe invoice persistence", () => {
 		expect(invoices).toHaveLength(1);
 	});
 
+	test("reuses a booking invoice record when its requestId already exists", async () => {
+		const t = createConvexTest();
+		const bookingId = await seedBooking(t);
+
+		const firstRecord = await t.mutation(internal.stripeInvoices.recordBookingStripeInvoice, {
+			bookingId,
+			stripeInvoiceId: "in_request_first",
+			lineItems: [{ description: "Extra editing", amount: 120 }],
+			requestId: "req_booking_reused"
+		});
+
+		const retryRecord = await t.mutation(internal.stripeInvoices.recordBookingStripeInvoice, {
+			bookingId,
+			stripeInvoiceId: "in_request_retry",
+			lineItems: [{ description: "Different line", amount: 50 }],
+			requestId: "req_booking_reused"
+		});
+
+		expect(firstRecord[0]).toBeNull();
+		expect(firstRecord[1]).toMatchObject({ created: true });
+		expect(retryRecord).toEqual([
+			null,
+			{ created: false, stripeInvoiceRecordId: firstRecord[1]?.stripeInvoiceRecordId }
+		]);
+
+		const [error, invoices] = await t
+			.withIdentity(adminIdentity)
+			.query(api.stripeInvoices.listStripeInvoicesForBooking, { bookingId });
+
+		expect(error).toBeNull();
+		expect(invoices).toMatchObject([
+			{
+				stripeInvoiceId: "in_request_first",
+				lineItems: [{ description: "Extra editing", amount: 120 }],
+				totalAmount: 120,
+				requestId: "req_booking_reused"
+			}
+		]);
+	});
+
+	test("reuses a booking invoice record when its Stripe invoice ID already exists", async () => {
+		const t = createConvexTest();
+		const bookingId = await seedBooking(t);
+
+		const firstRecord = await t.mutation(internal.stripeInvoices.recordBookingStripeInvoice, {
+			bookingId,
+			stripeInvoiceId: "in_stripe_reused",
+			lineItems: [{ description: "Extra editing", amount: 120 }],
+			requestId: "req_booking_first"
+		});
+
+		const retryRecord = await t.mutation(internal.stripeInvoices.recordBookingStripeInvoice, {
+			bookingId,
+			stripeInvoiceId: "in_stripe_reused",
+			lineItems: [{ description: "Different line", amount: 50 }],
+			requestId: "req_booking_retry"
+		});
+
+		expect(firstRecord[0]).toBeNull();
+		expect(firstRecord[1]).toMatchObject({ created: true });
+		expect(retryRecord).toEqual([
+			null,
+			{ created: false, stripeInvoiceRecordId: firstRecord[1]?.stripeInvoiceRecordId }
+		]);
+
+		const [error, invoices] = await t
+			.withIdentity(adminIdentity)
+			.query(api.stripeInvoices.listStripeInvoicesForBooking, { bookingId });
+
+		expect(error).toBeNull();
+		expect(invoices).toMatchObject([
+			{
+				stripeInvoiceId: "in_stripe_reused",
+				lineItems: [{ description: "Extra editing", amount: 120 }],
+				totalAmount: 120,
+				requestId: "req_booking_first"
+			}
+		]);
+	});
+
 	test("marks a stored invoice paid once and ignores unknown ids", async () => {
 		const t = createConvexTest();
 		const bookingId = await seedBooking(t);

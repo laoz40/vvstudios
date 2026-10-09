@@ -12,6 +12,7 @@
  * 10. Returning to edit after a save failure applies the existing invoice to a fresh quote.
  * 11. Added items are separate Stripe lines; credits and discounts balance the invoice total.
  * 12. Cached checkout payments remain fixed while dashboard paid and unpaid totals follow invoices.
+ * 13. Failed Calendar event cleanup keeps the original booking save error after invoicing.
  */
 import Stripe from "stripe";
 import { google } from "googleapis";
@@ -57,6 +58,38 @@ let sentInvoices: Set<string>;
 let responses: Map<string, { id: string }>;
 
 let stripeLineItems: Array<{ description: string; amount: number }>;
+
+let afterCalendarEventCreate: (() => Promise<void>) | undefined;
+
+let failOrphanCalendarDelete: boolean;
+
+let calendarBoundaryRequests: Array<{ method: string; path: string }>;
+
+async function fetchCalendar(input: RequestInfo | URL, init?: RequestInit) {
+	const url = new URL(input instanceof Request ? input.url : input.toString());
+	const method = input instanceof Request ? input.method : (init?.method ?? "GET");
+	calendarBoundaryRequests.push({ method, path: url.pathname });
+
+	if (failCalendar) return Promise.reject(new Error("Calendar unavailable"));
+
+	if (failCalendarUpdate && url.pathname.endsWith("/event_confirmed"))
+		return Promise.reject(new Error("Calendar update unavailable"));
+
+	if (method === "DELETE" && failOrphanCalendarDelete)
+		return Response.json({ error: { message: "Calendar delete unavailable" } }, { status: 500 });
+
+	if (method === "POST" && url.pathname.endsWith("/events")) {
+		await afterCalendarEventCreate?.();
+
+		return Response.json({ id: "event_orphaned", status: "confirmed" });
+	}
+
+	return Response.json(
+		url.pathname.endsWith("/events") && method === "GET"
+			? { items: calendarEvents }
+			: { id: "event_confirmed", status: "confirmed" }
+	);
+}
 
 function createStripeResponse(
 	method: string,
@@ -107,48 +140,22 @@ beforeEach(() => {
 	sentInvoices = new Set();
 	responses = new Map();
 	stripeLineItems = [];
+	afterCalendarEventCreate = undefined;
+	failOrphanCalendarDelete = false;
+	calendarBoundaryRequests = [];
 
 	const calendar = google.calendar({
 		version: "v3",
 		auth: "test-api-key",
 		retry: false,
-		fetchImplementation: (input, init) => {
-			const url = new URL(input instanceof Request ? input.url : input);
-			const method = input instanceof Request ? input.method : (init?.method ?? "GET");
-
-			if (failCalendar) return Promise.reject(new Error("Calendar unavailable"));
-
-			if (failCalendarUpdate && url.pathname.endsWith("/event_confirmed"))
-				return Promise.reject(new Error("Calendar update unavailable"));
-
-			return Promise.resolve(
-				Response.json(
-					url.pathname.endsWith("/events") && method === "GET"
-						? { items: calendarEvents }
-						: { id: "event_confirmed", status: "confirmed" }
-				)
-			);
-		}
+		fetchImplementation: fetchCalendar
 	});
 
 	vi.spyOn(google, "calendar").mockReturnValue(calendar);
-	vi.spyOn(globalThis, "fetch").mockImplementation((input) => {
+	vi.spyOn(globalThis, "fetch").mockImplementation((input, init) => {
 		const url = new URL(input instanceof Request ? input.url : input.toString());
 
-		if (url.hostname.includes("googleapis.com")) {
-			if (failCalendar) return Promise.reject(new Error("Calendar unavailable"));
-
-			if (failCalendarUpdate && url.pathname.endsWith("/event_confirmed"))
-				return Promise.reject(new Error("Calendar update unavailable"));
-
-			return Promise.resolve(
-				Response.json(
-					url.pathname.endsWith("/events")
-						? { items: calendarEvents }
-						: { id: "event_confirmed", status: "confirmed" }
-				)
-			);
-		}
+		if (url.hostname.includes("googleapis.com")) return fetchCalendar(input, init);
 
 		return Promise.resolve(Response.json({ id: "email_sent" }));
 	});
@@ -457,6 +464,32 @@ test("a Calendar save failure retries the already sent invoice without another c
 	failCalendarUpdate = false;
 	expect((await flow.confirm(q))[0]).toBeNull();
 	expect(await flow.read()).toMatchObject({ duration: "2h" });
+	expect(sentInvoices.size).toBe(1);
+});
+
+test("keeps the booking save error when orphan Calendar cleanup fails after invoicing", async () => {
+	const flow = await setup("booking");
+
+	if (flow.draft.kind !== "booking") throw new Error("Expected booking");
+
+	const bookingId = flow.draft.values.bookingId;
+
+	await flow.t.run((ctx) =>
+		ctx.db.patch("bookings", bookingId, {
+			status: "failed",
+			bookingFailureCode: "GOOGLE_CALENDAR_CREATE_FAILED"
+		})
+	);
+	const q = await flow.quote();
+	afterCalendarEventCreate = () => flow.t.run((ctx) => ctx.db.delete("bookings", bookingId));
+	failOrphanCalendarDelete = true;
+	vi.spyOn(console, "error").mockImplementation(() => {});
+
+	expect(await flow.confirm(q)).toEqual([{ reason: "BOOKING_NOT_FOUND", invoiceSent: true }, null]);
+	expect(calendarBoundaryRequests).toContainEqual({
+		method: "DELETE",
+		path: "/calendar/v3/calendars/primary/events/event_orphaned"
+	});
 	expect(sentInvoices.size).toBe(1);
 });
 
