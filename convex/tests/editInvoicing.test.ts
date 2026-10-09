@@ -19,6 +19,7 @@ import { google } from "googleapis";
 import { z } from "zod";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { api, internal } from "#convex/_generated/api";
+import { env } from "#convex/env";
 import { createConvexTest } from "#convex/test.setup";
 import { bookingDocument, packageDocument } from "#convex/tests/insertDocumentDefaults";
 import type { EditInvoiceDraft } from "#convex/services/stripe/editInvoiceValidators";
@@ -488,7 +489,7 @@ test("keeps the booking save error when orphan Calendar cleanup fails after invo
 	expect(await flow.confirm(q)).toEqual([{ reason: "BOOKING_NOT_FOUND", invoiceSent: true }, null]);
 	expect(calendarBoundaryRequests).toContainEqual({
 		method: "DELETE",
-		path: "/calendar/v3/calendars/primary/events/event_orphaned"
+		path: `/calendar/v3/calendars/${encodeURIComponent(env.GOOGLE_CALENDAR_ID)}/events/event_orphaned`
 	});
 	expect(sentInvoices.size).toBe(1);
 });
