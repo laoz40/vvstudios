@@ -25,20 +25,12 @@ Operational priorities: accessibility, fast first paint on marketing pages, and 
 
 ## Verify changes
 
-After code changes run:
-
-- `format`
-- `lint`
-- `test`
-- `typecheck`
-
-Before opening PR:
-
-- run the above commands, plus:
-  - `dead-code`
-  - `dupes`
-  - `test:e2e` and related `test:e2e:*` scripts when the change touches those flows.
-
+- After code changes and before opening a PR, run `bun run verify`. [scripts/verify.sh](./scripts/verify.sh) installs dependencies and runs the local checks in order, stopping on failure.
+- Add `--convex` when Convex functions changed. Deployment finishes before any requested E2E tests start.
+- Run E2E only immediately before creating a PR, not during routine development verification. Run the relevant flows once against the final changes.
+- For pre-PR booking E2E coverage, run `bun run verify --e2e all`. It runs session reschedule (including payment) and package scheduling (including payment) sequentially, without smoke or duplicate payment-only runs.
+- Payment E2E runs headed. The runner checks display/browser availability before local checks and exits immediately if unavailable; complete pre-PR E2E on a machine with a usable display.
+- For changes limited to one flow, select `--e2e smoke`, `--e2e session-reschedule`, or `--e2e package-schedule`. For dashboard changes, use the related flow commands in [.agents/skills/verify-vvstudios/SKILL.md](./.agents/skills/verify-vvstudios/SKILL.md).
 - Do not run `build` unless asked.
 - Do not start the dev server if one is already running.
 
@@ -47,7 +39,7 @@ Before opening PR:
 ### Workflow
 
 - For Convex code, read `convex/_generated/ai/guidelines.md` first.
-- Prefer `npx convex dev --once` to verify changes when no long-running `convex dev` is already up and no deploy key is set (local backend).
+- Use `bun run verify --convex` to verify and sync changed functions to the configured dev deployment when no long-running `convex dev` is already up and no deploy key is set. If one is already running, omit `--convex` and wait for it to finish syncing before E2E.
 - Do not start a long-running `convex dev`.
 - Cloud agents doing Convex work: use the `convex-cloud-agents` skill under `.agents/skills/`.
 
