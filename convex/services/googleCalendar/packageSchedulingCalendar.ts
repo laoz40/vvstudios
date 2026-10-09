@@ -9,10 +9,8 @@ import {
 } from "#convex/lib/googleCalendar/googleCalendarErrors";
 import { isTimeSlotAvailable } from "#convex/lib/sessions/sessionCalendarTime";
 import { getGoogleCalendarClient } from "#convex/lib/googleCalendar/googleCalendarClient";
-import type {
-	SessionCalendarEventDetails,
-	SessionCalendarEventRecord as PackageSessionCalendarEventRecord
-} from "#convex/lib/sessions/sessionCalendarEventPayload";
+import type { PackageCalendarDetails } from "#convex/lib/googleCalendar/packageCalendarDetails";
+import type { SessionCalendarEventRecord as PackageSessionCalendarEventRecord } from "#convex/lib/sessions/sessionCalendarEventPayload";
 import {
 	createSessionCalendarEvent,
 	deleteSessionCalendarEvent,
@@ -21,12 +19,6 @@ import {
 import { pickBookingAddonQuantities } from "#studio/features/booking-form/lib/booking-form-model";
 
 export type SessionCalendarEventRecord = PackageSessionCalendarEventRecord;
-
-export type PackageCalendarDetails = SessionCalendarEventDetails & {
-	date: string;
-	eventBufferMinutes: number;
-	time: string;
-};
 
 type PackageCalendarClient = Pick<
 	ReturnType<typeof getGoogleCalendarClient>,
