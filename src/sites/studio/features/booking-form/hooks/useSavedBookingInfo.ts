@@ -1,10 +1,8 @@
 import { use, useState } from "react";
 import { browser } from "react-dom";
 import type { BookingFormApi } from "#studio/features/booking-form/lib/booking-form-context";
-import {
-	isPackageUnavailableAddon,
-	type BookingFormValues
-} from "#studio/features/booking-form/lib/booking-form-model";
+import { isPackageUnavailableAddon } from "#/domain/booking/catalog";
+import { type BookingFormValues } from "#studio/features/booking-form/lib/booking-form-model";
 import { syncAddonsForService } from "#studio/features/booking-form/lib/sync-addons-for-service";
 import {
 	getStoredSavedBookingInfo,

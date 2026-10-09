@@ -1,10 +1,10 @@
 import { format } from "date-fns";
-import { ADDON_PRICES, DURATION_PRICES } from "#studio/features/booking-form/lib/booking-pricing";
+import { ADDON_PRICES, DURATION_PRICES } from "#/domain/booking/price-constants";
+import { getCustomerAddonDisplayLabel } from "#/domain/booking/catalog";
 import {
-	getCustomerAddonDisplayLabel,
 	pickBookingAddonQuantities,
 	type BookingAddonQuantities
-} from "#studio/features/booking-form/lib/booking-form-model";
+} from "#/domain/booking/addon-quantities";
 import {
 	BOOKING_DEPOSIT_AMOUNT,
 	BOOKING_INVOICE_BUSINESS,

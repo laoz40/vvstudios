@@ -1,9 +1,7 @@
 import type { Doc } from "#convex/_generated/dataModel";
 import { sessionConsumesPackageCapacity } from "#convex/lib/packages/packageSessionCapacity";
-import {
-	DURATION_OPTIONS,
-	type BookingFormValues
-} from "#studio/features/booking-form/lib/booking-form-model";
+import { DURATION_OPTIONS } from "#/domain/booking/catalog";
+import { type BookingFormValues } from "#studio/features/booking-form/lib/booking-form-model";
 
 export type SessionRecord = Doc<"bookings"> & {
 	paidAmount?: number | null;

@@ -31,7 +31,7 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { bookingDocument, packageDocument } from "#convex/tests/insertDocumentDefaults";
 import { api, internal } from "#convex/_generated/api";
 import type { Id } from "#convex/_generated/dataModel";
-import type { BookingAddon } from "#studio/features/booking-form/lib/booking-form-model";
+import type { BookingAddon } from "#/domain/booking/catalog";
 import {
 	PACKAGE_ADJUSTMENT_EMAIL_CLAIM_TIMEOUT_MS,
 	PACKAGE_ADJUSTMENT_PAYMENT_DUE_MS,

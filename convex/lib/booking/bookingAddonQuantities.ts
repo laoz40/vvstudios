@@ -1,8 +1,9 @@
-import { v } from "convex/values";
+import { v, type ObjectType, type VString } from "convex/values";
+import { ADDON_OPTIONS, type BookingAddon } from "#/domain/booking/catalog";
 import {
-	ADDON_OPTIONS,
-	type BookingAddon
-} from "#studio/features/booking-form/lib/booking-form-model";
+	BOOKING_ADDON_QUANTITY_FIELD_BY_ADDON,
+	type BookingAddonQuantityFieldName
+} from "#/domain/booking/addon-quantities";
 
 export const bookingAddonValidator = v.union(...ADDON_OPTIONS.map((addon) => v.literal(addon)));
 
@@ -15,15 +16,10 @@ export function bookingRequiresClientAssetsEmail(addons: readonly BookingAddon[]
 }
 
 export const bookingAddonQuantitiesValidator = {
-	essentialEditQuantity: v.optional(v.string()),
-	completeEditQuantity: v.optional(v.string()),
-	clipsPackageQuantity: v.optional(v.string()),
-	handcraftedClipsQuantity: v.optional(v.string())
-} as const;
+	[BOOKING_ADDON_QUANTITY_FIELD_BY_ADDON["Essential Edit"]]: v.optional(v.string()),
+	[BOOKING_ADDON_QUANTITY_FIELD_BY_ADDON["Complete Edit"]]: v.optional(v.string()),
+	[BOOKING_ADDON_QUANTITY_FIELD_BY_ADDON["Clip Volume Pack"]]: v.optional(v.string()),
+	[BOOKING_ADDON_QUANTITY_FIELD_BY_ADDON["Handcrafted Clips"]]: v.optional(v.string())
+} satisfies Record<BookingAddonQuantityFieldName, VString<string | undefined, "optional">>;
 
-export type BookingAddonQuantitiesArgs = {
-	essentialEditQuantity?: string;
-	completeEditQuantity?: string;
-	clipsPackageQuantity?: string;
-	handcraftedClipsQuantity?: string;
-};
+export type BookingAddonQuantitiesArgs = ObjectType<typeof bookingAddonQuantitiesValidator>;

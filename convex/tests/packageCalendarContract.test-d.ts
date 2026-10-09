@@ -6,9 +6,14 @@
  *
  * 2. Package projection
  *    The unannotated package-to-Calendar projection retains those same keys.
+ *
+ * 3. Shared quantity metadata
+ *    Form schemas and Convex validators accept every shared quantity field.
  */
 import type { FunctionArgs } from "convex/server";
 import type { internal } from "#convex/_generated/api";
+import type { BookingAddonQuantityFieldName } from "#/domain/booking/addon-quantities";
+import type { BookingFormValues } from "#studio/features/booking-form/lib/booking-form-model";
 import type { BookingAddonQuantitiesArgs } from "#convex/lib/booking/bookingAddonQuantities";
 import type { PackageCalendarDetails } from "#convex/lib/googleCalendar/packageCalendarDetails";
 import type { toPackageCalendarDetails } from "#convex/lib/packages/packageScheduling";
@@ -52,4 +57,14 @@ export type UpdateActionCoversEveryQuantity = Expect<CoversAllQuantityKeys<Updat
 
 export type PackageProjectionCoversEveryQuantity = Expect<
 	CoversAllQuantityKeys<PackageProjectionDetails>
+>;
+
+export type FormAcceptsEveryQuantityField = Expect<
+	Exclude<BookingAddonQuantityFieldName, keyof BookingFormValues> extends never ? true : false
+>;
+
+export type ConvexAcceptsEveryQuantityField = Expect<
+	Exclude<BookingAddonQuantityFieldName, keyof BookingAddonQuantitiesArgs> extends never
+		? true
+		: false
 >;

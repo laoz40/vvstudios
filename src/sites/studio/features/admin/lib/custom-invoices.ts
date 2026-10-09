@@ -1,10 +1,8 @@
-import { formatEditingAddonList } from "#studio/features/booking-form/lib/editing-addon-quantities";
-import type {
-	BookingAddon,
-	BookingAddonQuantities
-} from "#studio/features/booking-form/lib/booking-form-model";
-import { pickBookingAddonQuantities } from "#studio/features/booking-form/lib/booking-form-model";
-import { DURATION_PRICES } from "#studio/features/booking-form/lib/booking-pricing";
+import { formatEditingAddonList } from "#/domain/booking/addon-quantities";
+import type { BookingAddon } from "#/domain/booking/catalog";
+import type { BookingAddonQuantities } from "#/domain/booking/addon-quantities";
+import { pickBookingAddonQuantities } from "#/domain/booking/addon-quantities";
+import { DURATION_PRICES } from "#/domain/booking/price-constants";
 import { BOOKING_DEPOSIT_AMOUNT } from "#studio/features/booking-invoice/lib/constants";
 import { getAddonAmount } from "#studio/features/booking-invoice/lib/calculate-booking-invoice-amounts";
 import type { BookingDuration } from "#studio/features/booking-invoice/lib/types";

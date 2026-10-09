@@ -11,8 +11,8 @@
  *    Package checkout totals must match stored package pricing for the same configuration.
  */
 import { describe, expect, test } from "vitest";
-import { calculatePackageAmounts } from "#studio/features/booking-form/lib/booking-pricing";
-import type { BookingAddon } from "#studio/features/booking-form/lib/booking-form-model";
+import { calculatePackageAmounts } from "#/domain/booking/pricing";
+import type { BookingAddon } from "#/domain/booking/catalog";
 import {
 	buildPackageCheckoutLineItems,
 	buildSessionCheckoutLineItems,

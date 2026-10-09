@@ -1,15 +1,12 @@
-import { getEditingAddonQuantity } from "#studio/features/booking-form/lib/editing-addon-quantities";
+import { getEditingAddonQuantity } from "#/domain/booking/addon-quantities";
 import {
 	hasEditingAddon,
 	pickBookingAddonQuantities,
-	type BookingAddon,
 	type BookingAddonQuantities
-} from "#studio/features/booking-form/lib/booking-form-model";
-import {
-	buildAddonPricedLine,
-	getSessionPriceAmounts
-} from "#studio/features/booking-form/lib/billable-line-items";
-import { BOOKING_INVOICE_CURRENCY } from "#studio/features/booking-form/lib/booking-pricing";
+} from "#/domain/booking/addon-quantities";
+import { type BookingAddon } from "#/domain/booking/catalog";
+import { buildAddonPricedLine, getSessionPriceAmounts } from "#/domain/booking/billable-line-items";
+import { BOOKING_INVOICE_CURRENCY } from "#/domain/booking/price-constants";
 import { BOOKING_DEPOSIT_AMOUNT } from "#studio/features/booking-invoice/lib/constants";
 import type { BookingInvoiceMoneyAmounts } from "#studio/features/booking-invoice/lib/types";
 

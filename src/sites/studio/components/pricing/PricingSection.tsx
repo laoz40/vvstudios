@@ -16,10 +16,8 @@ import { studioSite } from "#/config/sites";
 import { cn } from "#/lib/utils";
 import { ImageViewer, ImageViewerTrigger } from "#studio/components/photos/ImageViewer";
 import { manAndWomanPhoto, timelinePhoto, type PhotoGalleryImage } from "#studio/content/photos";
-import {
-	ADDON_PRICES,
-	formatBookingPrice
-} from "#studio/features/booking-form/lib/booking-pricing";
+import { ADDON_PRICES } from "#/domain/booking/price-constants";
+import { formatBookingPrice } from "#studio/features/booking-form/lib/booking-pricing";
 import {
 	landingSectionHeadingClassName,
 	landingSectionLeadClassName,

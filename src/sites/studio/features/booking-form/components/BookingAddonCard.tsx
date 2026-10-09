@@ -7,16 +7,12 @@ import {
 	getCardStateClassName,
 	transitionClassName
 } from "#studio/features/booking-form/lib/booking-form-styles";
-import type { BookingAddon } from "#studio/features/booking-form/lib/booking-form-model";
-import {
-	BOOKING_ADDON_QUANTITY_FIELD_CONFIG,
-	isQuantityTrackedAddon,
-	getCustomerAddonDisplayLabel
-} from "#studio/features/booking-form/lib/booking-form-model";
-import {
-	ADDON_PRICES,
-	formatBookingPrice
-} from "#studio/features/booking-form/lib/booking-pricing";
+import type { BookingAddon } from "#/domain/booking/catalog";
+import { BOOKING_ADDON_QUANTITY_FIELD_CONFIG } from "#studio/features/booking-form/lib/booking-form-model";
+import { isQuantityTrackedAddon } from "#/domain/booking/addon-quantities";
+import { getCustomerAddonDisplayLabel } from "#/domain/booking/catalog";
+import { ADDON_PRICES } from "#/domain/booking/price-constants";
+import { formatBookingPrice } from "#studio/features/booking-form/lib/booking-pricing";
 import { toOptionId } from "#studio/lib/bookingdatetime";
 import {
 	Globe,

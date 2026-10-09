@@ -7,11 +7,11 @@ import type { BookingAvailabilityPickerState } from "#studio/features/booking-fo
 import { usePackageCalendarBusyWindows } from "#studio/features/booking-form/hooks/usePackageCalendarBusyWindows";
 import {
 	getBookingTimeSelectionMessage,
-	isAddonAvailableForService,
 	recordingSpaceSchema,
 	type BookingFormValues,
 	type BookingTimeSelectionMessage
 } from "#studio/features/booking-form/lib/booking-form-model";
+import { isAddonAvailableForService } from "#/domain/booking/catalog";
 import {
 	excludeBusyEvent,
 	getBookableAvailableTimes,

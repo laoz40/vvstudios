@@ -11,7 +11,7 @@ import Stripe from "stripe";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { bookingDocument, packageDocument } from "#convex/tests/insertDocumentDefaults";
 import { api } from "#convex/_generated/api";
-import type { BookingAddon } from "#studio/features/booking-form/lib/booking-form-model";
+import type { BookingAddon } from "#/domain/booking/catalog";
 import { createConvexTest } from "#convex/test.setup";
 
 const now = Date.parse("2030-01-10T00:00:00.000Z");

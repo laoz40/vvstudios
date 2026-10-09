@@ -1,11 +1,9 @@
 import { Store } from "@tanstack/react-store";
 import { createContext, useContext } from "react";
-import {
-	toDeliverableCountOption,
-	type BookingAddonQuantities,
-	type BookingFormValues
-} from "#studio/features/booking-form/lib/booking-form-model";
-import type { PackageSize } from "#studio/features/booking-form/lib/booking-pricing";
+import { toDeliverableCountOption } from "#/domain/booking/catalog";
+import { type BookingAddonQuantities } from "#/domain/booking/addon-quantities";
+import { type BookingFormValues } from "#studio/features/booking-form/lib/booking-form-model";
+import type { PackageSize } from "#/domain/booking/price-constants";
 import type { AdminPackageRow } from "#studio/features/admin/lib/admin-packages";
 import { toAdminSessionDuration } from "#studio/features/admin/lib/admin-sessions";
 import { getSydneyDateValue, getSydneyTimeValue } from "#studio/lib/bookingdatetime";

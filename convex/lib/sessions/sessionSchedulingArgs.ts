@@ -1,7 +1,7 @@
 import type { Id } from "#convex/_generated/dataModel";
 import type { AdminSessionUpdateArgs } from "#convex/lib/sessions/sessionAdminEdit";
 import type { SessionReservation } from "#convex/lib/sessions/sessionReservations";
-import type { BookingAddon } from "#studio/features/booking-form/lib/booking-form-model";
+import type { BookingAddon } from "#/domain/booking/catalog";
 
 export type SaveAdminSessionUpdateArgs = AdminSessionUpdateArgs & {
 	googleCalendarId?: string;

@@ -23,7 +23,7 @@ import { getPackageFromDb } from "#convex/services/packages/packageLookup";
 import { okOrThrow } from "#convex/lib/result";
 import { recordPackageAdjustmentStripeInvoice } from "#convex/lib/stripe/stripeInvoices";
 import { requirePermission } from "#convex/services/auth";
-import { getCustomerAddonDisplayLabel } from "#studio/features/booking-form/lib/booking-form-model";
+import { getCustomerAddonDisplayLabel } from "#/domain/booking/catalog";
 
 export type ClaimPackageAdjustmentInvoiceEmailArgs = PackageAdjustmentEmailClaim & {
 	adjustmentId: Id<"packageAdjustments">;

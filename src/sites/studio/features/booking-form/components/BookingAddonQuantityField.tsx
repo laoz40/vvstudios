@@ -5,10 +5,9 @@ import { useBookingFormContext } from "#studio/features/booking-form/lib/booking
 import {
 	BOOKING_ADDON_QUANTITY_FIELD_CONFIG,
 	bookingFieldBlurValidator,
-	DELIVERABLE_COUNT_OPTIONS,
-	isDeliverableCountOption,
 	toFieldErrorObjects
 } from "#studio/features/booking-form/lib/booking-form-model";
+import { DELIVERABLE_COUNT_OPTIONS, isDeliverableCountOption } from "#/domain/booking/catalog";
 import { getRevealMotionProps } from "#studio/features/booking-form/lib/booking-form-styles";
 
 type BookingAddonQuantityFieldProps = {

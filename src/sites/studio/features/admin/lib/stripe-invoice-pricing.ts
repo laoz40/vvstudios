@@ -5,16 +5,16 @@ import {
 	DURATION_OPTIONS,
 	getCustomerAddonDisplayLabel,
 	isDurationOption,
-	isQuantityTrackedAddon,
 	type BookingAddon
-} from "#studio/features/booking-form/lib/booking-form-model";
+} from "#/domain/booking/catalog";
+import { isQuantityTrackedAddon } from "#/domain/booking/addon-quantities";
 import {
 	getAvailableDurationUpgradeOptions,
 	buildAddonBillableLine,
 	buildDurationUpgradeBillableLine,
 	type BillableSessionScope
-} from "#studio/features/booking-form/lib/billable-line-items";
-import { ADDON_PRICES } from "#studio/features/booking-form/lib/booking-pricing";
+} from "#/domain/booking/billable-line-items";
+import { ADDON_PRICES } from "#/domain/booking/price-constants";
 import type { ParsedStripeInvoiceLineItem } from "#studio/features/admin/lib/stripe-invoice-line-items";
 
 const DURATION_UPGRADE_SELECTION_PREFIX = "duration_upgrade:";

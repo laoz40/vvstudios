@@ -10,7 +10,7 @@ import { bookingDocument } from "#convex/tests/insertDocumentDefaults";
 import { makeFunctionReference } from "convex/server";
 import { describe, expect, test } from "vitest";
 import type { Id } from "#convex/_generated/dataModel";
-import type { BookingAddon } from "#studio/features/booking-form/lib/booking-form-model";
+import type { BookingAddon } from "#/domain/booking/catalog";
 import { createConvexTest } from "#convex/test.setup";
 
 type TestClient = ReturnType<typeof createConvexTest>;

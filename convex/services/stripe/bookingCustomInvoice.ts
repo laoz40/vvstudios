@@ -2,7 +2,7 @@ import type { Id } from "#convex/_generated/dataModel";
 import type { Doc } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
 import type { BookingAddonQuantitiesArgs } from "#convex/lib/booking/bookingAddonQuantities";
-import type { BookingAddon } from "#studio/features/booking-form/lib/booking-form-model";
+import type { BookingAddon } from "#/domain/booking/catalog";
 import { requirePermission } from "#convex/services/auth";
 import {
 	getCustomInvoiceRow,

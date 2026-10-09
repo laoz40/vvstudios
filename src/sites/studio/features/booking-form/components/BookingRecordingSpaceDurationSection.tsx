@@ -11,14 +11,12 @@ import {
 } from "#studio/features/booking-form/lib/booking-form-styles";
 import {
 	bookingFieldBlurValidator,
-	isDurationOption,
 	toFieldErrorObjects,
 	type BookingFormValues
 } from "#studio/features/booking-form/lib/booking-form-model";
-import {
-	DURATION_PRICES,
-	formatBookingPrice
-} from "#studio/features/booking-form/lib/booking-pricing";
+import { isDurationOption } from "#/domain/booking/catalog";
+import { DURATION_PRICES } from "#/domain/booking/price-constants";
+import { formatBookingPrice } from "#studio/features/booking-form/lib/booking-pricing";
 import { syncAddonsForService } from "#studio/features/booking-form/lib/sync-addons-for-service";
 import { toOptionId } from "#studio/lib/bookingdatetime";
 import { cn } from "#/lib/utils";

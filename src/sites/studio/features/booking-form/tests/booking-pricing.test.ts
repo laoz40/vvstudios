@@ -11,9 +11,9 @@
  *    getBookingTotal matches calculateBookingReceiptAmounts for the same configuration.
  */
 import { describe, expect, test } from "vitest";
-import type { BookingAddon } from "#studio/features/booking-form/lib/booking-form-model";
+import type { BookingAddon } from "#/domain/booking/catalog";
 import { calculateBookingReceiptAmounts } from "#studio/features/booking-invoice/lib/calculate-booking-receipt-amounts";
-import { getBookingTotal } from "#studio/features/booking-form/lib/booking-pricing";
+import { getBookingTotal } from "#/domain/booking/pricing";
 
 const emptyAddons: BookingAddon[] = [];
 

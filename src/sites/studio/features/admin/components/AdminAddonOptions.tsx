@@ -11,9 +11,9 @@ import {
 } from "#studio/features/admin/lib/admin-addon-line-items";
 import {
 	pickBookingAddonQuantities,
-	type BookingAddonQuantities,
-	type BookingFormValues
-} from "#studio/features/booking-form/lib/booking-form-model";
+	type BookingAddonQuantities
+} from "#/domain/booking/addon-quantities";
+import { type BookingFormValues } from "#studio/features/booking-form/lib/booking-form-model";
 
 export type AdminAddonOptionsProps = {
 	addons: BookingFormValues["addons"];

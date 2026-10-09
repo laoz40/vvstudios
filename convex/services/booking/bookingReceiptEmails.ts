@@ -17,7 +17,7 @@ import {
 	sendPackageReceiptCustomerEmail
 } from "#convex/lib/booking/bookingReceiptEmailPipeline";
 import { formatTimestampDateLong } from "#convex/lib/email/emailSend";
-import { pickBookingAddonQuantities } from "#studio/features/booking-form/lib/booking-form-model";
+import { pickBookingAddonQuantities } from "#/domain/booking/addon-quantities";
 import {
 	sendPackageHostDetailsEmail,
 	sendSessionHostDetailsEmail

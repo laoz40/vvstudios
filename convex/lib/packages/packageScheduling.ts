@@ -9,16 +9,11 @@ import { checkSessionMeetsAvailabilitySettings } from "#convex/lib/sessions/sess
 import type { GoogleCalendarWriteError } from "#convex/lib/googleCalendar/googleCalendarErrors";
 import type { BookingSubmitRateLimitError } from "#convex/lib/rateLimits";
 import type { SessionCalendarEventRecord } from "#convex/lib/sessions/sessionCalendarEventPayload";
-import {
-	getPackageSessionAddons,
-	isDurationOption,
-	pickBookingAddonQuantities,
-	type BookingFormValues
-} from "#studio/features/booking-form/lib/booking-form-model";
-import {
-	getPackageExpiresAt,
-	type PackageSize
-} from "#studio/features/booking-form/lib/booking-pricing";
+import { getPackageSessionAddons, isDurationOption } from "#/domain/booking/catalog";
+import { pickBookingAddonQuantities } from "#/domain/booking/addon-quantities";
+import type { BookingService } from "#/domain/booking/catalog";
+import { getPackageExpiresAt } from "#/domain/booking/pricing";
+import { type PackageSize } from "#/domain/booking/price-constants";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { QueryCtx, MutationCtx } from "#convex/_generated/server";
 import { env } from "#convex/env";
@@ -233,12 +228,7 @@ export function toPackageCalendarSession(session: Doc<"bookings">): SessionCalen
 }
 
 export function toPackageCalendarDetails(
-	args: {
-		date: string;
-		time: string;
-		service: Exclude<BookingFormValues["service"], "">;
-		remotePodcast: boolean;
-	},
+	args: { date: string; time: string; service: BookingService; remotePodcast: boolean },
 	packageRecord: ValidPackage,
 	eventBufferMinutes: number
 ) {

@@ -1,6 +1,6 @@
 import { err, ok, Result } from "neverthrow";
 import type { Doc } from "#convex/_generated/dataModel";
-import { getBookingTotal } from "#studio/features/booking-form/lib/booking-pricing";
+import { getBookingTotal } from "#/domain/booking/pricing";
 import { bookingSchema } from "#studio/features/booking-form/lib/booking-form-model";
 import { buildAdminSessionUpdatePatch } from "#convex/lib/sessions/sessionAdminEdit";
 import {

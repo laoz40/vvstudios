@@ -3,10 +3,12 @@ import { tupleErr, tupleOk, type Result } from "#/lib/result";
 import { toAdminSessionDuration } from "#studio/features/admin/lib/admin-sessions";
 import {
 	bookingSchema,
-	pickBookingAddonQuantities,
-	type BookingAddonQuantities,
 	type BookingFormValues
 } from "#studio/features/booking-form/lib/booking-form-model";
+import {
+	pickBookingAddonQuantities,
+	type BookingAddonQuantities
+} from "#/domain/booking/addon-quantities";
 import type { BookingService } from "#studio/features/booking-invoice/lib/types";
 
 export type DownloadAdminBookingInvoiceInput = {

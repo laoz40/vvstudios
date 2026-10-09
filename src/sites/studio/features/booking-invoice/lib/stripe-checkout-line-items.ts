@@ -1,20 +1,17 @@
 import { err, ok, type Result } from "neverthrow";
 import {
 	pickBookingAddonQuantities,
-	type BookingAddon,
 	type BookingAddonQuantities
-} from "#studio/features/booking-form/lib/booking-form-model";
+} from "#/domain/booking/addon-quantities";
+import { type BookingAddon } from "#/domain/booking/catalog";
 import {
 	buildPackagePriceLines,
 	buildSessionPriceLines,
 	isBookingDuration
-} from "#studio/features/booking-form/lib/billable-line-items";
-import {
-	BOOKING_INVOICE_CURRENCY,
-	calculatePackageAmounts,
-	getBookingAddonQuantity,
-	type PackageSize
-} from "#studio/features/booking-form/lib/booking-pricing";
+} from "#/domain/booking/billable-line-items";
+import { BOOKING_INVOICE_CURRENCY, type PackageSize } from "#/domain/booking/price-constants";
+import { calculatePackageAmounts } from "#/domain/booking/pricing";
+import { getBookingAddonQuantityForForm as getBookingAddonQuantity } from "#/domain/booking/addon-quantities";
 
 export type SessionCheckoutLineItem = {
 	quantity: number;

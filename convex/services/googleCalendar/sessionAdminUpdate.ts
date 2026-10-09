@@ -23,7 +23,7 @@ import {
 } from "#convex/lib/googleCalendar/googleCalendarErrors";
 import { tryPromise } from "#convex/lib/result";
 import type { SaveAdminSessionUpdateArgs } from "#convex/lib/sessions/sessionSchedulingArgs";
-import { pickBookingAddonQuantities } from "#studio/features/booking-form/lib/booking-form-model";
+import { pickBookingAddonQuantities } from "#/domain/booking/addon-quantities";
 import { removeOrphanedSessionCalendarEvent } from "#convex/lib/googleCalendar/googleCalendarEventCalls";
 import { buildSessionCalendarEventPayload } from "#convex/lib/sessions/sessionCalendarEventPayload";
 import type { SessionAvailabilitySettings } from "#convex/lib/sessions/sessionCalendarTime";

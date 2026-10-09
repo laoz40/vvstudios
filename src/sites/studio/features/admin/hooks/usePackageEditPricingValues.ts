@@ -2,7 +2,7 @@ import { useSelector } from "@tanstack/react-store";
 import {
 	pickBookingAddonQuantities,
 	type BookingAddonQuantities
-} from "#studio/features/booking-form/lib/booking-form-model";
+} from "#/domain/booking/addon-quantities";
 import {
 	usePackageEditDraftStore,
 	type PackageEditDraft

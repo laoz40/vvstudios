@@ -8,10 +8,8 @@ import { tryCatch, type UnexpectedError } from "#/lib/result";
 import type { PackageEditDraft } from "#studio/features/admin/lib/package-edit-draft-store";
 import type { AdminPackageRow } from "#studio/features/admin/lib/admin-packages";
 import { getPackageEditWarningState } from "#studio/features/admin/lib/package-edit-warnings";
-import {
-	packageFormSchema,
-	pickBookingAddonQuantities
-} from "#studio/features/booking-form/lib/booking-form-model";
+import { packageFormSchema } from "#studio/features/booking-form/lib/booking-form-model";
+import { pickBookingAddonQuantities } from "#/domain/booking/addon-quantities";
 import { getBookingStartTimestamp } from "#studio/lib/bookingdatetime";
 
 type UpdatePackageFromAdminResult = FunctionReturnType<typeof api.packages.updatePackageFromAdmin>;

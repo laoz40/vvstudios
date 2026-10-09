@@ -1,4 +1,4 @@
-import { BOOKING_ADDON_QUANTITY_FIELD_NAMES } from "#studio/features/booking-form/lib/booking-form-model";
+import { BOOKING_ADDON_QUANTITY_FIELD_NAMES } from "#/domain/booking/addon-quantities";
 
 const BOOKING_FORM_ERROR_FIELD_ORDER = [
 	"bookingMode",

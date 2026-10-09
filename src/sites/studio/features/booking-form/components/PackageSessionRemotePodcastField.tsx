@@ -1,9 +1,7 @@
 import { Switch } from "#/components/ui/switch";
 import { cn } from "#/lib/utils";
-import {
-	ADDON_PRICES,
-	formatBookingPrice
-} from "#studio/features/booking-form/lib/booking-pricing";
+import { ADDON_PRICES } from "#/domain/booking/price-constants";
+import { formatBookingPrice } from "#studio/features/booking-form/lib/booking-pricing";
 
 export function PackageSessionRemotePodcastField({
 	checked,

@@ -3,7 +3,7 @@ import { internal } from "#convex/_generated/api";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { ActionCtx } from "#convex/_generated/server";
 import type { PackageLookupError } from "#convex/lib/packages/packageLookup";
-import { calculatePackageAmounts } from "#studio/features/booking-form/lib/booking-pricing";
+import { calculatePackageAmounts } from "#/domain/booking/pricing";
 import { createPackageInvoiceLineItemSnapshot } from "#studio/features/booking-invoice/lib/build-booking-invoice-data";
 import type { PackageInvoiceInput } from "#studio/features/booking-invoice/lib/booking-artifacts";
 import type { ParsedPackageRequest } from "#convex/lib/packages/packageUpdates";

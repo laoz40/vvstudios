@@ -12,7 +12,7 @@
  */
 import { describe, expect, test } from "vitest";
 import type { Doc } from "#convex/_generated/dataModel";
-import type { BookingAddon } from "#studio/features/booking-form/lib/booking-form-model";
+import type { BookingAddon } from "#/domain/booking/catalog";
 import {
 	buildAdminSessionUpdatePatch,
 	didSessionTimingChange,

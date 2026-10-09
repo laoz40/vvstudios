@@ -4,10 +4,8 @@ import type { UpdateSessionFromAdminError } from "#convex/services/googleCalenda
 import { tryCatch, type Result, type UnexpectedError } from "#/lib/result";
 import type { SessionEditDraft } from "#studio/features/admin/components/SessionEditDialog";
 import type { SessionRecord } from "#studio/features/admin/lib/admin-sessions";
-import {
-	bookingSchema,
-	pickBookingAddonQuantities
-} from "#studio/features/booking-form/lib/booking-form-model";
+import { bookingSchema } from "#studio/features/booking-form/lib/booking-form-model";
+import { pickBookingAddonQuantities } from "#/domain/booking/addon-quantities";
 
 type SessionUpdateError = UpdateSessionFromAdminError | UnexpectedError;
 

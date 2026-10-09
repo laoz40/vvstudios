@@ -1,13 +1,11 @@
 import { err, errAsync, ok, okAsync, type ResultAsync } from "neverthrow";
 import { packageFormSchema } from "#studio/features/booking-form/lib/booking-form-model";
-import {
-	calculatePackageAmounts,
-	type PackageSize
-} from "#studio/features/booking-form/lib/booking-pricing";
+import { calculatePackageAmounts } from "#/domain/booking/pricing";
+import { type PackageSize } from "#/domain/booking/price-constants";
 import { createPackageInvoiceLineItemSnapshot } from "#studio/features/booking-invoice/lib/build-booking-invoice-data";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { BookingAddonQuantitiesArgs } from "#convex/lib/booking/bookingAddonQuantities";
-import type { BookingAddon } from "#studio/features/booking-form/lib/booking-form-model";
+import type { BookingAddon } from "#/domain/booking/catalog";
 import { getPackageUpdateValidationError } from "#convex/lib/packages/packageScheduling";
 import {
 	buildPackageSearchBlob,

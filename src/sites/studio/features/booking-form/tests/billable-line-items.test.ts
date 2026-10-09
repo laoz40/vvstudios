@@ -15,8 +15,8 @@ import {
 	buildAddonPricedLine,
 	buildDurationUpgradeBillableLine,
 	buildStudioHirePricedLine
-} from "#studio/features/booking-form/lib/billable-line-items";
-import { getBookingTotal } from "#studio/features/booking-form/lib/booking-pricing";
+} from "#/domain/booking/billable-line-items";
+import { getBookingTotal } from "#/domain/booking/pricing";
 
 const sessionScope = { sessionCount: 1 as const };
 
