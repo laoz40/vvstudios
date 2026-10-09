@@ -327,6 +327,10 @@
 			}
 		},
 		{
+			"files": ["convex/**/*.ts"],
+			"rules": { "convex-layers/no-drive-state-write-outside-owner": "error" }
+		},
+		{
 			"files": ["**/*.ts", "**/*.tsx", "**/*.mts", "**/*.cts"],
 			"rules": {
 				"constructor-super": "off",

@@ -6,6 +6,9 @@
  *
  * 2. Session folder idempotency
  *    Repeated session folder saves keep the first folder id on the driveSessions row.
+ *
+ * 3. Email claim recovery
+ *    Stale client and editor failures cannot replace newer successful sends or claim another send.
  */
 import { describe, expect, test } from "vitest";
 import { bookingDocument } from "#convex/tests/insertDocumentDefaults";
@@ -256,6 +259,119 @@ describe("drive setup guards", () => {
 		});
 		expect(await readBooking(t, bookingId)).toMatchObject({ driveClientId });
 	});
+
+	test("stale client assets email failure keeps the newer sent result and blocks another claim", async () => {
+		const t = createConvexTest();
+		const { bookingId } = await seedAssetsEmailSetup(t);
+		const firstClaimAt = now;
+		const secondClaimAt = firstClaimAt + 15 * 60 * 1000 + 1;
+
+		const [, firstClaim] = await t.mutation(internal.sessionsDriveInternal.claimClientAssetsEmail, {
+			bookingId,
+			attempt: "retry",
+			now: firstClaimAt
+		});
+
+		if (firstClaim === null) throw new Error("Expected first email claim");
+
+		const [, secondClaim] = await t.mutation(
+			internal.sessionsDriveInternal.claimClientAssetsEmail,
+			{ bookingId, attempt: "retry", now: secondClaimAt }
+		);
+
+		if (secondClaim === null) throw new Error("Expected replacement email claim");
+
+		expect(
+			await t.mutation(internal.sessionsDriveInternal.saveClientAssetsEmailResult, {
+				bookingId,
+				assetsFolderId: "assets-1",
+				claimedAt: secondClaim.claimedAt,
+				status: "sent"
+			})
+		).toEqual([null, null]);
+		expect(
+			await t.mutation(internal.sessionsDriveInternal.saveClientAssetsEmailResult, {
+				bookingId,
+				assetsFolderId: "assets-1",
+				claimedAt: firstClaim.claimedAt,
+				status: "failed"
+			})
+		).toEqual([null, null]);
+
+		const [error, status] = await t.query(internal.sessionsDriveInternal.getDriveSetup, {
+			bookingId
+		});
+
+		expect(error).toBeNull();
+		expect(status?.driveSession).toMatchObject({
+			assetsEmailFolderId: "assets-1",
+			assetsEmailStatus: "sent"
+		});
+		expect(status?.driveSession?.assetsEmailClaimedAt).toBeUndefined();
+		expect(
+			await t.mutation(internal.sessionsDriveInternal.claimClientAssetsEmail, {
+				bookingId,
+				attempt: "retry",
+				now: secondClaimAt + 1
+			})
+		).toEqual([{ reason: "CLIENT_ASSETS_EMAIL_NOT_SENDABLE" }, null]);
+	});
+
+	test("stale editor assignment email failure keeps the newer sent result and blocks another claim", async () => {
+		const t = createConvexTest();
+		const { bookingId, editorTokenIdentifier } = await seedEditorEmailSetup(t);
+		const firstClaimAt = now;
+		const secondClaimAt = firstClaimAt + 15 * 60 * 1000 + 1;
+
+		const [, firstClaim] = await t.mutation(
+			internal.sessionsDriveInternal.claimEditorAssignmentEmail,
+			{ bookingId, editorTokenIdentifier, now: firstClaimAt }
+		);
+
+		if (firstClaim === null) throw new Error("Expected first editor email claim");
+
+		const [, secondClaim] = await t.mutation(
+			internal.sessionsDriveInternal.claimEditorAssignmentEmail,
+			{ bookingId, editorTokenIdentifier, now: secondClaimAt }
+		);
+
+		if (secondClaim === null) throw new Error("Expected replacement editor email claim");
+
+		expect(
+			await t.mutation(internal.sessionsDriveInternal.saveEditorAssignmentEmailResult, {
+				bookingId,
+				claimedAt: secondClaim.claimedAt,
+				editorTokenIdentifier,
+				status: "sent"
+			})
+		).toEqual([null, null]);
+		expect(
+			await t.mutation(internal.sessionsDriveInternal.saveEditorAssignmentEmailResult, {
+				bookingId,
+				claimedAt: firstClaim.claimedAt,
+				editorTokenIdentifier,
+				status: "failed"
+			})
+		).toEqual([null, null]);
+
+		const [error, status] = await t.query(internal.sessionsDriveInternal.getDriveSetup, {
+			bookingId
+		});
+
+		expect(error).toBeNull();
+		expect(status?.driveSession).toMatchObject({
+			assignmentEmailStatus: "sent",
+			assignmentEmailTokenIdentifier: editorTokenIdentifier
+		});
+		expect(status?.driveSession?.assignmentEmailClaimedAt).toBeUndefined();
+		expect(
+			await t.mutation(internal.sessionsDriveInternal.claimEditorAssignmentEmail, {
+				bookingId,
+				editorTokenIdentifier,
+				now: secondClaimAt + 1
+			})
+		).toEqual([{ reason: "EDITOR_ASSIGNMENT_EMAIL_NOT_SENDABLE" }, null]);
+	});
 });
 
 async function createDriveClient(t: TestClient, client: { email: string; displayName: string }) {
@@ -270,6 +386,102 @@ async function createDriveClient(t: TestClient, client: { email: string; display
 
 async function seedBooking(t: TestClient) {
 	return await seedStandaloneBooking(t, { email: "customer@example.com", sessionStartAt });
+}
+
+async function seedAssetsEmailSetup(t: TestClient) {
+	return await t.run(async (ctx) => {
+		const driveClientId = await ctx.db.insert("driveClients", {
+			normalizedEmail: "customer@example.com",
+			displayName: "Test customer - Test account",
+			assetsFolder: { id: "assets-1", url: "https://drive.example/assets-1" },
+			createdAt: now
+		});
+
+		const bookingId = await ctx.db.insert(
+			"bookings",
+			bookingDocument({
+				name: "Test customer",
+				phone: "0400000000",
+				accountName: "Test account",
+				email: "customer@example.com",
+				date: "2030-01-10",
+				time: "10:00",
+				sessionStartAt,
+				duration: "1h",
+				service: "Remote Podcast",
+				addons: ["Complete Edit"],
+				status: "confirmed",
+				archived: false,
+				pendingPaymentCreatedAt: now,
+				driveClientId
+			})
+		);
+
+		await ctx.db.insert("driveSessions", {
+			bookingId,
+			driveClientId,
+			clientDrivePermissionsStatus: "ready",
+			createdAt: now,
+			updatedAt: now
+		});
+
+		return { bookingId, driveClientId };
+	});
+}
+
+async function seedEditorEmailSetup(t: TestClient) {
+	const editorTokenIdentifier = "https://clerk.example|drive-editor";
+
+	const bookingId = await t.run(async (ctx) => {
+		const driveClientId = await ctx.db.insert("driveClients", {
+			normalizedEmail: "customer@example.com",
+			displayName: "Test customer - Test account",
+			createdAt: now
+		});
+
+		await ctx.db.insert("editorProfiles", {
+			tokenIdentifier: editorTokenIdentifier,
+			displayName: "Drive Editor",
+			email: "editor@example.com",
+			isActive: true,
+			lastAssignedAt: null,
+			totalEdits: 0
+		});
+
+		const newBookingId = await ctx.db.insert(
+			"bookings",
+			bookingDocument({
+				name: "Test customer",
+				phone: "0400000000",
+				accountName: "Test account",
+				email: "customer@example.com",
+				date: "2030-01-10",
+				time: "10:00",
+				sessionStartAt,
+				duration: "1h",
+				service: "Remote Podcast",
+				addons: [],
+				status: "confirmed",
+				archived: false,
+				pendingPaymentCreatedAt: now,
+				driveClientId,
+				assignedEditorTokenIdentifier: editorTokenIdentifier
+			})
+		);
+
+		await ctx.db.insert("driveSessions", {
+			bookingId: newBookingId,
+			driveClientId,
+			editorDrivePermissionsStatus: "ready",
+			editorDrivePermissionsTokenIdentifier: editorTokenIdentifier,
+			createdAt: now,
+			updatedAt: now
+		});
+
+		return newBookingId;
+	});
+
+	return { bookingId, editorTokenIdentifier };
 }
 
 async function seedStandaloneBooking(
