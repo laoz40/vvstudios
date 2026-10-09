@@ -12,6 +12,12 @@
  *
  * 4. receipt prefix on sessions
  *    Finds bookings by receipt number via the receipt index.
+ *
+ * 5. search cursor continuation
+ *    Reads every match once across bounded pages and resets for a different query.
+ *
+ * 6. ordinary list cursor continuation
+ *    Keeps the requested server ordering across pages.
  */
 import { describe, expect, test } from "vitest";
 import { api } from "#convex/_generated/api";
@@ -26,6 +32,106 @@ const adminSearchPaginationOpts = { cursor: null, numItems: 40 };
 const adminIdentity = { publicMetadata: { role: "admin" } };
 
 describe("admin list search", () => {
+	test("keeps ordinary session pages in the requested descending order", async () => {
+		const t = createConvexTest();
+		await seedBooking(t, {
+			name: "Earlier",
+			email: "earlier@example.com",
+			sessionStartAt: 4_071_268_800_000
+		});
+		await seedBooking(t, {
+			name: "Latest",
+			email: "latest@example.com",
+			sessionStartAt: 4_071_441_600_000
+		});
+		await seedBooking(t, {
+			name: "Middle",
+			email: "middle@example.com",
+			sessionStartAt: 4_071_355_200_000
+		});
+		const admin = t.withIdentity(adminIdentity);
+
+		const first = await admin.query(api.sessions.listSessions, {
+			paginationOpts: { cursor: null, numItems: 2 },
+			view: "inbox",
+			sortBy: "session",
+			sortDirection: "desc"
+		});
+
+		expect(first.page.map((row) => row.name)).toEqual(["Latest", "Middle"]);
+		expect(first.isDone).toBe(false);
+
+		const last = await admin.query(api.sessions.listSessions, {
+			paginationOpts: { cursor: first.continueCursor, numItems: 2 },
+			view: "inbox",
+			sortBy: "session",
+			sortDirection: "desc"
+		});
+
+		expect(last.page.map((row) => row.name)).toEqual(["Earlier"]);
+		expect(last.isDone).toBe(true);
+	});
+
+	test("continues search pages without losing matches and starts a different search at its first page", async () => {
+		const t = createConvexTest();
+		await seedBooking(t, {
+			name: "Cursor first",
+			email: "first@example.com",
+			searchToken: "cursorbatch"
+		});
+		await seedBooking(t, {
+			name: "Cursor second",
+			email: "second@example.com",
+			searchToken: "cursorbatch"
+		});
+		await seedBooking(t, {
+			name: "Cursor third",
+			email: "third@example.com",
+			searchToken: "cursorbatch"
+		});
+		await seedBooking(t, {
+			name: "Different search",
+			email: "different@example.com",
+			searchToken: "differentbatch"
+		});
+		const admin = t.withIdentity(adminIdentity);
+
+		const first = await admin.query(api.sessions.listSessions, {
+			paginationOpts: { cursor: null, numItems: 2 },
+			view: "inbox",
+			searchQuery: "cursorbatch"
+		});
+
+		expect(first.page).toHaveLength(2);
+		expect(first.isDone).toBe(false);
+		expect("refineSearch" in first && first.refineSearch).toBe(true);
+
+		const last = await admin.query(api.sessions.listSessions, {
+			paginationOpts: { cursor: first.continueCursor, numItems: 2 },
+			view: "inbox",
+			searchQuery: "cursorbatch"
+		});
+
+		expect(last.page).toHaveLength(1);
+		expect(last.isDone).toBe(true);
+		expect("refineSearch" in last && last.refineSearch).toBe(false);
+		expect([...first.page, ...last.page].map((row) => row.name).toSorted()).toEqual([
+			"Cursor first",
+			"Cursor second",
+			"Cursor third"
+		]);
+
+		const changed = await admin.query(api.sessions.listSessions, {
+			paginationOpts: { cursor: null, numItems: 2 },
+			view: "inbox",
+			searchQuery: "differentbatch"
+		});
+
+		expect(changed.page.map((row) => row.name)).toEqual(["Different search"]);
+		expect(changed.isDone).toBe(true);
+		expect("refineSearch" in changed && changed.refineSearch).toBe(false);
+	});
+
 	test("phone prefix on sessions", async () => {
 		const t = createConvexTest();
 
