@@ -2,7 +2,7 @@ import { err, ok } from "neverthrow";
 import { okOrThrow } from "#convex/lib/result";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
-import { ADDON_PRICES } from "#studio/features/booking-form/lib/booking-pricing";
+import { ADDON_PRICES } from "#/domain/booking/price-constants";
 import { formatBookingInvoiceNumber } from "#studio/features/booking-invoice/lib/build-booking-invoice-data";
 
 const MILLISECONDS_PER_HOUR = 60 * 60 * 1000;

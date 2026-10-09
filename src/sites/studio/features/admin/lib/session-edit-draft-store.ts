@@ -1,11 +1,9 @@
 import { Store } from "@tanstack/react-store";
 import { createContext, useContext } from "react";
 import type { Doc } from "#convex/_generated/dataModel";
-import {
-	toDeliverableCountOption,
-	type BookingAddonQuantities,
-	type BookingFormValues
-} from "#studio/features/booking-form/lib/booking-form-model";
+import { toDeliverableCountOption } from "#/domain/booking/catalog";
+import { type BookingAddonQuantities } from "#/domain/booking/addon-quantities";
+import { type BookingFormValues } from "#studio/features/booking-form/lib/booking-form-model";
 import { toAdminSessionDuration } from "#studio/features/admin/lib/admin-sessions";
 
 type SessionRecord = Doc<"bookings">;

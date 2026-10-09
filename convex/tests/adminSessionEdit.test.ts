@@ -23,7 +23,7 @@ import { beforeEach, describe, expect, test, vi } from "vitest";
 import { bookingDocument } from "#convex/tests/insertDocumentDefaults";
 import { internal } from "#convex/_generated/api";
 import type { Id } from "#convex/_generated/dataModel";
-import type { BookingAddon } from "#studio/features/booking-form/lib/booking-form-model";
+import type { BookingAddon } from "#/domain/booking/catalog";
 import { SLOT_RESERVATION_TTL_MS } from "#convex/lib/sessions/sessionReservations";
 import { createConvexTest } from "#convex/test.setup";
 

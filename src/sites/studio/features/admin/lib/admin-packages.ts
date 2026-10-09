@@ -2,7 +2,7 @@ import { Check, ClockAlert, DollarSign, MailWarning, type LucideIcon } from "luc
 import { exhaustiveCheck } from "#/lib/result";
 import type { Doc } from "#convex/_generated/dataModel";
 import { isPackageArchived } from "#convex/lib/archiveState";
-import type { BookingAddon } from "#studio/features/booking-form/lib/booking-form-model";
+import type { BookingAddon } from "#/domain/booking/catalog";
 
 export type AdminPackageStatus = Doc<"packages">["status"];
 

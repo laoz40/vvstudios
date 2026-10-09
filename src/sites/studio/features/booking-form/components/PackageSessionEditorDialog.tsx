@@ -9,7 +9,7 @@ import { BookingNotesField } from "#studio/features/booking-form/components/Book
 import { PackageSessionRecordingSpaceField } from "#studio/features/booking-form/components/PackageSessionRecordingSpaceField";
 import { PackageSessionRemotePodcastField } from "#studio/features/booking-form/components/PackageSessionRemotePodcastField";
 import type { BookingFormValues } from "#studio/features/booking-form/lib/booking-form-model";
-import { isAddonAvailableForService } from "#studio/features/booking-form/lib/booking-form-model";
+import { isAddonAvailableForService } from "#/domain/booking/catalog";
 import type { FunctionReturnType } from "convex/server";
 import { api } from "#convex/_generated/api";
 

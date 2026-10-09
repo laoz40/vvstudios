@@ -1,7 +1,7 @@
 import { type ReactNode } from "react";
 import type { BookingStatus } from "#studio/components/booking/BookingCompleteDevScenarioPanel";
-import { pickBookingAddonQuantities } from "#studio/features/booking-form/lib/booking-form-model";
-import { formatEditingAddonList } from "#studio/features/booking-form/lib/editing-addon-quantities";
+import { pickBookingAddonQuantities } from "#/domain/booking/addon-quantities";
+import { formatEditingAddonList } from "#/domain/booking/addon-quantities";
 import { formatBookingDate, formatBookingTimeRange } from "#studio/lib/bookingdatetime";
 
 export type BookingDetailsData = Pick<

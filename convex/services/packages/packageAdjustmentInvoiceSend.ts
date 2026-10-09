@@ -17,8 +17,8 @@ import {
 } from "#convex/lib/stripe/stripeAdjustmentInvoice";
 import type { StripeApiFailure } from "#convex/lib/stripe/stripeApiErrors";
 import { getStripeClient, type StripeClient } from "#convex/lib/stripe/stripeClient";
-import { getCustomerAddonDisplayLabel } from "#studio/features/booking-form/lib/booking-form-model";
-import { BOOKING_INVOICE_CURRENCY } from "#studio/features/booking-form/lib/booking-pricing";
+import { getCustomerAddonDisplayLabel } from "#/domain/booking/catalog";
+import { BOOKING_INVOICE_CURRENCY } from "#/domain/booking/price-constants";
 
 export type SendPackageAdjustmentInvoiceArgs = {
 	adjustmentId: Id<"packageAdjustments">;

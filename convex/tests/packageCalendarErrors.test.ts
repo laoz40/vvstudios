@@ -10,7 +10,7 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { google } from "googleapis";
 import { internal } from "#convex/_generated/api";
-import type { BookingAddon } from "#studio/features/booking-form/lib/booking-form-model";
+import type { BookingAddon } from "#/domain/booking/catalog";
 import { createConvexTest } from "#convex/test.setup";
 
 const calendarEventRequestBodies: unknown[] = [];

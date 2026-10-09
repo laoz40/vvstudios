@@ -2,12 +2,8 @@ import {
 	DURATION_OPTIONS,
 	getCustomerAddonDisplayLabel,
 	type BookingAddon
-} from "#studio/features/booking-form/lib/booking-form-model";
-import {
-	ADDON_PRICES,
-	DURATION_PRICES,
-	type PackageSize
-} from "#studio/features/booking-form/lib/booking-price-constants";
+} from "#/domain/booking/catalog";
+import { ADDON_PRICES, DURATION_PRICES, type PackageSize } from "#/domain/booking/price-constants";
 
 type BookingDuration = (typeof DURATION_OPTIONS)[number];
 

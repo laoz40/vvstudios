@@ -1,9 +1,9 @@
 import {
 	pickBookingAddonQuantities,
-	type BookingAddon,
 	type BookingAddonQuantities
-} from "#studio/features/booking-form/lib/booking-form-model";
-import { getSessionPriceAmounts } from "#studio/features/booking-form/lib/billable-line-items";
+} from "#/domain/booking/addon-quantities";
+import { type BookingAddon } from "#/domain/booking/catalog";
+import { getSessionPriceAmounts } from "#/domain/booking/billable-line-items";
 import {
 	getAddonAmount,
 	getAddonQuantity

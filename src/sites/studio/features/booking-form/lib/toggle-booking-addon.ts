@@ -1,11 +1,11 @@
 import type { BookingFormApi } from "#studio/features/booking-form/lib/booking-form-context";
+import { forEachClearedAddonQuantityField } from "#/domain/booking/addon-quantities";
 import {
-	forEachClearedAddonQuantityField,
 	isClipVolumePackEditAddon,
 	resolveExclusiveAddonSelection,
 	satisfiesClipVolumePackEditRequirement,
 	type BookingAddon
-} from "#studio/features/booking-form/lib/booking-form-model";
+} from "#/domain/booking/catalog";
 import {
 	openClipsPackageDeselectedModal,
 	openClipsPackageRequirementModal

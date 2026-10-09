@@ -13,10 +13,8 @@ import type { DeliverablesEmailVariant } from "#studio/features/deliverables-ema
 import { formatBookingTimeRange } from "#studio/lib/bookingdatetime";
 import { formatDriveSessionMediaFolderName, getEditorEditDueAt } from "#studio/lib/bookingdatetime";
 import type { BookingAddonQuantitiesArgs } from "#convex/lib/booking/bookingAddonQuantities";
-import {
-	pickBookingAddonQuantities,
-	type BookingAddon
-} from "#studio/features/booking-form/lib/booking-form-model";
+import { pickBookingAddonQuantities } from "#/domain/booking/addon-quantities";
+import { type BookingAddon } from "#/domain/booking/catalog";
 import {
 	formatSessionDateLong,
 	formatSessionDateShort,

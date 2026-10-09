@@ -1,16 +1,20 @@
 import {
 	ADDON_OPTIONS,
-	ADDON_SECTIONS,
-	BOOKING_ADDON_QUANTITY_FIELD_CONFIG,
 	DELIVERABLE_COUNT_OPTIONS,
-	getClearedAddonQuantityUpdates,
 	isDeliverableCountOption,
+	resolveExclusiveAddonSelection,
+	type BookingAddon
+} from "#/domain/booking/catalog";
+import {
+	ADDON_SECTIONS,
+	BOOKING_ADDON_QUANTITY_FIELD_CONFIG
+} from "#studio/features/booking-form/lib/booking-form-model";
+import {
+	getClearedAddonQuantityUpdates,
 	isQuantityTrackedAddon,
 	pickBookingAddonQuantities,
-	resolveExclusiveAddonSelection,
-	type BookingAddon,
 	type BookingAddonQuantities
-} from "#studio/features/booking-form/lib/booking-form-model";
+} from "#/domain/booking/addon-quantities";
 
 export type AdminAddonLineItemDraft = { id: string; addon: BookingAddon | ""; quantity: string };
 

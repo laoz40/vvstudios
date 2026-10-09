@@ -5,10 +5,10 @@ import { api } from "#convex/_generated/api";
 import { loadBookingPaymentModal } from "#studio/features/booking-form/components/BookingModalHost";
 import {
 	packageFormSchema,
-	pickBookingAddonQuantities,
 	publicBookingSchema,
 	type BookingFormValues
 } from "#studio/features/booking-form/lib/booking-form-model";
+import { pickBookingAddonQuantities } from "#/domain/booking/addon-quantities";
 import {
 	openPaymentModal,
 	openTermsModal

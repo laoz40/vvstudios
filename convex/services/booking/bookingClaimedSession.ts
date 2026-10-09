@@ -19,7 +19,7 @@ import {
 } from "#convex/lib/googleCalendar/googleCalendarErrors";
 import { tryPromise } from "#convex/lib/result";
 import { buildSessionCalendarEventPayload } from "#convex/lib/sessions/sessionCalendarEventPayload";
-import { pickBookingAddonQuantities } from "#studio/features/booking-form/lib/booking-form-model";
+import { pickBookingAddonQuantities } from "#/domain/booking/addon-quantities";
 import type { SessionAvailabilitySettings } from "#convex/lib/sessions/sessionCalendarTime";
 import {
 	failBookingConfirmation,

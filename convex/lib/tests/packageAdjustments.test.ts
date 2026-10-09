@@ -22,7 +22,7 @@ import {
 	type PackageAdjustmentSession
 } from "#convex/lib/packages/packageAdjustments";
 import { testBookingId, testPackageAdjustmentId, testPackageId } from "#convex/lib/tests/testIds";
-import type { BookingAddon } from "#studio/features/booking-form/lib/booking-form-model";
+import type { BookingAddon } from "#/domain/booking/catalog";
 
 const now = Date.parse("2030-01-10T00:00:00.000Z");
 

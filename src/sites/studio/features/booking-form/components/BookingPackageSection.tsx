@@ -8,7 +8,8 @@ import {
 	bookingFieldBlurValidator,
 	toFieldErrorObjects
 } from "#studio/features/booking-form/lib/booking-form-model";
-import { isPackageSize, PACKAGE_PLANS } from "#studio/features/booking-form/lib/booking-pricing";
+import { isPackageSize } from "#/domain/booking/pricing";
+import { PACKAGE_PLANS } from "#/domain/booking/price-constants";
 import { BookingSelectionCheck } from "#studio/features/booking-form/components/BookingSelectionCheck";
 import {
 	getCardStateClassName,

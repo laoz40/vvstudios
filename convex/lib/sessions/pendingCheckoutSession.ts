@@ -3,7 +3,7 @@ import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { MutationCtx } from "#convex/_generated/server";
 import { env } from "#convex/env";
 import type { BookingAddonQuantitiesArgs } from "#convex/lib/booking/bookingAddonQuantities";
-import type { BookingAddon } from "#studio/features/booking-form/lib/booking-form-model";
+import type { BookingAddon } from "#/domain/booking/catalog";
 import { buildBookingSearchBlob } from "#convex/lib/adminSearch/adminSearchBlob";
 import { normalizePhone } from "#convex/lib/contactNormalization";
 import { okOrThrow } from "#convex/lib/result";

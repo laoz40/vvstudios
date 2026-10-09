@@ -1,7 +1,4 @@
-import {
-	DURATION_OPTIONS,
-	type BookingAddon
-} from "#studio/features/booking-form/lib/booking-form-model";
+import { DURATION_OPTIONS, type BookingAddon } from "#/domain/booking/catalog";
 
 export const BOOKING_INVOICE_CURRENCY = "AUD" as const;
 

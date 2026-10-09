@@ -3,7 +3,7 @@ import { Button } from "#/components/ui/button";
 import type { FunctionReturnType } from "convex/server";
 import { api } from "#convex/_generated/api";
 import { Modal } from "#studio/components/Modal";
-import { formatEditingAddonList } from "#studio/features/booking-form/lib/editing-addon-quantities";
+import { formatEditingAddonList } from "#/domain/booking/addon-quantities";
 import { selectablePillButtonClassName } from "#studio/features/booking-form/lib/booking-form-styles";
 import { cn } from "#/lib/utils";
 

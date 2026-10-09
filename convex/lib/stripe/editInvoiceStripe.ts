@@ -6,7 +6,7 @@ import type { EditInvoiceDraft } from "#convex/services/stripe/editInvoiceValida
 import type { EditInvoiceContext, EditInvoiceQuote } from "#convex/lib/stripe/editInvoiceBilling";
 import { tryPromise } from "#convex/lib/result";
 import { getStripeClient } from "#convex/lib/stripe/stripeClient";
-import { BOOKING_INVOICE_CURRENCY } from "#studio/features/booking-form/lib/booking-pricing";
+import { BOOKING_INVOICE_CURRENCY } from "#/domain/booking/price-constants";
 
 export function readCheckoutPaidAmount(stripeSessionId: string) {
 	return tryPromise({

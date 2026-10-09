@@ -35,11 +35,11 @@ import type {
 	PackageUnscheduleRequestDetails,
 	SaveCreatedPackageSessionArgs
 } from "#convex/services/packages/packageSessionMutations";
-import { getPackageSessionAddons } from "#studio/features/booking-form/lib/booking-form-model";
+import { getPackageSessionAddons } from "#/domain/booking/catalog";
 import type { SessionReservation } from "#convex/lib/sessions/sessionReservations";
-import type { BookingFormValues } from "#studio/features/booking-form/lib/booking-form-model";
+import type { BookingService } from "#/domain/booking/catalog";
 
-type RecordingSpace = Exclude<BookingFormValues["service"], "">;
+type RecordingSpace = BookingService;
 
 export type PackageSessionArgs = {
 	token: string;

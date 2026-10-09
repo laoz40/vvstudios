@@ -1,10 +1,6 @@
 import type { GenericId } from "convex/values";
-import type {
-	BookingAddon,
-	BookingAddonQuantities,
-	BookingService,
-	DURATION_OPTIONS
-} from "#studio/features/booking-form/lib/booking-form-model";
+import type { BookingAddon, BookingService, DURATION_OPTIONS } from "#/domain/booking/catalog";
+import type { BookingAddonQuantities } from "#/domain/booking/addon-quantities";
 
 export type { BookingService };
 

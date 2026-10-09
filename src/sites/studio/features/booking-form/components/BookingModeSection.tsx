@@ -3,10 +3,9 @@ import { FieldError, FieldLegend, FieldSet } from "#/components/ui/field";
 import { RadioGroup, RadioGroupItem } from "#/components/ui/radio-group";
 import { cn } from "#/lib/utils";
 import { useBookingFormContext } from "#studio/features/booking-form/lib/booking-form-context";
+import { BOOKING_MODES, isPackageUnavailableAddon } from "#/domain/booking/catalog";
 import {
-	BOOKING_MODES,
 	bookingFieldBlurValidator,
-	isPackageUnavailableAddon,
 	toFieldErrorObjects
 } from "#studio/features/booking-form/lib/booking-form-model";
 import { BookingSelectionCheck } from "#studio/features/booking-form/components/BookingSelectionCheck";

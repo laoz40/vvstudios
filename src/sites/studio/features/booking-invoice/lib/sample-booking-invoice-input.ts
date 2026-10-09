@@ -1,4 +1,4 @@
-import { calculatePackageAmounts } from "#studio/features/booking-form/lib/booking-pricing";
+import { calculatePackageAmounts } from "#/domain/booking/pricing";
 import { createPackageInvoiceLineItemSnapshot } from "#studio/features/booking-invoice/lib/build-booking-invoice-data";
 import type {
 	BookingInvoiceBuilderInput,

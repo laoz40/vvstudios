@@ -1,9 +1,7 @@
 import { format } from "date-fns";
-import { ADDON_PRICES } from "#studio/features/booking-form/lib/booking-pricing";
-import {
-	getCustomerAddonDisplayLabel,
-	pickBookingAddonQuantities
-} from "#studio/features/booking-form/lib/booking-form-model";
+import { ADDON_PRICES } from "#/domain/booking/price-constants";
+import { getCustomerAddonDisplayLabel } from "#/domain/booking/catalog";
+import { pickBookingAddonQuantities } from "#/domain/booking/addon-quantities";
 import { formatNoticeWindowLabel } from "#studio/features/booking-form/lib/package-scheduling-rules";
 import {
 	BOOKING_INVOICE_BUSINESS,

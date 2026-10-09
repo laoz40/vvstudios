@@ -5,21 +5,14 @@ import {
 	AccordionItem,
 	AccordionTrigger
 } from "#/components/ui/accordion";
-import {
-	ADDON_PRICES,
-	DURATION_PRICES,
-	calculatePackageAmounts,
-	formatBookingPriceWithCents,
-	getBookingAddonQuantity,
-	getBookingTotal,
-	isPackageSize
-} from "#studio/features/booking-form/lib/booking-pricing";
+import { ADDON_PRICES, DURATION_PRICES } from "#/domain/booking/price-constants";
+import { calculatePackageAmounts, getBookingTotal, isPackageSize } from "#/domain/booking/pricing";
+import { formatBookingPriceWithCents } from "#studio/features/booking-form/lib/booking-pricing";
+import { getBookingAddonQuantityForForm as getBookingAddonQuantity } from "#/domain/booking/addon-quantities";
 import { useBookingPricingValues } from "#studio/features/booking-form/hooks/useBookingPricingValues";
-import {
-	BOOKING_ADDON_QUANTITY_FIELD_CONFIG,
-	isQuantityTrackedAddon,
-	getCustomerAddonDisplayLabel
-} from "#studio/features/booking-form/lib/booking-form-model";
+import { BOOKING_ADDON_QUANTITY_FIELD_CONFIG } from "#studio/features/booking-form/lib/booking-form-model";
+import { isQuantityTrackedAddon } from "#/domain/booking/addon-quantities";
+import { getCustomerAddonDisplayLabel } from "#/domain/booking/catalog";
 import { sectionHeadingClassName } from "#studio/features/booking-form/lib/booking-form-styles";
 
 function formatQuantityLabel(quantity: number, label: string) {

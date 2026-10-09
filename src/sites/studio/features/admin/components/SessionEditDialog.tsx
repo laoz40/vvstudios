@@ -27,13 +27,13 @@ import { Label } from "#/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "#/components/ui/radio-group";
 import { Textarea } from "#/components/ui/textarea";
 import type { Doc } from "#convex/_generated/dataModel";
-import { DURATION_OPTIONS, SERVICES } from "#studio/features/booking-form/lib/booking-form-model";
+import { DURATION_OPTIONS, SERVICES } from "#/domain/booking/catalog";
 import {
 	adminOptionButtonClassName,
 	adminOptionRowClassName
 } from "#studio/features/admin/lib/admin-form-styles";
 import { formatAudAmount } from "#studio/features/admin/lib/remaining-balance";
-import { getBookingTotal } from "#studio/features/booking-form/lib/booking-pricing";
+import { getBookingTotal } from "#/domain/booking/pricing";
 import { useSessionEditPricingValues } from "#studio/features/admin/hooks/useSessionEditPricingValues";
 import {
 	SessionEditDraftStoreContext,

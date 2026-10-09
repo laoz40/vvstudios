@@ -174,6 +174,84 @@
 							{
 								"group": ["./**", "../**"],
 								"message": "Use absolute imports with the #convex/ alias."
+							},
+							{
+								"group": [
+									"#studio/features/booking-form/lib/booking-form-model*",
+									"#/sites/studio/features/booking-form/lib/booking-form-model*"
+								],
+								"importNames": [
+									"BOOKING_MODES",
+									"SERVICES",
+									"DURATION_OPTIONS",
+									"ADDON_OPTIONS",
+									"DELIVERABLE_COUNT_OPTIONS",
+									"BookingAddon",
+									"BookingService",
+									"isDurationOption",
+									"isDeliverableCountOption",
+									"toDeliverableCountOption",
+									"getCustomerAddonDisplayLabel",
+									"isPackageUnavailableAddon",
+									"isAddonAvailableForService",
+									"filterAddonsAvailableForService",
+									"getPackageSessionAddons",
+									"satisfiesClipVolumePackEditRequirement",
+									"isClipVolumePackEditAddon",
+									"resolveExclusiveAddonSelection",
+									"BookingAddonQuantityFieldName",
+									"BookingAddonQuantities",
+									"BOOKING_ADDON_QUANTITY_FIELD_NAMES",
+									"isQuantityTrackedAddon",
+									"getClearedAddonQuantityUpdates",
+									"forEachClearedAddonQuantityField",
+									"hasEditingAddon",
+									"pickBookingAddonQuantities"
+								],
+								"message": "Import shared booking facts from #/domain/booking/catalog or addon-quantities."
+							},
+							{
+								"group": [
+									"#studio/features/booking-form/lib/editing-addon-quantities*",
+									"#/sites/studio/features/booking-form/lib/editing-addon-quantities*"
+								],
+								"importNames": [
+									"getEditingAddonQuantity",
+									"getBookingAddonQuantityForForm",
+									"formatEditingAddonLabel",
+									"formatEditingAddonList"
+								],
+								"message": "Import shared quantity helpers from #/domain/booking/addon-quantities."
+							},
+							{
+								"group": [
+									"#studio/features/booking-form/lib/booking-pricing*",
+									"#/sites/studio/features/booking-form/lib/booking-pricing*"
+								],
+								"importNames": [
+									"ADDON_PRICES",
+									"BOOKING_INVOICE_CURRENCY",
+									"DURATION_PRICES",
+									"PACKAGE_PLANS",
+									"PackageSize",
+									"PackageAmounts",
+									"PackagePricingValues",
+									"isPackageSize",
+									"getBookingTotal",
+									"calculatePackageAmounts",
+									"getPackageExpiresAt",
+									"getBookingAddonQuantity"
+								],
+								"message": "Import shared prices and calculations from #/domain/booking/price-constants, pricing, or addon-quantities."
+							},
+							{
+								"group": [
+									"#studio/features/booking-form/lib/booking-price-constants*",
+									"#/sites/studio/features/booking-form/lib/booking-price-constants*",
+									"#studio/features/booking-form/lib/billable-line-items*",
+									"#/sites/studio/features/booking-form/lib/billable-line-items*"
+								],
+								"message": "Import shared booking prices from #/domain/booking/price-constants or billable-line-items."
 							}
 						]
 					}
@@ -269,6 +347,33 @@
 				"prefer-const": "error",
 				"prefer-rest-params": "error",
 				"prefer-spread": "error"
+			}
+		},
+		{
+			"files": ["src/domain/booking/**"],
+			"rules": {
+				"no-restricted-imports": [
+					"error",
+					{
+						"patterns": [
+							{ "group": ["./**", "../**"], "message": "Use absolute imports with the #/ alias." },
+							{
+								"group": [
+									"#studio/**",
+									"#/sites/**",
+									"#convex/**",
+									"react",
+									"react/**",
+									"react-dom",
+									"react-dom/**",
+									"convex",
+									"convex/**"
+								],
+								"message": "Shared booking modules must stay independent of the frontend and Convex."
+							}
+						]
+					}
+				]
 			}
 		}
 	]

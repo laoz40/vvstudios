@@ -13,7 +13,7 @@ import {
 	internalQuery,
 	query
 } from "#convex/_generated/server";
-import { SERVICES } from "#studio/features/booking-form/lib/booking-form-model";
+import { SERVICES } from "#/domain/booking/catalog";
 import {
 	cancelPackageSessionBooking,
 	loadPackageSessionOwnedByToken

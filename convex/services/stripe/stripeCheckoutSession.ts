@@ -6,7 +6,7 @@ import { internal } from "#convex/_generated/api";
 import type { Id } from "#convex/_generated/dataModel";
 import type { ActionCtx } from "#convex/_generated/server";
 import type { BookingAddonQuantitiesArgs } from "#convex/lib/booking/bookingAddonQuantities";
-import type { BookingAddon } from "#studio/features/booking-form/lib/booking-form-model";
+import type { BookingAddon } from "#/domain/booking/catalog";
 import { getBookingSubmitRateLimitKey } from "#convex/lib/booking/bookingSubmission";
 import { fromConvexTuple } from "#convex/lib/result";
 import { getStripeClient } from "#convex/lib/stripe/stripeClient";

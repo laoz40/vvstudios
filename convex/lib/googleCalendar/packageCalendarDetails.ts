@@ -1,5 +1,5 @@
 import { v, type Infer } from "convex/values";
-import { DURATION_OPTIONS, SERVICES } from "#studio/features/booking-form/lib/booking-form-model";
+import { DURATION_OPTIONS, SERVICES } from "#/domain/booking/catalog";
 import {
 	bookingAddonQuantitiesValidator,
 	bookingAddonsValidator

@@ -6,9 +6,9 @@ import { useBookingFormContext } from "#studio/features/booking-form/lib/booking
 import {
 	isAddonAvailableForService,
 	isPackageUnavailableAddon,
-	isQuantityTrackedAddon,
 	type BookingAddon
-} from "#studio/features/booking-form/lib/booking-form-model";
+} from "#/domain/booking/catalog";
+import { isQuantityTrackedAddon } from "#/domain/booking/addon-quantities";
 import { toggleBookingAddon } from "#studio/features/booking-form/lib/toggle-booking-addon";
 
 type BookingAddonOptionProps = {

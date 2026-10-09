@@ -6,9 +6,9 @@ import { useBookingFormContext } from "#studio/features/booking-form/lib/booking
 import {
 	ADDON_SECTIONS,
 	bookingFieldBlurValidator,
-	isAddonAvailableForService,
 	toFieldErrorObjects
 } from "#studio/features/booking-form/lib/booking-form-model";
+import { isAddonAvailableForService } from "#/domain/booking/catalog";
 import { sectionHeadingClassName } from "#studio/features/booking-form/lib/booking-form-styles";
 
 type BookingAddonSectionProps = {

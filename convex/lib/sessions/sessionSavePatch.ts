@@ -1,4 +1,4 @@
-import type { BookingAddon } from "#studio/features/booking-form/lib/booking-form-model";
+import type { BookingAddon } from "#/domain/booking/catalog";
 
 type SessionCalendarConfirmationPatchArgs = {
 	confirmBooking?: boolean;

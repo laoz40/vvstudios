@@ -1,11 +1,8 @@
 import type { Doc } from "#convex/_generated/dataModel";
-import {
-	buildAddonBillableLine,
-	isBookingDuration
-} from "#studio/features/booking-form/lib/billable-line-items";
-import { DURATION_PRICES } from "#studio/features/booking-form/lib/booking-price-constants";
-import { getBookingAddonQuantityForForm } from "#studio/features/booking-form/lib/editing-addon-quantities";
-import type { BookingAddonQuantities } from "#studio/features/booking-form/lib/booking-form-model";
+import { buildAddonBillableLine, isBookingDuration } from "#/domain/booking/billable-line-items";
+import { DURATION_PRICES } from "#/domain/booking/price-constants";
+import { getBookingAddonQuantityForForm } from "#/domain/booking/addon-quantities";
+import type { BookingAddonQuantities } from "#/domain/booking/addon-quantities";
 import type { StripeInvoiceLineItem } from "#convex/lib/stripe/stripeInvoice";
 
 type PricingValues = Pick<Doc<"bookings">, "duration" | "addons"> & BookingAddonQuantities;

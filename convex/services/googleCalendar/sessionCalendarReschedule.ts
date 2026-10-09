@@ -26,7 +26,7 @@ import type { SessionAvailabilitySettings } from "#convex/lib/sessions/sessionCa
 import type { SaveClientSessionRescheduleArgs } from "#convex/lib/sessions/sessionSchedulingArgs";
 import { getRescheduleUrlForToken } from "#convex/lib/sessions/sessionRescheduleLinks";
 import { sendBookingRescheduledEmailsForBooking } from "#convex/services/sessions/sessionRescheduleEmails";
-import { pickBookingAddonQuantities } from "#studio/features/booking-form/lib/booking-form-model";
+import { pickBookingAddonQuantities } from "#/domain/booking/addon-quantities";
 import type { AdminSessionUpdateError } from "#convex/lib/sessions/sessionAdminEdit";
 import type { RescheduleLinkLookupError } from "#convex/lib/sessions/sessionRescheduleLinks";
 

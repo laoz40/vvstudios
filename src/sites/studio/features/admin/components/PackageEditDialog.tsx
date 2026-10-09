@@ -26,12 +26,9 @@ import { Input } from "#/components/ui/input";
 import { Label } from "#/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "#/components/ui/radio-group";
 import { Textarea } from "#/components/ui/textarea";
-import { DURATION_OPTIONS } from "#studio/features/booking-form/lib/booking-form-model";
-import {
-	calculatePackageAmounts,
-	isPackageSize,
-	PACKAGE_PLANS
-} from "#studio/features/booking-form/lib/booking-pricing";
+import { DURATION_OPTIONS } from "#/domain/booking/catalog";
+import { calculatePackageAmounts, isPackageSize } from "#/domain/booking/pricing";
+import { PACKAGE_PLANS } from "#/domain/booking/price-constants";
 import {
 	adminOptionButtonClassName,
 	adminOptionRowClassName

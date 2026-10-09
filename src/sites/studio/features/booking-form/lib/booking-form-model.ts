@@ -1,67 +1,34 @@
 import { z } from "zod";
 import { bookingPhoneSchema } from "#studio/features/booking-form/lib/booking-phone";
-
-export const BOOKING_MODES = ["single", "package"] as const;
-
-export const SERVICES = ["Table Setup", "Armchair Setup", "Music Setup"] as const;
-
-export const DURATION_OPTIONS = ["1h", "2h", "3h"] as const;
-
-export const ADDON_OPTIONS = [
-	"Remote Podcast",
-	"4K UHD Recording",
-	"Teleprompter",
-	"Essential Edit",
-	"Complete Edit",
-	"Clip Volume Pack",
-	"Handcrafted Clips"
-] as const;
-
-export const DELIVERABLE_COUNT_OPTIONS = ["1", "2", "3", "4"] as const;
+import {
+	ADDON_OPTIONS,
+	ADDON_GROUPS,
+	BOOKING_MODES,
+	DELIVERABLE_COUNT_OPTIONS,
+	DURATION_OPTIONS,
+	EXCLUSIVE_ADDON_GROUPS,
+	SERVICES,
+	isPackageUnavailableAddon,
+	satisfiesClipVolumePackEditRequirement,
+	type BookingAddon
+} from "#/domain/booking/catalog";
+import {
+	BOOKING_ADDON_QUANTITY_FIELD_BY_ADDON,
+	QUANTITY_TRACKED_ADDONS,
+	type BookingAddonQuantityFieldName,
+	type BookingAddonQuantities,
+	type QuantityTrackedAddon
+} from "#/domain/booking/addon-quantities";
 
 export const ADDON_SECTIONS = [
-	{ title: "Production Add-ons", addons: ["Remote Podcast", "4K UHD Recording", "Teleprompter"] },
-	{ title: "Editing Services", addons: ["Essential Edit", "Complete Edit"] },
-	{ title: "Clip Services", addons: ["Clip Volume Pack", "Handcrafted Clips"] }
-] as const satisfies ReadonlyArray<{
-	title: string;
-	addons: readonly (typeof ADDON_OPTIONS)[number][];
-}>;
-
-const EXCLUSIVE_ADDON_GROUPS = ADDON_SECTIONS.slice(1).map((section) => section.addons);
-
-const QUANTITY_TRACKED_ADDONS = [
-	"Essential Edit",
-	"Complete Edit",
-	"Clip Volume Pack",
-	"Handcrafted Clips"
+	{ title: "Production Add-ons", addons: ADDON_GROUPS[0] },
+	{ title: "Editing Services", addons: ADDON_GROUPS[1] },
+	{ title: "Clip Services", addons: ADDON_GROUPS[2] }
 ] as const;
-
-const CLIP_VOLUME_PACK_EDIT_ADDONS = ["Essential Edit", "Complete Edit"] as const;
-
-export type BookingAddonQuantityFieldName =
-	| "clipsPackageQuantity"
-	| "completeEditQuantity"
-	| "essentialEditQuantity"
-	| "handcraftedClipsQuantity";
-
-export const BOOKING_ADDON_QUANTITY_FIELD_NAMES = [
-	"essentialEditQuantity",
-	"completeEditQuantity",
-	"clipsPackageQuantity",
-	"handcraftedClipsQuantity"
-] as const satisfies readonly BookingAddonQuantityFieldName[];
-
-export type BookingAddonQuantities = {
-	clipsPackageQuantity?: string;
-	completeEditQuantity?: string;
-	essentialEditQuantity?: string;
-	handcraftedClipsQuantity?: string;
-};
 
 export const BOOKING_ADDON_QUANTITY_FIELD_CONFIG = {
 	"Essential Edit": {
-		fieldName: "essentialEditQuantity",
+		fieldName: BOOKING_ADDON_QUANTITY_FIELD_BY_ADDON["Essential Edit"],
 		requiredMessage: "Choose how many episodes or videos you want edited.",
 		priceUnit: "video",
 		unitLabels: { single: "episode / video", plural: "episodes / videos" },
@@ -72,7 +39,7 @@ export const BOOKING_ADDON_QUANTITY_FIELD_CONFIG = {
 		description: null
 	},
 	"Complete Edit": {
-		fieldName: "completeEditQuantity",
+		fieldName: BOOKING_ADDON_QUANTITY_FIELD_BY_ADDON["Complete Edit"],
 		requiredMessage: "Choose how many episodes or videos you want fully edited.",
 		priceUnit: "video",
 		unitLabels: { single: "episode / video", plural: "episodes / videos" },
@@ -83,7 +50,7 @@ export const BOOKING_ADDON_QUANTITY_FIELD_CONFIG = {
 		description: null
 	},
 	"Clip Volume Pack": {
-		fieldName: "clipsPackageQuantity",
+		fieldName: BOOKING_ADDON_QUANTITY_FIELD_BY_ADDON["Clip Volume Pack"],
 		requiredMessage: "Choose how many Clip Volume Packs you want.",
 		priceUnit: "pack",
 		unitLabels: { single: "pack", plural: "packs" },
@@ -94,7 +61,7 @@ export const BOOKING_ADDON_QUANTITY_FIELD_CONFIG = {
 		description: "10 clips per pack"
 	},
 	"Handcrafted Clips": {
-		fieldName: "handcraftedClipsQuantity",
+		fieldName: BOOKING_ADDON_QUANTITY_FIELD_BY_ADDON["Handcrafted Clips"],
 		requiredMessage: "Choose how many Handcrafted Clips packs you want.",
 		priceUnit: "pack",
 		unitLabels: { single: "pack", plural: "packs" },
@@ -105,7 +72,7 @@ export const BOOKING_ADDON_QUANTITY_FIELD_CONFIG = {
 		description: "5 clips per pack"
 	}
 } as const satisfies Record<
-	(typeof QUANTITY_TRACKED_ADDONS)[number],
+	QuantityTrackedAddon,
 	{
 		fieldName: BookingAddonQuantityFieldName;
 		requiredMessage: string;
@@ -115,151 +82,6 @@ export const BOOKING_ADDON_QUANTITY_FIELD_CONFIG = {
 		description: string | null;
 	}
 >;
-
-export function isQuantityTrackedAddon(
-	addon: BookingAddon
-): addon is (typeof QUANTITY_TRACKED_ADDONS)[number] {
-	return QUANTITY_TRACKED_ADDONS.some((quantityTrackedAddon) => quantityTrackedAddon === addon);
-}
-
-export function getClearedAddonQuantityUpdates(
-	selectedAddons: readonly BookingAddon[]
-): Partial<Record<BookingAddonQuantityFieldName, "">> {
-	const updates: Partial<Record<BookingAddonQuantityFieldName, "">> = {};
-
-	for (const addon of QUANTITY_TRACKED_ADDONS) {
-		const { fieldName } = BOOKING_ADDON_QUANTITY_FIELD_CONFIG[addon];
-
-		if (!selectedAddons.includes(addon)) {
-			updates[fieldName] = "";
-		}
-	}
-
-	return updates;
-}
-
-export function forEachClearedAddonQuantityField(
-	selectedAddons: readonly BookingAddon[],
-	callback: (fieldName: BookingAddonQuantityFieldName, value: "") => void
-) {
-	const updates = getClearedAddonQuantityUpdates(selectedAddons);
-
-	for (const fieldName of BOOKING_ADDON_QUANTITY_FIELD_NAMES) {
-		const value = updates[fieldName];
-
-		if (value !== undefined) {
-			callback(fieldName, value);
-		}
-	}
-}
-
-export type BookingAddon = (typeof ADDON_OPTIONS)[number];
-
-export type BookingService = (typeof SERVICES)[number];
-
-// Customer-facing name for Essential Edit is Rough Cut. Internal addon key stays "Essential Edit".
-export function getCustomerAddonDisplayLabel(addon: string) {
-	if (addon === "Essential Edit") {
-		return "Rough Cut";
-	}
-
-	return addon;
-}
-
-export function isPackageUnavailableAddon(addon: BookingAddon) {
-	return addon === "Remote Podcast";
-}
-
-export function isAddonAvailableForService(service: BookingService | "", addon: BookingAddon) {
-	if (service !== "Music Setup") {
-		return true;
-	}
-
-	return addon === "4K UHD Recording" || addon === "Essential Edit";
-}
-
-export function filterAddonsAvailableForService(
-	service: BookingService | "",
-	addons: readonly BookingAddon[]
-) {
-	return addons.filter((addon) => isAddonAvailableForService(service, addon));
-}
-
-export function getPackageSessionAddons(
-	packageAddons: readonly BookingAddon[],
-	hasRemotePodcast: boolean
-): BookingAddon[] {
-	const standardSessionAddons = packageAddons.filter((addon) => addon !== "Remote Podcast");
-
-	if (!hasRemotePodcast) {
-		return standardSessionAddons;
-	}
-
-	return [...standardSessionAddons, "Remote Podcast"];
-}
-
-export function hasEditingAddon(addons: readonly BookingAddon[]) {
-	return addons.some((addon) =>
-		QUANTITY_TRACKED_ADDONS.some((quantityTrackedAddon) => quantityTrackedAddon === addon)
-	);
-}
-
-export function pickBookingAddonQuantities(values: BookingAddonQuantities): BookingAddonQuantities {
-	return {
-		clipsPackageQuantity: values.clipsPackageQuantity,
-		completeEditQuantity: values.completeEditQuantity,
-		essentialEditQuantity: values.essentialEditQuantity,
-		handcraftedClipsQuantity: values.handcraftedClipsQuantity
-	};
-}
-
-export function satisfiesClipVolumePackEditRequirement(addons: readonly BookingAddon[]) {
-	return CLIP_VOLUME_PACK_EDIT_ADDONS.some((addon) => addons.includes(addon));
-}
-
-export function isClipVolumePackEditAddon(
-	addon: BookingAddon
-): addon is (typeof CLIP_VOLUME_PACK_EDIT_ADDONS)[number] {
-	return CLIP_VOLUME_PACK_EDIT_ADDONS.some((editAddon) => editAddon === addon);
-}
-
-function findExclusiveAddonGroup(addon: BookingAddon) {
-	return EXCLUSIVE_ADDON_GROUPS.find((group) => group.some((groupAddon) => groupAddon === addon));
-}
-
-function getExclusiveAddonSiblings(addon: BookingAddon): readonly BookingAddon[] {
-	const group = findExclusiveAddonGroup(addon);
-
-	if (!group) {
-		return [];
-	}
-
-	return group.filter((groupAddon) => groupAddon !== addon);
-}
-
-export function resolveExclusiveAddonSelection(
-	selectedAddons: readonly BookingAddon[],
-	addon: BookingAddon,
-	checked: boolean
-): BookingAddon[] {
-	if (!checked) {
-		return selectedAddons.filter((value) => value !== addon);
-	}
-
-	const siblings = getExclusiveAddonSiblings(addon);
-
-	return [...selectedAddons.filter((value) => value !== addon && !siblings.includes(value)), addon];
-}
-
-export function isDeliverableCountOption(
-	value: string | undefined
-): value is (typeof DELIVERABLE_COUNT_OPTIONS)[number] {
-	return DELIVERABLE_COUNT_OPTIONS.some((option) => option === value);
-}
-
-export function toDeliverableCountOption(value: string | undefined) {
-	return DELIVERABLE_COUNT_OPTIONS.find((option) => option === value) ?? "";
-}
 
 const name = z
 	.string()
@@ -309,10 +131,6 @@ const duration = z
 	.union([z.literal(""), z.enum(DURATION_OPTIONS)])
 	.refine((value) => value !== "", "Duration is required.");
 
-export function isDurationOption(value: string): value is (typeof DURATION_OPTIONS)[number] {
-	return DURATION_OPTIONS.some((option) => option === value);
-}
-
 export const recordingSpaceSchema = z.enum(SERVICES);
 
 const service = z.union([z.literal(""), recordingSpaceSchema]);
@@ -331,6 +149,13 @@ const requiredPackageSize = z.union([z.literal(4), z.literal(8), z.literal(12)])
 
 const optionalPackageSize = z.union([z.literal(""), requiredPackageSize]);
 
+const quantityBookingFields = {
+	[BOOKING_ADDON_QUANTITY_FIELD_BY_ADDON["Essential Edit"]]: deliverableCountOption.optional(),
+	[BOOKING_ADDON_QUANTITY_FIELD_BY_ADDON["Complete Edit"]]: deliverableCountOption.optional(),
+	[BOOKING_ADDON_QUANTITY_FIELD_BY_ADDON["Clip Volume Pack"]]: deliverableCountOption.optional(),
+	[BOOKING_ADDON_QUANTITY_FIELD_BY_ADDON["Handcrafted Clips"]]: deliverableCountOption.optional()
+};
+
 const sharedBookingFields = {
 	name,
 	phone,
@@ -339,10 +164,7 @@ const sharedBookingFields = {
 	email,
 	duration,
 	addons,
-	essentialEditQuantity: deliverableCountOption.optional(),
-	completeEditQuantity: deliverableCountOption.optional(),
-	clipsPackageQuantity: deliverableCountOption.optional(),
-	handcraftedClipsQuantity: deliverableCountOption.optional(),
+	...quantityBookingFields,
 	notes
 };
 

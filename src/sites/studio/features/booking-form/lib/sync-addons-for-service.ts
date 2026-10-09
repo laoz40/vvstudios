@@ -1,9 +1,6 @@
 import type { BookingFormApi } from "#studio/features/booking-form/lib/booking-form-context";
-import {
-	filterAddonsAvailableForService,
-	forEachClearedAddonQuantityField,
-	type BookingService
-} from "#studio/features/booking-form/lib/booking-form-model";
+import { filterAddonsAvailableForService, type BookingService } from "#/domain/booking/catalog";
+import { forEachClearedAddonQuantityField } from "#/domain/booking/addon-quantities";
 
 export function syncAddonsForService(formApi: BookingFormApi, service: BookingService | "") {
 	const addons = formApi.state.values.addons;

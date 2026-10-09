@@ -26,11 +26,11 @@ import {
 import type { SessionAvailabilitySettings } from "#convex/lib/sessions/sessionCalendarTime";
 import { getSessionStartAt } from "#convex/lib/sessions/sessionAdminEdit";
 import { env } from "#convex/env";
-import { getPackageSessionAddons } from "#studio/features/booking-form/lib/booking-form-model";
-import type { BookingFormValues } from "#studio/features/booking-form/lib/booking-form-model";
+import { getPackageSessionAddons } from "#/domain/booking/catalog";
+import type { BookingService } from "#/domain/booking/catalog";
 import type { BookingAvailabilitySettings } from "#studio/lib/bookingAvailabilitySettings";
 
-type RecordingSpace = Exclude<BookingFormValues["service"], "">;
+type RecordingSpace = BookingService;
 
 type EditablePackageSessionDetails = {
 	packageRecord: ValidPackage;

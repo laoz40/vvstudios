@@ -18,8 +18,8 @@ import { beforeEach, describe, expect, test, vi } from "vitest";
 import { bookingDocument, packageDocument } from "#convex/tests/insertDocumentDefaults";
 import { api, internal } from "#convex/_generated/api";
 import type { Id } from "#convex/_generated/dataModel";
-import type { BookingAddon } from "#studio/features/booking-form/lib/booking-form-model";
-import { getPackageExpiresAt } from "#studio/features/booking-form/lib/booking-pricing";
+import type { BookingAddon } from "#/domain/booking/catalog";
+import { getPackageExpiresAt } from "#/domain/booking/pricing";
 import { hashRescheduleToken } from "#convex/lib/sessions/sessionRescheduleLinks";
 import { createConvexTest } from "#convex/test.setup";
 

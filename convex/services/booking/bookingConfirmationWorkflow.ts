@@ -5,7 +5,7 @@ import { createRescheduleUrlForSession } from "#convex/lib/sessions/sessionResch
 import { internal } from "#convex/_generated/api";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { ActionCtx } from "#convex/_generated/server";
-import { pickBookingAddonQuantities } from "#studio/features/booking-form/lib/booking-form-model";
+import { pickBookingAddonQuantities } from "#/domain/booking/addon-quantities";
 import { getGoogleCalendarClient } from "#convex/lib/googleCalendar/googleCalendarClient";
 import { removeOrphanedSessionCalendarEvent } from "#convex/lib/googleCalendar/googleCalendarEventCalls";
 import {

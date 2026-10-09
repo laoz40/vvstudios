@@ -1,4 +1,4 @@
-import { getCustomerAddonDisplayLabel } from "#studio/features/booking-form/lib/booking-form-model";
+import { getCustomerAddonDisplayLabel } from "#/domain/booking/catalog";
 import { sectionHeadingClassName } from "#studio/features/booking-form/lib/booking-form-styles";
 import { formatBookingDate, formatBookingTimeRange } from "#studio/lib/bookingdatetime";
 

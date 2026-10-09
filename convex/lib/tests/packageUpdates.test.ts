@@ -11,7 +11,7 @@
  *    Line item amounts sum to totalDueAmount.
  */
 import { describe, expect, test } from "vitest";
-import type { BookingAddon } from "#studio/features/booking-form/lib/booking-form-model";
+import type { BookingAddon } from "#/domain/booking/catalog";
 import { buildPackageUpdatePatch, parsePackageUpdate } from "#convex/lib/packages/packageUpdates";
 import { testPackageId } from "#convex/lib/tests/testIds";
 

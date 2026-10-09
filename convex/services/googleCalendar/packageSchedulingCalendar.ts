@@ -16,7 +16,7 @@ import {
 	deleteSessionCalendarEvent,
 	updateSessionCalendarEventTiming
 } from "#convex/services/googleCalendar/sessionCalendarEvent";
-import { pickBookingAddonQuantities } from "#studio/features/booking-form/lib/booking-form-model";
+import { pickBookingAddonQuantities } from "#/domain/booking/addon-quantities";
 
 export type SessionCalendarEventRecord = PackageSessionCalendarEventRecord;
 
