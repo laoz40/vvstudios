@@ -57,3 +57,22 @@ The `convex-layers` oxlint plugin (`tools/oxlint/convex-layers/`) runs on `conve
 | `convex-layers/no-lib-loader-orchestration` | Exported `convex/lib/**` functions that call a loader (`get*` / `load*` / `list*` or `okOrThrow` on a db read / `runQuery`) and chain domain work with `.andThen`. Split into a loader-only lib helper plus a service that wires `loader.andThen(work)`. |
 
 Rule unit tests live next to each rule under `tools/oxlint/convex-layers/rules/*.test.ts` (same layout as `tools/oxlint/neverthrow/`).
+
+## Drive state ownership
+
+Drive recovery keeps folder setup, client permissions, editor permissions, and email delivery separate. Use the existing services in `convex/services/drive/` so retries retain saved progress and stage-specific outcomes.
+
+The `convex-layers/no-drive-state-write-outside-owner` rule restricts direct database writes to these existing owners:
+
+| State | Lib owner |
+| --- | --- |
+| Client/session folders and setup failure | `drive/driveFolders.ts` |
+| Client sharing and assets email claims/results | `drive/driveClientAccess.ts` |
+| Editor access and assignment email claims/results | `drive/driveEditor.ts` |
+| Saved session numbering | `drive/sessionFolders/allocateNumbers.ts` |
+| Cancelled session folder cleanup | `drive/sessionFolders/clearSessionRecords.ts` |
+| Existing booking's Drive client linkage | `drive/driveBookingDriveClient.ts` |
+
+Pending checkout creation can initialize its booking's `driveClientId`. Later linkage changes use `patchBookingDriveClientId`; setup failure changes use `saveDriveSetupResult`. Test fixtures can write directly.
+
+The check recognizes direct `ctx.db` calls with literal table names and visible field keys, including computed literals and inline object spreads. It does not resolve database aliases, dynamic table names, or fields hidden behind variables or function calls. Those cases still require review; this is a guard for the repository's current write style.

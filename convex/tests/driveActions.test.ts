@@ -4,16 +4,19 @@
  * 1. Partial setup recovery
  *    A failed child creation keeps saved folders and scheduled retry completes them.
  *
- * 2. Missing-folder recovery
+ * 2. Lost create response
+ *    Scheduled setup finds a folder created by Google after its create response is lost.
+ *
+ * 3. Missing-folder recovery
  *    Scheduled setup leaves missing saved folders for admins to recreate.
  *
- * 3. Stale scheduled timing
+ * 4. Stale scheduled timing
  *    An old scheduled job cannot set up a rescheduled booking.
  *
- * 4. Independent access and email failures
+ * 5. Independent access and email failures
  *    Client sharing/email failure does not undo folder setup or block editor access.
  *
- * 5. Cancellation safety
+ * 6. Cancellation safety
  *    Empty trees are removed, while uploaded media or external failure keeps records.
  */
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
@@ -39,7 +42,11 @@ const googleDrive = {
 			}) => Promise<{ data: { id: string; name: string; webViewLink: string } }>
 		>(),
 		list: vi.fn<
-			(args: { q: string }) => Promise<{ data: { files: { id: string; mimeType: string }[] } }>
+			(args: {
+				q: string;
+			}) => Promise<{
+				data: { files: { id: string; mimeType: string; name?: string; webViewLink?: string }[] };
+			}>
 		>(),
 		update:
 			vi.fn<
@@ -298,6 +305,58 @@ describe("Drive action recovery", () => {
 				{ name: "Deliverables", url: "https://drive.example/created-5" }
 			]
 		});
+	});
+
+	test("scheduled setup recovers a folder after Google loses its create response", async () => {
+		const t = createConvexTest();
+		const bookingId = await seedBooking(t);
+		const createFolder = googleDrive.files.create.getMockImplementation();
+
+		const externallyCreatedFolders = new Map<
+			string,
+			{ id: string; name: string; webViewLink: string }
+		>();
+
+		let loseFirstResponse = true;
+
+		if (createFolder === undefined) throw new Error("Expected Google SDK stub");
+
+		googleDrive.files.create.mockImplementation(async ({ requestBody }) => {
+			const response = await createFolder({ requestBody });
+			externallyCreatedFolders.set(requestBody.appProperties.vvWorkspaceMarker, response.data);
+
+			if (loseFirstResponse) {
+				loseFirstResponse = false;
+				throw new Error("Google created the folder but the response was lost");
+			}
+
+			return response;
+		});
+		googleDrive.files.list.mockImplementation(({ q }) => {
+			const marker = /value='([^']+)'/.exec(q)?.[1];
+			const createdFolder = marker === undefined ? undefined : externallyCreatedFolders.get(marker);
+
+			return Promise.resolve({
+				data: {
+					files:
+						createdFolder === undefined
+							? []
+							: [{ ...createdFolder, mimeType: "application/vnd.google-apps.folder" }]
+				}
+			});
+		});
+
+		expect(await runScheduledSetup(t, bookingId)).toEqual([null, null]);
+		expect(await readStatus(t, bookingId)).toMatchObject({
+			status: "ready",
+			folders: [
+				{ name: "Assets", url: "https://drive.example/created-2" },
+				{ name: "Session", url: "https://drive.example/created-3" },
+				{ name: "Raw Media", url: "https://drive.example/created-4" },
+				{ name: "Deliverables", url: "https://drive.example/created-5" }
+			]
+		});
+		expect(googleDrive.files.create).toHaveBeenCalledTimes(5);
 	});
 
 	test("only admin retry recreates a missing saved folder", async () => {
