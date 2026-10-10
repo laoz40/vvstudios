@@ -130,6 +130,7 @@ export function patchBookingEditorAssignment(
 	bookingId: Id<"bookings">,
 	patch: {
 		adminNotes?: string;
+		assignedEditorDisplayName?: string;
 		assignedEditorTokenIdentifier?: string;
 		searchBlobPatch: BookingSearchBlobPatch;
 	}
@@ -138,10 +139,22 @@ export function patchBookingEditorAssignment(
 		ctx.db
 			.patch("bookings", bookingId, {
 				adminNotes: patch.adminNotes,
+				assignedEditorDisplayName: patch.assignedEditorDisplayName,
 				assignedEditorTokenIdentifier: patch.assignedEditorTokenIdentifier,
 				...patch.searchBlobPatch
 			})
 			.then(() => null)
+	);
+}
+
+export function listBookingsAssignedToEditor(ctx: MutationCtx, tokenIdentifier: string) {
+	return okOrThrow(
+		ctx.db
+			.query("bookings")
+			.withIndex("by_assignedEditorTokenIdentifier_and_driveClientId", (query) =>
+				query.eq("assignedEditorTokenIdentifier", tokenIdentifier)
+			)
+			.collect()
 	);
 }
 

@@ -1,6 +1,8 @@
-import { ResultAsync } from "neverthrow";
+import { okAsync, ResultAsync } from "neverthrow";
 import type { Doc } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
+import { internal } from "#convex/_generated/api";
+import { okOrThrow } from "#convex/lib/result";
 import {
 	assertEditorProfileFound,
 	getEditorWorkStatus,
@@ -9,6 +11,14 @@ import {
 	patchEditorAccess,
 	patchEditorNotes
 } from "#convex/lib/editor/editorAccess";
+import {
+	listBookingsAssignedToEditor,
+	patchBookingEditorAssignment
+} from "#convex/lib/editor/editorAssignments";
+import {
+	searchBlobPatchForBookingAsync,
+	type BookingSearchBlobPatch
+} from "#convex/lib/adminSearch/adminSearchBlob";
 
 type EmployeeWorkStatus = "assigned" | "editing" | "unassigned";
 
@@ -55,14 +65,72 @@ function patchEmployeeAccess(ctx: MutationCtx, isActive: boolean, editor: Doc<"e
 	return patchEditorAccess(ctx, editor._id, isActive);
 }
 
+function patchIncompleteBookingAssignment(
+	ctx: MutationCtx,
+	booking: Doc<"bookings">,
+	searchBlobPatch: BookingSearchBlobPatch
+) {
+	return patchBookingEditorAssignment(ctx, booking._id, {
+		adminNotes: booking.adminNotes,
+		assignedEditorTokenIdentifier: undefined,
+		searchBlobPatch
+	});
+}
+
+function clearIncompleteBookingAssignment(ctx: MutationCtx, booking: Doc<"bookings">) {
+	return searchBlobPatchForBookingAsync(ctx, {
+		...booking,
+		assignedEditorTokenIdentifier: undefined,
+		assignedEditorDisplayName: undefined
+	}).andThen((patch) => patchIncompleteBookingAssignment(ctx, booking, patch));
+}
+
+function unassignIncompleteBookingRows(ctx: MutationCtx, bookings: Doc<"bookings">[]) {
+	const incompleteBookings = bookings.filter((booking) => booking.editStatus !== "completed");
+
+	return ResultAsync.combine(
+		incompleteBookings.map((booking) => clearIncompleteBookingAssignment(ctx, booking))
+	).map(() => null);
+}
+
+function unassignIncompleteBookings(ctx: MutationCtx, tokenIdentifier: string) {
+	return listBookingsAssignedToEditor(ctx, tokenIdentifier).andThen((bookings) =>
+		unassignIncompleteBookingRows(ctx, bookings)
+	);
+}
+
+function scheduleEditorDriveRetirement(ctx: MutationCtx, tokenIdentifier: string) {
+	return okOrThrow(
+		ctx.scheduler
+			.runAfter(0, internal.drive.retireEditorDriveAccess, {
+				editorTokenIdentifier: tokenIdentifier
+			})
+			.then(() => null)
+	);
+}
+
+function retireEditorAccess(ctx: MutationCtx, tokenIdentifier: string) {
+	return unassignIncompleteBookings(ctx, tokenIdentifier).andThen(() =>
+		scheduleEditorDriveRetirement(ctx, tokenIdentifier)
+	);
+}
+
 function patchEmployeeNotes(ctx: MutationCtx, notes: string, editor: Doc<"editorProfiles">) {
 	return patchEditorNotes(ctx, editor._id, notes);
 }
 
-export function saveEmployeeAccess(ctx: MutationCtx, tokenIdentifier: string, isActive: boolean) {
-	return requireEditorProfileByToken(ctx, tokenIdentifier).andThen(
-		(editor: Doc<"editorProfiles">) => patchEmployeeAccess(ctx, isActive, editor)
-	);
+export function saveEmployeeAccess(
+	ctx: MutationCtx,
+	tokenIdentifier: string,
+	isActive: boolean
+): ResultAsync<null, { reason: "EDITOR_NOT_FOUND" }> {
+	return requireEditorProfileByToken(ctx, tokenIdentifier)
+		.andThen((editor) => patchEmployeeAccess(ctx, isActive, editor))
+		.andThen(() => finishEmployeeAccessChange(ctx, tokenIdentifier, isActive));
+}
+
+function finishEmployeeAccessChange(ctx: MutationCtx, tokenIdentifier: string, isActive: boolean) {
+	return isActive ? okAsync(null) : retireEditorAccess(ctx, tokenIdentifier);
 }
 
 export function saveEmployeeNotes(ctx: MutationCtx, tokenIdentifier: string, notes: string) {

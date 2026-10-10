@@ -23,7 +23,11 @@ const clientDrivePermissionsStatusValidator = v.union(
 
 const assetsEmailStatusValidator = v.union(v.literal("sent"), v.literal("failed"));
 
-const editorDrivePermissionsStatusValidator = v.union(v.literal("ready"), v.literal("failed"));
+const editorDrivePermissionsStatusValidator = v.union(
+	v.literal("ready"),
+	v.literal("failed"),
+	v.literal("revoked")
+);
 
 const assignmentEmailStatusValidator = v.union(v.literal("sent"), v.literal("failed"));
 
@@ -78,10 +82,9 @@ export default defineSchema({
 		assetsPermission: drivePermissionValidator,
 		createdAt: v.number(),
 		updatedAt: v.number()
-	}).index("by_driveClientId_and_editorTokenIdentifier", [
-		"driveClientId",
-		"editorTokenIdentifier"
-	]),
+	})
+		.index("by_driveClientId_and_editorTokenIdentifier", ["driveClientId", "editorTokenIdentifier"])
+		.index("by_editorTokenIdentifier", ["editorTokenIdentifier"]),
 
 	driveSessions: defineTable({
 		bookingId: v.id("bookings"),
@@ -106,7 +109,11 @@ export default defineSchema({
 		failedRemovalEditorTokenIdentifier: v.optional(v.string()),
 		createdAt: v.number(),
 		updatedAt: v.number()
-	}).index("by_bookingId", ["bookingId"]),
+	})
+		.index("by_bookingId", ["bookingId"])
+		.index("by_driveClientId", ["driveClientId"])
+		.index("by_editorDrivePermissionsTokenIdentifier", ["editorDrivePermissionsTokenIdentifier"])
+		.index("by_failedRemovalEditorTokenIdentifier", ["failedRemovalEditorTokenIdentifier"]),
 
 	bookingSettings: defineTable({
 		key: v.string(),

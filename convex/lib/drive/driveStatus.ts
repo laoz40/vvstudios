@@ -564,8 +564,12 @@ function buildEditorDrivePermissionsStatus(
 		return { status: "pending" as const, assignmentEmailStatus: "not_sent" as const };
 	}
 
-	const status: "failed" | "pending" | "ready" =
+	const status: "failed" | "pending" | "ready" | "revoked" =
 		driveSession.editorDrivePermissionsStatus ?? "pending";
+
+	if (status === "revoked") {
+		return { status, assignmentEmailStatus: "not_sent" as const };
+	}
 
 	let assignmentEmailStatus: "failed" | "not_sent" | "pending" | "sent" = "not_sent";
 

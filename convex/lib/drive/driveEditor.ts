@@ -13,9 +13,25 @@ export type EditorDriveSetupRecord = {
 	editor: Doc<"editorProfiles">;
 };
 
+export function getEditorPermissionFolder(
+	setup: EditorDriveSetupRecord,
+	name: "Assets" | "Deliverables" | "Session"
+) {
+	if (name === "Assets") {
+		return setup.driveClient.assetsFolder;
+	}
+
+	if (name === "Deliverables") {
+		return setup.driveSession.deliverablesFolder;
+	}
+
+	return setup.driveSession.sessionFolder;
+}
+
 export type EditorDriveAccessToRemove = {
 	assetsFolderId: string | null;
 	assetsPermission: SavedDrivePermission | null;
+	editorRetired: boolean;
 	deliverablesFolderId: string | null;
 	deliverablesPermission: SavedDrivePermission | null;
 	driveClientEditorPermissionId: Id<"driveClientEditorPermissions"> | null;
@@ -54,6 +70,7 @@ function buildEditorDriveAccessToRemove(args: {
 	assetsPermissionRecord: Doc<"driveClientEditorPermissions"> | null;
 	driveClient: Doc<"driveClients"> | null;
 	driveSession: Doc<"driveSessions">;
+	editorIsActive: boolean;
 	hasOtherClientAssignment: boolean;
 }): EditorDriveAccessToRemove {
 	const assetsAccess = getAssetsAccessToRemove(args);
@@ -61,13 +78,18 @@ function buildEditorDriveAccessToRemove(args: {
 	return {
 		assetsFolderId: assetsAccess.folderId,
 		assetsPermission: assetsAccess.permission,
+		editorRetired: !args.editorIsActive,
 		driveClientEditorPermissionId: assetsAccess.recordId,
 		...getSessionAccessToRemove(args.driveSession)
 	};
 }
 
-function hasOtherClientAssignment(assignedBookings: Doc<"bookings">[], bookingId: Id<"bookings">) {
-	return assignedBookings.some((booking) => booking._id !== bookingId);
+function hasOtherClientAssignment(
+	assignedBookings: Doc<"bookings">[],
+	bookingId: Id<"bookings">,
+	editorIsActive: boolean
+) {
+	return editorIsActive && assignedBookings.some((booking) => booking._id !== bookingId);
 }
 
 export function loadEditorProfileByToken(ctx: QueryCtx, editorTokenIdentifier: string) {
@@ -104,7 +126,13 @@ export function loadEditorClientDriveData(
 						.eq("assignedEditorTokenIdentifier", editorTokenIdentifier)
 						.eq("driveClientId", driveSession.driveClientId)
 				)
-				.collect()
+				.collect(),
+			ctx.db
+				.query("editorProfiles")
+				.withIndex("by_tokenIdentifier", (query) =>
+					query.eq("tokenIdentifier", editorTokenIdentifier)
+				)
+				.unique()
 		])
 	);
 }
@@ -122,15 +150,97 @@ export function editorDriveAccessToRemoveForSession(
 	}
 
 	return loadEditorClientDriveData(ctx, driveSession, args.editorTokenIdentifier).map(
-		([driveClient, assetsPermissionRecord, assignedBookings]) => {
+		([driveClient, assetsPermissionRecord, assignedBookings, editor]) => {
 			return buildEditorDriveAccessToRemove({
 				assetsPermissionRecord,
 				driveClient,
 				driveSession,
-				hasOtherClientAssignment: hasOtherClientAssignment(assignedBookings, args.bookingId)
+				editorIsActive: editor?.isActive ?? false,
+				hasOtherClientAssignment: hasOtherClientAssignment(
+					assignedBookings,
+					args.bookingId,
+					editor?.isActive ?? false
+				)
 			});
 		}
 	);
+}
+
+export function listEditorRetirementSessions(ctx: QueryCtx, editorTokenIdentifier: string) {
+	return okOrThrow(
+		Promise.all([
+			ctx.db
+				.query("driveSessions")
+				.withIndex("by_editorDrivePermissionsTokenIdentifier", (query) =>
+					query.eq("editorDrivePermissionsTokenIdentifier", editorTokenIdentifier)
+				)
+				.collect(),
+			ctx.db
+				.query("driveSessions")
+				.withIndex("by_failedRemovalEditorTokenIdentifier", (query) =>
+					query.eq("failedRemovalEditorTokenIdentifier", editorTokenIdentifier)
+				)
+				.collect(),
+			ctx.db
+				.query("bookings")
+				.withIndex("by_assignedEditorTokenIdentifier_and_driveClientId", (query) =>
+					query.eq("assignedEditorTokenIdentifier", editorTokenIdentifier)
+				)
+				.collect()
+		])
+	).map(([permissionSessions, failedRemovalSessions, assignedBookings]) => ({
+		permissionSessions,
+		failedRemovalSessions,
+		assignedBookings
+	}));
+}
+
+export function loadDriveSessionsForBookings(ctx: QueryCtx, bookingIds: Id<"bookings">[]) {
+	return okOrThrow(
+		Promise.all(
+			bookingIds.map((bookingId) =>
+				ctx.db
+					.query("driveSessions")
+					.withIndex("by_bookingId", (query) => query.eq("bookingId", bookingId))
+					.unique()
+			)
+		)
+	);
+}
+
+export function listEditorAssetPermissionsForRetirement(
+	ctx: QueryCtx,
+	editorTokenIdentifier: string
+) {
+	return okOrThrow(
+		ctx.db
+			.query("driveClientEditorPermissions")
+			.withIndex("by_editorTokenIdentifier", (query) =>
+				query.eq("editorTokenIdentifier", editorTokenIdentifier)
+			)
+			.collect()
+	);
+}
+
+export function loadEditorAssetPermissionRetirementInfo(
+	ctx: QueryCtx,
+	permission: Doc<"driveClientEditorPermissions">
+) {
+	return okOrThrow(
+		Promise.all([
+			ctx.db.get("driveClients", permission.driveClientId),
+			ctx.db
+				.query("driveSessions")
+				.withIndex("by_driveClientId", (query) =>
+					query.eq("driveClientId", permission.driveClientId)
+				)
+				.first()
+		])
+	).map(([driveClient, driveSession]) => ({
+		assetsFolderId: driveClient?.assetsFolder?.id ?? null,
+		bookingId: driveSession?.bookingId ?? null,
+		permission
+	}));
 }
 
 export function markPreviousEditorRemovalFailedForSession(
@@ -155,6 +265,7 @@ export function markPreviousEditorRemovalFailedForSession(
 export type FailedEditorRemoval = {
 	driveSessionId: Id<"driveSessions">;
 	editorTokenIdentifier: string;
+	editorRetired: boolean;
 	editorEmail: string;
 	sessionFolderId: string | null;
 	deliverablesFolderId: string | null;
@@ -169,7 +280,12 @@ export function failedEditorRemovalForSession(
 	bookingId: Id<"bookings">,
 	editor: Doc<"editorProfiles"> | null,
 	clientData:
-		| [Doc<"driveClients"> | null, Doc<"driveClientEditorPermissions"> | null, Doc<"bookings">[]]
+		| [
+				Doc<"driveClients"> | null,
+				Doc<"driveClientEditorPermissions"> | null,
+				Doc<"bookings">[],
+				Doc<"editorProfiles"> | null
+		  ]
 		| null
 ) {
 	const editorTokenIdentifier = driveSession?.failedRemovalEditorTokenIdentifier;
@@ -188,12 +304,13 @@ export function failedEditorRemovalForSession(
 	const assetsAccess = getAssetsAccessToRemove({
 		assetsPermissionRecord,
 		driveClient,
-		hasOtherClientAssignment: hasOtherClientAssignment(assignedBookings, bookingId)
+		hasOtherClientAssignment: hasOtherClientAssignment(assignedBookings, bookingId, editor.isActive)
 	});
 
 	return {
 		driveSessionId: driveSession._id,
 		editorTokenIdentifier,
+		editorRetired: !editor.isActive,
 		editorEmail: editor.email,
 		sessionFolderId: driveSession.sessionFolder?.id ?? null,
 		deliverablesFolderId: driveSession.deliverablesFolder?.id ?? null,
@@ -209,6 +326,7 @@ export function clearPreviousEditorDriveAccessForSession(
 		driveClientEditorPermissionId: Id<"driveClientEditorPermissions"> | null;
 		driveSessionId: Id<"driveSessions">;
 		editorTokenIdentifier: string;
+		retired: boolean;
 	}
 ) {
 	if (driveSession === null) {
@@ -224,8 +342,10 @@ export function clearPreviousEditorDriveAccessForSession(
 							assignmentEmailStatus: undefined,
 							assignmentEmailTokenIdentifier: undefined,
 							editorDeliverablesPermission: undefined,
-							editorDrivePermissionsStatus: undefined,
-							editorDrivePermissionsTokenIdentifier: undefined,
+							editorDrivePermissionsStatus: args.retired ? "revoked" : undefined,
+							editorDrivePermissionsTokenIdentifier: args.retired
+								? args.editorTokenIdentifier
+								: undefined,
 							editorSessionPermission: undefined,
 							failedRemovalEditorTokenIdentifier: undefined,
 							updatedAt: Date.now()
@@ -240,17 +360,51 @@ export function clearPreviousEditorDriveAccessForSession(
 						.then(() => null)
 				);
 
-	return patchDriveSession.andThen(() => {
-		if (args.driveClientEditorPermissionId === null) {
-			return okAsync(null);
-		}
+	return patchDriveSession;
+}
 
-		return okOrThrow(
-			ctx.db
-				.delete("driveClientEditorPermissions", args.driveClientEditorPermissionId)
-				.then(() => null)
-		);
-	});
+export function loadEditorAssetPermissionForClear(
+	ctx: MutationCtx,
+	permissionId: Id<"driveClientEditorPermissions"> | null
+) {
+	if (permissionId === null) return okAsync(null);
+
+	return okOrThrow(ctx.db.get("driveClientEditorPermissions", permissionId));
+}
+
+export function deleteEditorAssetPermissionIfOwned(
+	ctx: MutationCtx,
+	permission: Doc<"driveClientEditorPermissions"> | null,
+	args: { editorTokenIdentifier: string }
+) {
+	if (permission === null || permission.editorTokenIdentifier !== args.editorTokenIdentifier) {
+		return okAsync(null);
+	}
+
+	return okOrThrow(ctx.db.delete("driveClientEditorPermissions", permission._id).then(() => null));
+}
+
+export function markEditorDriveAccessRevokedForSession(
+	ctx: MutationCtx,
+	driveSession: Doc<"driveSessions"> | null,
+	args: { driveSessionId: Id<"driveSessions">; editorTokenIdentifier: string }
+) {
+	if (driveSession === null || driveSession.editorDrivePermissionsTokenIdentifier !== undefined) {
+		return okAsync(null);
+	}
+
+	return okOrThrow(
+		ctx.db
+			.patch("driveSessions", args.driveSessionId, {
+				assignmentEmailClaimedAt: undefined,
+				assignmentEmailStatus: undefined,
+				assignmentEmailTokenIdentifier: undefined,
+				editorDrivePermissionsStatus: "revoked",
+				editorDrivePermissionsTokenIdentifier: args.editorTokenIdentifier,
+				updatedAt: Date.now()
+			})
+			.then(() => null)
+	);
 }
 
 export type EditorDriveSetupRecordError = {

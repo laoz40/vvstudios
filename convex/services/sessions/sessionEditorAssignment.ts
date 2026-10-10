@@ -1,6 +1,7 @@
 import { err, ok, okAsync, type Result, type ResultAsync } from "neverthrow";
 import type { Doc } from "#convex/_generated/dataModel";
 import type { MutationCtx } from "#convex/_generated/server";
+import { loadDriveSessionRowByBookingId } from "#convex/lib/drive/driveBookingDriveClient";
 import {
 	editorProfileDisplayName,
 	lookupEditorProfileByToken,
@@ -86,7 +87,22 @@ function saveSessionEditorAssignment(
 	editor: Doc<"editorProfiles"> | undefined,
 	adminNotes: string
 ): ResultAsync<null, never> {
-	const previousEditorTokenIdentifier = session.assignedEditorTokenIdentifier;
+	return loadDriveSessionRowByBookingId(ctx, session._id).andThen((driveSession) =>
+		saveSessionEditorAssignmentWithAccess(ctx, session, editor, adminNotes, driveSession)
+	);
+}
+
+function saveSessionEditorAssignmentWithAccess(
+	ctx: MutationCtx,
+	session: Doc<"bookings">,
+	editor: Doc<"editorProfiles"> | undefined,
+	adminNotes: string,
+	driveSession: Doc<"driveSessions"> | null
+): ResultAsync<null, never> {
+	// Retirement clears the booking before asynchronous Drive cleanup finishes.
+	// Keep that cleanup ahead of replacement access even when the booking is unassigned.
+	const previousEditorTokenIdentifier =
+		session.assignedEditorTokenIdentifier ?? driveSession?.editorDrivePermissionsTokenIdentifier;
 
 	const assignedEditorDisplayName =
 		editor !== undefined ? editorProfileDisplayName(editor) : undefined;
@@ -96,7 +112,10 @@ function saveSessionEditorAssignment(
 	const previousEditorNeedsAccessRemoved =
 		previousEditorTokenIdentifier !== undefined && editorChanged;
 
-	const isFirstAssignment = previousEditorTokenIdentifier === undefined && editor !== undefined;
+	const isFirstAssignment =
+		!previousEditorNeedsAccessRemoved &&
+		session.assignedEditorTokenIdentifier === undefined &&
+		editor !== undefined;
 
 	return searchBlobPatchForBookingAsync(ctx, {
 		...session,
