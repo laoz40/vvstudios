@@ -8,7 +8,7 @@ import {
 	patchBookingAvailabilitySettingsRow,
 	readBookingAvailabilitySettings,
 	validateBookingSettings
-} from "#convex/lib/booking/bookingSettings";
+} from "#convex/booking/lib/bookingSettings";
 import { okOrThrow } from "#convex/lib/result";
 import type { Doc } from "#convex/_generated/dataModel";
 
@@ -50,7 +50,7 @@ export function loadBookingAvailabilitySettings(ctx: QueryCtx) {
 export function getBookingSettingsService(
 	ctx: ActionCtx
 ): NeverthrowResultAsync<BookingAvailabilitySettings, never> {
-	return okOrThrow(ctx.runQuery(api.bookingSettings.get, {}));
+	return okOrThrow(ctx.runQuery(api.booking.settings.get, {}));
 }
 
 export function writeBookingAvailabilitySettings(

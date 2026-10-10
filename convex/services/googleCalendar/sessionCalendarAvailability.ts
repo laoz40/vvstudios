@@ -15,7 +15,7 @@ import {
 	loadDayBusyWindows,
 	type GoogleCalendarAvailabilityError
 } from "#convex/services/googleCalendar/sessionCalendarAvailabilityLoad";
-import { getBookingSettingsService } from "#convex/services/booking/bookingSettings";
+import { getBookingSettingsService } from "#convex/booking/services/bookingSettings";
 import type { RescheduleLinkLookupError } from "#convex/lib/sessions/sessionRescheduleLinks";
 import type { SessionAvailabilityValidationError } from "#convex/lib/sessions/sessionCalendarTime";
 import type { BusyDayWindow as LibBusyDayWindow } from "#convex/lib/sessions/sessionCalendarTime";

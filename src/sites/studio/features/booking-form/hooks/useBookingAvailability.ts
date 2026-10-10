@@ -139,7 +139,7 @@ export function useBookingAvailability({
 	onSelectedTimeInvalidated,
 	selectedTime
 }: UseBookingAvailabilityOptions): BookingAvailabilityState {
-	const bookingSettings = useQuery(api.bookingSettings.get, {});
+	const bookingSettings = useQuery(api.booking.settings.get, {});
 
 	// Availability settings and date bounds
 	const availabilitySettings = bookingSettings ?? DEFAULT_BOOKING_AVAILABILITY_SETTINGS;

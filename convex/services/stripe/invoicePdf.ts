@@ -146,7 +146,7 @@ export function loadPublicBookingInvoiceDownload(
 export function loadBookingSettingsForPdf(
 	ctx: ActionCtx
 ): ResultAsync<BookingSettingsSnapshot, never> {
-	return okOrThrow(ctx.runQuery(api.bookingSettings.get, {}));
+	return okOrThrow(ctx.runQuery(api.booking.settings.get, {}));
 }
 
 export function renderBookingReceiptPdfPayload(

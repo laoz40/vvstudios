@@ -104,7 +104,7 @@ export function sendBookingReceiptEmailToCustomer(
 	ctx: ActionCtx,
 	session: Doc<"bookings">
 ): ResultAsync<{ receiptNumber: string; session: Doc<"bookings"> }, { reason: string }> {
-	return okOrThrow<BookingAvailabilitySettings>(ctx.runQuery(api.bookingSettings.get, {})).andThen(
+	return okOrThrow<BookingAvailabilitySettings>(ctx.runQuery(api.booking.settings.get, {})).andThen(
 		(settings: BookingAvailabilitySettings) =>
 			sendCustomerReceiptWithSettings(ctx, session, settings)
 	);

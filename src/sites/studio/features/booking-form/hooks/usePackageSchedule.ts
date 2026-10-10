@@ -169,7 +169,7 @@ export function usePackageSchedule({
 	packageData,
 	token
 }: UsePackageScheduleOptions): PackageScheduleState {
-	const bookingSettings = useQuery(api.bookingSettings.get, {});
+	const bookingSettings = useQuery(api.booking.settings.get, {});
 	const availabilitySettings = bookingSettings ?? DEFAULT_BOOKING_AVAILABILITY_SETTINGS;
 
 	const [calendarMonth, setCalendarMonth] = useState(() =>

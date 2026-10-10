@@ -53,7 +53,7 @@ export function sendPackagePaidScheduleEmail(
 	ctx: ActionCtx,
 	args: { packageId: Id<"packages">; tokenResult: PaidPackageResult }
 ): ResultAsync<null, ResendPackageEmailError> {
-	return okOrThrow<BookingAvailabilitySettings>(ctx.runQuery(api.bookingSettings.get, {})).andThen(
+	return okOrThrow<BookingAvailabilitySettings>(ctx.runQuery(api.booking.settings.get, {})).andThen(
 		(bookingSettings: BookingAvailabilitySettings) =>
 			sendPaidScheduleEmailWithSettings(ctx, args, bookingSettings)
 	);

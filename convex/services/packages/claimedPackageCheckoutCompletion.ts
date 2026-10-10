@@ -69,7 +69,7 @@ export function completeClaimedPackageCheckoutAfterPayment(
 	ctx: ActionCtx,
 	packageId: Id<"packages">
 ) {
-	return okOrThrow<BookingAvailabilitySettings>(ctx.runQuery(api.bookingSettings.get, {}))
+	return okOrThrow<BookingAvailabilitySettings>(ctx.runQuery(api.booking.settings.get, {}))
 		.map(bookingSettingsWithCheckoutOrigin)
 		.andThen((context: Omit<ClaimedCheckoutEmailContext, "paymentResult">) =>
 			markPackagePaidWithCheckoutContext(ctx, packageId, context)

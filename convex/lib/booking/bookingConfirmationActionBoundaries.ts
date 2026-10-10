@@ -11,7 +11,7 @@ export { runReserveSessionReservation as reserveClaimedBookingSession } from "#c
 export function loadBookingAvailabilitySettings(
 	ctx: ActionCtx
 ): ReturnType<typeof okOrThrow<SessionAvailabilitySettings>> {
-	return okOrThrow(ctx.runQuery(api.bookingSettings.get, {}));
+	return okOrThrow(ctx.runQuery(api.booking.settings.get, {}));
 }
 
 export type ReserveClaimedBookingSessionResult =

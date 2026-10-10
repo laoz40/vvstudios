@@ -23,7 +23,7 @@ import {
 	rejectPendingPaymentSlotConflict,
 	validateCheckoutSessionAvailability
 } from "#convex/lib/sessions/pendingCheckoutSession";
-import { getBookingAvailabilitySettings } from "#convex/lib/booking/bookingSettings";
+import { getBookingAvailabilitySettings } from "#convex/booking/lib/bookingSettings";
 import { checkBookingSubmitRateLimit } from "#convex/lib/rateLimits";
 import type { BookingAvailabilitySettings } from "#studio/lib/bookingAvailabilitySettings";
 

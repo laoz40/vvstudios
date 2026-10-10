@@ -14,7 +14,7 @@ import {
 	loadRescheduleBookableRangeBusyWindows,
 	loadRescheduleSessionAndBookingSettings
 } from "#convex/services/googleCalendar/sessionCalendarAvailability";
-import { getBookingSettingsService } from "#convex/services/booking/bookingSettings";
+import { getBookingSettingsService } from "#convex/booking/services/bookingSettings";
 import {
 	attachAdminUpdateContext,
 	requireEditSessionsPermissionAndLoadBooking,

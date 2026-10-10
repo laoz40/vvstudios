@@ -9,8 +9,10 @@
  */
 
 import type * as auth from "../auth.js";
+import type * as booking_lib_bookingSettings from "../booking/lib/bookingSettings.js";
+import type * as booking_services_bookingSettings from "../booking/services/bookingSettings.js";
+import type * as booking_settings from "../booking/settings.js";
 import type * as bookingConfirmation from "../bookingConfirmation.js";
-import type * as bookingSettings from "../bookingSettings.js";
 import type * as crons from "../crons.js";
 import type * as customInvoices from "../customInvoices.js";
 import type * as deliverablesEmail from "../deliverablesEmail.js";
@@ -45,7 +47,6 @@ import type * as lib_booking_bookingFormFields from "../lib/booking/bookingFormF
 import type * as lib_booking_bookingInvoicePdfRender from "../lib/booking/bookingInvoicePdfRender.js";
 import type * as lib_booking_bookingReceipt from "../lib/booking/bookingReceipt.js";
 import type * as lib_booking_bookingReceiptEmailPipeline from "../lib/booking/bookingReceiptEmailPipeline.js";
-import type * as lib_booking_bookingSettings from "../lib/booking/bookingSettings.js";
 import type * as lib_booking_bookingSubmission from "../lib/booking/bookingSubmission.js";
 import type * as lib_clerkInvitations from "../lib/clerkInvitations.js";
 import type * as lib_contactNormalization from "../lib/contactNormalization.js";
@@ -153,7 +154,6 @@ import type * as services_booking_bookingConfirmationWorkflow from "../services/
 import type * as services_booking_bookingFormValidators from "../services/booking/bookingFormValidators.js";
 import type * as services_booking_bookingReceiptEmails from "../services/booking/bookingReceiptEmails.js";
 import type * as services_booking_bookingReceiptResend from "../services/booking/bookingReceiptResend.js";
-import type * as services_booking_bookingSettings from "../services/booking/bookingSettings.js";
 import type * as services_booking_bookingSubmission from "../services/booking/bookingSubmission.js";
 import type * as services_booking_sessionCheckout from "../services/booking/sessionCheckout.js";
 import type * as services_booking_sessionReminderEmail from "../services/booking/sessionReminderEmail.js";
@@ -267,8 +267,10 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   auth: typeof auth;
+  "booking/lib/bookingSettings": typeof booking_lib_bookingSettings;
+  "booking/services/bookingSettings": typeof booking_services_bookingSettings;
+  "booking/settings": typeof booking_settings;
   bookingConfirmation: typeof bookingConfirmation;
-  bookingSettings: typeof bookingSettings;
   crons: typeof crons;
   customInvoices: typeof customInvoices;
   deliverablesEmail: typeof deliverablesEmail;
@@ -303,7 +305,6 @@ declare const fullApi: ApiFromModules<{
   "lib/booking/bookingInvoicePdfRender": typeof lib_booking_bookingInvoicePdfRender;
   "lib/booking/bookingReceipt": typeof lib_booking_bookingReceipt;
   "lib/booking/bookingReceiptEmailPipeline": typeof lib_booking_bookingReceiptEmailPipeline;
-  "lib/booking/bookingSettings": typeof lib_booking_bookingSettings;
   "lib/booking/bookingSubmission": typeof lib_booking_bookingSubmission;
   "lib/clerkInvitations": typeof lib_clerkInvitations;
   "lib/contactNormalization": typeof lib_contactNormalization;
@@ -411,7 +412,6 @@ declare const fullApi: ApiFromModules<{
   "services/booking/bookingFormValidators": typeof services_booking_bookingFormValidators;
   "services/booking/bookingReceiptEmails": typeof services_booking_bookingReceiptEmails;
   "services/booking/bookingReceiptResend": typeof services_booking_bookingReceiptResend;
-  "services/booking/bookingSettings": typeof services_booking_bookingSettings;
   "services/booking/bookingSubmission": typeof services_booking_bookingSubmission;
   "services/booking/sessionCheckout": typeof services_booking_sessionCheckout;
   "services/booking/sessionReminderEmail": typeof services_booking_sessionReminderEmail;
