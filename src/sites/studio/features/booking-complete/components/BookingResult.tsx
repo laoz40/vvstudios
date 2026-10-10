@@ -18,12 +18,14 @@ type InvoiceDownloadTarget =
 
 type BookingReceiptErrorReason =
 	| NonNullable<
-			FunctionReturnType<typeof api.invoices.getBookingReceiptPdfByStripeSessionId>[0]
+			FunctionReturnType<typeof api.stripe.invoices.getBookingReceiptPdfByStripeSessionId>[0]
 	  >["reason"]
 	| "UNEXPECTED_ERROR";
 
 type PackageReceiptErrorReason =
-	| NonNullable<FunctionReturnType<typeof api.invoices.getPackageReceiptPdfById>[0]>["reason"]
+	| NonNullable<
+			FunctionReturnType<typeof api.stripe.invoices.getPackageReceiptPdfById>[0]
+	  >["reason"]
 	| "UNEXPECTED_ERROR";
 
 export interface BookingResultProps {
@@ -40,8 +42,8 @@ export function BookingResult({
 	showBookingDetails = true
 }: BookingResultProps): ReactNode {
 	const [isDownloadingDocument, setIsDownloadingDocument] = useState(false);
-	const getBookingReceiptPdf = useAction(api.invoices.getBookingReceiptPdfByStripeSessionId);
-	const getPackageReceiptPdf = useAction(api.invoices.getPackageReceiptPdfById);
+	const getBookingReceiptPdf = useAction(api.stripe.invoices.getBookingReceiptPdfByStripeSessionId);
+	const getPackageReceiptPdf = useAction(api.stripe.invoices.getPackageReceiptPdfById);
 
 	function handleDownloadDocument(): void {
 		if (!invoiceDownloadTarget) {

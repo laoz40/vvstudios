@@ -24,7 +24,7 @@ const updateSessionEditStatus = makeFunctionReference<
 	"mutation",
 	UpdateSessionEditStatusArgs,
 	UpdateSessionEditStatusResult
->("sessions:updateSessionEditStatus");
+>("sessions/admin:updateSessionEditStatus");
 
 const now = Date.parse("2030-01-10T00:00:00.000Z");
 
@@ -106,7 +106,7 @@ describe("deliverables review host email", () => {
 
 		expect(scheduledJobs).toHaveLength(1);
 		expect(scheduledJobs[0]).toMatchObject({
-			name: "deliverablesReviewEmail:sendDeliverablesReviewReadyEmail",
+			name: "editor/deliverablesReviewEmail:sendDeliverablesReviewReadyEmail",
 			state: { kind: "pending" }
 		});
 	});

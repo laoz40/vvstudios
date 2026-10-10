@@ -53,7 +53,7 @@ Also spot-check:
 git diff --name-only | xargs rg 'okOrThrow\(' 
 ```
 
-Every hit should be Convex I/O at the call site (oxlint `neverthrow/no-export-okorthrow-on-call` enforces this on `convex/services/**` and top-level `convex/*.ts`; `convex/lib/**` is warn until migration catches up).
+Every hit should be Convex I/O at the call site (oxlint `neverthrow/no-export-okorthrow-on-call` enforces this on `convex/*/services/**`, `convex/shared/services/**`, feature handlers under `convex/<feature>/*.ts`, and root `convex/*.ts`; lib paths under `convex/*/lib/**` and `convex/shared/lib/**` are warn until migration catches up).
 
 ## Refactor scope
 

@@ -13,15 +13,15 @@ const DRIVE_TABLES = new Set([
 	"driveClientEditorPermissions"
 ]);
 const DRIVE_TABLE_WRITERS = new Map([
-	["convex/lib/drive/driveFolders.ts", new Set(["driveClients", "driveSessions"])],
-	["convex/lib/drive/driveClientAccess.ts", new Set(["driveClients", "driveSessions"])],
-	["convex/lib/drive/driveEditor.ts", new Set(["driveSessions", "driveClientEditorPermissions"])],
-	["convex/lib/drive/sessionFolders/allocateNumbers.ts", new Set(["driveSessions"])],
-	["convex/lib/drive/sessionFolders/clearSessionRecords.ts", new Set(["driveSessions"])]
+	["convex/drive/lib/driveFolders.ts", new Set(["driveClients", "driveSessions"])],
+	["convex/drive/lib/driveClientAccess.ts", new Set(["driveClients", "driveSessions"])],
+	["convex/drive/lib/driveEditor.ts", new Set(["driveSessions", "driveClientEditorPermissions"])],
+	["convex/drive/lib/sessionFolders/allocateNumbers.ts", new Set(["driveSessions"])],
+	["convex/drive/lib/sessionFolders/clearSessionRecords.ts", new Set(["driveSessions"])]
 ]);
-const BOOKING_INSERT_WRITER = "convex/lib/sessions/pendingCheckoutSession.ts";
-const BOOKING_LINK_WRITER = "convex/lib/drive/driveBookingDriveClient.ts";
-const BOOKING_FAILURE_WRITER = "convex/lib/drive/driveFolders.ts";
+const BOOKING_INSERT_WRITER = "convex/sessions/lib/pendingCheckoutSession.ts";
+const BOOKING_LINK_WRITER = "convex/drive/lib/driveBookingDriveClient.ts";
+const BOOKING_FAILURE_WRITER = "convex/drive/lib/driveFolders.ts";
 const BOOKING_DRIVE_FIELDS = new Set([
 	"driveClientId",
 	"driveSetupFailedAt",
@@ -37,11 +37,11 @@ export const noDriveStateWriteOutsideOwnerRule = defineRule({
 		},
 		messages: {
 			driveTableWrite:
-				"Drive table writes belong in convex/lib/drive/driveFolders, driveClientAccess, driveEditor, or sessionFolders/allocateNumbers and clearSessionRecords.",
+				"Drive table writes belong in convex/drive/lib/driveFolders, driveClientAccess, driveEditor, or sessionFolders/allocateNumbers and clearSessionRecords.",
 			bookingDriveClientId:
-				"Update booking Drive linkage through patchBookingDriveClientId in convex/lib/drive/driveBookingDriveClient.ts.",
+				"Update booking Drive linkage through patchBookingDriveClientId in convex/drive/lib/driveBookingDriveClient.ts.",
 			bookingDriveFailure:
-				"Update booking Drive failure state through saveDriveSetupResult in convex/lib/drive/driveFolders.ts."
+				"Update booking Drive failure state through saveDriveSetupResult in convex/drive/lib/driveFolders.ts."
 		}
 	},
 	create(context) {

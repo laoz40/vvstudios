@@ -40,7 +40,9 @@ function isBookingBusyWindowsLoadError(
 export function useBookingBusyWindows({
 	bookableMonthKeys
 }: UseBookingBusyWindowsOptions): BookingBusyWindowsState {
-	const fetchBookableRangeBusyWindows = useAction(api.googleCalendar.getBookableRangeBusyWindows);
+	const fetchBookableRangeBusyWindows = useAction(
+		api.googleCalendar.calendar.getBookableRangeBusyWindows
+	);
 
 	// Reuse the same browser key for Google Calendar rate limiting across visits.
 	const [availabilityRateLimitKey, setAvailabilityRateLimitKey] = useState("");

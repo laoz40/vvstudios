@@ -7,7 +7,7 @@ const crons = cronJobs();
 crons.daily(
 	"send due reminder emails",
 	{ hourUTC: 23 },
-	internal.sessionReminders.sendDueReminders,
+	internal.sessions.reminders.sendDueReminders,
 	{}
 );
 

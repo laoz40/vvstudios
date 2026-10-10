@@ -146,7 +146,7 @@ export function useRescheduleAvailability({
 	duration,
 	token
 }: UseRescheduleAvailabilityOptions): RescheduleAvailabilityState {
-	const bookingSettings = useQuery(api.bookingSettings.get, {});
+	const bookingSettings = useQuery(api.booking.settings.get, {});
 
 	// Availability settings
 	const availabilitySettings = bookingSettings ?? DEFAULT_BOOKING_AVAILABILITY_SETTINGS;

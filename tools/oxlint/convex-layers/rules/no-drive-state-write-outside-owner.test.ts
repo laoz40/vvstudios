@@ -7,27 +7,27 @@ const tester = new RuleTester({ languageOptions: { parserOptions: { lang: "ts" }
 tester.run("convex-layers/no-drive-state-write-outside-owner", noDriveStateWriteOutsideOwnerRule, {
 	valid: [
 		{
-			filename: "convex/lib/drive/driveFolders.ts",
+			filename: "convex/drive/lib/driveFolders.ts",
 			code: `ctx.db.patch("driveClients", id, { assetsFolder });`
 		},
 		{
-			filename: "convex/lib/drive/driveBookingDriveClient.ts",
+			filename: "convex/drive/lib/driveBookingDriveClient.ts",
 			code: `ctx.db.patch("bookings", id, { driveClientId });`
 		},
 		{
-			filename: "convex/lib/drive/driveFolders.ts",
+			filename: "convex/drive/lib/driveFolders.ts",
 			code: `ctx.db.patch("bookings", id, { driveSetupFailureCode: failureCode });`
 		},
 		{
-			filename: "convex/lib/sessions/pendingCheckoutSession.ts",
+			filename: "convex/sessions/lib/pendingCheckoutSession.ts",
 			code: `ctx.db.insert("bookings", { ...{ driveClientId } });`
 		},
 		{
-			filename: "convex/lib/sessions/sessionSchedulingSave.ts",
+			filename: "convex/sessions/lib/schedulingSave.ts",
 			code: `ctx.db.patch("bookings", id, { ...ordinaryBookingFields });`
 		},
 		{
-			filename: "convex/lib/booking/bookingConfirmationSave.ts",
+			filename: "convex/booking/lib/confirmationSave.ts",
 			code: `ctx.db.patch("bookings", id, { price: 420, status: "confirmed" });`
 		},
 		{
@@ -37,47 +37,47 @@ tester.run("convex-layers/no-drive-state-write-outside-owner", noDriveStateWrite
 	],
 	invalid: [
 		{
-			filename: "convex/services/drive/driveInternal.ts",
+			filename: "convex/drive/services/setup.ts",
 			code: `ctx.db.patch("driveSessions", id, { sessionFolder });`,
 			errors: [{ messageId: "driveTableWrite" }]
 		},
 		{
-			filename: "convex/services/drive/driveInternal.ts",
+			filename: "convex/drive/services/setup.ts",
 			code: `ctx.db["delete"]("driveClientEditorPermissions", id);`,
 			errors: [{ messageId: "driveTableWrite" }]
 		},
 		{
-			filename: "convex/services/drive/driveInternal.ts",
+			filename: "convex/drive/services/setup.ts",
 			code: `ctx["db"]["replace"](\`driveSessions\`, id, {});`,
 			errors: [{ messageId: "driveTableWrite" }]
 		},
 		{
-			filename: "convex/lib/sessions/sessionSchedulingSave.ts",
+			filename: "convex/sessions/lib/schedulingSave.ts",
 			code: `ctx.db.patch("bookings", id, { ["driveSetupFailureCode"]: code });`,
 			errors: [{ messageId: "bookingDriveFailure" }]
 		},
 		{
-			filename: "convex/lib/booking/bookingConfirmationSave.ts",
+			filename: "convex/booking/lib/confirmationSave.ts",
 			code: `ctx.db.patch("bookings", id, { ...{ driveClientId } });`,
 			errors: [{ messageId: "bookingDriveClientId" }]
 		},
 		{
-			filename: "convex/services/drive/driveInternal.ts",
+			filename: "convex/drive/services/setup.ts",
 			code: `ctx.db.insert("driveClients", {});`,
 			errors: [{ messageId: "driveTableWrite" }]
 		},
 		{
-			filename: "convex/lib/drive/driveEditor.ts",
+			filename: "convex/drive/lib/driveEditor.ts",
 			code: `ctx.db.patch("driveClients", id, {});`,
 			errors: [{ messageId: "driveTableWrite" }]
 		},
 		{
-			filename: "convex/lib/drive/driveFolders.ts",
+			filename: "convex/drive/lib/driveFolders.ts",
 			code: `ctx.db.insert("driveClientEditorPermissions", {});`,
 			errors: [{ messageId: "driveTableWrite" }]
 		},
 		{
-			filename: "convex/lib/booking/bookingConfirmationSave.ts",
+			filename: "convex/booking/lib/confirmationSave.ts",
 			code: `ctx.db.delete("driveSessions", id);`,
 			errors: [{ messageId: "driveTableWrite" }]
 		}

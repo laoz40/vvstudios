@@ -112,8 +112,8 @@ function DriveSetupButton({
 	hasClientAssetsLibrary: boolean;
 	status: DriveDialogStatus["status"] | undefined;
 }) {
-	const setupDriveFolders = useAction(api.googleCalendar.setupDrive);
-	const retryDriveSetup = useAction(api.googleCalendar.retryDriveSetup);
+	const setupDriveFolders = useAction(api.googleCalendar.calendar.setupDrive);
+	const retryDriveSetup = useAction(api.googleCalendar.calendar.retryDriveSetup);
 	const [isSettingUp, setIsSettingUp] = useState(false);
 	const { canSetUp, shouldRetry } = getDriveSetupButtonMode(status);
 
@@ -273,7 +273,7 @@ export function DriveFoldersDialog({
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
 }) {
-	const driveResult = useQuery(api.sessions.getDriveStatus, open ? { bookingId } : "skip");
+	const driveResult = useQuery(api.sessions.admin.getDriveStatus, open ? { bookingId } : "skip");
 	const driveStatus = driveResult?.[1] ?? null;
 	const { folders: savedFolders, packageFolderName } = getSavedFolderSections(driveStatus);
 	// The client assets library exists when its folder was created during setup.

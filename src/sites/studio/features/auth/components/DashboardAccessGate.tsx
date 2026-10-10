@@ -9,7 +9,7 @@ import { DashboardForbiddenPage } from "#studio/features/auth/components/Dashboa
 import { EditorDashboardShell } from "#studio/features/editor/components/EditorDashboardShell";
 
 export function DashboardAccessGate() {
-	const accessResult = useQuery(api.auth.getCurrentUserAccess, {});
+	const accessResult = useQuery(api.shared.auth.getCurrentUserAccess, {});
 
 	if (!accessResult) {
 		return <DashboardLoadingState stage="confirming-clearance" />;

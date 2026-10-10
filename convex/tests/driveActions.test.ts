@@ -215,7 +215,7 @@ async function seedBooking(t: TestClient, withEditor = false) {
 }
 
 async function seedSavedFolders(t: TestClient, bookingId: Id<"bookings">) {
-	const [, client] = await t.mutation(internal.sessionsDriveInternal.saveDriveClientFolder, {
+	const [, client] = await t.mutation(internal.sessions.drive.saveDriveClientFolder, {
 		normalizedEmail: "customer@example.com",
 		displayName: "Drive Customer - Drive account",
 		folder: folder("client")
@@ -223,22 +223,22 @@ async function seedSavedFolders(t: TestClient, bookingId: Id<"bookings">) {
 
 	if (client === null) throw new Error("Expected a saved Drive client");
 
-	await t.mutation(internal.sessionsDriveInternal.saveDriveClientAssetsFolder, {
+	await t.mutation(internal.sessions.drive.saveDriveClientAssetsFolder, {
 		driveClientId: client.driveClientId,
 		folder: folder("assets")
 	});
-	await t.mutation(internal.sessionsDriveInternal.saveDriveSessionFolder, {
+	await t.mutation(internal.sessions.drive.saveDriveSessionFolder, {
 		bookingId,
 		driveClientId: client.driveClientId,
 		folder: folder("session")
 	});
-	await t.mutation(internal.sessionsDriveInternal.allocateClientSessionNumber, { bookingId });
-	await t.mutation(internal.sessionsDriveInternal.saveDriveChildFolder, {
+	await t.mutation(internal.sessions.drive.allocateClientSessionNumber, { bookingId });
+	await t.mutation(internal.sessions.drive.saveDriveChildFolder, {
 		bookingId,
 		name: "Raw Media",
 		folder: folder("raw")
 	});
-	await t.mutation(internal.sessionsDriveInternal.saveDriveChildFolder, {
+	await t.mutation(internal.sessions.drive.saveDriveChildFolder, {
 		bookingId,
 		name: "Deliverables",
 		folder: folder("deliverables")
@@ -248,7 +248,7 @@ async function seedSavedFolders(t: TestClient, bookingId: Id<"bookings">) {
 async function readStatus(t: TestClient, bookingId: Id<"bookings">) {
 	const [error, status] = await t
 		.withIdentity(adminIdentity)
-		.query(api.sessions.getDriveStatus, { bookingId });
+		.query(api.sessions.admin.getDriveStatus, { bookingId });
 
 	if (error !== null) throw new Error(error.reason);
 
@@ -256,7 +256,7 @@ async function readStatus(t: TestClient, bookingId: Id<"bookings">) {
 }
 
 function runScheduledSetup(t: TestClient, bookingId: Id<"bookings">, startAt = sessionStartAt) {
-	return t.action(internal.googleCalendar.runScheduledDriveSetup, {
+	return t.action(internal.googleCalendar.calendar.runScheduledDriveSetup, {
 		bookingId,
 		sessionStartAt: startAt,
 		duration: "1h"
@@ -377,7 +377,9 @@ describe("Drive action recovery", () => {
 		});
 
 		expect(
-			await t.withIdentity(adminIdentity).action(api.googleCalendar.retryDriveSetup, { bookingId })
+			await t
+				.withIdentity(adminIdentity)
+				.action(api.googleCalendar.calendar.retryDriveSetup, { bookingId })
 		).toEqual([null, null]);
 		const recovered = await readStatus(t, bookingId);
 		expect(recovered.driveSetupFailureCode).toBeUndefined();
@@ -432,7 +434,9 @@ describe("Drive action recovery", () => {
 			}
 
 			expect(
-				await t.withIdentity(adminIdentity).action(api.googleCalendar.setupDrive, { bookingId })
+				await t
+					.withIdentity(adminIdentity)
+					.action(api.googleCalendar.calendar.setupDrive, { bookingId })
 			).toEqual([null, null]);
 			const status = await readStatus(t, bookingId);
 			expect(status.driveSetupFailureCode).toBeUndefined();
@@ -464,7 +468,7 @@ describe("cancelled Drive cleanup", () => {
 		);
 
 		expect(
-			await t.action(internal.googleCalendar.cleanupCancelledSessionDrive, { bookingId })
+			await t.action(internal.googleCalendar.calendar.cleanupCancelledSessionDrive, { bookingId })
 		).toEqual([null, null]);
 		expect((await readStatus(t, bookingId)).folders).toEqual([
 			{ name: "Assets", url: "https://drive.example/assets" },
@@ -497,7 +501,7 @@ describe("cancelled Drive cleanup", () => {
 			}
 
 			expect(
-				await t.action(internal.googleCalendar.cleanupCancelledSessionDrive, { bookingId })
+				await t.action(internal.googleCalendar.calendar.cleanupCancelledSessionDrive, { bookingId })
 			).toEqual([null, null]);
 			expect(await readStatus(t, bookingId)).toEqual(before);
 		}

@@ -8,7 +8,7 @@ tester.run("convex-layers/pure-validation-in-lib-only", pureValidationInLibOnlyR
 	valid: [
 		{
 			filename: "/project/convex/services/packages/good-import.ts",
-			code: `import { validatePackageExpiry } from "#convex/lib/packages/packageCheckout";
+			code: `import { validatePackageExpiry } from "#convex/packages/lib/checkout";
 export function expire(ctx, id) {
   return getPackage(ctx, id).andThen(validatePackageExpiry);
 }`
@@ -24,7 +24,7 @@ export function run(ctx, args) {
 		},
 		{
 			filename: "/project/convex/services/packages/good-pass-through.ts",
-			code: `import { validatePackageExpiry } from "#convex/lib/packages/packageCheckout";
+			code: `import { validatePackageExpiry } from "#convex/packages/lib/checkout";
 export function expire(ctx, id) {
   return getPackage(ctx, id).andThen((row) => validatePackageExpiry(row));
 }`

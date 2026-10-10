@@ -16,7 +16,7 @@ export function usePackageInvoiceActions(
 	const [isStripeBillingDialogOpen, setIsStripeBillingDialogOpen] = useState(false);
 
 	const stripeInvoicesResult = useQuery(
-		api.stripeInvoices.listStripeInvoicesForPackage,
+		api.stripe.invoiceRecords.listStripeInvoicesForPackage,
 		packageTarget ? { packageId: packageTarget.packageId } : "skip"
 	);
 

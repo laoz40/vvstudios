@@ -16,17 +16,17 @@ import type { SessionRecord } from "#studio/features/admin/lib/admin-sessions";
 import { getStripeBillingInvoicesState } from "#studio/features/admin/lib/stripe-invoice-billing";
 
 export function useInvoiceActions(session: SessionRecord) {
-	const bookingSettings = useQuery(api.bookingSettings.get, {});
+	const bookingSettings = useQuery(api.booking.settings.get, {});
 	const [isLegacyCustomInvoicesDialogOpen, setIsLegacyCustomInvoicesDialogOpen] = useState(false);
 
 	const customInvoicesResult = useQuery(
-		api.customInvoices.listCustomInvoicesForBooking,
+		api.stripe.customInvoices.listCustomInvoicesForBooking,
 		isLegacyCustomInvoicesDialogOpen ? { bookingId: session._id } : "skip"
 	);
 
 	const [isStripeBillingDialogOpen, setIsStripeBillingDialogOpen] = useState(false);
 
-	const stripeInvoicesResult = useQuery(api.stripeInvoices.listStripeInvoicesForBooking, {
+	const stripeInvoicesResult = useQuery(api.stripe.invoiceRecords.listStripeInvoicesForBooking, {
 		bookingId: session._id
 	});
 

@@ -7,12 +7,12 @@ const tester = new RuleTester({ languageOptions: { parserOptions: { lang: "ts" }
 tester.run("convex-layers/no-db-in-services", noDbInServicesRule, {
 	valid: [
 		{
-			filename: "convex/lib/sessions/sessionLookup.ts",
+			filename: "convex/sessions/lib/lookup.ts",
 			code: `export function getBookingRow(ctx) { return ctx.db.get("bookings", id); }`
 		},
 		{
 			filename: "convex/services/sessions/sessionQueries.ts",
-			code: `import { getBookingRow } from "#convex/lib/sessions/sessionLookup";
+			code: `import { getBookingRow } from "#convex/sessions/lib/lookup";
 export function loadBooking(ctx, id) { return getBookingRow(ctx, id); }`
 		}
 	],

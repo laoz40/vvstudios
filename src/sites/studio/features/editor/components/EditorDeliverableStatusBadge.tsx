@@ -135,7 +135,7 @@ export function EditorDeliverableStatusBadge({
 	session: EditorSession;
 	canManageDeliverables: boolean;
 }) {
-	const updateSessionEditStatus = useMutation(api.sessions.updateSessionEditStatus);
+	const updateSessionEditStatus = useMutation(api.sessions.admin.updateSessionEditStatus);
 	const [isUpdating, setIsUpdating] = useState(false);
 	const deliverableStatus: DeliverableStatus = session.editStatus ?? "to_edit";
 

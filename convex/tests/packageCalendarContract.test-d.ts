@@ -14,9 +14,9 @@ import type { FunctionArgs } from "convex/server";
 import type { internal } from "#convex/_generated/api";
 import type { BookingAddonQuantityFieldName } from "#/domain/booking/addon-quantities";
 import type { BookingFormValues } from "#studio/features/booking-form/lib/booking-form-model";
-import type { BookingAddonQuantitiesArgs } from "#convex/lib/booking/bookingAddonQuantities";
-import type { PackageCalendarDetails } from "#convex/lib/googleCalendar/packageCalendarDetails";
-import type { toPackageCalendarDetails } from "#convex/lib/packages/packageScheduling";
+import type { BookingAddonQuantitiesArgs } from "#convex/booking/lib/addonQuantities";
+import type { PackageCalendarDetails } from "#convex/googleCalendar/lib/packageDetails";
+import type { toPackageCalendarDetails } from "#convex/packages/lib/scheduling";
 
 type Equal<Left, Right> = [Exclude<Left, Right>, Exclude<Right, Left>] extends [never, never]
 	? true
@@ -27,11 +27,11 @@ type Expect<Condition extends true> = Condition;
 type DetailsFrom<Args> = Args extends { details: infer Details } ? Details : never;
 
 type CreateDetails = DetailsFrom<
-	FunctionArgs<typeof internal.packageSchedulingCalendar.createPackageSessionCalendarEvent>
+	FunctionArgs<typeof internal.packages.schedulingCalendar.createPackageSessionCalendarEvent>
 >;
 
 type UpdateDetails = DetailsFrom<
-	FunctionArgs<typeof internal.packageSchedulingCalendar.updatePackageSessionCalendarEvent>
+	FunctionArgs<typeof internal.packages.schedulingCalendar.updatePackageSessionCalendarEvent>
 >;
 
 type PackageProjectionDetails = ReturnType<typeof toPackageCalendarDetails>;

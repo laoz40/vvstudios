@@ -29,11 +29,11 @@ load().andThen(choose);`
 				code: `load().map((record) => record ? "active" : "inactive");`
 			},
 			{
-				filename: "convex/lib/sessions/conditional.ts",
+				filename: "convex/sessions/lib/conditional.ts",
 				code: `load().andThen((record) => record ? save(record) : ok(null));`
 			},
 			{
-				filename: "convex/lib/sessions/sessionLookup.ts",
+				filename: "convex/sessions/lib/lookup.ts",
 				code: `export function load(ctx) { return getBookingRow(ctx, id).andThen((session) => session); }`
 			},
 			{

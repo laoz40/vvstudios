@@ -24,7 +24,7 @@ import { bookingDocument } from "#convex/tests/insertDocumentDefaults";
 import { internal } from "#convex/_generated/api";
 import type { Id } from "#convex/_generated/dataModel";
 import type { BookingAddon } from "#/domain/booking/catalog";
-import { SLOT_RESERVATION_TTL_MS } from "#convex/lib/sessions/sessionReservations";
+import { SLOT_RESERVATION_TTL_MS } from "#convex/sessions/lib/reservations";
 import { createConvexTest } from "#convex/test.setup";
 
 const now = Date.parse("2030-01-01T00:00:00.000Z");
@@ -246,7 +246,7 @@ async function saveAdminUpdate(
 	overrides: AdminUpdateOverrides,
 	options: SaveOptions = {}
 ) {
-	return await t.mutation(internal.sessionScheduling.saveAdminSessionUpdate, {
+	return await t.mutation(internal.sessions.scheduling.saveAdminSessionUpdate, {
 		bookingId,
 		name: overrides.name ?? "Test customer",
 		phone: overrides.phone ?? "0400000000",

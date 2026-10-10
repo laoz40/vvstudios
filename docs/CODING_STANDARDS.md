@@ -39,7 +39,7 @@ Writing code is cheap, which makes over-engineering easy. Counter it by borrowin
 
 During review, account for every added or changed helper, including private functions and inline callbacks. For each, check its responsibility, layer, name, and whether callers gain anything from the extraction. Report all findings rather than stopping after one example.
 
-For Convex changes, pure calculations, formatting, draft transformations, and checks on supplied values belong in the nearest `convex/lib/` module, even with only one caller. Services select and compose these steps and load their inputs. Keep permission workflows and calls to other services in services; moving a whole workflow into lib is not a placement fix. See [convex-three-layers.md](./convex-three-layers.md).
+For Convex changes, pure calculations, formatting, draft transformations, and checks on supplied values belong in the nearest feature `convex/<feature>/lib/` module (or `convex/shared/lib/` when shared), even with only one caller. Services select and compose these steps and load their inputs. Keep permission workflows and calls to other services in services; moving a whole workflow into lib is not a placement fix. See [convex-three-layers.md](./convex-three-layers.md).
 
 Judge names by what the value represents or the function accomplishes. A forwarding wrapper needs a concrete responsibility beyond passing arguments to another function. Lint covers syntactic patterns; passing lint does not establish that helper placement, naming, or extraction is sound.
 

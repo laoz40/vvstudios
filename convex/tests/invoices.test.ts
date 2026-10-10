@@ -183,7 +183,7 @@ describe("custom invoice creation", () => {
 		const bookingId = await seedBooking(t);
 		const client = identity ? t.withIdentity(identity) : t;
 
-		const result = await client.mutation(api.customInvoices.createCustomInvoice, {
+		const result = await client.mutation(api.stripe.customInvoices.createCustomInvoice, {
 			bookingId,
 			addons: [],
 			includeDepositLineItem: true,
@@ -196,7 +196,7 @@ describe("custom invoice creation", () => {
 
 		const validResult = await t
 			.withIdentity(adminIdentity)
-			.mutation(api.customInvoices.createCustomInvoice, {
+			.mutation(api.stripe.customInvoices.createCustomInvoice, {
 				bookingId: validBookingId,
 				addons: [],
 				includeDepositLineItem: false,
@@ -207,7 +207,9 @@ describe("custom invoice creation", () => {
 		expect(
 			await t
 				.withIdentity(adminIdentity)
-				.query(api.customInvoices.listCustomInvoicesForBooking, { bookingId: validBookingId })
+				.query(api.stripe.customInvoices.listCustomInvoicesForBooking, {
+					bookingId: validBookingId
+				})
 		).toMatchObject([
 			null,
 			[expect.objectContaining({ bookingId: validBookingId, customTotalDueAmount: 321 })]
@@ -222,7 +224,7 @@ describe("custom invoice creation", () => {
 
 			const result = await t
 				.withIdentity(adminIdentity)
-				.mutation(api.customInvoices.createCustomInvoice, {
+				.mutation(api.stripe.customInvoices.createCustomInvoice, {
 					bookingId,
 					addons: [],
 					includeDepositLineItem: true,
@@ -235,7 +237,7 @@ describe("custom invoice creation", () => {
 
 			const validResult = await t
 				.withIdentity(adminIdentity)
-				.mutation(api.customInvoices.createCustomInvoice, {
+				.mutation(api.stripe.customInvoices.createCustomInvoice, {
 					bookingId: validBookingId,
 					addons: [],
 					includeDepositLineItem: false,
@@ -246,7 +248,9 @@ describe("custom invoice creation", () => {
 			expect(
 				await t
 					.withIdentity(adminIdentity)
-					.query(api.customInvoices.listCustomInvoicesForBooking, { bookingId: validBookingId })
+					.query(api.stripe.customInvoices.listCustomInvoicesForBooking, {
+						bookingId: validBookingId
+					})
 			).toMatchObject([
 				null,
 				[expect.objectContaining({ bookingId: validBookingId, customTotalDueAmount: 321 })]
@@ -260,7 +264,7 @@ describe("custom invoice creation", () => {
 		await t.run((ctx) => ctx.db.delete("bookings", bookingId));
 		const admin = t.withIdentity(adminIdentity);
 
-		const bookingResult = await admin.mutation(api.customInvoices.createCustomInvoice, {
+		const bookingResult = await admin.mutation(api.stripe.customInvoices.createCustomInvoice, {
 			bookingId,
 			addons: [],
 			includeDepositLineItem: true
@@ -270,7 +274,7 @@ describe("custom invoice creation", () => {
 		expect(await readCustomInvoices(t)).toEqual([]);
 		const validBookingId = await seedBooking(t);
 
-		const validResult = await admin.mutation(api.customInvoices.createCustomInvoice, {
+		const validResult = await admin.mutation(api.stripe.customInvoices.createCustomInvoice, {
 			bookingId: validBookingId,
 			addons: [],
 			includeDepositLineItem: false,
@@ -279,7 +283,7 @@ describe("custom invoice creation", () => {
 
 		expect(validResult[0]).toBeNull();
 		expect(
-			await admin.query(api.customInvoices.listCustomInvoicesForBooking, {
+			await admin.query(api.stripe.customInvoices.listCustomInvoicesForBooking, {
 				bookingId: validBookingId
 			})
 		).toMatchObject([
@@ -293,7 +297,7 @@ describe("custom invoice creation", () => {
 		const bookingId = await seedBooking(t);
 		const admin = t.withIdentity(adminIdentity);
 
-		const bookingResult = await admin.mutation(api.customInvoices.createCustomInvoice, {
+		const bookingResult = await admin.mutation(api.stripe.customInvoices.createCustomInvoice, {
 			bookingId,
 			addons: ["Teleprompter"],
 			includeDepositLineItem: false,
@@ -302,7 +306,7 @@ describe("custom invoice creation", () => {
 
 		const invoices = await t
 			.withIdentity(adminIdentity)
-			.query(api.customInvoices.listCustomInvoicesForBooking, { bookingId });
+			.query(api.stripe.customInvoices.listCustomInvoicesForBooking, { bookingId });
 
 		expect(bookingResult[0]).toBeNull();
 		expect(invoices).toMatchObject([
@@ -317,7 +321,7 @@ describe("invoice download access", () => {
 	test("rejects missing, unconfirmed, and expired public session invoices", async () => {
 		const t = createConvexTest();
 
-		const missing = await t.action(api.invoices.getBookingInvoicePdfByStripeSessionId, {
+		const missing = await t.action(api.stripe.invoices.getBookingInvoicePdfByStripeSessionId, {
 			stripeSessionId: "missing"
 		});
 
@@ -331,12 +335,12 @@ describe("invoice download access", () => {
 
 		expect(missing).toEqual([{ reason: "BOOKING_NOT_FOUND" }, null]);
 		expect(
-			await t.action(api.invoices.getBookingInvoicePdfByStripeSessionId, {
+			await t.action(api.stripe.invoices.getBookingInvoicePdfByStripeSessionId, {
 				stripeSessionId: "pending"
 			})
 		).toEqual([{ reason: "BOOKING_NOT_CONFIRMED" }, null]);
 		expect(
-			await t.action(api.invoices.getBookingInvoicePdfByStripeSessionId, {
+			await t.action(api.stripe.invoices.getBookingInvoicePdfByStripeSessionId, {
 				stripeSessionId: "expired"
 			})
 		).toEqual([{ reason: "INVOICE_DOWNLOAD_EXPIRED" }, null]);
@@ -350,7 +354,7 @@ describe("invoice download access", () => {
 		await Promise.all(
 			["confirmed", "email-failed"].map(async (stripeSessionId) => {
 				const [error, payload] = await t.action(
-					api.invoices.getBookingInvoicePdfByStripeSessionId,
+					api.stripe.invoices.getBookingInvoicePdfByStripeSessionId,
 					{ stripeSessionId }
 				);
 
@@ -369,7 +373,7 @@ describe("invoice download access", () => {
 		await Promise.all(
 			["confirmed-receipt", "email-failed-receipt"].map(async (stripeSessionId) => {
 				const [error, payload] = await t.action(
-					api.invoices.getBookingReceiptPdfByStripeSessionId,
+					api.stripe.invoices.getBookingReceiptPdfByStripeSessionId,
 					{ stripeSessionId }
 				);
 
@@ -394,12 +398,12 @@ describe("invoice download access", () => {
 		const unpaidPackageId = await seedPackage(t, { createdAt: now });
 
 		expect(
-			await t.action(api.invoices.getPackageReceiptPdfById, { packageId: unpaidPackageId })
+			await t.action(api.stripe.invoices.getPackageReceiptPdfById, { packageId: unpaidPackageId })
 		).toEqual([{ reason: "PACKAGE_NOT_PAID" }, null]);
 
 		await Promise.all(
 			[paidPackageId, scheduleFailedPackageId].map(async (packageId) => {
-				const [error, payload] = await t.action(api.invoices.getPackageReceiptPdfById, {
+				const [error, payload] = await t.action(api.stripe.invoices.getPackageReceiptPdfById, {
 					packageId
 				});
 
@@ -422,7 +426,7 @@ describe("invoice download access", () => {
 		});
 
 		expect(
-			await t.action(api.invoices.getPackageReceiptPdfById, { packageId: expiredPackageId })
+			await t.action(api.stripe.invoices.getPackageReceiptPdfById, { packageId: expiredPackageId })
 		).toEqual([{ reason: "INVOICE_DOWNLOAD_EXPIRED" }, null]);
 	});
 
@@ -437,12 +441,12 @@ describe("invoice download access", () => {
 		});
 
 		expect(
-			await t.action(api.invoices.getPackageReceiptPdfById, { packageId: expiredPackageId })
+			await t.action(api.stripe.invoices.getPackageReceiptPdfById, { packageId: expiredPackageId })
 		).toEqual([{ reason: "INVOICE_DOWNLOAD_EXPIRED" }, null]);
 
 		const [adminError, adminPayload] = await t
 			.withIdentity(adminIdentity)
-			.action(api.invoices.getAdminPackageReceiptPdfById, { packageId: expiredPackageId });
+			.action(api.stripe.invoices.getAdminPackageReceiptPdfById, { packageId: expiredPackageId });
 
 		expect(adminError).toBeNull();
 		expect(adminPayload).toMatchObject({ contentType: "application/pdf" });
@@ -456,7 +460,7 @@ describe("invoice download access", () => {
 
 		const [error, payload] = await t
 			.withIdentity(adminIdentity)
-			.action(api.invoices.getAdminBookingReceiptPdfByBookingId, { bookingId });
+			.action(api.stripe.invoices.getAdminBookingReceiptPdfByBookingId, { bookingId });
 
 		expect(error).toBeNull();
 		expect(payload).toMatchObject({ contentType: "application/pdf" });

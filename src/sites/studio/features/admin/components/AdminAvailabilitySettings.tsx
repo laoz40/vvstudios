@@ -52,8 +52,8 @@ function TimeSelect({ value, onChange }: TimeSelectProps) {
 }
 
 export function AdminAvailabilitySettings() {
-	const bookingSettings = useQuery(api.bookingSettings.get, {});
-	const updateBookingSettings = useMutation(api.bookingSettings.update);
+	const bookingSettings = useQuery(api.booking.settings.get, {});
+	const updateBookingSettings = useMutation(api.booking.settings.update);
 	const [draft, setDraft] = useState<BookingSettings>(DEFAULT_BOOKING_AVAILABILITY_SETTINGS);
 	const [isOpen, setIsOpen] = useState(false);
 	const [isSaving, setIsSaving] = useState(false);

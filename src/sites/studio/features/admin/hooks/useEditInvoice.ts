@@ -3,9 +3,9 @@ import { useAction } from "convex/react";
 import { toast } from "sonner";
 import { api } from "#convex/_generated/api";
 import { tryCatch } from "#/lib/result";
-import type { EditInvoiceDraft } from "#convex/services/stripe/editInvoiceValidators";
-import type { EditInvoiceTarget } from "#convex/lib/stripe/editInvoiceDb";
-import type { EditInvoiceQuote } from "#convex/lib/stripe/editInvoiceBilling";
+import type { EditInvoiceDraft } from "#convex/stripe/services/editInvoiceValidators";
+import type { EditInvoiceTarget } from "#convex/stripe/lib/editInvoiceDb";
+import type { EditInvoiceQuote } from "#convex/stripe/lib/editInvoiceBilling";
 import { sessionUpdateErrorMessageMap } from "#studio/features/admin/lib/session-edit";
 
 const billingErrors = {
@@ -45,9 +45,9 @@ type InvoiceState =
 	| { kind: "sending"; draft: EditInvoiceDraft; quote: EditInvoiceQuote; invoiceSent: boolean };
 
 export function useEditInvoice(target: EditInvoiceTarget, onSaved: () => void) {
-	const getQuote = useAction(api.editInvoicing.getQuote);
-	const sendInvoice = useAction(api.editInvoicing.saveChangesAndSendInvoice);
-	const saveNonbillableDraft = useAction(api.editInvoicing.saveNonbillableDraft);
+	const getQuote = useAction(api.stripe.editInvoicing.getQuote);
+	const sendInvoice = useAction(api.stripe.editInvoicing.saveChangesAndSendInvoice);
+	const saveNonbillableDraft = useAction(api.stripe.editInvoicing.saveNonbillableDraft);
 
 	const [invoiceState, setInvoiceState] = useState<InvoiceState>({ kind: "closed" });
 	const pendingAttempt = useRef<Extract<InvoiceState, { kind: "confirm" }> | null>(null);

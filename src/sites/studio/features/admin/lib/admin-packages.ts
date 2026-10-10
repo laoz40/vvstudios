@@ -1,7 +1,7 @@
 import { Check, ClockAlert, DollarSign, MailWarning, type LucideIcon } from "lucide-react";
 import { exhaustiveCheck } from "#/lib/result";
 import type { Doc } from "#convex/_generated/dataModel";
-import { isPackageArchived } from "#convex/lib/archiveState";
+import { isPackageArchived } from "#convex/shared/lib/archiveState";
 import type { BookingAddon } from "#/domain/booking/catalog";
 
 export type AdminPackageStatus = Doc<"packages">["status"];

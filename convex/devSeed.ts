@@ -12,7 +12,7 @@ import { internalMutation } from "#convex/_generated/server";
 import {
 	buildBookingSearchBlob,
 	buildPackageSearchBlob
-} from "#convex/lib/adminSearch/adminSearchBlob";
+} from "#convex/shared/lib/adminSearch/adminSearchBlob";
 
 const SESSION_STATUSES_OTHER: Array<Doc<"bookings">["status"]> = [
 	"pending_payment",

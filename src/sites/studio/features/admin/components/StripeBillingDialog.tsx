@@ -97,7 +97,9 @@ export function StripeBillingDialog({
 	onOpenChange
 }: StripeBillingDialogProps) {
 	const [loadingBillingLink, setLoadingBillingLink] = useState<LoadingBillingLink | null>(null);
-	const getStripeInvoiceBillingUrls = useAction(api.stripeInvoicing.getStripeInvoiceBillingUrls);
+
+	const getStripeInvoiceBillingUrls = useAction(api.stripe.invoicing.getStripeInvoiceBillingUrls);
+
 	const isLoading = invoices === undefined;
 	const hasInvoices = invoices !== undefined && invoices.length > 0;
 	const isOpeningBillingLink = loadingBillingLink !== null;

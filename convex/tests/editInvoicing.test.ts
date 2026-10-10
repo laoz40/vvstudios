@@ -22,8 +22,8 @@ import { api, internal } from "#convex/_generated/api";
 import { env } from "#convex/env";
 import { createConvexTest } from "#convex/test.setup";
 import { bookingDocument, packageDocument } from "#convex/tests/insertDocumentDefaults";
-import type { EditInvoiceDraft } from "#convex/services/stripe/editInvoiceValidators";
-import type { EditInvoiceQuote } from "#convex/lib/stripe/editInvoiceBilling";
+import type { EditInvoiceDraft } from "#convex/stripe/services/editInvoiceValidators";
+import type { EditInvoiceQuote } from "#convex/stripe/lib/editInvoiceBilling";
 import { mapPackageToAdminRow } from "#studio/features/admin/lib/admin-packages";
 
 const now = Date.parse("2030-01-10T00:00:00Z");
@@ -271,12 +271,12 @@ async function setup(kind: "booking" | "package") {
 
 	async function read() {
 		return draft.kind === "booking"
-			? t.query(internal.sessions.getSessionById, { bookingId: draft.values.bookingId })
-			: t.query(internal.packages.getPackageById, { packageId: draft.values.packageId });
+			? t.query(internal.sessions.admin.getSessionById, { bookingId: draft.values.bookingId })
+			: t.query(internal.packages.admin.getPackageById, { packageId: draft.values.packageId });
 	}
 
 	async function quote(values = draft) {
-		const [error, result] = await staff.action(api.editInvoicing.getQuote, {
+		const [error, result] = await staff.action(api.stripe.editInvoicing.getQuote, {
 			target,
 			draft: values
 		});
@@ -287,7 +287,7 @@ async function setup(kind: "booking" | "package") {
 	}
 
 	function confirm(q: EditInvoiceQuote, values = draft) {
-		return staff.action(api.editInvoicing.saveChangesAndSendInvoice, {
+		return staff.action(api.stripe.editInvoicing.saveChangesAndSendInvoice, {
 			draft: values,
 			requestId: q.requestId,
 			revision: q.revision,
@@ -343,7 +343,7 @@ test("duration and added quantities become separate preview and Stripe invoice l
 	if (flow.target.kind !== "booking") throw new Error("Expected booking");
 
 	const [error, invoices] = await flow.staff.query(
-		api.stripeInvoices.listStripeInvoicesForBooking,
+		api.stripe.invoiceRecords.listStripeInvoicesForBooking,
 		{ bookingId: flow.target.bookingId }
 	);
 
@@ -507,7 +507,9 @@ test("reviewing again after a sent invoice saves the duration without invoicing 
 
 	expect(await flow.quote()).toMatchObject({ amount: 0, currentTotal: 200, total: 299 });
 	expect(
-		(await flow.staff.action(api.editInvoicing.saveNonbillableDraft, { draft: flow.draft }))[0]
+		(
+			await flow.staff.action(api.stripe.editInvoicing.saveNonbillableDraft, { draft: flow.draft })
+		)[0]
 	).toBeNull();
 	expect(await flow.read()).toMatchObject({ duration: "2h" });
 	expect(sentInvoices.size).toBe(1);
@@ -551,7 +553,7 @@ test("reducing and raising a covered total does not invoice the increase twice",
 	};
 
 	expect(
-		(await flow.staff.action(api.editInvoicing.saveNonbillableDraft, { draft: reduced }))[0]
+		(await flow.staff.action(api.stripe.editInvoicing.saveNonbillableDraft, { draft: reduced }))[0]
 	).toBeNull();
 	expect(await flow.quote()).toMatchObject({
 		currentTotal: 760,
@@ -560,7 +562,9 @@ test("reducing and raising a covered total does not invoice the increase twice",
 		paidAmount: 760
 	});
 	expect(
-		(await flow.staff.action(api.editInvoicing.saveNonbillableDraft, { draft: flow.draft }))[0]
+		(
+			await flow.staff.action(api.stripe.editInvoicing.saveNonbillableDraft, { draft: flow.draft })
+		)[0]
 	).toBeNull();
 	expect(sentInvoices.size).toBe(1);
 });
@@ -581,7 +585,7 @@ test("stale and forged quotes leave the package unsaved", async () => {
 	expect((await flow.confirm({ ...q, amount: 1 }))[0]).toEqual({ reason: "BILLING_QUOTE_CHANGED" });
 
 	if (flow.draft.kind !== "package") throw new Error("Expected package");
-	await flow.staff.mutation(api.packages.updatePackageFromAdmin, {
+	await flow.staff.mutation(api.packages.admin.updatePackageFromAdmin, {
 		...flow.draft.values,
 		duration: "1h",
 		name: "Another admin's edit"
@@ -597,7 +601,7 @@ test("staff without invoice permission cannot save a billable edit", async () =>
 
 	const result = await flow.t
 		.withIdentity({ publicMetadata: { role: "editor" } })
-		.action(api.editInvoicing.saveChangesAndSendInvoice, {
+		.action(api.stripe.editInvoicing.saveChangesAndSendInvoice, {
 			draft: flow.draft,
 			requestId: q.requestId,
 			revision: q.revision,
@@ -692,9 +696,9 @@ test("package session increases invoice the package while Remote Podcast stays s
 	});
 	expect((await flow.confirm(q, draft))[0]).toBeNull();
 	expect(
-		await flow.staff.query(api.stripeInvoices.listStripeInvoicesForPackage, { packageId })
+		await flow.staff.query(api.stripe.invoiceRecords.listStripeInvoicesForPackage, { packageId })
 	).toMatchObject([null, [{ totalAmount: 99 }]]);
-	expect(await flow.t.query(internal.sessions.getSessionById, { bookingId })).toMatchObject({
+	expect(await flow.t.query(internal.sessions.admin.getSessionById, { bookingId })).toMatchObject({
 		duration: "2h"
 	});
 });
@@ -703,10 +707,16 @@ async function readDashboardPaymentAmounts(flow: Awaited<ReturnType<typeof setup
 	const paginationOpts = { cursor: null, numItems: 50 };
 
 	if (flow.draft.kind === "booking") {
-		const page = await flow.staff.query(api.sessions.listSessions, { paginationOpts, view: "all" });
+		const page = await flow.staff.query(api.sessions.admin.listSessions, {
+			paginationOpts,
+			view: "all"
+		});
+
 		const session = page.page[0];
 
-		if (!session) throw new Error("Session missing from dashboard");
+		if (!session) {
+			throw new Error("Session missing from dashboard");
+		}
 
 		return {
 			originalPaidAmount: session.originalPaidAmount,
@@ -715,10 +725,16 @@ async function readDashboardPaymentAmounts(flow: Awaited<ReturnType<typeof setup
 		};
 	}
 
-	const page = await flow.staff.query(api.packages.listPackages, { paginationOpts, view: "all" });
+	const page = await flow.staff.query(api.packages.admin.listPackages, {
+		paginationOpts,
+		view: "all"
+	});
+
 	const packageRecord = page.page[0];
 
-	if (!packageRecord) throw new Error("Package missing from dashboard");
+	if (!packageRecord) {
+		throw new Error("Package missing from dashboard");
+	}
 
 	const row = mapPackageToAdminRow(packageRecord);
 
@@ -751,7 +767,7 @@ test.each([
 
 		expect(
 			(
-				await flow.t.action(internal.editInvoicing.backfillOriginalPayments, {
+				await flow.t.action(internal.stripe.editInvoicing.backfillOriginalPayments, {
 					table,
 					cursor: null
 				})
@@ -771,10 +787,10 @@ test.each([
 
 		const invoices =
 			flow.draft.kind === "booking"
-				? await flow.staff.query(api.stripeInvoices.listStripeInvoicesForBooking, {
+				? await flow.staff.query(api.stripe.invoiceRecords.listStripeInvoicesForBooking, {
 						bookingId: flow.draft.values.bookingId
 					})
-				: await flow.staff.query(api.stripeInvoices.listStripeInvoicesForPackage, {
+				: await flow.staff.query(api.stripe.invoiceRecords.listStripeInvoicesForPackage, {
 						packageId: flow.draft.values.packageId
 					});
 
@@ -782,7 +798,7 @@ test.each([
 
 		if (!stripeInvoiceId) throw new Error("Invoice missing");
 
-		await flow.t.mutation(internal.stripeInvoices.markStripeInvoicePaid, {
+		await flow.t.mutation(internal.stripe.invoiceRecords.markStripeInvoicePaid, {
 			stripeInvoiceId,
 			paidAt: now
 		});
@@ -798,12 +814,12 @@ test.each([
 test("a cached payment remains the original payment after later price changes", async () => {
 	const flow = await setup("booking");
 
-	await flow.t.action(internal.editInvoicing.backfillOriginalPayments, {
+	await flow.t.action(internal.stripe.editInvoicing.backfillOriginalPayments, {
 		table: "bookings",
 		cursor: null
 	});
 	checkoutPaid = 10000;
-	await flow.t.action(internal.editInvoicing.backfillOriginalPayments, {
+	await flow.t.action(internal.stripe.editInvoicing.backfillOriginalPayments, {
 		table: "bookings",
 		cursor: null
 	});

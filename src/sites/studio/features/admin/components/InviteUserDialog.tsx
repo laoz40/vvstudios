@@ -26,7 +26,7 @@ type InviteUserDialogProps = { onOpenChange: (open: boolean) => void; open: bool
 type InviteUserDialogFormProps = { onOpenChange: (open: boolean) => void };
 
 function InviteUserDialogForm({ onOpenChange }: InviteUserDialogFormProps) {
-	const inviteUser = useAction(api.employeeInvitations.inviteUser);
+	const inviteUser = useAction(api.employees.invitations.inviteUser);
 	const [email, setEmail] = useState("");
 	const [fieldError, setFieldError] = useState<string | null>(null);
 	const [isSubmitting, setIsSubmitting] = useState(false);

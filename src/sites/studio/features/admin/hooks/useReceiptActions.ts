@@ -8,8 +8,12 @@ import type { SessionRecord } from "#studio/features/admin/lib/admin-sessions";
 import { downloadBlob } from "#studio/features/booking-invoice/pdf/download-blob";
 
 export function useReceiptActions(session: SessionRecord) {
-	const resendBookingReceipt = useAction(api.receiptEmails.resendBookingReceipt);
-	const getAdminBookingReceiptPdf = useAction(api.invoices.getAdminBookingReceiptPdfByBookingId);
+	const resendBookingReceipt = useAction(api.email.receiptEmails.resendBookingReceipt);
+
+	const getAdminBookingReceiptPdf = useAction(
+		api.stripe.invoices.getAdminBookingReceiptPdfByBookingId
+	);
+
 	const [isDownloadingReceipt, setIsDownloadingReceipt] = useState(false);
 
 	async function handleDownloadReceipt() {

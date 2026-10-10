@@ -1,5 +1,5 @@
 import { render } from "@react-email/render";
-import { tryPromise } from "#convex/lib/result";
+import { tryPromise } from "#convex/shared/lib/result";
 import { BookingReceiptEmail } from "#studio/features/booking-invoice/email/BookingReceiptEmail";
 import type { BookingReceiptData } from "#studio/features/booking-invoice/lib/types";
 

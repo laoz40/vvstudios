@@ -8,7 +8,7 @@ import { DashboardAccessGate } from "#studio/features/auth/components/DashboardA
 type EditorProvisioningOutcome = "complete" | "failed";
 
 export function EditorProvisioningGate() {
-	const createEditorUser = useMutation(api.auth.createEditorUser);
+	const createEditorUser = useMutation(api.shared.auth.createEditorUser);
 	const [isProvisioning, startProvisioning] = useTransition();
 	const [outcome, setOutcome] = useState<EditorProvisioningOutcome | null>(null);
 
