@@ -342,12 +342,10 @@ function ClientDrivePermissionRows({
 	clientDrivePermissions: ClientDrivePermissions;
 }) {
 	const retryClientDrivePermissions = useAction(
-		api.googleCalendar.googleCalendar.retryClientDrivePermissions
+		api.googleCalendar.calendar.retryClientDrivePermissions
 	);
 
-	const retryClientAssetsEmail = useAction(
-		api.googleCalendar.googleCalendar.retryClientAssetsEmail
-	);
+	const retryClientAssetsEmail = useAction(api.googleCalendar.calendar.retryClientAssetsEmail);
 
 	const permissionsRow = buildClientDrivePermissionsRow(clientDrivePermissions);
 	const assetsEmailRow = buildClientAssetsEmailRow(clientDrivePermissions);

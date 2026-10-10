@@ -72,13 +72,13 @@ describe("checkout Stripe ID setters", () => {
 			)
 		);
 
-		const result = await t.mutation(internal.sessions.sessionCheckout.setSessionStripeSessionId, {
+		const result = await t.mutation(internal.sessions.checkout.setSessionStripeSessionId, {
 			bookingId,
 			stripeSessionId: "cs_checkout",
 			stripeCustomerId: "cus_checkout"
 		});
 
-		const booking = await t.query(internal.sessions.sessionCheckout.getSessionByStripeSessionId, {
+		const booking = await t.query(internal.sessions.checkout.getSessionByStripeSessionId, {
 			stripeSessionId: "cs_checkout"
 		});
 
@@ -93,16 +93,15 @@ describe("checkout Stripe ID setters", () => {
 		const t = createConvexTest();
 		const packageId = await seedPackage(t);
 
-		const result = await t.mutation(internal.packages.packageCheckout.setPackageStripeSessionId, {
+		const result = await t.mutation(internal.packages.checkout.setPackageStripeSessionId, {
 			packageId,
 			stripeSessionId: "cs_checkout",
 			stripeCustomerId: "cus_checkout"
 		});
 
-		const packageRecord = await t.query(
-			internal.packages.packageCheckout.getPackageByStripeSessionId,
-			{ stripeSessionId: "cs_checkout" }
-		);
+		const packageRecord = await t.query(internal.packages.checkout.getPackageByStripeSessionId, {
+			stripeSessionId: "cs_checkout"
+		});
 
 		expect({
 			result,
@@ -117,9 +116,9 @@ describe("customer checkout creation", () => {
 		const t = createConvexTest();
 		await seedSettings(t);
 
-		const result = await t.action(api.stripe.stripe.createEmbeddedCheckoutSession, session);
+		const result = await t.action(api.stripe.checkout.createEmbeddedCheckoutSession, session);
 
-		const booking = await t.query(internal.sessions.sessionCheckout.getSessionByStripeSessionId, {
+		const booking = await t.query(internal.sessions.checkout.getSessionByStripeSessionId, {
 			stripeSessionId: "cs_checkout"
 		});
 
@@ -135,15 +134,14 @@ describe("customer checkout creation", () => {
 	test("returns a package checkout with a saved Stripe link", async () => {
 		const t = createConvexTest();
 
-		const result = await t.action(api.packages.packagePayment.createPackageCheckoutSession, {
+		const result = await t.action(api.packages.payment.createPackageCheckoutSession, {
 			...customer,
 			packageSize: 4
 		});
 
-		const packageRecord = await t.query(
-			internal.packages.packageCheckout.getPackageByStripeSessionId,
-			{ stripeSessionId: "cs_checkout" }
-		);
+		const packageRecord = await t.query(internal.packages.checkout.getPackageByStripeSessionId, {
+			stripeSessionId: "cs_checkout"
+		});
 
 		expect({ result, customerId: packageRecord?.stripeCustomerId }).toEqual({
 			result: [

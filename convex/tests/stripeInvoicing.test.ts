@@ -51,7 +51,7 @@ describe("sendStripeInvoice without stripeCustomerId", () => {
 		const bookingId = await seedBooking(t);
 		const admin = t.withIdentity(adminIdentity);
 
-		const result = await admin.action(api.stripe.stripeInvoicing.sendBookingStripeInvoice, {
+		const result = await admin.action(api.stripe.invoicing.sendBookingStripeInvoice, {
 			bookingId,
 			lineItems: [{ description: "Extra editing", amount: 120 }],
 			requestId: "req_booking_missing_customer"
@@ -60,7 +60,7 @@ describe("sendStripeInvoice without stripeCustomerId", () => {
 		expect(result).toEqual([{ reason: "STRIPE_CUSTOMER_NOT_FOUND" }, null]);
 
 		const [error, invoices] = await admin.query(
-			api.stripe.stripeInvoices.listStripeInvoicesForBooking,
+			api.stripe.invoiceRecords.listStripeInvoicesForBooking,
 			{ bookingId }
 		);
 
@@ -69,7 +69,7 @@ describe("sendStripeInvoice without stripeCustomerId", () => {
 
 		const validBookingId = await seedBooking(t, "cus_booking_valid");
 
-		const validResult = await admin.action(api.stripe.stripeInvoicing.sendBookingStripeInvoice, {
+		const validResult = await admin.action(api.stripe.invoicing.sendBookingStripeInvoice, {
 			bookingId: validBookingId,
 			lineItems: [{ description: "Extra editing", amount: 120 }],
 			requestId: "req_booking_valid"
@@ -78,7 +78,7 @@ describe("sendStripeInvoice without stripeCustomerId", () => {
 		expect(validResult).toEqual([null, { stripeInvoiceId: "in_admin_finalized" }]);
 
 		const [validError, validInvoices] = await admin.query(
-			api.stripe.stripeInvoices.listStripeInvoicesForBooking,
+			api.stripe.invoiceRecords.listStripeInvoicesForBooking,
 			{ bookingId: validBookingId }
 		);
 
@@ -93,7 +93,7 @@ describe("sendStripeInvoice without stripeCustomerId", () => {
 		const packageId = await seedPackage(t);
 		const admin = t.withIdentity(adminIdentity);
 
-		const result = await admin.action(api.stripe.stripeInvoicing.sendPackageStripeInvoice, {
+		const result = await admin.action(api.stripe.invoicing.sendPackageStripeInvoice, {
 			packageId,
 			lineItems: [{ description: "Extra package charge", amount: 80 }],
 			requestId: "req_package_missing_customer"
@@ -102,7 +102,7 @@ describe("sendStripeInvoice without stripeCustomerId", () => {
 		expect(result).toEqual([{ reason: "STRIPE_CUSTOMER_NOT_FOUND" }, null]);
 
 		const [error, invoices] = await admin.query(
-			api.stripe.stripeInvoices.listStripeInvoicesForPackage,
+			api.stripe.invoiceRecords.listStripeInvoicesForPackage,
 			{ packageId }
 		);
 
@@ -111,7 +111,7 @@ describe("sendStripeInvoice without stripeCustomerId", () => {
 
 		const validPackageId = await seedPackage(t, "cus_package_valid");
 
-		const validResult = await admin.action(api.stripe.stripeInvoicing.sendPackageStripeInvoice, {
+		const validResult = await admin.action(api.stripe.invoicing.sendPackageStripeInvoice, {
 			packageId: validPackageId,
 			lineItems: [{ description: "Extra package charge", amount: 80 }],
 			requestId: "req_package_valid"
@@ -120,7 +120,7 @@ describe("sendStripeInvoice without stripeCustomerId", () => {
 		expect(validResult).toEqual([null, { stripeInvoiceId: "in_admin_finalized" }]);
 
 		const [validError, validInvoices] = await admin.query(
-			api.stripe.stripeInvoices.listStripeInvoicesForPackage,
+			api.stripe.invoiceRecords.listStripeInvoicesForPackage,
 			{ packageId: validPackageId }
 		);
 

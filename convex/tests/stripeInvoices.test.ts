@@ -44,7 +44,7 @@ describe("stripe invoice persistence", () => {
 
 			const result = await t
 				.withIdentity(adminIdentity)
-				.action(api.stripe.stripeInvoicing.sendBookingStripeInvoice, {
+				.action(api.stripe.invoicing.sendBookingStripeInvoice, {
 					bookingId,
 					lineItems: [
 						{ description: "Item A", amount: 0.1 },
@@ -63,7 +63,7 @@ describe("stripe invoice persistence", () => {
 		const bookingId = await seedBooking(t);
 
 		const recordResult = await t.mutation(
-			internal.stripe.stripeInvoices.recordBookingStripeInvoice,
+			internal.stripe.invoiceRecords.recordBookingStripeInvoice,
 			{
 				bookingId,
 				stripeInvoiceId: "in_test_booking",
@@ -79,7 +79,7 @@ describe("stripe invoice persistence", () => {
 
 		const [error, invoices] = await t
 			.withIdentity(adminIdentity)
-			.query(api.stripe.stripeInvoices.listStripeInvoicesForBooking, { bookingId });
+			.query(api.stripe.invoiceRecords.listStripeInvoicesForBooking, { bookingId });
 
 		expect(error).toBeNull();
 		expect(invoices).toHaveLength(1);
@@ -99,7 +99,7 @@ describe("stripe invoice persistence", () => {
 		const bookingId = await seedBooking(t);
 
 		const firstRecord = await t.mutation(
-			internal.stripe.stripeInvoices.recordBookingStripeInvoice,
+			internal.stripe.invoiceRecords.recordBookingStripeInvoice,
 			{
 				bookingId,
 				stripeInvoiceId: "in_test_booking",
@@ -109,7 +109,7 @@ describe("stripe invoice persistence", () => {
 		);
 
 		const secondRecord = await t.mutation(
-			internal.stripe.stripeInvoices.recordBookingStripeInvoice,
+			internal.stripe.invoiceRecords.recordBookingStripeInvoice,
 			{
 				bookingId,
 				stripeInvoiceId: "in_test_booking",
@@ -127,7 +127,7 @@ describe("stripe invoice persistence", () => {
 
 		const [error, invoices] = await t
 			.withIdentity(adminIdentity)
-			.query(api.stripe.stripeInvoices.listStripeInvoicesForBooking, { bookingId });
+			.query(api.stripe.invoiceRecords.listStripeInvoicesForBooking, { bookingId });
 
 		expect(error).toBeNull();
 		expect(invoices).toHaveLength(1);
@@ -138,7 +138,7 @@ describe("stripe invoice persistence", () => {
 		const bookingId = await seedBooking(t);
 
 		const firstRecord = await t.mutation(
-			internal.stripe.stripeInvoices.recordBookingStripeInvoice,
+			internal.stripe.invoiceRecords.recordBookingStripeInvoice,
 			{
 				bookingId,
 				stripeInvoiceId: "in_request_first",
@@ -148,7 +148,7 @@ describe("stripe invoice persistence", () => {
 		);
 
 		const retryRecord = await t.mutation(
-			internal.stripe.stripeInvoices.recordBookingStripeInvoice,
+			internal.stripe.invoiceRecords.recordBookingStripeInvoice,
 			{
 				bookingId,
 				stripeInvoiceId: "in_request_retry",
@@ -166,7 +166,7 @@ describe("stripe invoice persistence", () => {
 
 		const [error, invoices] = await t
 			.withIdentity(adminIdentity)
-			.query(api.stripe.stripeInvoices.listStripeInvoicesForBooking, { bookingId });
+			.query(api.stripe.invoiceRecords.listStripeInvoicesForBooking, { bookingId });
 
 		expect(error).toBeNull();
 		expect(invoices).toMatchObject([
@@ -184,7 +184,7 @@ describe("stripe invoice persistence", () => {
 		const bookingId = await seedBooking(t);
 
 		const firstRecord = await t.mutation(
-			internal.stripe.stripeInvoices.recordBookingStripeInvoice,
+			internal.stripe.invoiceRecords.recordBookingStripeInvoice,
 			{
 				bookingId,
 				stripeInvoiceId: "in_stripe_reused",
@@ -194,7 +194,7 @@ describe("stripe invoice persistence", () => {
 		);
 
 		const retryRecord = await t.mutation(
-			internal.stripe.stripeInvoices.recordBookingStripeInvoice,
+			internal.stripe.invoiceRecords.recordBookingStripeInvoice,
 			{
 				bookingId,
 				stripeInvoiceId: "in_stripe_reused",
@@ -212,7 +212,7 @@ describe("stripe invoice persistence", () => {
 
 		const [error, invoices] = await t
 			.withIdentity(adminIdentity)
-			.query(api.stripe.stripeInvoices.listStripeInvoicesForBooking, { bookingId });
+			.query(api.stripe.invoiceRecords.listStripeInvoicesForBooking, { bookingId });
 
 		expect(error).toBeNull();
 		expect(invoices).toMatchObject([
@@ -230,7 +230,7 @@ describe("stripe invoice persistence", () => {
 		const bookingId = await seedBooking(t);
 		const paidAt = now + 60 * 60 * 1000;
 
-		await t.mutation(internal.stripe.stripeInvoices.recordBookingStripeInvoice, {
+		await t.mutation(internal.stripe.invoiceRecords.recordBookingStripeInvoice, {
 			bookingId,
 			stripeInvoiceId: "in_test_booking",
 			lineItems: [{ description: "Extra editing", amount: 120 }],
@@ -238,19 +238,19 @@ describe("stripe invoice persistence", () => {
 		});
 
 		expect(
-			await t.mutation(internal.stripe.stripeInvoices.markStripeInvoicePaid, {
+			await t.mutation(internal.stripe.invoiceRecords.markStripeInvoicePaid, {
 				stripeInvoiceId: "in_test_booking",
 				paidAt
 			})
 		).toEqual([null, { outcome: "completed" }]);
 		expect(
-			await t.mutation(internal.stripe.stripeInvoices.markStripeInvoicePaid, {
+			await t.mutation(internal.stripe.invoiceRecords.markStripeInvoicePaid, {
 				stripeInvoiceId: "in_test_booking",
 				paidAt: paidAt + 1
 			})
 		).toEqual([null, { outcome: "already_completed" }]);
 		expect(
-			await t.mutation(internal.stripe.stripeInvoices.markStripeInvoicePaid, {
+			await t.mutation(internal.stripe.invoiceRecords.markStripeInvoicePaid, {
 				stripeInvoiceId: "in_test_missing",
 				paidAt
 			})
@@ -280,7 +280,7 @@ describe("stripe invoice persistence", () => {
 		);
 
 		expect(
-			await t.mutation(internal.packages.packageAdjustments.markPackageAdjustmentInvoiceEmailSent, {
+			await t.mutation(internal.packages.adjustments.markPackageAdjustmentInvoiceEmailSent, {
 				adjustmentId,
 				claimedAt: now,
 				stripeInvoiceId: "in_test_adjustment"
@@ -289,7 +289,7 @@ describe("stripe invoice persistence", () => {
 
 		const [error, invoices] = await t
 			.withIdentity(adminIdentity)
-			.query(api.stripe.stripeInvoices.listStripeInvoicesForPackage, { packageId });
+			.query(api.stripe.invoiceRecords.listStripeInvoicesForPackage, { packageId });
 
 		expect(error).toBeNull();
 		expect(invoices).toHaveLength(1);

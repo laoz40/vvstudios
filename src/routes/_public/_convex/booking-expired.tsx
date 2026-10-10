@@ -22,7 +22,7 @@ function BookingExpiredPage() {
 	const { session_id: stripeSessionId } = Route.useSearch();
 
 	const booking = useQuery(
-		api.sessions.sessions.getSessionStatusByStripeSessionId,
+		api.sessions.admin.getSessionStatusByStripeSessionId,
 		stripeSessionId ? { stripeSessionId } : "skip"
 	);
 

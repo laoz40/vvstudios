@@ -23,15 +23,15 @@ tester.run("convex-layers/no-drive-state-write-outside-owner", noDriveStateWrite
 			code: `ctx.db.insert("bookings", { ...{ driveClientId } });`
 		},
 		{
-			filename: "convex/sessions/lib/sessionSchedulingSave.ts",
+			filename: "convex/sessions/lib/schedulingSave.ts",
 			code: `ctx.db.patch("bookings", id, { ...ordinaryBookingFields });`
 		},
 		{
-			filename: "convex/booking/lib/bookingConfirmationSave.ts",
+			filename: "convex/booking/lib/confirmationSave.ts",
 			code: `ctx.db.patch("bookings", id, { price: 420, status: "confirmed" });`
 		},
 		{
-			filename: "convex/tests/driveSetup.test.ts",
+			filename: "convex/tests/driveInternal.test.ts",
 			code: `ctx.db.insert("driveSessions", fixture);`
 		}
 	],
@@ -52,12 +52,12 @@ tester.run("convex-layers/no-drive-state-write-outside-owner", noDriveStateWrite
 			errors: [{ messageId: "driveTableWrite" }]
 		},
 		{
-			filename: "convex/sessions/lib/sessionSchedulingSave.ts",
+			filename: "convex/sessions/lib/schedulingSave.ts",
 			code: `ctx.db.patch("bookings", id, { ["driveSetupFailureCode"]: code });`,
 			errors: [{ messageId: "bookingDriveFailure" }]
 		},
 		{
-			filename: "convex/booking/lib/bookingConfirmationSave.ts",
+			filename: "convex/booking/lib/confirmationSave.ts",
 			code: `ctx.db.patch("bookings", id, { ...{ driveClientId } });`,
 			errors: [{ messageId: "bookingDriveClientId" }]
 		},
@@ -77,7 +77,7 @@ tester.run("convex-layers/no-drive-state-write-outside-owner", noDriveStateWrite
 			errors: [{ messageId: "driveTableWrite" }]
 		},
 		{
-			filename: "convex/booking/lib/bookingConfirmationSave.ts",
+			filename: "convex/booking/lib/confirmationSave.ts",
 			code: `ctx.db.delete("driveSessions", id);`,
 			errors: [{ messageId: "driveTableWrite" }]
 		}

@@ -3,7 +3,7 @@ import { exhaustiveCheck } from "#/lib/result";
 import type { QueryCtx } from "#convex/_generated/server";
 import { okAsync } from "neverthrow";
 import { okOrThrow } from "#convex/shared/lib/result";
-import { bookingRequiresClientAssetsEmail } from "#convex/booking/lib/bookingAddonQuantities";
+import { bookingRequiresClientAssetsEmail } from "#convex/booking/lib/addonQuantities";
 import { isClientFolderSharingDismissed } from "#convex/drive/lib/driveClientAccess";
 import { loadSessionFolderDisplayName } from "#convex/drive/lib/sessionFolders/resolveFolderNames";
 import { resolveDriveClientForBooking } from "#convex/drive/lib/driveLookup";

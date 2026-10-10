@@ -29,7 +29,7 @@ type EditorNotesDialogProps = {
 type EditorNotesDialogFormProps = { editor: ManagedEditor; onOpenChange: (open: boolean) => void };
 
 function EditorNotesDialogForm({ editor, onOpenChange }: EditorNotesDialogFormProps) {
-	const updateEmployeeNotes = useMutation(api.employees.employees.updateEmployeeNotes);
+	const updateEmployeeNotes = useMutation(api.employees.admin.updateEmployeeNotes);
 	const [notes, setNotes] = useState(editor.notes ?? "");
 	const [isSaving, setIsSaving] = useState(false);
 

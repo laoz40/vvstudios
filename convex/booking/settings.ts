@@ -5,7 +5,7 @@ import { requirePermission } from "#convex/shared/services/auth";
 import {
 	loadBookingAvailabilitySettings,
 	writeBookingAvailabilitySettings
-} from "#convex/booking/services/bookingSettings";
+} from "#convex/booking/services/settings";
 
 export const get = query({ args: {}, handler: (ctx) => loadBookingAvailabilitySettings(ctx) });
 

@@ -41,7 +41,7 @@ export function useBookingBusyWindows({
 	bookableMonthKeys
 }: UseBookingBusyWindowsOptions): BookingBusyWindowsState {
 	const fetchBookableRangeBusyWindows = useAction(
-		api.googleCalendar.googleCalendar.getBookableRangeBusyWindows
+		api.googleCalendar.calendar.getBookableRangeBusyWindows
 	);
 
 	// Reuse the same browser key for Google Calendar rate limiting across visits.

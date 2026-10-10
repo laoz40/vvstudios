@@ -4,7 +4,7 @@ import { okAsync, type ResultAsync } from "neverthrow";
 import { internal } from "#convex/_generated/api";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { ActionCtx } from "#convex/_generated/server";
-import { sendBookingReminderEmailForSession } from "#convex/booking/services/bookingConfirmationWorkflow";
+import { sendBookingReminderEmailForSession } from "#convex/booking/services/confirmationWorkflow";
 import { fromConvexTuple } from "#convex/shared/lib/result";
 
 type ReminderClaim = { session: Doc<"bookings"> };
@@ -15,10 +15,7 @@ function reminderClaimFromMutation(claim: ReminderClaim) {
 
 function markReminderSentAfterEmail(ctx: ActionCtx, bookingId: Id<"bookings">, _value: null) {
 	return fromConvexTuple(
-		ctx.runMutation(internal.sessions.sessionReminders.markReminderSent, {
-			bookingId,
-			now: Date.now()
-		})
+		ctx.runMutation(internal.sessions.reminders.markReminderSent, { bookingId, now: Date.now() })
 	).map(reminderEmailDeliveryComplete);
 }
 
@@ -32,7 +29,7 @@ function markReminderFailedAfterEmailError(
 	reminderError: { reason: string }
 ) {
 	return fromConvexTuple(
-		ctx.runMutation(internal.sessions.sessionReminders.markReminderFailed, {
+		ctx.runMutation(internal.sessions.reminders.markReminderFailed, {
 			bookingId,
 			failureCode: reminderError.reason
 		})
@@ -55,7 +52,7 @@ export function claimSessionReminderSend(
 	now: number
 ): ResultAsync<ReminderClaim | null, never> {
 	return fromConvexTuple(
-		ctx.runMutation(internal.sessions.sessionReminders.claimReminder, { bookingId, now })
+		ctx.runMutation(internal.sessions.reminders.claimReminder, { bookingId, now })
 	)
 		.map(reminderClaimFromMutation)
 		.orElse(noopReminderClaimOnFailure);

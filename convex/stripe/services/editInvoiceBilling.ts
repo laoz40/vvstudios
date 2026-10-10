@@ -6,7 +6,7 @@ import {
 	listStripeInvoicesForBookings,
 	listStripeInvoicesForBooking,
 	listStripeInvoicesForPackage
-} from "#convex/stripe/lib/stripeInvoices";
+} from "#convex/stripe/lib/invoices";
 import {
 	loadEditInvoiceRecord,
 	listCheckoutPaymentPage,

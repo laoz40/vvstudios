@@ -1,5 +1,5 @@
 import type { Doc } from "#convex/_generated/dataModel";
-import { sessionConsumesPackageCapacity } from "#convex/packages/lib/packageSessionCapacity";
+import { sessionConsumesPackageCapacity } from "#convex/packages/lib/sessionCapacity";
 import { DURATION_OPTIONS } from "#/domain/booking/catalog";
 import { type BookingFormValues } from "#studio/features/booking-form/lib/booking-form-model";
 

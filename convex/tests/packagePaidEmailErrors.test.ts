@@ -59,9 +59,7 @@ describe("package receipt email errors", () => {
 				fetchMock.mockResolvedValue(new Response("Email rejected", { status: 503 }));
 			}
 
-			const result = await staff.action(api.packages.packagePayment.resendPackageEmail, {
-				packageId
-			});
+			const result = await staff.action(api.packages.payment.resendPackageEmail, { packageId });
 
 			const packageRecord = await t.run((ctx) => ctx.db.get("packages", packageId));
 

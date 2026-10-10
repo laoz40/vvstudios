@@ -8,7 +8,7 @@ import {
 	recordBookingReceiptResendOutcome,
 	sendBookingReceiptEmailToCustomer,
 	writeStandaloneBookingReceiptNumber
-} from "#convex/booking/services/bookingReceiptResend";
+} from "#convex/booking/services/receiptResend";
 
 export const resendBookingReceipt = action({
 	args: { bookingId: v.id("bookings") },

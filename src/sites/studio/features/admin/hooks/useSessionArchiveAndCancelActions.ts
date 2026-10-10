@@ -9,11 +9,9 @@ import {
 } from "#studio/features/admin/lib/admin-sessions";
 
 export function useSessionArchiveAndCancelActions(session: SessionRecord) {
-	const archiveSession = useMutation(api.sessions.sessions.archiveSession);
+	const archiveSession = useMutation(api.sessions.admin.archiveSession);
 
-	const cancelBookingFromAdmin = useAction(
-		api.googleCalendar.googleCalendar.cancelBookingFromAdmin
-	);
+	const cancelBookingFromAdmin = useAction(api.googleCalendar.calendar.cancelBookingFromAdmin);
 
 	const [isCancelBookingDialogOpen, setIsCancelBookingDialogOpen] = useState(false);
 	const [isArchiveDialogOpen, setIsArchiveDialogOpen] = useState(false);

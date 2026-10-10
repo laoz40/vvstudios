@@ -20,13 +20,13 @@ convex/
   tests/                                   # integration tests (multi-domain)
 ```
 
-Examples: `convex/packages/packageScheduling.ts`, `convex/booking/settings.ts`, `convex/sessions/sessions.ts`.
+Examples: `convex/packages/scheduling.ts`, `convex/booking/settings.ts`, `convex/sessions/admin.ts`.
 
 ## Handlers (`convex/<feature>/*.ts` and root globals)
 
 - Thin entrypoints that call **services only**.
 - Read like a short, flat list of steps describing what the endpoint does (as many steps as the story needs — keep it scannable).
-- **No** direct `ctx.db` calls, **no** `#convex/.../lib` imports, **no** domain logic in the handler file (allowlisted exceptions: `http.ts`, `devSeed.ts`, `schema.ts`, `convex/sessions/sessionsDriveInternal.ts`, …).
+- **No** direct `ctx.db` calls, **no** `#convex/.../lib` imports, **no** domain logic in the handler file (allowlisted exceptions: `http.ts`, `devSeed.ts`, `schema.ts`, `convex/sessions/driveInternal.ts`, …).
 - Own validators and step order; wire tuple results with `.match(tupleOk, tupleErr)`.
 
 ## Services (`convex/<feature>/services/**`, `convex/shared/services/**`)
@@ -34,7 +34,7 @@ Examples: `convex/packages/packageScheduling.ts`, `convex/booking/settings.ts`, 
 - Each exported function is **one abstraction**: a meaningful, reusable unit of work (get item, parse item, validate item, save item).
 - Composed from **lib** functions (and other services when needed).
 - One service **file** groups related abstractions for one domain concept.
-- **File layout:** name modules for what they do (`packageCheckoutMutations.ts`, `sessionQueries.ts`, `stripeInvoiceSend.ts`). No `Workflow`, `MutationWorkflow`, or layer jargon in filenames; the parent folder is the feature (`packages/services/`). Internal Convex entrypoints live in the feature folder (e.g. `sessions/sessionsDriveInternal.ts`), not under a generic `convex/internal/` folder.
+- **File layout:** name modules for what they do (`checkoutMutations.ts`, `queries.ts`, `invoiceSend.ts`). No `Workflow`, `MutationWorkflow`, or layer jargon in filenames; the parent folder is the feature (`packages/services/`). Do not repeat the feature name in the basename when the path already provides it. Internal Convex entrypoints live in the feature folder (e.g. `sessions/driveInternal.ts`), not under a generic `convex/internal/` folder.
 - Handlers chain several service functions together.
 - Policy and invariants live here, not in handlers or lib. Authorization services load the caller's identity and access, choose the required permission, and compose lib checks.
 - Mutation/query services do not use `ctx.runQuery` / `ctx.runMutation`.
@@ -71,7 +71,7 @@ The `convex-layers` oxlint plugin (`tools/oxlint/convex-layers/`) runs on featur
 
 | Rule | What it blocks |
 | --- | --- |
-| `convex-layers/no-handler-lib-import` | Handler modules importing `#convex/**/lib/**` directly. Handlers call services only. Allowlisted entrypoints include `http.ts`, `devSeed.ts`, `schema.ts`, `convex/sessions/sessionsDriveInternal.ts`. |
+| `convex-layers/no-handler-lib-import` | Handler modules importing `#convex/**/lib/**` directly. Handlers call services only. Allowlisted entrypoints include `http.ts`, `devSeed.ts`, `schema.ts`, `convex/sessions/driveInternal.ts`. |
 | `convex-layers/no-db-in-services` | `ctx.db` reads/writes inside service files. DB I/O stays in lib; services compose lib functions. |
 | `convex-layers/no-lib-reexport` | `export { … } from "#convex/…/lib/…"` or re-exporting a lib import unchanged from a service file. Use a real service function, or `export type Foo = LibFoo` for public types. |
 | `convex-layers/no-lib-loader-orchestration` | Exported lib functions that call a loader (`get*` / `load*` / `list*` or `okOrThrow` on a db read / `runQuery`) and chain domain work with `.andThen`. Split into a loader-only lib helper plus a service that wires `loader.andThen(work)`. |

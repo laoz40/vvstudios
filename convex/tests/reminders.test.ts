@@ -16,7 +16,7 @@ import { z } from "zod";
 import { bookingDocument, packageDocument } from "#convex/tests/insertDocumentDefaults";
 import { internal } from "#convex/_generated/api";
 import type { Id } from "#convex/_generated/dataModel";
-import { hashRescheduleToken } from "#convex/sessions/lib/sessionRescheduleLinks";
+import { hashRescheduleToken } from "#convex/sessions/lib/rescheduleLinks";
 import { createConvexTest } from "#convex/test.setup";
 
 const now = Date.parse("2030-01-01T23:00:00.000Z");
@@ -55,10 +55,11 @@ describe("daily reminder dispatch", () => {
 		});
 		const unsentBookingId = await seedBooking(t, { sessionStartAt: tomorrowSessionStartAt + 2 });
 
-		const bookings = await t.query(
-			internal.sessions.sessionReminders.listSessionsDueForReminderEmail,
-			{ dayStart: tomorrowSessionStartAt, dayEnd: tomorrowSessionStartAt + 100, limit: 2 }
-		);
+		const bookings = await t.query(internal.sessions.reminders.listSessionsDueForReminderEmail, {
+			dayStart: tomorrowSessionStartAt,
+			dayEnd: tomorrowSessionStartAt + 100,
+			limit: 2
+		});
 
 		expect(bookings.map((booking) => booking._id)).toEqual([unsentBookingId]);
 	});
@@ -100,7 +101,7 @@ describe("daily reminder dispatch", () => {
 			)
 		);
 
-		await t.action(internal.sessions.sessionReminders.sendDueReminders, {});
+		await t.action(internal.sessions.reminders.sendDueReminders, {});
 
 		expect(await readBooking(t, cancelledBookingId)).not.toHaveProperty("reminderEmailSentAt");
 		expect(await readBooking(t, outOfRangeBookingId)).not.toHaveProperty("reminderEmailSentAt");
@@ -137,7 +138,7 @@ describe("reminder scheduling state", () => {
 		const t = createConvexTest();
 		const bookingId = await seedBooking(t);
 
-		const claimResult = await t.mutation(internal.sessions.sessionReminders.claimReminder, {
+		const claimResult = await t.mutation(internal.sessions.reminders.claimReminder, {
 			bookingId,
 			now
 		});
@@ -145,7 +146,7 @@ describe("reminder scheduling state", () => {
 		expect(claimResult[0]).toBeNull();
 		expect(claimResult[1]?.session._id).toBe(bookingId);
 		expect(
-			await t.mutation(internal.sessions.sessionReminders.markReminderSent, { bookingId, now })
+			await t.mutation(internal.sessions.reminders.markReminderSent, { bookingId, now })
 		).toEqual([null, null]);
 		const booking = await readBooking(t, bookingId);
 
@@ -153,10 +154,7 @@ describe("reminder scheduling state", () => {
 		expect(booking?.reminderEmailClaimedAt).toBeUndefined();
 		expect(booking?.reminderEmailFailureCode).toBeUndefined();
 		expect(
-			await t.mutation(internal.sessions.sessionReminders.claimReminder, {
-				bookingId,
-				now: now + 1
-			})
+			await t.mutation(internal.sessions.reminders.claimReminder, { bookingId, now: now + 1 })
 		).toEqual([{ reason: "BOOKING_ALREADY_CLAIMED_OR_SENT" }, null]);
 	});
 
@@ -171,7 +169,7 @@ describe("reminder scheduling state", () => {
 		});
 
 		const reservationResult = await t.mutation(
-			internal.sessions.sessionScheduling.reserveSessionReservation,
+			internal.sessions.scheduling.reserveSessionReservation,
 			{
 				bookingId,
 				duration: "1h",
@@ -186,7 +184,7 @@ describe("reminder scheduling state", () => {
 		}
 
 		expect(
-			await t.mutation(internal.sessions.sessionScheduling.saveClientSessionReschedule, {
+			await t.mutation(internal.sessions.scheduling.saveClientSessionReschedule, {
 				bookingId,
 				date: "2030-01-12",
 				time: "10:00",
@@ -213,7 +211,7 @@ describe("reminder scheduling state", () => {
 		});
 
 		expect(
-			await t.mutation(internal.packages.packageScheduling.cancelPackageSession, {
+			await t.mutation(internal.packages.scheduling.cancelPackageSession, {
 				bookingId,
 				token: packageScheduleToken,
 				now
@@ -236,23 +234,23 @@ describe("reminder claims", () => {
 		const packageId = await seedPackage(t, { expiresAt: expiryAt, status: "paid" });
 
 		const bookingClaims = await Promise.all([
-			t.mutation(internal.sessions.sessionReminders.claimReminder, { bookingId, now }),
-			t.mutation(internal.sessions.sessionReminders.claimReminder, { bookingId, now }),
-			t.mutation(internal.sessions.sessionReminders.claimReminder, { bookingId, now })
+			t.mutation(internal.sessions.reminders.claimReminder, { bookingId, now }),
+			t.mutation(internal.sessions.reminders.claimReminder, { bookingId, now }),
+			t.mutation(internal.sessions.reminders.claimReminder, { bookingId, now })
 		]);
 
 		const packageClaims = await Promise.all([
-			t.mutation(internal.packages.packageReminders.claimPackageReminder, {
+			t.mutation(internal.packages.reminders.claimPackageReminder, {
 				packageId,
 				reminderType: "expiry",
 				now
 			}),
-			t.mutation(internal.packages.packageReminders.claimPackageReminder, {
+			t.mutation(internal.packages.reminders.claimPackageReminder, {
 				packageId,
 				reminderType: "expiry",
 				now
 			}),
-			t.mutation(internal.packages.packageReminders.claimPackageReminder, {
+			t.mutation(internal.packages.reminders.claimPackageReminder, {
 				packageId,
 				reminderType: "expiry",
 				now

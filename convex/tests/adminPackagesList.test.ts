@@ -31,7 +31,7 @@ describe("listPackages admin views", () => {
 
 		const result = await t
 			.withIdentity(adminIdentity)
-			.query(api.packages.packages.listPackages, { paginationOpts, view: "inbox" });
+			.query(api.packages.admin.listPackages, { paginationOpts, view: "inbox" });
 
 		const ids = result.page.map((packageRecord) => packageRecord._id);
 		expect(ids).toContain(visibleId);
@@ -45,7 +45,7 @@ describe("listPackages admin views", () => {
 
 		const result = await t
 			.withIdentity(adminIdentity)
-			.query(api.packages.packages.listPackages, { paginationOpts, view: "all" });
+			.query(api.packages.admin.listPackages, { paginationOpts, view: "all" });
 
 		expect(result.page.map((packageRecord) => packageRecord._id)).toContain(archivedId);
 	});
@@ -58,7 +58,7 @@ describe("listPackages admin views", () => {
 
 		const result = await t
 			.withIdentity(adminIdentity)
-			.query(api.packages.packages.listPackages, {
+			.query(api.packages.admin.listPackages, {
 				paginationOpts,
 				view: "inbox",
 				searchQuery: `email:${targetEmail}`

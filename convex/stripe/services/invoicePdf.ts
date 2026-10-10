@@ -12,10 +12,10 @@ import {
 import {
 	renderBookingInvoicePdfInNode,
 	renderBookingReceiptPdfInNode
-} from "#convex/booking/lib/bookingInvoicePdfRender";
-import { getPackageForAction } from "#convex/packages/services/packageLookup";
+} from "#convex/booking/lib/invoicePdfRender";
+import { getPackageForAction } from "#convex/packages/services/lookup";
 import { okOrThrow } from "#convex/shared/lib/result";
-import { getSessionFromQuery } from "#convex/sessions/services/sessionLookup";
+import { getSessionFromQuery } from "#convex/sessions/services/lookup";
 import {
 	toInvoicePdfPayload,
 	validateAdminBookingReceipt,
@@ -125,7 +125,7 @@ export function loadBookingByStripeCheckoutSession(
 	stripeSessionId: string
 ): ResultAsync<Doc<"bookings"> | null, never> {
 	return okOrThrow(
-		ctx.runQuery(internal.sessions.sessionCheckout.getSessionByStripeSessionId, { stripeSessionId })
+		ctx.runQuery(internal.sessions.checkout.getSessionByStripeSessionId, { stripeSessionId })
 	);
 }
 

@@ -3,7 +3,7 @@ import { internal } from "#convex/_generated/api";
 import type { Id } from "#convex/_generated/dataModel";
 import type { MutationCtx } from "#convex/_generated/server";
 import { okOrThrow } from "#convex/shared/lib/result";
-import { parseDurationMinutes } from "#convex/sessions/lib/sessionCalendarTime";
+import { parseDurationMinutes } from "#convex/sessions/lib/calendarTime";
 
 type DriveSchedulingError = { reason: "BOOKING_INVALID_DURATION" };
 
@@ -24,15 +24,11 @@ export function scheduleDriveSetup(
 
 	return okOrThrow(
 		ctx.scheduler
-			.runAt(
-				Math.max(runAt, Date.now()),
-				internal.googleCalendar.googleCalendar.runScheduledDriveSetup,
-				{
-					bookingId: booking.bookingId,
-					sessionStartAt: booking.sessionStartAt,
-					duration: booking.duration
-				}
-			)
+			.runAt(Math.max(runAt, Date.now()), internal.googleCalendar.calendar.runScheduledDriveSetup, {
+				bookingId: booking.bookingId,
+				sessionStartAt: booking.sessionStartAt,
+				duration: booking.duration
+			})
 			.then(() => null)
 	);
 }

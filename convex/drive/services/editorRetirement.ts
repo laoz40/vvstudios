@@ -29,17 +29,13 @@ type EditorRetirementError = DriveEditorPermissionsError | DriveError;
 
 function loadEditorRetirementSessions(ctx: ActionCtx, editorTokenIdentifier: string) {
 	return fromConvexTuple(
-		ctx.runQuery(internal.sessions.sessionsDriveInternal.getEditorRetirementSessions, {
-			editorTokenIdentifier
-		})
+		ctx.runQuery(internal.sessions.driveInternal.getEditorRetirementSessions, { editorTokenIdentifier })
 	);
 }
 
 function loadEditorRetirementAssets(ctx: ActionCtx, editorTokenIdentifier: string) {
 	return fromConvexTuple(
-		ctx.runQuery(internal.sessions.sessionsDriveInternal.getEditorRetirementAssets, {
-			editorTokenIdentifier
-		})
+		ctx.runQuery(internal.sessions.driveInternal.getEditorRetirementAssets, { editorTokenIdentifier })
 	);
 }
 
@@ -49,7 +45,7 @@ function clearRetiredAssetPermission(
 	editorTokenIdentifier: string
 ) {
 	return fromConvexTuple(
-		ctx.runMutation(internal.sessions.sessionsDriveInternal.clearEditorAssetPermission, {
+		ctx.runMutation(internal.sessions.driveInternal.clearEditorAssetPermission, {
 			permissionId: permission._id,
 			editorTokenIdentifier
 		})
@@ -188,7 +184,7 @@ function markPendingEditorAccessRevoked(
 	editorTokenIdentifier: string
 ) {
 	return fromConvexTuple(
-		ctx.runMutation(internal.sessions.sessionsDriveInternal.markEditorDriveAccessRevoked, {
+		ctx.runMutation(internal.sessions.driveInternal.markEditorDriveAccessRevoked, {
 			driveSessionId,
 			editorTokenIdentifier
 		})

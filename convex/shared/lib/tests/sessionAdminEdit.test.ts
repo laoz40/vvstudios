@@ -17,7 +17,7 @@ import {
 	buildAdminSessionUpdatePatch,
 	didSessionTimingChange,
 	getSessionEditFieldChanges
-} from "#convex/sessions/lib/sessionAdminEdit";
+} from "#convex/sessions/lib/adminEdit";
 import { testBookingId } from "#convex/shared/lib/tests/testIds";
 
 const timeZone = "Australia/Sydney";

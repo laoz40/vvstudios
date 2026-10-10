@@ -15,7 +15,7 @@
  */
 import { describe, expect, test } from "vitest";
 import type { Doc } from "#convex/_generated/dataModel";
-import { validatePendingSessionDeletion } from "#convex/sessions/lib/sessionCheckout";
+import { validatePendingSessionDeletion } from "#convex/sessions/lib/checkout";
 import { testBookingId } from "#convex/shared/lib/tests/testIds";
 
 function bookingRecord(

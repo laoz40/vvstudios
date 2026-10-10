@@ -37,7 +37,7 @@ import {
 } from "#studio/lib/bookingdatetime";
 
 type PackageData = NonNullable<
-	FunctionReturnType<typeof api.packages.packageScheduling.getPackageByToken>[1]
+	FunctionReturnType<typeof api.packages.scheduling.getPackageByToken>[1]
 >;
 
 type SessionSelectionState = {

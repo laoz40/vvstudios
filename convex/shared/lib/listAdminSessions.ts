@@ -5,7 +5,7 @@ import { env } from "#convex/env";
 import {
 	getCapacityConsumingPackageSessions,
 	sessionConsumesPackageCapacity
-} from "#convex/packages/lib/packageScheduling";
+} from "#convex/packages/lib/scheduling";
 import { getDriveWorkflowFailureForBooking } from "#convex/drive/lib/driveStatus";
 import {
 	calculatePaidAmount,
@@ -13,7 +13,7 @@ import {
 	listStripeInvoicesForBookings,
 	listStripeInvoicesForBooking,
 	summarizeStripeInvoices
-} from "#convex/stripe/lib/stripeInvoices";
+} from "#convex/stripe/lib/invoices";
 import { normalizeAbn, normalizePhone } from "#convex/shared/lib/contactNormalization";
 import { parseAdminSearchDateValue } from "#convex/shared/lib/adminSearch/adminSearchDateParse";
 import {

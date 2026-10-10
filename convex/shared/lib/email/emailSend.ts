@@ -2,7 +2,7 @@ import { err, ok } from "neverthrow";
 import { tryPromise } from "#convex/shared/lib/result";
 import { formatEditingAddonLabel } from "#/domain/booking/addon-quantities";
 import { pickBookingAddonQuantities } from "#/domain/booking/addon-quantities";
-import type { BookingAddonQuantitiesArgs } from "#convex/booking/lib/bookingAddonQuantities";
+import type { BookingAddonQuantitiesArgs } from "#convex/booking/lib/addonQuantities";
 import { env } from "#convex/env";
 
 export interface EmailAttachment {

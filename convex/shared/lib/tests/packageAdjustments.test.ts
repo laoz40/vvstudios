@@ -20,7 +20,7 @@ import {
 	requirePackageAdjustmentPaymentEligibility,
 	validatePackageAdjustmentEmailClaim,
 	type PackageAdjustmentSession
-} from "#convex/packages/lib/packageAdjustments";
+} from "#convex/packages/lib/adjustments";
 import {
 	testBookingId,
 	testPackageAdjustmentId,

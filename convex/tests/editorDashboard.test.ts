@@ -55,13 +55,13 @@ const assignSessionEditor = makeFunctionReference<
 	"mutation",
 	AssignSessionEditorArgs,
 	AssignmentResult
->("sessions/sessions:assignSessionEditor");
+>("sessions/admin:assignSessionEditor");
 
 const listEditorSessions = makeFunctionReference<
 	"query",
 	{ paginationOpts: { cursor: string | null; numItems: number } },
 	EditorSessionsResult
->("sessions/sessions:listEditorSessions");
+>("sessions/admin:listEditorSessions");
 
 const paginationOpts = { cursor: null, numItems: 20 };
 

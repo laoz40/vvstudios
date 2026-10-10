@@ -1,6 +1,6 @@
 import { toast } from "sonner";
-import type { AdminSessionUpdateResult } from "#convex/sessions/lib/sessionAdminEdit";
-import type { UpdateSessionFromAdminError } from "#convex/googleCalendar/services/sessionCalendar";
+import type { AdminSessionUpdateResult } from "#convex/sessions/lib/adminEdit";
+import type { UpdateSessionFromAdminError } from "#convex/googleCalendar/services/calendar";
 import { tryCatch, type Result, type UnexpectedError } from "#/lib/result";
 import type { SessionEditDraft } from "#studio/features/admin/components/SessionEditDialog";
 import type { SessionRecord } from "#studio/features/admin/lib/admin-sessions";

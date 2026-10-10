@@ -15,23 +15,23 @@ tester.run(
 	{
 		valid: [
 			{
-				filename: "convex/stripe/lib/stripeInvoices.ts",
+				filename: "convex/stripe/lib/invoices.ts",
 				code: `ctx.db.insert("stripeInvoices", invoice); ctx.db.patch("stripeInvoices", id, { paymentStatus: "paid" });`
 			},
 			{
-				filename: "convex/packages/lib/packageAdjustments.ts",
+				filename: "convex/packages/lib/adjustments.ts",
 				code: `ctx.db.insert("packageAdjustments", adjustment); ctx.db.patch("packageAdjustments", id, { invoiceEmailStatus: "sent" });`
 			},
 			{
-				filename: "convex/packages/lib/packageAdjustmentInvoicePayment.ts",
+				filename: "convex/packages/lib/adjustmentInvoicePayment.ts",
 				code: `ctx.db["patch"]("packageAdjustments", id, { paymentStatus: "paid" });`
 			},
 			{
-				filename: "convex/booking/lib/bookingConfirmationSessionPatches.ts",
+				filename: "convex/booking/lib/confirmationSessionPatches.ts",
 				code: `ctx.db.patch("bookings", id, { originalPaidAmount: amount });`
 			},
 			{
-				filename: "convex/packages/lib/packageUpdates.ts",
+				filename: "convex/packages/lib/updates.ts",
 				code: `ctx.db.patch("packages", id, { ["originalPaidAmount"]: amount });`
 			},
 			{
@@ -39,11 +39,11 @@ tester.run(
 				code: `ctx.db.patch("bookings", id, { ...{ originalPaidAmount: amount } }); ctx.db.patch("packages", id, { originalPaidAmount: amount });`
 			},
 			{
-				filename: "convex/booking/lib/bookingConfirmationSessionPatches.ts",
+				filename: "convex/booking/lib/confirmationSessionPatches.ts",
 				code: `ctx.db.patch("bookings", id, bookingPatch);`
 			},
 			{
-				filename: "convex/booking/lib/bookingConfirmationSave.ts",
+				filename: "convex/booking/lib/confirmationSave.ts",
 				code: `ctx.db.patch("bookings", id, { paymentCompletedAt: at, status: "confirmed" });`
 			},
 			{
@@ -62,22 +62,22 @@ tester.run(
 				errors: [{ messageId: "stripeInvoicesWrite" }]
 			},
 			{
-				filename: "convex/services/packages/packageAdjustmentInvoicePayment.ts",
+				filename: "convex/packages/services/adjustmentInvoicePayment.ts",
 				code: `ctx.db["replace"](\`packageAdjustments\`, id, {});`,
 				errors: [{ messageId: "packageAdjustmentsWrite" }]
 			},
 			{
-				filename: "convex/booking/lib/bookingConfirmationSave.ts",
+				filename: "convex/booking/lib/confirmationSave.ts",
 				code: `ctx.db.patch("bookings", id, { originalPaidAmount: amount });`,
 				errors: [{ messageId: "bookingOriginalPaidAmount" }]
 			},
 			{
-				filename: "convex/stripe/lib/stripeInvoices.ts",
+				filename: "convex/stripe/lib/invoices.ts",
 				code: `ctx.db.patch("packages", id, { ...{ ["originalPaidAmount"]: amount } });`,
 				errors: [{ messageId: "packageOriginalPaidAmount" }]
 			},
 			{
-				filename: "convex/packages/lib/packageUpdates.ts",
+				filename: "convex/packages/lib/updates.ts",
 				code: `ctx.db.insert("bookings", { ...{ originalPaidAmount: amount } });`,
 				errors: [{ messageId: "bookingOriginalPaidAmount" }]
 			}

@@ -186,7 +186,7 @@ describe("package adjustment Stripe delivery", () => {
 		expect(
 			await t
 				.withIdentity(adminIdentity)
-				.action(api.packages.packageAdjustmentInvoices.retryPackageAdjustmentInvoiceEmail, {
+				.action(api.packages.adjustmentInvoices.retryPackageAdjustmentInvoiceEmail, {
 					adjustmentId
 				})
 		).toEqual([null, null]);
@@ -275,7 +275,7 @@ async function seedAdjustment(
 }
 
 function sendInvoice(t: TestClient, adjustmentId: Id<"packageAdjustments">) {
-	return t.action(internal.packages.packageAdjustmentInvoices.sendPackageAdjustmentInvoice, {
+	return t.action(internal.packages.adjustmentInvoices.sendPackageAdjustmentInvoice, {
 		adjustmentId,
 		attempt: "automatic"
 	});

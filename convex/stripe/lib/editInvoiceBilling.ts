@@ -2,21 +2,21 @@ import { err, ok, Result } from "neverthrow";
 import type { Doc } from "#convex/_generated/dataModel";
 import { getBookingTotal } from "#/domain/booking/pricing";
 import { bookingSchema } from "#studio/features/booking-form/lib/booking-form-model";
-import { buildAdminSessionUpdatePatch } from "#convex/sessions/lib/sessionAdminEdit";
+import { buildAdminSessionUpdatePatch } from "#convex/sessions/lib/adminEdit";
 import {
 	type ParsedPackageRequest,
 	buildPackageUpdatePatch,
 	parsePackageUpdate,
 	validatePackageUpdate
-} from "#convex/packages/lib/packageUpdates";
-import { calculatePaidAmount } from "#convex/stripe/lib/stripeInvoices";
+} from "#convex/packages/lib/updates";
+import { calculatePaidAmount } from "#convex/stripe/lib/invoices";
 import type { EditInvoiceTarget } from "#convex/stripe/lib/editInvoiceDb";
 import type { EditInvoiceDraft } from "#convex/stripe/services/editInvoiceValidators";
 import {
 	buildEditInvoiceAdditions,
 	buildEditInvoiceLineItems
 } from "#convex/stripe/lib/editInvoiceLineItems";
-import type { StripeInvoiceLineItem } from "#convex/stripe/lib/stripeInvoice";
+import type { StripeInvoiceLineItem } from "#convex/stripe/lib/invoice";
 
 export type EditInvoiceQuote = {
 	target: EditInvoiceTarget;

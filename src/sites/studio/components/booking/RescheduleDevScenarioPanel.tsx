@@ -6,7 +6,7 @@ import { tupleErr, tupleOk, type Result } from "#/lib/result";
 import type { FunctionReturnType } from "convex/server";
 import { type DevRescheduleScenario } from "#studio/features/reschedule/lib/reschedule-search";
 import { api } from "#convex/_generated/api";
-import type { RescheduleLinkLookupError } from "#convex/sessions/sessionReschedule";
+import type { RescheduleLinkLookupError } from "#convex/sessions/reschedule";
 
 const DEV_RESCHEDULE_SCENARIO_OPTIONS = [
 	{ label: "Ready", value: "ready" },
@@ -29,7 +29,7 @@ const DEV_RESCHEDULE_SCENARIO_OPTIONS = [
 export type { DevRescheduleScenario };
 
 export type RescheduleBookingLookup = NonNullable<
-	FunctionReturnType<typeof api.sessions.sessionReschedule.getRescheduleSessionByToken>
+	FunctionReturnType<typeof api.sessions.reschedule.getRescheduleSessionByToken>
 >;
 
 type DevRescheduleAvailabilityError =

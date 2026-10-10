@@ -34,7 +34,7 @@ import {
 } from "#studio/lib/bookingdatetime";
 
 type PackageData = NonNullable<
-	FunctionReturnType<typeof api.packages.packageScheduling.getPackageByToken>[1]
+	FunctionReturnType<typeof api.packages.scheduling.getPackageByToken>[1]
 >;
 
 function handlePackageUnscheduleRequest(bookingId: Id<"bookings">, date: string) {
@@ -53,17 +53,13 @@ export function PackageScheduleContent({
 	packageData: PackageData;
 	token: string;
 }) {
-	const createPackageSession = useAction(api.packages.packageScheduling.createPackageSession);
+	const createPackageSession = useAction(api.packages.scheduling.createPackageSession);
 
-	const setDefaultSpace = useMutation(api.packages.packageScheduling.setDefaultSpace);
+	const setDefaultSpace = useMutation(api.packages.scheduling.setDefaultSpace);
 
-	const reschedulePackageSession = useAction(
-		api.packages.packageScheduling.reschedulePackageSession
-	);
+	const reschedulePackageSession = useAction(api.packages.scheduling.reschedulePackageSession);
 
-	const unschedulePackageSession = useAction(
-		api.packages.packageScheduling.unschedulePackageSession
-	);
+	const unschedulePackageSession = useAction(api.packages.scheduling.unschedulePackageSession);
 
 	const scheduling = usePackageSchedule({ packageData, token });
 	const [savingSessionKey, setSavingSessionKey] = useState<string | null>(null);

@@ -36,7 +36,7 @@ import {
 	PACKAGE_ADJUSTMENT_EMAIL_CLAIM_TIMEOUT_MS,
 	PACKAGE_ADJUSTMENT_PAYMENT_DUE_MS,
 	REMOTE_PODCAST_ADJUSTMENT_RATE
-} from "#convex/packages/lib/packageAdjustments";
+} from "#convex/packages/lib/adjustments";
 import { createConvexTest } from "#convex/test.setup";
 
 const now = Date.parse("2030-01-10T00:00:00.000Z");
@@ -193,7 +193,7 @@ describe("package adjustment closeout", () => {
 		const packageId = await seedPaidPackage(t);
 		const bookingId = await seedPackageSession(t, packageId, ["Remote Podcast"]);
 
-		await t.mutation(internal.packages.packageScheduling.processPackageAdjustmentAtExpiry, {
+		await t.mutation(internal.packages.scheduling.processPackageAdjustmentAtExpiry, {
 			packageId: packageId,
 			expectedExpiresAt: now - 1
 		});
@@ -354,7 +354,7 @@ describe("package adjustment closeout", () => {
 
 		vi.setSystemTime(extendedExpiryAt);
 		expect(
-			await t.mutation(internal.packages.packageScheduling.processPackageAdjustmentAtExpiry, {
+			await t.mutation(internal.packages.scheduling.processPackageAdjustmentAtExpiry, {
 				packageId,
 				expectedExpiresAt: extendedExpiryAt
 			})
@@ -387,7 +387,7 @@ describe("package adjustment payment", () => {
 			const admin = t.withIdentity(adminIdentity);
 
 			const paymentResult = await admin.mutation(
-				api.packages.packageAdjustments.markPackageAdjustmentPaymentStatus,
+				api.packages.adjustments.markPackageAdjustmentPaymentStatus,
 				{ adjustmentId, paid: true }
 			);
 
@@ -404,7 +404,7 @@ describe("package adjustment payment", () => {
 			const admin = t.withIdentity(adminIdentity);
 
 			expect(
-				await admin.mutation(api.packages.packageAdjustments.markPackageAdjustmentPaymentStatus, {
+				await admin.mutation(api.packages.adjustments.markPackageAdjustmentPaymentStatus, {
 					adjustmentId,
 					paid: true
 				})
@@ -433,7 +433,7 @@ describe("package adjustment payment", () => {
 		const admin = t.withIdentity(adminIdentity);
 
 		expect(
-			await admin.mutation(api.packages.packageAdjustments.markPackageAdjustmentPaymentStatus, {
+			await admin.mutation(api.packages.adjustments.markPackageAdjustmentPaymentStatus, {
 				adjustmentId,
 				paid: true
 			})
@@ -446,7 +446,7 @@ describe("package adjustment payment", () => {
 		const admin = t.withIdentity(adminIdentity);
 
 		expect(
-			await admin.mutation(api.packages.packageAdjustments.markPackageAdjustmentPaymentStatus, {
+			await admin.mutation(api.packages.adjustments.markPackageAdjustmentPaymentStatus, {
 				adjustmentId,
 				paid: true
 			})
@@ -454,7 +454,7 @@ describe("package adjustment payment", () => {
 		expect(await readAdjustment(t, adjustmentId)).toMatchObject({ paymentStatus: "paid" });
 
 		expect(
-			await admin.mutation(api.packages.packageAdjustments.markPackageAdjustmentPaymentStatus, {
+			await admin.mutation(api.packages.adjustments.markPackageAdjustmentPaymentStatus, {
 				adjustmentId,
 				paid: false
 			})
@@ -477,7 +477,7 @@ describe("package adjustment stripe invoice payment", () => {
 		const paidAt = now + 60 * 60 * 1000;
 
 		expect(
-			await t.mutation(internal.packages.packageAdjustments.claimPackageAdjustmentInvoicePayment, {
+			await t.mutation(internal.packages.adjustments.claimPackageAdjustmentInvoicePayment, {
 				stripeInvoiceId: "in_test_1",
 				adjustmentId,
 				paidAt
@@ -486,7 +486,7 @@ describe("package adjustment stripe invoice payment", () => {
 		expect(await readAdjustment(t, adjustmentId)).toMatchObject({ paymentStatus: "paid", paidAt });
 
 		expect(
-			await t.mutation(internal.packages.packageAdjustments.claimPackageAdjustmentInvoicePayment, {
+			await t.mutation(internal.packages.adjustments.claimPackageAdjustmentInvoicePayment, {
 				stripeInvoiceId: "in_test_1",
 				adjustmentId,
 				paidAt: paidAt + 1
@@ -499,7 +499,7 @@ describe("package adjustment stripe invoice payment", () => {
 		const { adjustmentId } = await seedInvoiceAdjustment(t, "sent", undefined, "in_test_1");
 
 		expect(
-			await t.mutation(internal.packages.packageAdjustments.claimPackageAdjustmentInvoicePayment, {
+			await t.mutation(internal.packages.adjustments.claimPackageAdjustmentInvoicePayment, {
 				stripeInvoiceId: "in_test_other",
 				adjustmentId,
 				paidAt: now
@@ -552,14 +552,14 @@ describe("package adjustment invoice delivery", () => {
 		const retryClaimedAt = now + PACKAGE_ADJUSTMENT_EMAIL_CLAIM_TIMEOUT_MS;
 
 		await claimInvoice(t, adjustmentId, firstClaimedAt);
-		await t.mutation(internal.packages.packageAdjustments.markPackageAdjustmentInvoiceEmailFailed, {
+		await t.mutation(internal.packages.adjustments.markPackageAdjustmentInvoiceEmailFailed, {
 			adjustmentId,
 			claimedAt: firstClaimedAt
 		});
 		await claimInvoice(t, adjustmentId, retryClaimedAt);
 
 		const staleResult = await t.mutation(
-			internal.packages.packageAdjustments.markPackageAdjustmentInvoiceEmailSent,
+			internal.packages.adjustments.markPackageAdjustmentInvoiceEmailSent,
 			{ adjustmentId, claimedAt: firstClaimedAt, stripeInvoiceId: "in_test_stale" }
 		);
 
@@ -577,14 +577,14 @@ describe("package adjustment invoice delivery", () => {
 		const retryClaimedAt = now + PACKAGE_ADJUSTMENT_EMAIL_CLAIM_TIMEOUT_MS;
 
 		await claimInvoice(t, adjustmentId, firstClaimedAt);
-		await t.mutation(internal.packages.packageAdjustments.markPackageAdjustmentInvoiceEmailFailed, {
+		await t.mutation(internal.packages.adjustments.markPackageAdjustmentInvoiceEmailFailed, {
 			adjustmentId,
 			claimedAt: firstClaimedAt
 		});
 		await claimInvoice(t, adjustmentId, retryClaimedAt);
 
 		const staleResult = await t.mutation(
-			internal.packages.packageAdjustments.markPackageAdjustmentInvoiceEmailFailed,
+			internal.packages.adjustments.markPackageAdjustmentInvoiceEmailFailed,
 			{ adjustmentId, claimedAt: firstClaimedAt }
 		);
 
@@ -655,7 +655,7 @@ async function seedPackageSession(
 }
 
 async function processExpiredPackage(t: TestClient, packageId: Id<"packages">) {
-	return await t.mutation(internal.packages.packageScheduling.processPackageAdjustmentAtExpiry, {
+	return await t.mutation(internal.packages.scheduling.processPackageAdjustmentAtExpiry, {
 		packageId: packageId,
 		expectedExpiresAt: now
 	});
@@ -663,7 +663,7 @@ async function processExpiredPackage(t: TestClient, packageId: Id<"packages">) {
 
 async function processCompletedPackage(t: TestClient, packageId: Id<"packages">) {
 	return await t.mutation(
-		internal.packages.packageScheduling.processPackageAdjustmentWhenSessionsComplete,
+		internal.packages.scheduling.processPackageAdjustmentWhenSessionsComplete,
 		{ packageId: packageId }
 	);
 }
@@ -702,7 +702,7 @@ async function seedFailedAdjustment(t: TestClient) {
 }
 
 async function claimInvoice(t: TestClient, adjustmentId: Id<"packageAdjustments">, at: number) {
-	return await t.mutation(internal.packages.packageAdjustments.claimPackageAdjustmentInvoiceEmail, {
+	return await t.mutation(internal.packages.adjustments.claimPackageAdjustmentInvoiceEmail, {
 		adjustmentId,
 		attempt: "retry",
 		now: at

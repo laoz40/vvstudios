@@ -65,7 +65,7 @@ function parseSavedDeliverablesFolderFromSetup(setupInfo: DriveSetupInfo | null)
 
 function requireSavedDeliverablesFolder(bookingId: Id<"bookings">, ctx: ActionCtx) {
 	return fromConvexTuple(
-		ctx.runQuery(internal.sessions.sessionsDriveInternal.getDriveSetup, { bookingId })
+		ctx.runQuery(internal.sessions.driveInternal.getDriveSetup, { bookingId })
 	).andThen(parseSavedDeliverablesFolderFromSetup);
 }
 
@@ -142,9 +142,7 @@ export function sendDeliverablesEmailForSession(
 	editorNotes: string | undefined
 ): ResultAsync<null, SendDeliverablesError> {
 	return fromConvexTuple<Promise<ConvexResult<DeliverablesCustomerType, SendDeliverablesError>>>(
-		ctx.runQuery(internal.sessions.sessions.detectDeliverablesCustomerType, {
-			bookingId: session._id
-		})
+		ctx.runQuery(internal.sessions.admin.detectDeliverablesCustomerType, { bookingId: session._id })
 	)
 		.andThen((emailVariant: DeliverablesCustomerType) =>
 			sendDeliverablesEmailForSessionVariant(session, folderUrl, editorNotes, emailVariant)

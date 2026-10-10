@@ -14,13 +14,13 @@ type InstagramRepostTarget =
 
 type BookingInstagramSaveErrorReason =
 	| NonNullable<
-			FunctionReturnType<typeof api.sessions.sessions.saveSessionInstagramHandle>[0]
+			FunctionReturnType<typeof api.sessions.admin.saveSessionInstagramHandle>[0]
 	  >["reason"]
 	| "UNEXPECTED_ERROR";
 
 type PackageInstagramSaveErrorReason =
 	| NonNullable<
-			FunctionReturnType<typeof api.packages.packages.savePackageInstagramHandle>[0]
+			FunctionReturnType<typeof api.packages.admin.savePackageInstagramHandle>[0]
 	  >["reason"]
 	| "UNEXPECTED_ERROR";
 
@@ -32,8 +32,8 @@ export function InstagramRepostPrompt({ target }: InstagramRepostPromptProps): R
 	const [instagramHandle, setInstagramHandle] = useState("");
 	const [isSubmitted, setIsSubmitted] = useState(false);
 	const [isSubmitting, setIsSubmitting] = useState(false);
-	const saveSessionInstagramHandle = useMutation(api.sessions.sessions.saveSessionInstagramHandle);
-	const savePackageInstagramHandle = useMutation(api.packages.packages.savePackageInstagramHandle);
+	const saveSessionInstagramHandle = useMutation(api.sessions.admin.saveSessionInstagramHandle);
+	const savePackageInstagramHandle = useMutation(api.packages.admin.savePackageInstagramHandle);
 
 	async function handleSubmit(event: SubmitEvent<HTMLFormElement>): Promise<void> {
 		event.preventDefault();

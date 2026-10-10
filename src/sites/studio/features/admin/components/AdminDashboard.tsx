@@ -54,7 +54,7 @@ type ArchivePastDeadCheckoutBatch = {
 
 async function archivePastDeadCheckoutSessionsUntilDone(
 	archivePastDeadCheckoutSessions: ReactMutation<
-		typeof api.sessions.sessions.archivePastDeadCheckoutSessions
+		typeof api.sessions.admin.archivePastDeadCheckoutSessions
 	>,
 	cursor: string | null = null
 ) {
@@ -74,7 +74,7 @@ async function archivePastDeadCheckoutSessionsUntilDone(
 	}
 }
 
-type EmployeeListResult = FunctionReturnType<typeof api.employees.employees.listEmployees>;
+type EmployeeListResult = FunctionReturnType<typeof api.employees.admin.listEmployees>;
 
 type EmployeeListError = NonNullable<EmployeeListResult[0]>;
 
@@ -147,7 +147,7 @@ function BookingsDashboardView({
 		searchQuery: hasActiveSessionSearch ? trimmedSessionSearchQuery : undefined
 	};
 
-	const sessions = usePaginatedQuery(api.sessions.sessions.listSessions, sessionListQuery, {
+	const sessions = usePaginatedQuery(api.sessions.admin.listSessions, sessionListQuery, {
 		initialNumItems: sessionPageSize
 	});
 
@@ -244,7 +244,7 @@ function PackagesDashboardView({
 		searchQuery: hasActivePackageSearch ? trimmedPackageSearchQuery : undefined
 	};
 
-	const packages = usePaginatedQuery(api.packages.packages.listPackages, packageListQuery, {
+	const packages = usePaginatedQuery(api.packages.admin.listPackages, packageListQuery, {
 		initialNumItems: packagePageSize
 	});
 
@@ -310,7 +310,7 @@ function EmployeesDashboardView({
 }: {
 	adminEditorProfile: AdminEditorProfile | null;
 }) {
-	const editorsResult = useQuery(api.employees.employees.listEmployees, {});
+	const editorsResult = useQuery(api.employees.admin.listEmployees, {});
 
 	if (editorsResult !== undefined) {
 		const [editorsError] = editorsResult;
@@ -352,7 +352,7 @@ export function AdminDashboard({ dashboardRole }: { dashboardRole: DashboardRole
 	);
 
 	const archivePastDeadCheckoutSessions = useMutation(
-		api.sessions.sessions.archivePastDeadCheckoutSessions
+		api.sessions.admin.archivePastDeadCheckoutSessions
 	);
 
 	const handleShowStaleSessionsChange = useCallback(

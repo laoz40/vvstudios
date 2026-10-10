@@ -33,7 +33,7 @@ load().andThen(choose);`
 				code: `load().andThen((record) => record ? save(record) : ok(null));`
 			},
 			{
-				filename: "convex/sessions/lib/sessionLookup.ts",
+				filename: "convex/sessions/lib/lookup.ts",
 				code: `export function load(ctx) { return getBookingRow(ctx, id).andThen((session) => session); }`
 			},
 			{

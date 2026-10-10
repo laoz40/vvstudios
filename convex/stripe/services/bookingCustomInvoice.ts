@@ -1,7 +1,7 @@
 import type { Id } from "#convex/_generated/dataModel";
 import type { Doc } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
-import type { BookingAddonQuantitiesArgs } from "#convex/booking/lib/bookingAddonQuantities";
+import type { BookingAddonQuantitiesArgs } from "#convex/booking/lib/addonQuantities";
 import type { BookingAddon } from "#/domain/booking/catalog";
 import { requirePermission } from "#convex/shared/services/auth";
 import {
@@ -12,7 +12,7 @@ import {
 	validateCustomTotalDueAmount
 } from "#convex/stripe/lib/customInvoices";
 import { formatBookingInvoiceNumber } from "#studio/features/booking-invoice/lib/build-booking-invoice-data";
-import { getSessionFromDb } from "#convex/sessions/services/sessionLookup";
+import { getSessionFromDb } from "#convex/sessions/services/lookup";
 
 type CustomInvoiceDetails = {
 	dueDate?: string;

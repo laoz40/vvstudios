@@ -12,7 +12,7 @@
  */
 import { describe, expect, test } from "vitest";
 import type { Doc } from "#convex/_generated/dataModel";
-import { validatePendingPackageAbandonment } from "#convex/packages/lib/packageCheckout";
+import { validatePendingPackageAbandonment } from "#convex/packages/lib/checkout";
 import { testPackageId } from "#convex/shared/lib/tests/testIds";
 
 function packageRecord(

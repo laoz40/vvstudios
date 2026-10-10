@@ -2,7 +2,7 @@ import { err, ok, type Result, type ResultAsync } from "neverthrow";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { MutationCtx } from "#convex/_generated/server";
 import { env } from "#convex/env";
-import type { BookingAddonQuantitiesArgs } from "#convex/booking/lib/bookingAddonQuantities";
+import type { BookingAddonQuantitiesArgs } from "#convex/booking/lib/addonQuantities";
 import type { BookingAddon } from "#/domain/booking/catalog";
 import { buildBookingSearchBlob } from "#convex/shared/lib/adminSearch/adminSearchBlob";
 import { normalizePhone } from "#convex/shared/lib/contactNormalization";
@@ -10,7 +10,7 @@ import { okOrThrow } from "#convex/shared/lib/result";
 import {
 	checkSessionMeetsAvailabilitySettings,
 	type SessionAvailabilityValidationError
-} from "#convex/sessions/lib/sessionCalendarTime";
+} from "#convex/sessions/lib/calendarTime";
 import type { BookingAvailabilitySettings } from "#studio/lib/bookingAvailabilitySettings";
 
 export type CreatePendingCheckoutSessionArgs = {

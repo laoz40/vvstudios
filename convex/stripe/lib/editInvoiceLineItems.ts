@@ -3,7 +3,7 @@ import { buildAddonBillableLine, isBookingDuration } from "#/domain/booking/bill
 import { DURATION_PRICES } from "#/domain/booking/price-constants";
 import { getBookingAddonQuantityForForm } from "#/domain/booking/addon-quantities";
 import type { BookingAddonQuantities } from "#/domain/booking/addon-quantities";
-import type { StripeInvoiceLineItem } from "#convex/stripe/lib/stripeInvoice";
+import type { StripeInvoiceLineItem } from "#convex/stripe/lib/invoice";
 
 type PricingValues = Pick<Doc<"bookings">, "duration" | "addons"> & BookingAddonQuantities;
 

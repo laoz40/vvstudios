@@ -1,6 +1,6 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
-import { bookingAddonsValidator } from "#convex/booking/lib/bookingAddonQuantities";
+import { bookingAddonsValidator } from "#convex/booking/lib/addonQuantities";
 import { drivePermissionValidator } from "#convex/shared/lib/driveValidators";
 import { SERVICES } from "#/domain/booking/catalog";
 

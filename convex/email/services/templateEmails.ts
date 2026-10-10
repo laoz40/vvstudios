@@ -7,7 +7,7 @@ import {
 	type SendEditorAssignmentEmailArgs,
 	type SendSessionDeliverablesEmailArgs
 } from "#convex/shared/lib/email/emailRenders";
-import { formatSessionDateShort } from "#convex/sessions/lib/sessionCalendarTime";
+import { formatSessionDateShort } from "#convex/sessions/lib/calendarTime";
 import { formatTimestampDateLong, sendEmail } from "#convex/shared/lib/email/emailSend";
 
 function sendClientAssetsEmailWithHtml(

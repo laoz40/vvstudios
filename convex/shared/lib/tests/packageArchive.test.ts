@@ -9,10 +9,7 @@
  */
 import { describe, expect, test } from "vitest";
 import type { Doc, Id } from "#convex/_generated/dataModel";
-import {
-	isDeadPackageStatus,
-	isPackageEligibleForAutoArchive
-} from "#convex/packages/lib/packageArchive";
+import { isDeadPackageStatus, isPackageEligibleForAutoArchive } from "#convex/packages/lib/archive";
 
 const now = Date.parse("2030-06-01T00:00:00.000Z");
 

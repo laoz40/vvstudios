@@ -34,26 +34,24 @@ const bookingPageErrorMessages = {
 } as const;
 
 type StartCheckoutToastError =
-	| NonNullable<FunctionReturnType<typeof api.stripe.stripe.createEmbeddedCheckoutSession>[0]>
+	| NonNullable<FunctionReturnType<typeof api.stripe.checkout.createEmbeddedCheckoutSession>[0]>
 	| UnexpectedError;
 
 type CloseCheckoutToastError =
-	| NonNullable<FunctionReturnType<typeof api.stripe.stripe.closeEmbeddedCheckoutSession>[0]>
+	| NonNullable<FunctionReturnType<typeof api.stripe.checkout.closeEmbeddedCheckoutSession>[0]>
 	| NonNullable<
-			FunctionReturnType<typeof api.packages.packagePayment.closeEmbeddedPackageCheckoutSession>[0]
+			FunctionReturnType<typeof api.packages.payment.closeEmbeddedPackageCheckoutSession>[0]
 	  >
 	| UnexpectedError;
 
 type AvailabilityToastError =
 	| NonNullable<
-			FunctionReturnType<typeof api.googleCalendar.googleCalendar.getBookableRangeBusyWindows>[0]
+			FunctionReturnType<typeof api.googleCalendar.calendar.getBookableRangeBusyWindows>[0]
 	  >
 	| UnexpectedError;
 
 type CreatePackageToastError =
-	| NonNullable<
-			FunctionReturnType<typeof api.packages.packagePayment.createPackageCheckoutSession>[0]
-	  >
+	| NonNullable<FunctionReturnType<typeof api.packages.payment.createPackageCheckoutSession>[0]>
 	| UnexpectedError;
 
 export const devBookingErrorMessages = {

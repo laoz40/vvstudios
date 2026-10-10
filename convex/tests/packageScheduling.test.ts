@@ -11,7 +11,7 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { google } from "googleapis";
 import { packageDocument } from "#convex/tests/insertDocumentDefaults";
 import { api } from "#convex/_generated/api";
-import { hashRescheduleToken } from "#convex/sessions/lib/sessionRescheduleLinks";
+import { hashRescheduleToken } from "#convex/sessions/lib/rescheduleLinks";
 import { createConvexTest } from "#convex/test.setup";
 
 const now = Date.parse("2030-01-01T00:00:00.000Z");
@@ -75,7 +75,7 @@ describe("package scheduling link access", () => {
 		const t = createConvexTest();
 		const seededPackage = testCase.seed ? await seedPackage(t, testCase.overrides) : null;
 
-		const result = await t.query(api.packages.packageScheduling.getPackageByToken, {
+		const result = await t.query(api.packages.scheduling.getPackageByToken, {
 			token: seededPackage?.token ?? "unknown-token"
 		});
 
@@ -87,7 +87,7 @@ describe("package session creation validation", () => {
 	test("rejects an invalid token without creating records", async () => {
 		const t = createConvexTest();
 
-		const result = await t.action(api.packages.packageScheduling.createPackageSession, {
+		const result = await t.action(api.packages.scheduling.createPackageSession, {
 			token: "unknown-token",
 			...target
 		});
@@ -97,14 +97,14 @@ describe("package session creation validation", () => {
 		const validPackage = await seedPackage(t, {}, "valid-schedule-token");
 		await seedSettings(t);
 
-		const validResult = await t.action(api.packages.packageScheduling.createPackageSession, {
+		const validResult = await t.action(api.packages.scheduling.createPackageSession, {
 			token: validPackage.token,
 			...target
 		});
 
 		expect(validResult[0]).toBeNull();
 		expect(
-			await t.query(api.packages.packageScheduling.getPackageByToken, { token: validPackage.token })
+			await t.query(api.packages.scheduling.getPackageByToken, { token: validPackage.token })
 		).toMatchObject([
 			null,
 			expect.objectContaining({
@@ -117,7 +117,7 @@ describe("package session creation validation", () => {
 		const t = createConvexTest();
 		const { token } = await seedPackage(t, { expiresAt: now });
 
-		const result = await t.action(api.packages.packageScheduling.createPackageSession, {
+		const result = await t.action(api.packages.scheduling.createPackageSession, {
 			token,
 			...target
 		});
@@ -127,14 +127,14 @@ describe("package session creation validation", () => {
 		const validPackage = await seedPackage(t, {}, "valid-schedule-token");
 		await seedSettings(t);
 
-		const validResult = await t.action(api.packages.packageScheduling.createPackageSession, {
+		const validResult = await t.action(api.packages.scheduling.createPackageSession, {
 			token: validPackage.token,
 			...target
 		});
 
 		expect(validResult[0]).toBeNull();
 		expect(
-			await t.query(api.packages.packageScheduling.getPackageByToken, { token: validPackage.token })
+			await t.query(api.packages.scheduling.getPackageByToken, { token: validPackage.token })
 		).toMatchObject([
 			null,
 			expect.objectContaining({

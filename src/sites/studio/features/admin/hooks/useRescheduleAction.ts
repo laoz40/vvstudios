@@ -6,9 +6,7 @@ import { exhaustiveCheck, tryCatch } from "#/lib/result";
 import type { SessionRecord } from "#studio/features/admin/lib/admin-sessions";
 
 export function useRescheduleAction(session: SessionRecord) {
-	const createAdminRescheduleLink = useMutation(
-		api.sessions.sessionReschedule.createAdminRescheduleLink
-	);
+	const createAdminRescheduleLink = useMutation(api.sessions.reschedule.createAdminRescheduleLink);
 
 	const [isRescheduleLinkDialogOpen, setIsRescheduleLinkDialogOpen] = useState(false);
 	const [isGeneratingRescheduleLink, setIsGeneratingRescheduleLink] = useState(false);

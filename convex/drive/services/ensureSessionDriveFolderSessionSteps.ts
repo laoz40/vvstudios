@@ -101,7 +101,7 @@ function saveCreatedSessionFolder(
 	folder: SavedDriveFolder
 ) {
 	return fromConvexTuple(
-		ctx.runMutation(internal.sessions.sessionsDriveInternal.saveDriveSessionFolder, {
+		ctx.runMutation(internal.sessions.driveInternal.saveDriveSessionFolder, {
 			bookingId: setupInfo.booking._id,
 			driveClientId: input.driveClientId,
 			folder
@@ -212,7 +212,7 @@ function saveCreatedChildFolder(
 	folder: SavedDriveFolder
 ) {
 	return fromConvexTuple(
-		ctx.runMutation(internal.sessions.sessionsDriveInternal.saveDriveChildFolder, {
+		ctx.runMutation(internal.sessions.driveInternal.saveDriveChildFolder, {
 			bookingId: setupInfo.booking._id,
 			name,
 			folder
@@ -276,14 +276,14 @@ export function allocateSessionFolderNumberIfNeeded(
 ): ResultAsync<number, SetupError> {
 	if (setupInfo.packageRecord !== null) {
 		return fromConvexTuple(
-			ctx.runMutation(internal.sessions.sessionsDriveInternal.allocatePackageSessionNumber, {
+			ctx.runMutation(internal.sessions.driveInternal.allocatePackageSessionNumber, {
 				bookingId: setupInfo.booking._id
 			})
 		);
 	}
 
 	return fromConvexTuple(
-		ctx.runMutation(internal.sessions.sessionsDriveInternal.allocateClientSessionNumber, {
+		ctx.runMutation(internal.sessions.driveInternal.allocateClientSessionNumber, {
 			bookingId: setupInfo.booking._id
 		})
 	);
@@ -390,7 +390,7 @@ function linkSharedPackageFolderToBooking(
 	packageFolderName: string
 ) {
 	return fromConvexTuple(
-		ctx.runMutation(internal.sessions.sessionsDriveInternal.saveDrivePackageFolder, {
+		ctx.runMutation(internal.sessions.driveInternal.saveDrivePackageFolder, {
 			bookingId: setupInfo.booking._id,
 			folder: {
 				id: sharedPackageFolder.id,
@@ -420,7 +420,7 @@ function saveCreatedPackageFolder(
 	folder: SavedDriveFolder
 ) {
 	return fromConvexTuple(
-		ctx.runMutation(internal.sessions.sessionsDriveInternal.saveDrivePackageFolder, {
+		ctx.runMutation(internal.sessions.driveInternal.saveDrivePackageFolder, {
 			bookingId: setupInfo.booking._id,
 			folder
 		})

@@ -30,17 +30,17 @@ import type { EditInvoiceDraft } from "#convex/stripe/services/editInvoiceValida
 import {
 	createAndRecordBookingStripeInvoice,
 	createAndRecordPackageStripeInvoice
-} from "#convex/stripe/services/stripeInvoiceSend";
+} from "#convex/stripe/services/invoiceSend";
 import {
 	requireEditSessionsPermissionAndLoadBooking,
 	loadAdminSessionEditDeps,
 	syncAdminBookingGoogleCalendarAndDb,
 	notifyHostIfNeeded
-} from "#convex/googleCalendar/services/sessionAdminUpdate";
+} from "#convex/googleCalendar/services/adminUpdate";
 import {
 	validateSessionTimingEdit,
 	type AdminSessionUpdateResult
-} from "#convex/sessions/lib/sessionAdminEdit";
+} from "#convex/sessions/lib/adminEdit";
 
 function cacheCheckoutPayment(ctx: ActionCtx, record: Doc<"bookings"> | Doc<"packages">) {
 	if (!record.stripeSessionId) return okAsync({ id: record._id, reason: "NO_STRIPE_SESSION" });
@@ -169,7 +169,7 @@ function saveBookingOrPackageChanges(
 ): ResultAsync<AdminSessionUpdateResult, { reason: string }> {
 	if (draft.kind === "package")
 		return fromConvexTuple(
-			ctx.runMutation(api.packages.packages.updatePackageFromAdmin, draft.values)
+			ctx.runMutation(api.packages.admin.updatePackageFromAdmin, draft.values)
 		).map(() => ({}));
 	const args = draft.values;
 

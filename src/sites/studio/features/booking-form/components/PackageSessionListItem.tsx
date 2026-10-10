@@ -25,7 +25,7 @@ const SESSION_STATUS_DETAILS = {
 } as const;
 
 type PackageData = NonNullable<
-	FunctionReturnType<typeof api.packages.packageScheduling.getPackageByToken>[1]
+	FunctionReturnType<typeof api.packages.scheduling.getPackageByToken>[1]
 >;
 
 type PackageBooking = PackageData["sessions"][number];

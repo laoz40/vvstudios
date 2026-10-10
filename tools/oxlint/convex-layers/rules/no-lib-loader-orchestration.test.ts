@@ -7,19 +7,19 @@ const tester = new RuleTester({ languageOptions: { parserOptions: { lang: "ts" }
 tester.run("convex-layers/no-lib-loader-orchestration", noLibLoaderOrchestrationRule, {
 	valid: [
 		{
-			filename: "convex/sessions/lib/sessionLookup.ts",
+			filename: "convex/sessions/lib/lookup.ts",
 			code: `export function getBookingRow(ctx, bookingId) {
   return okOrThrow(ctx.db.get("bookings", bookingId));
 }`
 		},
 		{
-			filename: "convex/sessions/lib/sessionSchedulingSave.ts",
+			filename: "convex/sessions/lib/schedulingSave.ts",
 			code: `export function applySessionPatch(ctx, bookingId, patch) {
   return okOrThrow(ctx.db.patch("bookings", bookingId, patch));
 }`
 		},
 		{
-			filename: "convex/sessions/lib/sessionLookup.ts",
+			filename: "convex/sessions/lib/lookup.ts",
 			code: `function sessionFromRow(session) {
   return getBookingRow(ctx, id).andThen((row) => ok(row));
 }
@@ -30,7 +30,7 @@ export function getBookingRow(ctx, bookingId) {
 	],
 	invalid: [
 		{
-			filename: "convex/sessions/lib/sessionLookup.ts",
+			filename: "convex/sessions/lib/lookup.ts",
 			code: `export function getSessionFromDb(ctx, bookingId) {
   return getBookingRow(ctx, bookingId).andThen((session) => {
     if (!session) return err({ reason: "BOOKING_NOT_FOUND" });

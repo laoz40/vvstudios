@@ -11,7 +11,7 @@ import {
 import type { SessionRecord } from "#studio/features/admin/lib/admin-sessions";
 
 export function useStatusActions(session: SessionRecord) {
-	const updateSessionEditStatus = useMutation(api.sessions.sessions.updateSessionEditStatus);
+	const updateSessionEditStatus = useMutation(api.sessions.admin.updateSessionEditStatus);
 	const [isUpdatingEditStatus, setIsUpdatingEditStatus] = useState(false);
 	const deliverableStatus = getDeliverableStatus(session);
 

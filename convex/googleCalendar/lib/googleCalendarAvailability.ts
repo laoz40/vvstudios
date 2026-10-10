@@ -4,7 +4,7 @@ import {
 	getAvailabilityRange,
 	getEventDateTime,
 	type BusyWindow
-} from "#convex/sessions/lib/sessionCalendarTime";
+} from "#convex/sessions/lib/calendarTime";
 
 type GoogleCalendarListResponse = {
 	data: { items?: calendar_v3.Schema$Event[]; nextPageToken?: string | null };

@@ -36,8 +36,6 @@ export function syncBookingDriveClientIdForRetry(
 	bookingId: Id<"bookings">
 ): ResultAsync<null, DriveClientPermissionsError> {
 	return fromConvexTuple(
-		ctx.runMutation(internal.sessions.sessionsDriveInternal.syncBookingDriveClientIdFromSession, {
-			bookingId
-		})
+		ctx.runMutation(internal.sessions.driveInternal.syncBookingDriveClientIdFromSession, { bookingId })
 	);
 }

@@ -13,7 +13,7 @@ export function EditorDashboardShell({ dashboardRole }: { dashboardRole: Dashboa
 	const { user } = useUser();
 
 	const sessions = usePaginatedQuery(
-		api.sessions.sessions.listEditorSessions,
+		api.sessions.admin.listEditorSessions,
 		{},
 		{ initialNumItems: DASHBOARD_PAGE_SIZE }
 	);

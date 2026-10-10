@@ -51,7 +51,7 @@ describe("admin list search", () => {
 		});
 		const admin = t.withIdentity(adminIdentity);
 
-		const first = await admin.query(api.sessions.sessions.listSessions, {
+		const first = await admin.query(api.sessions.admin.listSessions, {
 			paginationOpts: { cursor: null, numItems: 2 },
 			view: "inbox",
 			sortBy: "session",
@@ -61,7 +61,7 @@ describe("admin list search", () => {
 		expect(first.page.map((row) => row.name)).toEqual(["Latest", "Middle"]);
 		expect(first.isDone).toBe(false);
 
-		const last = await admin.query(api.sessions.sessions.listSessions, {
+		const last = await admin.query(api.sessions.admin.listSessions, {
 			paginationOpts: { cursor: first.continueCursor, numItems: 2 },
 			view: "inbox",
 			sortBy: "session",
@@ -96,7 +96,7 @@ describe("admin list search", () => {
 		});
 		const admin = t.withIdentity(adminIdentity);
 
-		const first = await admin.query(api.sessions.sessions.listSessions, {
+		const first = await admin.query(api.sessions.admin.listSessions, {
 			paginationOpts: { cursor: null, numItems: 2 },
 			view: "inbox",
 			searchQuery: "cursorbatch"
@@ -106,7 +106,7 @@ describe("admin list search", () => {
 		expect(first.isDone).toBe(false);
 		expect("refineSearch" in first && first.refineSearch).toBe(true);
 
-		const last = await admin.query(api.sessions.sessions.listSessions, {
+		const last = await admin.query(api.sessions.admin.listSessions, {
 			paginationOpts: { cursor: first.continueCursor, numItems: 2 },
 			view: "inbox",
 			searchQuery: "cursorbatch"
@@ -121,7 +121,7 @@ describe("admin list search", () => {
 			"Cursor third"
 		]);
 
-		const changed = await admin.query(api.sessions.sessions.listSessions, {
+		const changed = await admin.query(api.sessions.admin.listSessions, {
 			paginationOpts: { cursor: null, numItems: 2 },
 			view: "inbox",
 			searchQuery: "differentbatch"
@@ -145,7 +145,7 @@ describe("admin list search", () => {
 
 		const result = await t
 			.withIdentity(adminIdentity)
-			.query(api.sessions.sessions.listSessions, {
+			.query(api.sessions.admin.listSessions, {
 				paginationOpts: adminSearchPaginationOpts,
 				view: "inbox",
 				searchQuery: "phone:+61 412 345 678"
@@ -168,7 +168,7 @@ describe("admin list search", () => {
 
 		const result = await t
 			.withIdentity(adminIdentity)
-			.query(api.sessions.sessions.listSessions, {
+			.query(api.sessions.admin.listSessions, {
 				paginationOpts: adminSearchPaginationOpts,
 				view: "inbox",
 				searchQuery: "date:15/6/2099"
@@ -185,7 +185,7 @@ describe("admin list search", () => {
 
 		const result = await t
 			.withIdentity(adminIdentity)
-			.query(api.sessions.sessions.listSessions, {
+			.query(api.sessions.admin.listSessions, {
 				paginationOpts: adminSearchPaginationOpts,
 				view: "inbox",
 				searchQuery: `email:${targetEmail}`
@@ -208,7 +208,7 @@ describe("admin list search", () => {
 
 		const result = await t
 			.withIdentity(adminIdentity)
-			.query(api.sessions.sessions.listSessions, {
+			.query(api.sessions.admin.listSessions, {
 				paginationOpts: adminSearchPaginationOpts,
 				view: "inbox",
 				searchQuery: `receipt:${receiptNumber}`
@@ -232,7 +232,7 @@ describe("admin list search", () => {
 
 		const result = await t
 			.withIdentity(adminIdentity)
-			.query(api.sessions.sessions.listSessions, {
+			.query(api.sessions.admin.listSessions, {
 				paginationOpts: adminSearchPaginationOpts,
 				view: "inbox",
 				searchQuery: "sharedtoken"
@@ -257,7 +257,7 @@ describe("admin list search", () => {
 
 		const result = await t
 			.withIdentity(adminIdentity)
-			.query(api.sessions.sessions.listSessions, {
+			.query(api.sessions.admin.listSessions, {
 				paginationOpts: adminSearchPaginationOpts,
 				view: "inbox",
 				searchQuery: "exactbatch"

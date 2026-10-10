@@ -3,5 +3,5 @@ import { api } from "#convex/_generated/api";
 
 // The ok payload of the query's [error, data] Result tuple; null while loading or on failure.
 export type DriveDialogStatus = NonNullable<
-	FunctionReturnType<typeof api.sessions.sessions.getDriveStatus>[1]
+	FunctionReturnType<typeof api.sessions.admin.getDriveStatus>[1]
 >;

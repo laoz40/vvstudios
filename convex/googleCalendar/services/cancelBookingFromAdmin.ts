@@ -6,12 +6,12 @@ import type { ActionCtx } from "#convex/_generated/server";
 import { requirePermissionActions } from "#convex/shared/services/requirePermissionActions";
 import { clearCancelledSessionDriveFields } from "#convex/drive/services/cleanupCancelledSessionDrive";
 import { loadGoogleCalendarClient } from "#convex/googleCalendar/lib/googleCalendarClient";
-import { deleteSessionCalendarEvent } from "#convex/googleCalendar/services/sessionCalendarEvent";
-import type { GoogleCalendarEventClient } from "#convex/sessions/lib/sessionCalendarEventPayload";
+import { deleteSessionCalendarEvent } from "#convex/googleCalendar/services/calendarEvent";
+import type { GoogleCalendarEventClient } from "#convex/sessions/lib/calendarEventPayload";
 import type { Doc } from "#convex/_generated/dataModel";
-import { getSessionFromQuery } from "#convex/sessions/services/sessionLookup";
+import { getSessionFromQuery } from "#convex/sessions/services/lookup";
 import { fromConvexTuple } from "#convex/shared/lib/result";
-import type { CancelBookingFromAdminError } from "#convex/googleCalendar/services/sessionCalendar";
+import type { CancelBookingFromAdminError } from "#convex/googleCalendar/services/calendar";
 
 export function requireCancelSessionsPermission(ctx: ActionCtx) {
 	return requirePermissionActions(ctx, "cancel:sessions");
@@ -47,7 +47,7 @@ export function deleteAdminBookingCalendarEvent({
 
 export function markBookingSessionCalendarDeleted(ctx: ActionCtx, bookingId: Id<"bookings">) {
 	return fromConvexTuple(
-		ctx.runMutation(internal.sessions.sessions.markSessionCalendarEventDeleted, { bookingId })
+		ctx.runMutation(internal.sessions.admin.markSessionCalendarEventDeleted, { bookingId })
 	);
 }
 

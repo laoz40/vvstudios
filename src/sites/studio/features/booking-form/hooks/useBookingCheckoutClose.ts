@@ -7,10 +7,10 @@ import { closeCheckoutToastMessages } from "#studio/features/booking-form/lib/bo
 import { tryCatch } from "#/lib/result";
 
 export function useBookingCheckoutClose() {
-	const closeEmbeddedCheckoutSession = useAction(api.stripe.stripe.closeEmbeddedCheckoutSession);
+	const closeEmbeddedCheckoutSession = useAction(api.stripe.checkout.closeEmbeddedCheckoutSession);
 
 	const closeEmbeddedPackageCheckoutSession = useAction(
-		api.packages.packagePayment.closeEmbeddedPackageCheckoutSession
+		api.packages.payment.closeEmbeddedPackageCheckoutSession
 	);
 
 	const closeOpenCheckoutSession = useCallback(

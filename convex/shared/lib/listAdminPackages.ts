@@ -3,13 +3,13 @@ import { okOrThrow } from "#convex/shared/lib/result";
 import type { Doc } from "#convex/_generated/dataModel";
 import type { QueryCtx } from "#convex/_generated/server";
 import { exhaustiveCheck } from "#/lib/result";
-import { getCapacityConsumingPackageSessions } from "#convex/packages/lib/packageScheduling";
+import { getCapacityConsumingPackageSessions } from "#convex/packages/lib/scheduling";
 import {
 	calculatePaidAmount,
 	listStripeInvoicesForBookings,
 	listStripeInvoicesForPackage,
 	summarizeCustomPackageStripeInvoices
-} from "#convex/stripe/lib/stripeInvoices";
+} from "#convex/stripe/lib/invoices";
 import { normalizeAbn, normalizePhone } from "#convex/shared/lib/contactNormalization";
 import {
 	adminPartialFieldSearchArgs,

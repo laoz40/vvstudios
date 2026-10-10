@@ -24,9 +24,7 @@ export function loadValidatedDriveSetup(
 	args: DriveSetupLoadArgs
 ): ResultAsync<DriveSetupInfo, SetupError> {
 	return fromConvexTuple(
-		ctx.runQuery(internal.sessions.sessionsDriveInternal.getDriveSetup, {
-			bookingId: args.bookingId
-		})
+		ctx.runQuery(internal.sessions.driveInternal.getDriveSetup, { bookingId: args.bookingId })
 	).andThen((setupInfo: DriveSetupInfo | null) =>
 		validateDriveSetup(setupInfo, { sessionStartAt: args.sessionStartAt, duration: args.duration })
 	);
@@ -47,9 +45,7 @@ export function markDriveSetupSuccessful(
 		.andThen(requireSavedDriveFolders)
 		.andThen(() =>
 			fromConvexTuple(
-				ctx.runMutation(internal.sessions.sessionsDriveInternal.saveDriveSetupResult, {
-					bookingId: args.bookingId
-				})
+				ctx.runMutation(internal.sessions.driveInternal.saveDriveSetupResult, { bookingId: args.bookingId })
 			)
 		);
 }
@@ -80,7 +76,7 @@ export function recordDriveSetupFailure(
 	if (!shouldRecordDriveSetupFailure(setupError)) return errAsync(setupError);
 
 	return fromConvexTuple(
-		ctx.runMutation(internal.sessions.sessionsDriveInternal.saveDriveSetupResult, {
+		ctx.runMutation(internal.sessions.driveInternal.saveDriveSetupResult, {
 			bookingId,
 			failureCode: setupError.reason
 		})

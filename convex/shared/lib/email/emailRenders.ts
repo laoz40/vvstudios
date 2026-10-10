@@ -12,7 +12,7 @@ import { EditorAssignmentEmail } from "#studio/features/editor-assignment-email/
 import type { DeliverablesEmailVariant } from "#studio/features/deliverables-email/lib/constants";
 import { formatBookingTimeRange } from "#studio/lib/bookingdatetime";
 import { formatDriveSessionMediaFolderName, getEditorEditDueAt } from "#studio/lib/bookingdatetime";
-import type { BookingAddonQuantitiesArgs } from "#convex/booking/lib/bookingAddonQuantities";
+import type { BookingAddonQuantitiesArgs } from "#convex/booking/lib/addonQuantities";
 import { pickBookingAddonQuantities } from "#/domain/booking/addon-quantities";
 import { type BookingAddon } from "#/domain/booking/catalog";
 import {
@@ -20,7 +20,7 @@ import {
 	formatSessionDateShort,
 	formatSessionDateWithoutYear,
 	formatCalendarEventDate
-} from "#convex/sessions/lib/sessionCalendarTime";
+} from "#convex/sessions/lib/calendarTime";
 import {
 	formatAddonsLine,
 	formatTimestampDateLong,

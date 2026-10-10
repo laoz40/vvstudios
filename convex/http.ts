@@ -5,10 +5,10 @@ import { internal } from "#convex/_generated/api";
 import Stripe from "stripe";
 import { z } from "zod";
 import { env } from "#convex/env";
-import { completeSessionCheckoutService } from "#convex/booking/services/bookingConfirmation";
-import type { PackageAdjustmentInvoicePaymentClaimError } from "#convex/packages/lib/packageAdjustmentInvoicePayment";
-import { completeStripeInvoicePaymentService } from "#convex/stripe/services/stripeInvoicePayment";
-import { completePackageCheckoutService } from "#convex/packages/services/packageCheckoutCompletion";
+import { completeSessionCheckoutService } from "#convex/booking/services/confirmation";
+import type { PackageAdjustmentInvoicePaymentClaimError } from "#convex/packages/lib/adjustmentInvoicePayment";
+import { completeStripeInvoicePaymentService } from "#convex/stripe/services/invoicePayment";
+import { completePackageCheckoutService } from "#convex/packages/services/checkoutCompletion";
 
 const http = httpRouter();
 
@@ -260,10 +260,10 @@ async function handleStripeEvent(ctx: ActionCtx, event: Stripe.Event) {
 	if (event.type === "checkout.session.expired") {
 		const stripeSessionId = event.data.object.id;
 
-		await ctx.runMutation(internal.sessions.sessionCheckout.markSessionExpiredByStripeSessionId, {
+		await ctx.runMutation(internal.sessions.checkout.markSessionExpiredByStripeSessionId, {
 			stripeSessionId
 		});
-		await ctx.runMutation(internal.packages.packageCheckout.markPackageExpiredByStripeSessionId, {
+		await ctx.runMutation(internal.packages.checkout.markPackageExpiredByStripeSessionId, {
 			stripeSessionId
 		});
 

@@ -24,7 +24,7 @@ export type { DevBookingScenario };
 export type { BookingCompleteSearch } from "#studio/features/booking-complete/lib/booking-complete-search";
 
 export type BookingStatus = NonNullable<
-	ReturnType<typeof useQuery<typeof api.sessions.sessions.getSessionStatusByStripeSessionId>>
+	ReturnType<typeof useQuery<typeof api.sessions.admin.getSessionStatusByStripeSessionId>>
 >;
 
 const devBookingIdSchema = z.custom<BookingStatus["_id"]>(

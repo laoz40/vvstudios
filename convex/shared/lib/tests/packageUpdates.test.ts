@@ -12,7 +12,7 @@
  */
 import { describe, expect, test } from "vitest";
 import type { BookingAddon } from "#/domain/booking/catalog";
-import { buildPackageUpdatePatch, parsePackageUpdate } from "#convex/packages/lib/packageUpdates";
+import { buildPackageUpdatePatch, parsePackageUpdate } from "#convex/packages/lib/updates";
 import { testPackageId } from "#convex/shared/lib/tests/testIds";
 
 const packageId = testPackageId("package-1");

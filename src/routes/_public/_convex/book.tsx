@@ -46,11 +46,11 @@ export const Route = createFileRoute("/_public/_convex/book")({
 });
 
 function BookingPage() {
-	const createEmbeddedCheckoutSession = useAction(api.stripe.stripe.createEmbeddedCheckoutSession);
-
-	const createPackageCheckoutSession = useAction(
-		api.packages.packagePayment.createPackageCheckoutSession
+	const createEmbeddedCheckoutSession = useAction(
+		api.stripe.checkout.createEmbeddedCheckoutSession
 	);
+
+	const createPackageCheckoutSession = useAction(api.packages.payment.createPackageCheckoutSession);
 
 	const { handlePaymentModalClose } = useBookingCheckoutClose();
 

@@ -57,7 +57,7 @@ export function useDeliverablesEmailAction(session: SessionRecord) {
 		api.editor.deliverablesEmail.sendSessionDeliverablesEmail
 	);
 
-	const updateSessionEditStatus = useMutation(api.sessions.sessions.updateSessionEditStatus);
+	const updateSessionEditStatus = useMutation(api.sessions.admin.updateSessionEditStatus);
 	const [isDeliverablesEmailDialogOpen, setIsDeliverablesEmailDialogOpen] = useState(false);
 	const [isEmailingDeliverables, setIsEmailingDeliverables] = useState(false);
 
@@ -72,7 +72,7 @@ export function useDeliverablesEmailAction(session: SessionRecord) {
 		useState<DeliverablesEmailSendState>({ status: "ready-to-send" });
 
 	const driveStatusResult = useQuery(
-		api.sessions.sessions.getDriveStatus,
+		api.sessions.admin.getDriveStatus,
 		isDeliverablesEmailDialogOpen ? { bookingId: session._id } : "skip"
 	);
 

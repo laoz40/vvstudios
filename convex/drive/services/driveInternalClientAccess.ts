@@ -1,7 +1,7 @@
 import { err } from "neverthrow";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { MutationCtx } from "#convex/_generated/server";
-import { bookingRequiresClientAssetsEmail } from "#convex/booking/lib/bookingAddonQuantities";
+import { bookingRequiresClientAssetsEmail } from "#convex/booking/lib/addonQuantities";
 import {
 	claimClientAssetsEmailRecord,
 	saveClientAssetsEmailResultForSession,

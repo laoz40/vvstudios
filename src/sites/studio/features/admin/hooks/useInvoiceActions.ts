@@ -26,7 +26,7 @@ export function useInvoiceActions(session: SessionRecord) {
 
 	const [isStripeBillingDialogOpen, setIsStripeBillingDialogOpen] = useState(false);
 
-	const stripeInvoicesResult = useQuery(api.stripe.stripeInvoices.listStripeInvoicesForBooking, {
+	const stripeInvoicesResult = useQuery(api.stripe.invoiceRecords.listStripeInvoicesForBooking, {
 		bookingId: session._id
 	});
 

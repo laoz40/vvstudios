@@ -8,7 +8,7 @@ tester.run("neverthrow/no-export-okorthrow-on-call", noExportOkOrThrowOnCallRule
 	valid: [
 		`okOrThrow(ctx.db.get("bookings", bookingId));`,
 		`okOrThrow(ctx.db.patch("bookings", bookingId, merged).then(() => null));`,
-		`okOrThrow(ctx.runQuery(internal.sessions.sessions.getSessionById, { bookingId }));`,
+		`okOrThrow(ctx.runQuery(internal.sessions.admin.getSessionById, { bookingId }));`,
 		`okOrThrow(ctx.runMutation(internal.foo.bar, args));`,
 		`okOrThrow(ctx.scheduler.runAfter(0, internal.jobs.tick, {}));`,
 		`okOrThrow(ctx.auth.getUserIdentity());`,

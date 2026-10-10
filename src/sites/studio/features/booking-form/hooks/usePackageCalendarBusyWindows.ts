@@ -25,9 +25,7 @@ export function usePackageCalendarBusyWindows({
 	bookableMonthKeys,
 	token
 }: UsePackageCalendarBusyWindowsOptions): PackageCalendarBusyWindowsState {
-	const getPackageBusyWindows = useAction(
-		api.packages.packageSchedulingCalendar.getPackageBusyWindows
-	);
+	const getPackageBusyWindows = useAction(api.packages.schedulingCalendar.getPackageBusyWindows);
 
 	const [rateLimitKey, setRateLimitKey] = useState<string | null>(null);
 	const [calendarLoadError, setCalendarLoadError] = useState("");

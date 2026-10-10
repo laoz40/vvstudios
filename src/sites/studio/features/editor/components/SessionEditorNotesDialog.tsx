@@ -18,7 +18,7 @@ export function SessionEditorNotesDialog({
 	onOpenChange,
 	open
 }: SessionEditorNotesDialogProps) {
-	const updateSessionNotes = useMutation(api.sessions.sessions.updateSessionNotes);
+	const updateSessionNotes = useMutation(api.sessions.admin.updateSessionNotes);
 
 	return (
 		<SessionNotesDialog

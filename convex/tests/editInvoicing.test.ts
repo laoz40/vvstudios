@@ -271,8 +271,8 @@ async function setup(kind: "booking" | "package") {
 
 	async function read() {
 		return draft.kind === "booking"
-			? t.query(internal.sessions.sessions.getSessionById, { bookingId: draft.values.bookingId })
-			: t.query(internal.packages.packages.getPackageById, { packageId: draft.values.packageId });
+			? t.query(internal.sessions.admin.getSessionById, { bookingId: draft.values.bookingId })
+			: t.query(internal.packages.admin.getPackageById, { packageId: draft.values.packageId });
 	}
 
 	async function quote(values = draft) {
@@ -343,7 +343,7 @@ test("duration and added quantities become separate preview and Stripe invoice l
 	if (flow.target.kind !== "booking") throw new Error("Expected booking");
 
 	const [error, invoices] = await flow.staff.query(
-		api.stripe.stripeInvoices.listStripeInvoicesForBooking,
+		api.stripe.invoiceRecords.listStripeInvoicesForBooking,
 		{ bookingId: flow.target.bookingId }
 	);
 
@@ -585,7 +585,7 @@ test("stale and forged quotes leave the package unsaved", async () => {
 	expect((await flow.confirm({ ...q, amount: 1 }))[0]).toEqual({ reason: "BILLING_QUOTE_CHANGED" });
 
 	if (flow.draft.kind !== "package") throw new Error("Expected package");
-	await flow.staff.mutation(api.packages.packages.updatePackageFromAdmin, {
+	await flow.staff.mutation(api.packages.admin.updatePackageFromAdmin, {
 		...flow.draft.values,
 		duration: "1h",
 		name: "Another admin's edit"
@@ -696,18 +696,18 @@ test("package session increases invoice the package while Remote Podcast stays s
 	});
 	expect((await flow.confirm(q, draft))[0]).toBeNull();
 	expect(
-		await flow.staff.query(api.stripe.stripeInvoices.listStripeInvoicesForPackage, { packageId })
+		await flow.staff.query(api.stripe.invoiceRecords.listStripeInvoicesForPackage, { packageId })
 	).toMatchObject([null, [{ totalAmount: 99 }]]);
-	expect(
-		await flow.t.query(internal.sessions.sessions.getSessionById, { bookingId })
-	).toMatchObject({ duration: "2h" });
+	expect(await flow.t.query(internal.sessions.admin.getSessionById, { bookingId })).toMatchObject({
+		duration: "2h"
+	});
 });
 
 async function readDashboardPaymentAmounts(flow: Awaited<ReturnType<typeof setup>>) {
 	const paginationOpts = { cursor: null, numItems: 50 };
 
 	if (flow.draft.kind === "booking") {
-		const page = await flow.staff.query(api.sessions.sessions.listSessions, {
+		const page = await flow.staff.query(api.sessions.admin.listSessions, {
 			paginationOpts,
 			view: "all"
 		});
@@ -725,7 +725,7 @@ async function readDashboardPaymentAmounts(flow: Awaited<ReturnType<typeof setup
 		};
 	}
 
-	const page = await flow.staff.query(api.packages.packages.listPackages, {
+	const page = await flow.staff.query(api.packages.admin.listPackages, {
 		paginationOpts,
 		view: "all"
 	});
@@ -787,10 +787,10 @@ test.each([
 
 		const invoices =
 			flow.draft.kind === "booking"
-				? await flow.staff.query(api.stripe.stripeInvoices.listStripeInvoicesForBooking, {
+				? await flow.staff.query(api.stripe.invoiceRecords.listStripeInvoicesForBooking, {
 						bookingId: flow.draft.values.bookingId
 					})
-				: await flow.staff.query(api.stripe.stripeInvoices.listStripeInvoicesForPackage, {
+				: await flow.staff.query(api.stripe.invoiceRecords.listStripeInvoicesForPackage, {
 						packageId: flow.draft.values.packageId
 					});
 
@@ -798,7 +798,7 @@ test.each([
 
 		if (!stripeInvoiceId) throw new Error("Invoice missing");
 
-		await flow.t.mutation(internal.stripe.stripeInvoices.markStripeInvoicePaid, {
+		await flow.t.mutation(internal.stripe.invoiceRecords.markStripeInvoicePaid, {
 			stripeInvoiceId,
 			paidAt: now
 		});

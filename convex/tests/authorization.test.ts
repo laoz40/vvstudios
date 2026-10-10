@@ -36,7 +36,7 @@ const listEditorSessions = makeFunctionReference<
 	"query",
 	{ paginationOpts: { cursor: string | null; numItems: number } },
 	unknown
->("sessions/sessions:listEditorSessions");
+>("sessions/admin:listEditorSessions");
 
 const identities = [
 	{ label: "anonymous users", identity: null, reason: "NOT_AUTHENTICATED" },
@@ -53,7 +53,7 @@ describe("admin list authorization", () => {
 		const client = identity === null ? t : t.withIdentity(identity);
 
 		await expect(
-			client.query(api.sessions.sessions.listSessions, { paginationOpts })
+			client.query(api.sessions.admin.listSessions, { paginationOpts })
 		).rejects.toMatchObject({ data: { reason } });
 	});
 
@@ -64,7 +64,7 @@ describe("admin list authorization", () => {
 		await expect(
 			t
 				.withIdentity(editorMetadataIdentity)
-				.query(api.sessions.sessions.listSessions, { paginationOpts })
+				.query(api.sessions.admin.listSessions, { paginationOpts })
 		).rejects.toMatchObject({ data: { reason: "NOT_AUTHORIZED" } });
 	});
 
@@ -73,7 +73,7 @@ describe("admin list authorization", () => {
 		const client = identity === null ? t : t.withIdentity(identity);
 
 		await expect(
-			client.query(api.packages.packages.listPackages, { paginationOpts })
+			client.query(api.packages.admin.listPackages, { paginationOpts })
 		).rejects.toMatchObject({ data: { reason } });
 	});
 
@@ -107,8 +107,8 @@ describe("admin list authorization", () => {
 		);
 
 		const [bookings, packages] = await Promise.all([
-			admin.query(api.sessions.sessions.listSessions, { paginationOpts }),
-			admin.query(api.packages.packages.listPackages, { paginationOpts })
+			admin.query(api.sessions.admin.listSessions, { paginationOpts }),
+			admin.query(api.packages.admin.listPackages, { paginationOpts })
 		]);
 
 		expect(bookings.page).toEqual([
@@ -129,7 +129,7 @@ describe.each(identities)("admin mutation authorization rejects $label", ({ iden
 		const before = await readBooking(t, bookingId);
 		const client = identity === null ? t : t.withIdentity(identity);
 
-		const result = await client.mutation(api.sessions.sessions.archiveSession, {
+		const result = await client.mutation(api.sessions.admin.archiveSession, {
 			bookingId,
 			archived: true
 		});
@@ -148,7 +148,7 @@ describe("admin mutation authorization rejects inactive editors", () => {
 
 		const result = await t
 			.withIdentity(editorMetadataIdentity)
-			.mutation(api.sessions.sessions.archiveSession, { bookingId, archived: true });
+			.mutation(api.sessions.admin.archiveSession, { bookingId, archived: true });
 
 		expect(result).toEqual([{ reason: "NOT_AUTHORIZED" }, null]);
 		expect(await readBooking(t, bookingId)).toEqual(before);
@@ -164,7 +164,7 @@ describe("admin mutation authorization rejects active editors", () => {
 
 		const result = await t
 			.withIdentity(editorMetadataIdentity)
-			.mutation(api.sessions.sessions.archiveSession, { bookingId, archived: true });
+			.mutation(api.sessions.admin.archiveSession, { bookingId, archived: true });
 
 		expect(result).toEqual([{ reason: "NOT_AUTHORIZED" }, null]);
 		expect(await readBooking(t, bookingId)).toEqual(before);
@@ -310,7 +310,7 @@ describe("requirePermission", () => {
 		await expect(
 			t
 				.withIdentity(editorMetadataIdentity)
-				.query(api.sessions.sessions.listSessions, { paginationOpts })
+				.query(api.sessions.admin.listSessions, { paginationOpts })
 		).rejects.toMatchObject({ data: { reason: "NOT_AUTHORIZED" } });
 	});
 
@@ -325,7 +325,7 @@ describe("requirePermission", () => {
 
 		expect(editorPermission).toMatchObject([null, editorMetadataIdentity]);
 		await expect(
-			editor.query(api.packages.packages.listPackages, { paginationOpts })
+			editor.query(api.packages.admin.listPackages, { paginationOpts })
 		).rejects.toMatchObject({ data: { reason: "NOT_AUTHORIZED" } });
 	});
 

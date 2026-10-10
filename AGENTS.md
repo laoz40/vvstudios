@@ -55,7 +55,7 @@ Quick map:
 | Service | `convex/<feature>/services/**`, `convex/shared/services/**` | lib (+ other services) | One abstraction per function; policy here |
 | Lib | `convex/<feature>/lib/**`, `convex/shared/lib/**` | — | Small DB/logic primitives; no policy |
 
-Feature folders (`booking`, `packages`, `sessions`, `stripe`, `drive`, …) hold handlers, services, and lib for that area. Cross-cutting code (auth, `result`, email send, admin search validators) lives under `convex/shared/`. Convex API paths follow folders: e.g. `convex/packages/packageScheduling.ts` → `api.packages.packageScheduling.*`.
+Feature folders (`booking`, `packages`, `sessions`, `stripe`, `drive`, …) hold handlers, services, and lib for that area. Cross-cutting code (auth, `result`, email send, admin search validators) lives under `convex/shared/`. Convex API paths follow folders: e.g. `convex/packages/scheduling.ts` → `api.packages.scheduling.*`.
 
 Handlers: neverthrow chain of service steps, no domain `if`s, `.match(tupleOk, tupleErr)` on tuple endpoints. Crons and internal mutations reuse the same service steps.
 
