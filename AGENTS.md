@@ -51,9 +51,11 @@ Quick map:
 
 | Layer | Where | Calls | You should see |
 | --- | --- | --- | --- |
-| Handler | `convex/<domain>.ts` | services only | A short, flat list of steps (*what* happens) |
-| Service | `convex/services/**` | lib (+ other services) | One abstraction per function; policy here |
-| Lib | `convex/lib/**` | — | Small DB/logic primitives; no policy |
+| Handler | `convex/<feature>/*.ts` (plus root globals like `schema.ts`, `http.ts`, `crons.ts`) | services only | A short, flat list of steps (*what* happens) |
+| Service | `convex/<feature>/services/**`, `convex/shared/services/**` | lib (+ other services) | One abstraction per function; policy here |
+| Lib | `convex/<feature>/lib/**`, `convex/shared/lib/**` | — | Small DB/logic primitives; no policy |
+
+Feature folders (`booking`, `packages`, `sessions`, `stripe`, `drive`, …) hold handlers, services, and lib for that area. Cross-cutting code (auth, `result`, email send, admin search validators) lives under `convex/shared/`. Convex API paths follow folders: e.g. `convex/packages/packageScheduling.ts` → `api.packages.packageScheduling.*`.
 
 Handlers: neverthrow chain of service steps, no domain `if`s, `.match(tupleOk, tupleErr)` on tuple endpoints. Crons and internal mutations reuse the same service steps.
 
@@ -70,7 +72,7 @@ When you touch code that breaks the guide, fix it only if in scope; do not repo-
 
 - Return real domain `reason` codes from lib, email senders, and rate limiters. Do not `mapErr` into synthetic codes. Fire-and-forget success returns `null`.
 - Service and lib steps return `Result` / `ResultAsync`; chain with `.andThen` / `.map`. Do not wrap a whole function in `okOrThrow`.
-- Helpers in `convex/lib/result.ts` only — do not call `fromSafePromise` / `fromPromise` directly.
+- Helpers in `convex/shared/lib/result.ts` only — do not call `fromSafePromise` / `fromPromise` directly.
   - `okOrThrow` — single Convex I/O at that step: `ctx.db.*`, `ctx.scheduler.*`, `ctx.auth.getUserIdentity()`, or raw `runQuery` / `runMutation`. Infra throws; domain outcomes use `err(...)` in `.andThen`.
   - `fromConvexTuple` — `runQuery` / `runMutation` whose handler uses `.match(tupleOk, tupleErr)`.
   - `tryPromise` — external APIs (Stripe, Resend, Google, render); `catch` maps to domain `err`, never rethrows.

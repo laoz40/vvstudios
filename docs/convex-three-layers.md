@@ -2,24 +2,44 @@
 
 **Goal:** every endpoint is built from three layers. Each layer only calls the layer below it.
 
-## Handlers (`convex/<domain>.ts`)
+## Layout
+
+Code is grouped by **feature** under `convex/`:
+
+```text
+convex/
+  schema.ts, http.ts, crons.ts, …          # global entrypoints
+  <feature>/
+    *.ts                                   # handlers (public/internal Convex functions)
+    services/
+    lib/
+    tests/                                 # optional colocated tests
+  shared/
+    lib/                                   # result, email, auth helpers, shared validators
+    services/                              # auth, requirePermissionActions
+  tests/                                   # integration tests (multi-domain)
+```
+
+Examples: `convex/packages/packageScheduling.ts`, `convex/booking/settings.ts`, `convex/sessions/sessions.ts`.
+
+## Handlers (`convex/<feature>/*.ts` and root globals)
 
 - Thin entrypoints that call **services only**.
 - Read like a short, flat list of steps describing what the endpoint does (as many steps as the story needs — keep it scannable).
-- **No** direct `ctx.db` calls, **no** `convex/lib` imports, **no** domain logic in the handler file.
+- **No** direct `ctx.db` calls, **no** `#convex/.../lib` imports, **no** domain logic in the handler file (allowlisted exceptions: `http.ts`, `devSeed.ts`, `schema.ts`, `convex/sessions/sessionsDriveInternal.ts`, …).
 - Own validators and step order; wire tuple results with `.match(tupleOk, tupleErr)`.
 
-## Services (`convex/services/**`)
+## Services (`convex/<feature>/services/**`, `convex/shared/services/**`)
 
 - Each exported function is **one abstraction**: a meaningful, reusable unit of work (get item, parse item, validate item, save item).
 - Composed from **lib** functions (and other services when needed).
 - One service **file** groups related abstractions for one domain concept.
-- **File layout:** name modules for what they do (`packageCheckoutMutations.ts`, `sessionQueries.ts`, `stripeInvoiceSend.ts`). No `Workflow`, `MutationWorkflow`, or layer jargon in filenames; the folder is the feature (`services/packages/`). Internal Convex entrypoints live next to the feature (e.g. `sessionsDriveInternal.ts`), not under a generic `convex/internal/` folder.
+- **File layout:** name modules for what they do (`packageCheckoutMutations.ts`, `sessionQueries.ts`, `stripeInvoiceSend.ts`). No `Workflow`, `MutationWorkflow`, or layer jargon in filenames; the parent folder is the feature (`packages/services/`). Internal Convex entrypoints live in the feature folder (e.g. `sessions/sessionsDriveInternal.ts`), not under a generic `convex/internal/` folder.
 - Handlers chain several service functions together.
 - Policy and invariants live here, not in handlers or lib. Authorization services load the caller's identity and access, choose the required permission, and compose lib checks.
 - Mutation/query services do not use `ctx.runQuery` / `ctx.runMutation`.
 
-## Lib (`convex/lib/**`)
+## Lib (`convex/<feature>/lib/**`, `convex/shared/lib/**`)
 
 - Small, single-purpose building blocks: DB operations and pure logic.
 - Pure authorization checks on supplied values belong here, such as checking an identity's role, an editor profile's active status, or an access value's permissions.
@@ -47,16 +67,16 @@ Implementation rules live in [AGENTS.md](../AGENTS.md) under Convex → Neverthr
 
 ## Lint enforcement (`bun run lint`)
 
-The `convex-layers` oxlint plugin (`tools/oxlint/convex-layers/`) runs on `convex/*.ts`, `convex/services/**`, and `convex/lib/**`:
+The `convex-layers` oxlint plugin (`tools/oxlint/convex-layers/`) runs on feature handlers, `convex/*/services/**`, `convex/*/lib/**`, `convex/shared/**`, and legacy paths if any remain:
 
 | Rule | What it blocks |
 | --- | --- |
-| `convex-layers/no-handler-lib-import` | Top-level handler modules importing `#convex/lib/**`. Handlers call services only. Allowlisted entrypoints: `http.ts`, `devSeed.ts`, `schema.ts`. |
-| `convex-layers/no-db-in-services` | `ctx.db` reads/writes inside `convex/services/**`. DB I/O stays in lib; services compose lib functions. |
-| `convex-layers/no-lib-reexport` | `export { … } from "#convex/lib/…"` or re-exporting a lib import unchanged from a service file. Use a real service function, or `export type Foo = LibFoo` for public types. |
-| `convex-layers/no-lib-loader-orchestration` | Exported `convex/lib/**` functions that call a loader (`get*` / `load*` / `list*` or `okOrThrow` on a db read / `runQuery`) and chain domain work with `.andThen`. Split into a loader-only lib helper plus a service that wires `loader.andThen(work)`. |
-| `convex-layers/no-drive-state-write-outside-owner` | Writes to Drive tables, booking Drive linkage, or booking Drive setup-failure fields outside their designated lib owners. Allows initial linkage during pending checkout creation. Diagnostics identify the owner modules or helpers. |
-| `convex-layers/no-billing-recovery-state-write-outside-owner` | Writes to `stripeInvoices`, `packageAdjustments`, or booking/package `originalPaidAmount` outside their designated lib owners. Diagnostics identify the supported helpers and files. |
+| `convex-layers/no-handler-lib-import` | Handler modules importing `#convex/**/lib/**` directly. Handlers call services only. Allowlisted entrypoints include `http.ts`, `devSeed.ts`, `schema.ts`, `convex/sessions/sessionsDriveInternal.ts`. |
+| `convex-layers/no-db-in-services` | `ctx.db` reads/writes inside service files. DB I/O stays in lib; services compose lib functions. |
+| `convex-layers/no-lib-reexport` | `export { … } from "#convex/…/lib/…"` or re-exporting a lib import unchanged from a service file. Use a real service function, or `export type Foo = LibFoo` for public types. |
+| `convex-layers/no-lib-loader-orchestration` | Exported lib functions that call a loader (`get*` / `load*` / `list*` or `okOrThrow` on a db read / `runQuery`) and chain domain work with `.andThen`. Split into a loader-only lib helper plus a service that wires `loader.andThen(work)`. |
+| `convex-layers/no-drive-state-write-outside-owner` | Writes to Drive tables, booking Drive linkage, or booking Drive setup-failure fields outside their designated lib owners under `convex/drive/lib/`. |
+| `convex-layers/no-billing-recovery-state-write-outside-owner` | Writes to `stripeInvoices`, `packageAdjustments`, or booking/package `originalPaidAmount` outside their designated lib owners under `convex/stripe/lib/` and `convex/packages/lib/`. |
 
 The two ownership rules check direct `ctx.db` writes with static table names and visible inline field keys; they do not resolve aliases, dynamic names, or fields hidden in variables or function calls, and test fixtures are exempt.
 

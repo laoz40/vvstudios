@@ -2,17 +2,12 @@ import { v } from "convex/values";
 import { tupleErr, tupleOk } from "#/lib/result";
 import { internalMutation, internalQuery } from "#convex/_generated/server";
 import * as driveInternal from "#convex/drive/services/driveInternal";
+import { drivePermissionValidator } from "#convex/shared/lib/driveValidators";
 
 const savedDriveFolderValidator = v.object({
 	id: v.string(),
 	name: v.string(),
 	webViewLink: v.string()
-});
-
-const savedDrivePermissionValidator = v.object({
-	id: v.string(),
-	emailAddress: v.optional(v.string()),
-	role: v.union(v.literal("reader"), v.literal("writer"), v.literal("commenter"))
 });
 
 export const getDriveSetup = internalQuery({
@@ -122,7 +117,7 @@ export const saveClientDrivePermission = internalMutation({
 	args: {
 		bookingId: v.id("bookings"),
 		name: v.union(v.literal("Client folder"), v.literal("Assets")),
-		permission: savedDrivePermissionValidator
+		permission: drivePermissionValidator
 	},
 	handler: (ctx, args) =>
 		driveInternal.saveClientDrivePermission(ctx, args).match(tupleOk, tupleErr)
@@ -225,7 +220,7 @@ export const saveEditorDrivePermission = internalMutation({
 		bookingId: v.id("bookings"),
 		editorTokenIdentifier: v.string(),
 		name: v.union(v.literal("Assets"), v.literal("Deliverables"), v.literal("Session")),
-		permission: savedDrivePermissionValidator
+		permission: drivePermissionValidator
 	},
 	handler: (ctx, args) =>
 		driveInternal.saveEditorDrivePermission(ctx, args).match(tupleOk, tupleErr)

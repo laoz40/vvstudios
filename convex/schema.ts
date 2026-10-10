@@ -1,6 +1,7 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 import { bookingAddonsValidator } from "#convex/booking/lib/bookingAddonQuantities";
+import { drivePermissionValidator } from "#convex/shared/lib/driveValidators";
 import { SERVICES } from "#/domain/booking/catalog";
 
 const bookingInvoiceLineItemsValidator = v.array(
@@ -8,12 +9,6 @@ const bookingInvoiceLineItemsValidator = v.array(
 );
 
 const driveFolderValidator = v.object({ id: v.string(), url: v.string() });
-
-const drivePermissionValidator = v.object({
-	id: v.string(),
-	emailAddress: v.optional(v.string()),
-	role: v.union(v.literal("reader"), v.literal("writer"), v.literal("commenter"))
-});
 
 const clientDrivePermissionsStatusValidator = v.union(
 	v.literal("ready"),
