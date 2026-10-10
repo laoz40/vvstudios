@@ -37,7 +37,7 @@ export function linkBookingDriveClientStep(
 	client: ClientFolderSetup
 ) {
 	return fromConvexTuple(
-		ctx.runMutation(internal.sessions.driveInternal.linkBookingDriveClient, {
+		ctx.runMutation(internal.sessions.drive.linkBookingDriveClient, {
 			bookingId: setupInfo.booking._id,
 			driveClientId: client.driveClientId
 		})

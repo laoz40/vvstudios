@@ -2,7 +2,7 @@ import { err, errAsync, okAsync, type ResultAsync as ResultAsyncType } from "nev
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
 import { getBookingAvailabilitySettings } from "#convex/booking/lib/settings";
-import { getOrCreateDriveClientId } from "#convex/drive/services/driveInternal";
+import { getOrCreateDriveClientId } from "#convex/drive/services/setup";
 import { insertPackageSessionBookingRow as persistPackageSessionBookingRow } from "#convex/packages/lib/sessionBookings";
 import { patchPackageExpiryReminderStateCleared } from "#convex/packages/lib/updates";
 import { scheduleDriveSetup } from "#convex/drive/lib/driveScheduling";

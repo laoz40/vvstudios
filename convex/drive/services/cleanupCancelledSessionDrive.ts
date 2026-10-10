@@ -61,7 +61,7 @@ export function clearCancelledSessionDriveFields(
 ): ResultAsync<null, never> {
 	return (
 		fromConvexTuple(
-			ctx.runQuery(internal.sessions.driveInternal.getDriveSetup, { bookingId: args.bookingId })
+			ctx.runQuery(internal.sessions.drive.getDriveSetup, { bookingId: args.bookingId })
 		)
 			.andThen((setupInfo: DriveSetupInfo | null) =>
 				clearCancelledDriveFromSetup(ctx, args.bookingId, setupInfo)

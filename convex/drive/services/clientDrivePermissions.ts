@@ -118,7 +118,7 @@ export function loadReadyBookingDriveFolders(
 	ctx: ActionCtx,
 	bookingId: Id<"bookings">
 ): ResultAsync<ReadyBookingDriveFolders, DriveClientPermissionsError> {
-	return fromConvexTuple(ctx.runQuery(internal.sessions.driveInternal.getDriveSetup, { bookingId }))
+	return fromConvexTuple(ctx.runQuery(internal.sessions.drive.getDriveSetup, { bookingId }))
 		.andThen(validateLoadedDriveSetupInfo)
 		.andThen(loadReadyFoldersAfterValidation);
 }
@@ -165,7 +165,7 @@ function saveClientDrivePermission(
 	permission: SavedDrivePermission
 ) {
 	return fromConvexTuple(
-		ctx.runMutation(internal.sessions.driveInternal.saveClientDrivePermission, {
+		ctx.runMutation(internal.sessions.drive.saveClientDrivePermission, {
 			bookingId,
 			name,
 			permission
@@ -179,7 +179,7 @@ export function saveClientDrivePermissionsStatus(
 	status: "failed" | "ready" | "skipped"
 ) {
 	return fromConvexTuple(
-		ctx.runMutation(internal.sessions.driveInternal.saveClientDrivePermissionsStatus, { bookingId, status })
+		ctx.runMutation(internal.sessions.drive.saveClientDrivePermissionsStatus, { bookingId, status })
 	);
 }
 
@@ -355,7 +355,7 @@ export function requireClientDrivePermissions(
 
 function saveSentClientAssetsEmailResult(ctx: ActionCtx, claim: ClientAssetsEmailClaim) {
 	return fromConvexTuple(
-		ctx.runMutation(internal.sessions.driveInternal.saveClientAssetsEmailResult, {
+		ctx.runMutation(internal.sessions.drive.saveClientAssetsEmailResult, {
 			assetsFolderId: claim.assetsFolderId,
 			bookingId: claim.bookingId,
 			claimedAt: claim.claimedAt,
@@ -366,7 +366,7 @@ function saveSentClientAssetsEmailResult(ctx: ActionCtx, claim: ClientAssetsEmai
 
 function saveFailedClientAssetsEmailResult(ctx: ActionCtx, claim: ClientAssetsEmailClaim) {
 	return fromConvexTuple(
-		ctx.runMutation(internal.sessions.driveInternal.saveClientAssetsEmailResult, {
+		ctx.runMutation(internal.sessions.drive.saveClientAssetsEmailResult, {
 			assetsFolderId: claim.assetsFolderId,
 			bookingId: claim.bookingId,
 			claimedAt: claim.claimedAt,
@@ -435,7 +435,7 @@ export function sendClientAssetsFolderEmail(
 	attempt: "automatic" | "retry"
 ): ResultAsync<null, DriveClientPermissionsError> {
 	return fromConvexTuple(
-		ctx.runMutation(internal.sessions.driveInternal.claimClientAssetsEmail, {
+		ctx.runMutation(internal.sessions.drive.claimClientAssetsEmail, {
 			bookingId,
 			attempt,
 			now: Date.now()

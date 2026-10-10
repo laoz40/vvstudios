@@ -4,7 +4,7 @@ import type { QueryCtx } from "#convex/_generated/server";
 import { buildDriveStatusFromSetup, getDriveSetupEntities } from "#convex/drive/lib/driveStatus";
 import type { DriveSetupInfo } from "#convex/drive/lib/driveLookup";
 import { loadSessionFolderDisplayName } from "#convex/drive/lib/sessionFolders/resolveFolderNames";
-import { getDriveSetup } from "#convex/drive/services/driveInternal";
+import { getDriveSetup } from "#convex/drive/services/setup";
 
 function mapSessionFolderNameToDriveStatus(
 	setupInfo: DriveSetupInfo | null,

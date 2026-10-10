@@ -14,7 +14,7 @@ import { describe, expect, test } from "vitest";
 import { bookingDocument } from "#convex/tests/insertDocumentDefaults";
 import { internal } from "#convex/_generated/api";
 import type { Id } from "#convex/_generated/dataModel";
-import { getOrCreateDriveClientId } from "#convex/drive/services/driveInternal";
+import { getOrCreateDriveClientId } from "#convex/drive/services/setup";
 import { resolveSessionFolderDisplayName } from "#convex/drive/lib/sessionFolders/resolveFolderNames";
 import { createConvexTest } from "#convex/test.setup";
 
@@ -79,12 +79,12 @@ describe("drive setup guards", () => {
 		});
 
 		expect(
-			await t.mutation(internal.sessions.driveInternal.syncBookingDriveClientIdFromSession, {
+			await t.mutation(internal.sessions.drive.syncBookingDriveClientIdFromSession, {
 				bookingId: deletedBookingId
 			})
 		).toEqual([{ reason: "BOOKING_NOT_FOUND" }, null]);
 		expect(
-			await t.mutation(internal.sessions.driveInternal.syncBookingDriveClientIdFromSession, { bookingId })
+			await t.mutation(internal.sessions.drive.syncBookingDriveClientIdFromSession, { bookingId })
 		).toEqual([{ reason: "DRIVE_RECORD_NOT_FOUND" }, null]);
 	});
 
@@ -112,17 +112,17 @@ describe("drive setup guards", () => {
 		});
 
 		expect(
-			await t.mutation(internal.sessions.driveInternal.allocateClientSessionNumber, {
+			await t.mutation(internal.sessions.drive.allocateClientSessionNumber, {
 				bookingId: laterBookingId
 			})
 		).toEqual([null, 2]);
 		expect(
-			await t.mutation(internal.sessions.driveInternal.allocateClientSessionNumber, {
+			await t.mutation(internal.sessions.drive.allocateClientSessionNumber, {
 				bookingId: earlierBookingId
 			})
 		).toEqual([null, 1]);
 		expect(
-			await t.mutation(internal.sessions.driveInternal.allocateClientSessionNumber, {
+			await t.mutation(internal.sessions.drive.allocateClientSessionNumber, {
 				bookingId: earlierBookingId
 			})
 		).toEqual([null, 1]);
@@ -170,7 +170,7 @@ describe("drive setup guards", () => {
 		});
 
 		expect(
-			await t.mutation(internal.sessions.driveInternal.allocateClientSessionNumber, {
+			await t.mutation(internal.sessions.drive.allocateClientSessionNumber, {
 				bookingId: laterBookingId
 			})
 		).toEqual([null, 2]);
@@ -191,10 +191,10 @@ describe("drive setup guards", () => {
 		});
 
 		expect(
-			await t.mutation(internal.sessions.driveInternal.allocateClientSessionNumber, { bookingId })
+			await t.mutation(internal.sessions.drive.allocateClientSessionNumber, { bookingId })
 		).toEqual([null, 1]);
 
-		await t.mutation(internal.sessions.driveInternal.saveDriveSessionFolder, {
+		await t.mutation(internal.sessions.drive.saveDriveSessionFolder, {
 			bookingId,
 			driveClientId,
 			folder: {
@@ -204,7 +204,7 @@ describe("drive setup guards", () => {
 			}
 		});
 
-		expect(await t.mutation(internal.sessions.driveInternal.clearSessionDriveDb, { bookingId })).toEqual([
+		expect(await t.mutation(internal.sessions.drive.clearSessionDriveDb, { bookingId })).toEqual([
 			null,
 			null
 		]);
@@ -237,14 +237,14 @@ describe("drive setup guards", () => {
 		};
 
 		expect(
-			await t.mutation(internal.sessions.driveInternal.saveDriveSessionFolder, {
+			await t.mutation(internal.sessions.drive.saveDriveSessionFolder, {
 				bookingId,
 				driveClientId,
 				folder: firstFolder
 			})
 		).toEqual([null, firstFolder.id]);
 		expect(
-			await t.mutation(internal.sessions.driveInternal.saveDriveSessionFolder, {
+			await t.mutation(internal.sessions.drive.saveDriveSessionFolder, {
 				bookingId,
 				driveClientId,
 				folder: secondFolder
@@ -265,7 +265,7 @@ describe("drive setup guards", () => {
 		const firstClaimAt = now;
 		const secondClaimAt = firstClaimAt + 15 * 60 * 1000 + 1;
 
-		const [, firstClaim] = await t.mutation(internal.sessions.driveInternal.claimClientAssetsEmail, {
+		const [, firstClaim] = await t.mutation(internal.sessions.drive.claimClientAssetsEmail, {
 			bookingId,
 			attempt: "retry",
 			now: firstClaimAt
@@ -273,7 +273,7 @@ describe("drive setup guards", () => {
 
 		if (firstClaim === null) throw new Error("Expected first email claim");
 
-		const [, secondClaim] = await t.mutation(internal.sessions.driveInternal.claimClientAssetsEmail, {
+		const [, secondClaim] = await t.mutation(internal.sessions.drive.claimClientAssetsEmail, {
 			bookingId,
 			attempt: "retry",
 			now: secondClaimAt
@@ -282,7 +282,7 @@ describe("drive setup guards", () => {
 		if (secondClaim === null) throw new Error("Expected replacement email claim");
 
 		expect(
-			await t.mutation(internal.sessions.driveInternal.saveClientAssetsEmailResult, {
+			await t.mutation(internal.sessions.drive.saveClientAssetsEmailResult, {
 				bookingId,
 				assetsFolderId: "assets-1",
 				claimedAt: secondClaim.claimedAt,
@@ -290,7 +290,7 @@ describe("drive setup guards", () => {
 			})
 		).toEqual([null, null]);
 		expect(
-			await t.mutation(internal.sessions.driveInternal.saveClientAssetsEmailResult, {
+			await t.mutation(internal.sessions.drive.saveClientAssetsEmailResult, {
 				bookingId,
 				assetsFolderId: "assets-1",
 				claimedAt: firstClaim.claimedAt,
@@ -298,7 +298,7 @@ describe("drive setup guards", () => {
 			})
 		).toEqual([null, null]);
 
-		const [error, status] = await t.query(internal.sessions.driveInternal.getDriveSetup, { bookingId });
+		const [error, status] = await t.query(internal.sessions.drive.getDriveSetup, { bookingId });
 
 		expect(error).toBeNull();
 		expect(status?.driveSession).toMatchObject({
@@ -307,7 +307,7 @@ describe("drive setup guards", () => {
 		});
 		expect(status?.driveSession?.assetsEmailClaimedAt).toBeUndefined();
 		expect(
-			await t.mutation(internal.sessions.driveInternal.claimClientAssetsEmail, {
+			await t.mutation(internal.sessions.drive.claimClientAssetsEmail, {
 				bookingId,
 				attempt: "retry",
 				now: secondClaimAt + 1
@@ -321,7 +321,7 @@ describe("drive setup guards", () => {
 		const firstClaimAt = now;
 		const secondClaimAt = firstClaimAt + 15 * 60 * 1000 + 1;
 
-		const [, firstClaim] = await t.mutation(internal.sessions.driveInternal.claimEditorAssignmentEmail, {
+		const [, firstClaim] = await t.mutation(internal.sessions.drive.claimEditorAssignmentEmail, {
 			bookingId,
 			editorTokenIdentifier,
 			now: firstClaimAt
@@ -329,7 +329,7 @@ describe("drive setup guards", () => {
 
 		if (firstClaim === null) throw new Error("Expected first editor email claim");
 
-		const [, secondClaim] = await t.mutation(internal.sessions.driveInternal.claimEditorAssignmentEmail, {
+		const [, secondClaim] = await t.mutation(internal.sessions.drive.claimEditorAssignmentEmail, {
 			bookingId,
 			editorTokenIdentifier,
 			now: secondClaimAt
@@ -338,7 +338,7 @@ describe("drive setup guards", () => {
 		if (secondClaim === null) throw new Error("Expected replacement editor email claim");
 
 		expect(
-			await t.mutation(internal.sessions.driveInternal.saveEditorAssignmentEmailResult, {
+			await t.mutation(internal.sessions.drive.saveEditorAssignmentEmailResult, {
 				bookingId,
 				claimedAt: secondClaim.claimedAt,
 				editorTokenIdentifier,
@@ -346,7 +346,7 @@ describe("drive setup guards", () => {
 			})
 		).toEqual([null, null]);
 		expect(
-			await t.mutation(internal.sessions.driveInternal.saveEditorAssignmentEmailResult, {
+			await t.mutation(internal.sessions.drive.saveEditorAssignmentEmailResult, {
 				bookingId,
 				claimedAt: firstClaim.claimedAt,
 				editorTokenIdentifier,
@@ -354,7 +354,7 @@ describe("drive setup guards", () => {
 			})
 		).toEqual([null, null]);
 
-		const [error, status] = await t.query(internal.sessions.driveInternal.getDriveSetup, { bookingId });
+		const [error, status] = await t.query(internal.sessions.drive.getDriveSetup, { bookingId });
 
 		expect(error).toBeNull();
 		expect(status?.driveSession).toMatchObject({
@@ -363,7 +363,7 @@ describe("drive setup guards", () => {
 		});
 		expect(status?.driveSession?.assignmentEmailClaimedAt).toBeUndefined();
 		expect(
-			await t.mutation(internal.sessions.driveInternal.claimEditorAssignmentEmail, {
+			await t.mutation(internal.sessions.drive.claimEditorAssignmentEmail, {
 				bookingId,
 				editorTokenIdentifier,
 				now: secondClaimAt + 1

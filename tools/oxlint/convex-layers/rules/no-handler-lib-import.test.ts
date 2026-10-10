@@ -19,7 +19,7 @@ tester.run("convex-layers/no-handler-lib-import", noHandlerLibImportRule, {
 			code: `import { foo } from "#convex/lib/http/foo";`
 		},
 		{
-			filename: "convex/sessions/driveInternal.ts",
+			filename: "convex/sessions/drive.ts",
 			code: `import { linkBookingDriveClient } from "#convex/drive/lib/driveBookingDriveClient";`
 		},
 		{

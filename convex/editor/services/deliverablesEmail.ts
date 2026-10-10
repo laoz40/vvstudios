@@ -65,7 +65,7 @@ function parseSavedDeliverablesFolderFromSetup(setupInfo: DriveSetupInfo | null)
 
 function requireSavedDeliverablesFolder(bookingId: Id<"bookings">, ctx: ActionCtx) {
 	return fromConvexTuple(
-		ctx.runQuery(internal.sessions.driveInternal.getDriveSetup, { bookingId })
+		ctx.runQuery(internal.sessions.drive.getDriveSetup, { bookingId })
 	).andThen(parseSavedDeliverablesFolderFromSetup);
 }
 

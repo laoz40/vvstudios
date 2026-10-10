@@ -5,6 +5,6 @@ import { fromConvexTuple } from "#convex/shared/lib/result";
 
 export function clearSessionDriveDb(ctx: ActionCtx, bookingId: Id<"bookings">) {
 	return fromConvexTuple(
-		ctx.runMutation(internal.sessions.driveInternal.clearSessionDriveDb, { bookingId })
+		ctx.runMutation(internal.sessions.drive.clearSessionDriveDb, { bookingId })
 	);
 }

@@ -115,25 +115,25 @@ export function shouldReplaceMissingFolder(error: SetupError, replaceMissingFold
 
 export function clearSavedClientFolder(ctx: ActionCtx, driveClientId: Id<"driveClients">) {
 	return fromConvexTuple(
-		ctx.runMutation(internal.sessions.driveInternal.clearDriveClientFolder, { driveClientId })
+		ctx.runMutation(internal.sessions.drive.clearDriveClientFolder, { driveClientId })
 	);
 }
 
 export function clearSavedClientAssetsFolder(ctx: ActionCtx, driveClientId: Id<"driveClients">) {
 	return fromConvexTuple(
-		ctx.runMutation(internal.sessions.driveInternal.clearDriveClientAssetsFolder, { driveClientId })
+		ctx.runMutation(internal.sessions.drive.clearDriveClientAssetsFolder, { driveClientId })
 	);
 }
 
 export function clearSavedPackageFolder(ctx: ActionCtx, bookingId: Id<"bookings">) {
 	return fromConvexTuple(
-		ctx.runMutation(internal.sessions.driveInternal.clearDrivePackageFolder, { bookingId })
+		ctx.runMutation(internal.sessions.drive.clearDrivePackageFolder, { bookingId })
 	);
 }
 
 export function clearSavedSessionFolder(ctx: ActionCtx, bookingId: Id<"bookings">) {
 	return fromConvexTuple(
-		ctx.runMutation(internal.sessions.driveInternal.clearDriveSessionFolder, { bookingId })
+		ctx.runMutation(internal.sessions.drive.clearDriveSessionFolder, { bookingId })
 	);
 }
 
@@ -143,7 +143,7 @@ export function clearSavedChildFolder(
 	name: DriveChildFolderName
 ) {
 	return fromConvexTuple(
-		ctx.runMutation(internal.sessions.driveInternal.clearDriveChildFolder, { bookingId, name })
+		ctx.runMutation(internal.sessions.drive.clearDriveChildFolder, { bookingId, name })
 	);
 }
 

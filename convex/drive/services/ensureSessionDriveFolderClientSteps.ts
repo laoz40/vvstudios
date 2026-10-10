@@ -71,7 +71,7 @@ function saveCreatedClientFolder(
 	folder: SavedDriveFolder
 ) {
 	return fromConvexTuple(
-		ctx.runMutation(internal.sessions.driveInternal.saveDriveClientFolder, {
+		ctx.runMutation(internal.sessions.drive.saveDriveClientFolder, {
 			normalizedEmail,
 			displayName,
 			folder
@@ -165,7 +165,7 @@ function saveCreatedClientAssetsFolder(
 	folder: SavedDriveFolder
 ) {
 	return fromConvexTuple(
-		ctx.runMutation(internal.sessions.driveInternal.saveDriveClientAssetsFolder, {
+		ctx.runMutation(internal.sessions.drive.saveDriveClientAssetsFolder, {
 			driveClientId: client.driveClientId,
 			folder
 		})

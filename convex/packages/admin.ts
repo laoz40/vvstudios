@@ -10,16 +10,20 @@ import {
 } from "#convex/packages/services/adminMutations";
 import { listAdminPackagesPage } from "#convex/packages/services/adminQueries";
 import {
-	enforcePackageSubmitRateLimit,
-	insertPendingPackageRecord,
-	loadPackageEligibleForInstagramUpdate,
-	queryPackageByIdOrNull,
-	markPackagePaidWithScheduleToken,
-	refreshPaidPackageScheduleToken,
-	savePackageInstagramHandle as applyPackageInstagramHandleUpdate,
 	writePackageReceiptEmailAttempt,
 	writePackageScheduleEmailAttempt
-} from "#convex/packages/services/internalMutations";
+} from "#convex/packages/services/emailAttempts";
+import {
+	loadPackageEligibleForInstagramUpdate,
+	savePackageInstagramHandle as applyPackageInstagramHandleUpdate
+} from "#convex/packages/services/instagram";
+import { queryPackageByIdOrNull } from "#convex/packages/services/lookup";
+import { markPackagePaidWithScheduleToken } from "#convex/packages/services/paid";
+import {
+	enforcePackageSubmitRateLimit,
+	insertPendingPackageRecord
+} from "#convex/packages/services/pending";
+import { refreshPaidPackageScheduleToken } from "#convex/packages/services/tokens";
 
 const packageInvoiceLineItemValidator = v.object({
 	amount: v.number(),

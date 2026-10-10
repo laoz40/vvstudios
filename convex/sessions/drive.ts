@@ -1,7 +1,7 @@
 import { v } from "convex/values";
 import { tupleErr, tupleOk } from "#/lib/result";
 import { internalMutation, internalQuery } from "#convex/_generated/server";
-import * as driveSetup from "#convex/drive/services/driveInternal";
+import * as driveSetup from "#convex/drive/services/setup";
 import { drivePermissionValidator } from "#convex/shared/lib/driveValidators";
 
 const savedDriveFolderValidator = v.object({
@@ -12,12 +12,12 @@ const savedDriveFolderValidator = v.object({
 
 export const getDriveSetup = internalQuery({
 	args: { bookingId: v.id("bookings") },
-	handler: (ctx, args) => driveInternal.getDriveSetup(ctx, args.bookingId).match(tupleOk, tupleErr)
+	handler: (ctx, args) => driveSetup.getDriveSetup(ctx, args.bookingId).match(tupleOk, tupleErr)
 });
 
 export const saveDriveClientFolder = internalMutation({
 	args: { normalizedEmail: v.string(), displayName: v.string(), folder: savedDriveFolderValidator },
-	handler: (ctx, args) => driveInternal.saveDriveClientFolder(ctx, args).match(tupleOk, tupleErr)
+	handler: (ctx, args) => driveSetup.saveDriveClientFolder(ctx, args).match(tupleOk, tupleErr)
 });
 
 export const saveDriveSessionFolder = internalMutation({
@@ -26,29 +26,29 @@ export const saveDriveSessionFolder = internalMutation({
 		driveClientId: v.id("driveClients"),
 		folder: savedDriveFolderValidator
 	},
-	handler: (ctx, args) => driveInternal.saveDriveSessionFolder(ctx, args).match(tupleOk, tupleErr)
+	handler: (ctx, args) => driveSetup.saveDriveSessionFolder(ctx, args).match(tupleOk, tupleErr)
 });
 
 export const syncBookingDriveClientIdFromSession = internalMutation({
 	args: { bookingId: v.id("bookings") },
 	handler: (ctx, args) =>
-		driveInternal.syncBookingDriveClientIdFromSession(ctx, args.bookingId).match(tupleOk, tupleErr)
+		driveSetup.syncBookingDriveClientIdFromSession(ctx, args.bookingId).match(tupleOk, tupleErr)
 });
 
 export const saveDrivePackageFolder = internalMutation({
 	args: { bookingId: v.id("bookings"), folder: savedDriveFolderValidator },
-	handler: (ctx, args) => driveInternal.saveDrivePackageFolder(ctx, args).match(tupleOk, tupleErr)
+	handler: (ctx, args) => driveSetup.saveDrivePackageFolder(ctx, args).match(tupleOk, tupleErr)
 });
 
 export const allocatePackageSessionNumber = internalMutation({
 	args: { bookingId: v.id("bookings") },
 	handler: (ctx, args) =>
-		driveInternal.allocatePackageSessionNumber(ctx, args).match(tupleOk, tupleErr)
+		driveSetup.allocatePackageSessionNumber(ctx, args).match(tupleOk, tupleErr)
 });
 
 export const allocateClientSessionNumber = internalMutation({
 	args: { bookingId: v.id("bookings") },
-	handler: (ctx, args) => driveInternal.allocateClientSessionNumber(ctx, args).match(tupleOk, tupleErr)
+	handler: (ctx, args) => driveSetup.allocateClientSessionNumber(ctx, args).match(tupleOk, tupleErr)
 });
 
 export const linkBookingDriveClient = internalMutation({
@@ -61,36 +61,36 @@ export const linkBookingDriveClient = internalMutation({
 
 export const saveDriveClientAssetsFolder = internalMutation({
 	args: { driveClientId: v.id("driveClients"), folder: savedDriveFolderValidator },
-	handler: (ctx, args) => driveInternal.saveDriveClientAssetsFolder(ctx, args).match(tupleOk, tupleErr)
+	handler: (ctx, args) => driveSetup.saveDriveClientAssetsFolder(ctx, args).match(tupleOk, tupleErr)
 });
 
 export const saveDriveSetupResult = internalMutation({
 	args: { bookingId: v.id("bookings"), failureCode: v.optional(v.string()) },
-	handler: (ctx, args) => driveInternal.saveDriveSetupResult(ctx, args).match(tupleOk, tupleErr)
+	handler: (ctx, args) => driveSetup.saveDriveSetupResult(ctx, args).match(tupleOk, tupleErr)
 });
 
 export const clearDriveClientFolder = internalMutation({
 	args: { driveClientId: v.id("driveClients") },
 	handler: (ctx, args) =>
-		driveInternal.clearSavedDriveFolder(ctx, { kind: "client", ...args }).match(tupleOk, tupleErr)
+		driveSetup.clearSavedDriveFolder(ctx, { kind: "client", ...args }).match(tupleOk, tupleErr)
 });
 
 export const clearDriveClientAssetsFolder = internalMutation({
 	args: { driveClientId: v.id("driveClients") },
 	handler: (ctx, args) =>
-		driveInternal.clearSavedDriveFolder(ctx, { kind: "assets", ...args }).match(tupleOk, tupleErr)
+		driveSetup.clearSavedDriveFolder(ctx, { kind: "assets", ...args }).match(tupleOk, tupleErr)
 });
 
 export const clearDrivePackageFolder = internalMutation({
 	args: { bookingId: v.id("bookings") },
 	handler: (ctx, args) =>
-		driveInternal.clearSavedDriveFolder(ctx, { kind: "package", ...args }).match(tupleOk, tupleErr)
+		driveSetup.clearSavedDriveFolder(ctx, { kind: "package", ...args }).match(tupleOk, tupleErr)
 });
 
 export const clearDriveSessionFolder = internalMutation({
 	args: { bookingId: v.id("bookings") },
 	handler: (ctx, args) =>
-		driveInternal.clearSavedDriveFolder(ctx, { kind: "session", ...args }).match(tupleOk, tupleErr)
+		driveSetup.clearSavedDriveFolder(ctx, { kind: "session", ...args }).match(tupleOk, tupleErr)
 });
 
 export const clearDriveChildFolder = internalMutation({
@@ -99,7 +99,7 @@ export const clearDriveChildFolder = internalMutation({
 		name: v.union(v.literal("Raw Media"), v.literal("Deliverables"))
 	},
 	handler: (ctx, args) =>
-		driveInternal.clearSavedDriveFolder(ctx, { kind: "child", ...args }).match(tupleOk, tupleErr)
+		driveSetup.clearSavedDriveFolder(ctx, { kind: "child", ...args }).match(tupleOk, tupleErr)
 });
 
 export const saveDriveChildFolder = internalMutation({
@@ -108,7 +108,7 @@ export const saveDriveChildFolder = internalMutation({
 		name: v.union(v.literal("Raw Media"), v.literal("Deliverables")),
 		folder: savedDriveFolderValidator
 	},
-	handler: (ctx, args) => driveInternal.saveDriveChildFolder(ctx, args).match(tupleOk, tupleErr)
+	handler: (ctx, args) => driveSetup.saveDriveChildFolder(ctx, args).match(tupleOk, tupleErr)
 });
 
 export const saveClientDrivePermission = internalMutation({
@@ -117,7 +117,7 @@ export const saveClientDrivePermission = internalMutation({
 		name: v.union(v.literal("Client folder"), v.literal("Assets")),
 		permission: drivePermissionValidator
 	},
-	handler: (ctx, args) => driveInternal.saveClientDrivePermission(ctx, args).match(tupleOk, tupleErr)
+	handler: (ctx, args) => driveSetup.saveClientDrivePermission(ctx, args).match(tupleOk, tupleErr)
 });
 
 export const saveClientDrivePermissionsStatus = internalMutation({
@@ -126,7 +126,7 @@ export const saveClientDrivePermissionsStatus = internalMutation({
 		status: v.union(v.literal("failed"), v.literal("ready"), v.literal("skipped"))
 	},
 	handler: (ctx, args) =>
-		driveInternal.saveClientDrivePermissionsStatus(ctx, args).match(tupleOk, tupleErr)
+		driveSetup.saveClientDrivePermissionsStatus(ctx, args).match(tupleOk, tupleErr)
 });
 
 export const claimClientAssetsEmail = internalMutation({
@@ -135,7 +135,7 @@ export const claimClientAssetsEmail = internalMutation({
 		attempt: v.union(v.literal("automatic"), v.literal("retry")),
 		now: v.number()
 	},
-	handler: (ctx, args) => driveInternal.claimClientAssetsEmail(ctx, args).match(tupleOk, tupleErr)
+	handler: (ctx, args) => driveSetup.claimClientAssetsEmail(ctx, args).match(tupleOk, tupleErr)
 });
 
 export const saveClientAssetsEmailResult = internalMutation({
@@ -145,42 +145,42 @@ export const saveClientAssetsEmailResult = internalMutation({
 		claimedAt: v.number(),
 		status: v.union(v.literal("sent"), v.literal("failed"))
 	},
-	handler: (ctx, args) => driveInternal.saveClientAssetsEmailResult(ctx, args).match(tupleOk, tupleErr)
+	handler: (ctx, args) => driveSetup.saveClientAssetsEmailResult(ctx, args).match(tupleOk, tupleErr)
 });
 
 export const getEditorDriveSetup = internalQuery({
 	args: { bookingId: v.id("bookings") },
 	handler: (ctx, args) =>
-		driveInternal.getEditorDriveSetup(ctx, args.bookingId).match(tupleOk, tupleErr)
+		driveSetup.getEditorDriveSetup(ctx, args.bookingId).match(tupleOk, tupleErr)
 });
 
 export const getEditorDriveAccessToRemove = internalQuery({
 	args: { bookingId: v.id("bookings"), editorTokenIdentifier: v.string() },
 	handler: (ctx, args) =>
-		driveInternal.getEditorDriveAccessToRemove(ctx, args).match(tupleOk, tupleErr)
+		driveSetup.getEditorDriveAccessToRemove(ctx, args).match(tupleOk, tupleErr)
 });
 
 export const getEditorRetirementSessions = internalQuery({
 	args: { editorTokenIdentifier: v.string() },
 	handler: (ctx, args) =>
-		driveInternal.getEditorRetirementSessions(ctx, args.editorTokenIdentifier).match(tupleOk, tupleErr)
+		driveSetup.getEditorRetirementSessions(ctx, args.editorTokenIdentifier).match(tupleOk, tupleErr)
 });
 
 export const getEditorRetirementAssets = internalQuery({
 	args: { editorTokenIdentifier: v.string() },
 	handler: (ctx, args) =>
-		driveInternal.getEditorRetirementAssets(ctx, args.editorTokenIdentifier).match(tupleOk, tupleErr)
+		driveSetup.getEditorRetirementAssets(ctx, args.editorTokenIdentifier).match(tupleOk, tupleErr)
 });
 
 export const clearEditorAssetPermission = internalMutation({
 	args: { permissionId: v.id("driveClientEditorPermissions"), editorTokenIdentifier: v.string() },
-	handler: (ctx, args) => driveInternal.clearEditorAssetPermission(ctx, args).match(tupleOk, tupleErr)
+	handler: (ctx, args) => driveSetup.clearEditorAssetPermission(ctx, args).match(tupleOk, tupleErr)
 });
 
 export const markEditorDriveAccessRevoked = internalMutation({
 	args: { driveSessionId: v.id("driveSessions"), editorTokenIdentifier: v.string() },
 	handler: (ctx, args) =>
-		driveInternal.markEditorDriveAccessRevoked(ctx, args).match(tupleOk, tupleErr)
+		driveSetup.markEditorDriveAccessRevoked(ctx, args).match(tupleOk, tupleErr)
 });
 
 export const clearPreviousEditorDriveAccess = internalMutation({
@@ -191,19 +191,19 @@ export const clearPreviousEditorDriveAccess = internalMutation({
 		retired: v.boolean()
 	},
 	handler: (ctx, args) =>
-		driveInternal.clearPreviousEditorDriveAccess(ctx, args).match(tupleOk, tupleErr)
+		driveSetup.clearPreviousEditorDriveAccess(ctx, args).match(tupleOk, tupleErr)
 });
 
 export const markPreviousEditorRemovalFailed = internalMutation({
 	args: { bookingId: v.id("bookings"), editorTokenIdentifier: v.string() },
 	handler: (ctx, args) =>
-		driveInternal.markPreviousEditorRemovalFailed(ctx, args).match(tupleOk, tupleErr)
+		driveSetup.markPreviousEditorRemovalFailed(ctx, args).match(tupleOk, tupleErr)
 });
 
 export const getFailedEditorRemoval = internalQuery({
 	args: { bookingId: v.id("bookings") },
 	handler: (ctx, args) =>
-		driveInternal.getFailedEditorRemoval(ctx, args.bookingId).match(tupleOk, tupleErr)
+		driveSetup.getFailedEditorRemoval(ctx, args.bookingId).match(tupleOk, tupleErr)
 });
 
 export const saveEditorDrivePermission = internalMutation({
@@ -213,7 +213,7 @@ export const saveEditorDrivePermission = internalMutation({
 		name: v.union(v.literal("Assets"), v.literal("Deliverables"), v.literal("Session")),
 		permission: drivePermissionValidator
 	},
-	handler: (ctx, args) => driveInternal.saveEditorDrivePermission(ctx, args).match(tupleOk, tupleErr)
+	handler: (ctx, args) => driveSetup.saveEditorDrivePermission(ctx, args).match(tupleOk, tupleErr)
 });
 
 export const saveEditorDrivePermissionsStatus = internalMutation({
@@ -223,12 +223,12 @@ export const saveEditorDrivePermissionsStatus = internalMutation({
 		status: v.union(v.literal("failed"), v.literal("ready"))
 	},
 	handler: (ctx, args) =>
-		driveInternal.saveEditorDrivePermissionsStatus(ctx, args).match(tupleOk, tupleErr)
+		driveSetup.saveEditorDrivePermissionsStatus(ctx, args).match(tupleOk, tupleErr)
 });
 
 export const claimEditorAssignmentEmail = internalMutation({
 	args: { bookingId: v.id("bookings"), editorTokenIdentifier: v.string(), now: v.number() },
-	handler: (ctx, args) => driveInternal.claimEditorAssignmentEmail(ctx, args).match(tupleOk, tupleErr)
+	handler: (ctx, args) => driveSetup.claimEditorAssignmentEmail(ctx, args).match(tupleOk, tupleErr)
 });
 
 export const saveEditorAssignmentEmailResult = internalMutation({
@@ -239,10 +239,10 @@ export const saveEditorAssignmentEmailResult = internalMutation({
 		status: v.union(v.literal("failed"), v.literal("sent"))
 	},
 	handler: (ctx, args) =>
-		driveInternal.saveEditorAssignmentEmailResult(ctx, args).match(tupleOk, tupleErr)
+		driveSetup.saveEditorAssignmentEmailResult(ctx, args).match(tupleOk, tupleErr)
 });
 
 export const clearSessionDriveDb = internalMutation({
 	args: { bookingId: v.id("bookings") },
-	handler: (ctx, args) => driveInternal.clearSessionDriveDb(ctx, args).match(tupleOk, tupleErr)
+	handler: (ctx, args) => driveSetup.clearSessionDriveDb(ctx, args).match(tupleOk, tupleErr)
 });

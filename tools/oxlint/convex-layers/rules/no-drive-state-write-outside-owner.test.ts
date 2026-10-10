@@ -31,23 +31,23 @@ tester.run("convex-layers/no-drive-state-write-outside-owner", noDriveStateWrite
 			code: `ctx.db.patch("bookings", id, { price: 420, status: "confirmed" });`
 		},
 		{
-			filename: "convex/tests/driveInternal.test.ts",
+			filename: "convex/tests/driveSetup.test.ts",
 			code: `ctx.db.insert("driveSessions", fixture);`
 		}
 	],
 	invalid: [
 		{
-			filename: "convex/services/drive/driveInternal.ts",
+			filename: "convex/drive/services/setup.ts",
 			code: `ctx.db.patch("driveSessions", id, { sessionFolder });`,
 			errors: [{ messageId: "driveTableWrite" }]
 		},
 		{
-			filename: "convex/services/drive/driveInternal.ts",
+			filename: "convex/drive/services/setup.ts",
 			code: `ctx.db["delete"]("driveClientEditorPermissions", id);`,
 			errors: [{ messageId: "driveTableWrite" }]
 		},
 		{
-			filename: "convex/services/drive/driveInternal.ts",
+			filename: "convex/drive/services/setup.ts",
 			code: `ctx["db"]["replace"](\`driveSessions\`, id, {});`,
 			errors: [{ messageId: "driveTableWrite" }]
 		},
@@ -62,7 +62,7 @@ tester.run("convex-layers/no-drive-state-write-outside-owner", noDriveStateWrite
 			errors: [{ messageId: "bookingDriveClientId" }]
 		},
 		{
-			filename: "convex/services/drive/driveInternal.ts",
+			filename: "convex/drive/services/setup.ts",
 			code: `ctx.db.insert("driveClients", {});`,
 			errors: [{ messageId: "driveTableWrite" }]
 		},

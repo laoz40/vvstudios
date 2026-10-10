@@ -215,7 +215,7 @@ async function seedBooking(t: TestClient, withEditor = false) {
 }
 
 async function seedSavedFolders(t: TestClient, bookingId: Id<"bookings">) {
-	const [, client] = await t.mutation(internal.sessions.driveInternal.saveDriveClientFolder, {
+	const [, client] = await t.mutation(internal.sessions.drive.saveDriveClientFolder, {
 		normalizedEmail: "customer@example.com",
 		displayName: "Drive Customer - Drive account",
 		folder: folder("client")
@@ -223,22 +223,22 @@ async function seedSavedFolders(t: TestClient, bookingId: Id<"bookings">) {
 
 	if (client === null) throw new Error("Expected a saved Drive client");
 
-	await t.mutation(internal.sessions.driveInternal.saveDriveClientAssetsFolder, {
+	await t.mutation(internal.sessions.drive.saveDriveClientAssetsFolder, {
 		driveClientId: client.driveClientId,
 		folder: folder("assets")
 	});
-	await t.mutation(internal.sessions.driveInternal.saveDriveSessionFolder, {
+	await t.mutation(internal.sessions.drive.saveDriveSessionFolder, {
 		bookingId,
 		driveClientId: client.driveClientId,
 		folder: folder("session")
 	});
-	await t.mutation(internal.sessions.driveInternal.allocateClientSessionNumber, { bookingId });
-	await t.mutation(internal.sessions.driveInternal.saveDriveChildFolder, {
+	await t.mutation(internal.sessions.drive.allocateClientSessionNumber, { bookingId });
+	await t.mutation(internal.sessions.drive.saveDriveChildFolder, {
 		bookingId,
 		name: "Raw Media",
 		folder: folder("raw")
 	});
-	await t.mutation(internal.sessions.driveInternal.saveDriveChildFolder, {
+	await t.mutation(internal.sessions.drive.saveDriveChildFolder, {
 		bookingId,
 		name: "Deliverables",
 		folder: folder("deliverables")

@@ -51,7 +51,7 @@ export function loadEditorDriveAccessToRemove(
 	ctx: ActionCtx,
 	args: { bookingId: Id<"bookings">; editorTokenIdentifier: string }
 ): ResultAsync<EditorDriveAccessToRemove | null, DriveEditorPermissionsError> {
-	return fromConvexTuple(ctx.runQuery(internal.sessions.driveInternal.getEditorDriveAccessToRemove, args));
+	return fromConvexTuple(ctx.runQuery(internal.sessions.drive.getEditorDriveAccessToRemove, args));
 }
 
 export function markPreviousEditorRemovalFailed(
@@ -59,7 +59,7 @@ export function markPreviousEditorRemovalFailed(
 	args: { bookingId: Id<"bookings">; editorTokenIdentifier: string }
 ): ResultAsync<null, DriveEditorPermissionsError> {
 	return fromConvexTuple(
-		ctx.runMutation(internal.sessions.driveInternal.markPreviousEditorRemovalFailed, args)
+		ctx.runMutation(internal.sessions.drive.markPreviousEditorRemovalFailed, args)
 	);
 }
 
@@ -67,14 +67,14 @@ export function loadFailedEditorRemoval(
 	ctx: ActionCtx,
 	args: { bookingId: Id<"bookings"> }
 ): ResultAsync<FailedEditorRemoval | null, DriveEditorPermissionsError> {
-	return fromConvexTuple(ctx.runQuery(internal.sessions.driveInternal.getFailedEditorRemoval, args));
+	return fromConvexTuple(ctx.runQuery(internal.sessions.drive.getFailedEditorRemoval, args));
 }
 
 function loadEditorDriveSetup(
 	ctx: ActionCtx,
 	bookingId: Id<"bookings">
 ): ResultAsync<EditorDriveSetupRecord, DriveEditorPermissionsError> {
-	return fromConvexTuple(ctx.runQuery(internal.sessions.driveInternal.getEditorDriveSetup, { bookingId }));
+	return fromConvexTuple(ctx.runQuery(internal.sessions.drive.getEditorDriveSetup, { bookingId }));
 }
 
 function createEditorPermissionWhenMissing(
@@ -115,7 +115,7 @@ function saveEditorPermission(
 	permission: SavedDrivePermission
 ) {
 	return fromConvexTuple(
-		ctx.runMutation(internal.sessions.driveInternal.saveEditorDrivePermission, {
+		ctx.runMutation(internal.sessions.drive.saveEditorDrivePermission, {
 			bookingId: setup.booking._id,
 			editorTokenIdentifier: setup.editor.tokenIdentifier,
 			name,
@@ -158,7 +158,7 @@ function saveEditorPermissionsStatus(
 	status: "failed" | "ready"
 ) {
 	return fromConvexTuple(
-		ctx.runMutation(internal.sessions.driveInternal.saveEditorDrivePermissionsStatus, {
+		ctx.runMutation(internal.sessions.drive.saveEditorDrivePermissionsStatus, {
 			bookingId: setup.booking._id,
 			editorTokenIdentifier: setup.editor.tokenIdentifier,
 			status
@@ -297,7 +297,7 @@ type EditorAssignmentEmailClaim = {
 
 function saveSentEditorAssignmentEmailResult(ctx: ActionCtx, claim: EditorAssignmentEmailClaim) {
 	return fromConvexTuple(
-		ctx.runMutation(internal.sessions.driveInternal.saveEditorAssignmentEmailResult, {
+		ctx.runMutation(internal.sessions.drive.saveEditorAssignmentEmailResult, {
 			bookingId: claim.bookingId,
 			claimedAt: claim.claimedAt,
 			editorTokenIdentifier: claim.editorTokenIdentifier,
@@ -308,7 +308,7 @@ function saveSentEditorAssignmentEmailResult(ctx: ActionCtx, claim: EditorAssign
 
 function saveFailedEditorAssignmentEmailResult(ctx: ActionCtx, claim: EditorAssignmentEmailClaim) {
 	return fromConvexTuple(
-		ctx.runMutation(internal.sessions.driveInternal.saveEditorAssignmentEmailResult, {
+		ctx.runMutation(internal.sessions.drive.saveEditorAssignmentEmailResult, {
 			bookingId: claim.bookingId,
 			claimedAt: claim.claimedAt,
 			editorTokenIdentifier: claim.editorTokenIdentifier,
@@ -350,7 +350,7 @@ function recordFailedEditorAssignmentEmail(
 
 function claimAndSendEditorAssignmentEmail(ctx: ActionCtx, setup: EditorDriveSetupRecord) {
 	return fromConvexTuple(
-		ctx.runMutation(internal.sessions.driveInternal.claimEditorAssignmentEmail, {
+		ctx.runMutation(internal.sessions.drive.claimEditorAssignmentEmail, {
 			bookingId: setup.booking._id,
 			editorTokenIdentifier: setup.editor.tokenIdentifier,
 			now: Date.now()
@@ -429,7 +429,7 @@ export function setupEditorAccessIfAssigned(
 	args: { bookingId: Id<"bookings"> }
 ): ResultAsync<null, DriveEditorPermissionsError> {
 	return fromConvexTuple(
-		ctx.runQuery(internal.sessions.driveInternal.getDriveSetup, { bookingId: args.bookingId })
+		ctx.runQuery(internal.sessions.drive.getDriveSetup, { bookingId: args.bookingId })
 	).andThen((setup: DriveSetupInfo | null) => setupEditorAccessWhenAssigned(ctx, args, setup));
 }
 
@@ -466,7 +466,7 @@ function clearPreviousEditorDriveAccessRecord(
 	previousEditorTokenIdentifier: string
 ) {
 	return fromConvexTuple(
-		ctx.runMutation(internal.sessions.driveInternal.clearPreviousEditorDriveAccess, {
+		ctx.runMutation(internal.sessions.drive.clearPreviousEditorDriveAccess, {
 			driveClientEditorPermissionId: access.driveClientEditorPermissionId,
 			driveSessionId: access.driveSessionId,
 			editorTokenIdentifier: previousEditorTokenIdentifier,
@@ -538,7 +538,7 @@ function revokeFailedEditorDrivePermissions(drive: DriveClient, removal: FailedE
 
 function clearFailedEditorDriveAccessRecord(ctx: ActionCtx, removal: FailedEditorRemoval) {
 	return fromConvexTuple(
-		ctx.runMutation(internal.sessions.driveInternal.clearPreviousEditorDriveAccess, {
+		ctx.runMutation(internal.sessions.drive.clearPreviousEditorDriveAccess, {
 			driveClientEditorPermissionId: removal.driveClientEditorPermissionId,
 			driveSessionId: removal.driveSessionId,
 			editorTokenIdentifier: removal.editorTokenIdentifier,

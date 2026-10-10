@@ -47,14 +47,14 @@ export {
 	saveEditorAssignmentEmailResult,
 	saveEditorDrivePermission,
 	saveEditorDrivePermissionsStatus
-} from "#convex/drive/services/driveInternalEditor";
+} from "#convex/drive/services/editorPermissions";
 
 export {
 	claimClientAssetsEmail,
 	saveClientAssetsEmailResult,
 	saveClientDrivePermission,
 	saveClientDrivePermissionsStatus
-} from "#convex/drive/services/driveInternalClientAccess";
+} from "#convex/drive/services/clientAccess";
 
 function standaloneBookingFromRow(ctx: MutationCtx, booking: Doc<"bookings"> | null) {
 	if (booking === null) return errAsync({ reason: "BOOKING_NOT_FOUND" as const });

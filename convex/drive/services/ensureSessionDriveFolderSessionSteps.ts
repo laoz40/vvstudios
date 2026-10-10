@@ -101,7 +101,7 @@ function saveCreatedSessionFolder(
 	folder: SavedDriveFolder
 ) {
 	return fromConvexTuple(
-		ctx.runMutation(internal.sessions.driveInternal.saveDriveSessionFolder, {
+		ctx.runMutation(internal.sessions.drive.saveDriveSessionFolder, {
 			bookingId: setupInfo.booking._id,
 			driveClientId: input.driveClientId,
 			folder
@@ -212,7 +212,7 @@ function saveCreatedChildFolder(
 	folder: SavedDriveFolder
 ) {
 	return fromConvexTuple(
-		ctx.runMutation(internal.sessions.driveInternal.saveDriveChildFolder, {
+		ctx.runMutation(internal.sessions.drive.saveDriveChildFolder, {
 			bookingId: setupInfo.booking._id,
 			name,
 			folder
@@ -276,14 +276,14 @@ export function allocateSessionFolderNumberIfNeeded(
 ): ResultAsync<number, SetupError> {
 	if (setupInfo.packageRecord !== null) {
 		return fromConvexTuple(
-			ctx.runMutation(internal.sessions.driveInternal.allocatePackageSessionNumber, {
+			ctx.runMutation(internal.sessions.drive.allocatePackageSessionNumber, {
 				bookingId: setupInfo.booking._id
 			})
 		);
 	}
 
 	return fromConvexTuple(
-		ctx.runMutation(internal.sessions.driveInternal.allocateClientSessionNumber, {
+		ctx.runMutation(internal.sessions.drive.allocateClientSessionNumber, {
 			bookingId: setupInfo.booking._id
 		})
 	);
@@ -390,7 +390,7 @@ function linkSharedPackageFolderToBooking(
 	packageFolderName: string
 ) {
 	return fromConvexTuple(
-		ctx.runMutation(internal.sessions.driveInternal.saveDrivePackageFolder, {
+		ctx.runMutation(internal.sessions.drive.saveDrivePackageFolder, {
 			bookingId: setupInfo.booking._id,
 			folder: {
 				id: sharedPackageFolder.id,
@@ -420,7 +420,7 @@ function saveCreatedPackageFolder(
 	folder: SavedDriveFolder
 ) {
 	return fromConvexTuple(
-		ctx.runMutation(internal.sessions.driveInternal.saveDrivePackageFolder, {
+		ctx.runMutation(internal.sessions.drive.saveDrivePackageFolder, {
 			bookingId: setupInfo.booking._id,
 			folder
 		})

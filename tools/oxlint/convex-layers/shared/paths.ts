@@ -35,7 +35,7 @@ export function isConvexLibFile(filename: string): boolean {
 }
 
 const HANDLER_LIB_IMPORT_ALLOWLIST = new Set([
-	"convex/sessions/driveInternal.ts",
+	"convex/sessions/drive.ts",
 	"convex/http.ts",
 	"convex/devSeed.ts",
 	"convex/schema.ts",

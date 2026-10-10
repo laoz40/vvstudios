@@ -1,6 +1,6 @@
 import type { ResultAsync as NeverthrowResultAsync } from "neverthrow";
 import { formatDriveClientFolderName } from "#studio/lib/bookingdatetime";
-import { getOrCreateDriveClientId } from "#convex/drive/services/driveInternal";
+import { getOrCreateDriveClientId } from "#convex/drive/services/setup";
 import type { Id } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
 import { patchBookingStripeCheckoutIds } from "#convex/booking/lib/confirmationSessionPatches";
