@@ -95,7 +95,6 @@ function EditorDetails({ editor, label }: { editor: ActiveEditor; label: string 
 
 type EditorSelectProps = {
 	activeEditors: ActiveEditor[];
-	assignedEditorDisplayName: string | null;
 	isLoadingEditors: boolean;
 	session: SessionRecord;
 	isSaving: boolean;
@@ -104,17 +103,12 @@ type EditorSelectProps = {
 
 function EditorSelect({
 	activeEditors,
-	assignedEditorDisplayName,
 	isLoadingEditors,
 	session,
 	isSaving,
 	onSelect
 }: EditorSelectProps) {
 	const assignedEditorTokenIdentifier = session.assignedEditorTokenIdentifier;
-
-	const assignedEditorMissingFromActiveList =
-		assignedEditorTokenIdentifier !== undefined &&
-		!activeEditors.some((editor) => editor.tokenIdentifier === assignedEditorTokenIdentifier);
 
 	if (isLoadingEditors) {
 		return (
@@ -151,11 +145,6 @@ function EditorSelect({
 			<SelectContent className="bg-background">
 				<SelectGroup>
 					<SelectItem value={UNASSIGNED_VALUE}>No editor assigned</SelectItem>
-					{assignedEditorMissingFromActiveList && assignedEditorDisplayName ? (
-						<SelectItem value={assignedEditorTokenIdentifier}>
-							{assignedEditorDisplayName}
-						</SelectItem>
-					) : null}
 					{activeEditors.map((editor) => (
 						<SelectItem
 							key={editor.tokenIdentifier}
@@ -235,7 +224,6 @@ export function SessionEditorAssignment({ isMenuOpen, session }: SessionEditorAs
 		<>
 			<EditorSelect
 				activeEditors={activeEditors}
-				assignedEditorDisplayName={session.assignedEditorDisplayName ?? null}
 				isLoadingEditors={isLoadingEditors}
 				session={session}
 				isSaving={isSaving}

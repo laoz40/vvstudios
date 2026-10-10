@@ -4,10 +4,11 @@ import { errAsync, ok, okAsync, type ResultAsync } from "neverthrow";
 import { internal } from "#convex/_generated/api";
 import type { Id } from "#convex/_generated/dataModel";
 import type { ActionCtx } from "#convex/_generated/server";
-import type {
-	EditorDriveAccessToRemove,
-	EditorDriveSetupRecord,
-	FailedEditorRemoval
+import {
+	getEditorPermissionFolder,
+	type EditorDriveAccessToRemove,
+	type EditorDriveSetupRecord,
+	type FailedEditorRemoval
 } from "#convex/lib/drive/driveEditor";
 import type { DriveSetupInfo } from "#convex/lib/drive/sessionFolders/driveSetupInfo";
 import { sendEditorAssignmentEmail } from "#convex/services/email/templateEmails";
@@ -124,7 +125,35 @@ function saveEditorPermission(
 			name,
 			permission
 		})
-	);
+	).orElse((error) => removeUnsavedEditorPermission(ctx, setup, name, permission, error));
+}
+
+function removeUnsavedEditorPermission(
+	ctx: ActionCtx,
+	setup: EditorDriveSetupRecord,
+	name: "Assets" | "Deliverables" | "Session",
+	permission: SavedDrivePermission,
+	error: DriveEditorPermissionsError
+): ResultAsync<never, DriveEditorPermissionsError> {
+	if (error.reason !== "EDITOR_NOT_ACTIVE") return errAsync(error);
+
+	const folder = getEditorPermissionFolder(setup, name);
+
+	if (folder === undefined) return errAsync(error);
+
+	// Retirement may happen while Google is creating the permission.
+	// Undo access that the retired profile can no longer accept.
+	return loadDriveClient()
+		.andThen((drive) =>
+			deleteDrivePermission(drive, { fileId: folder.id, permissionId: permission.id })
+		)
+		.orElse((removalError) =>
+			markPreviousEditorRemovalFailed(ctx, {
+				bookingId: setup.booking._id,
+				editorTokenIdentifier: setup.editor.tokenIdentifier
+			}).andThen(() => errAsync(removalError))
+		)
+		.andThen(() => errAsync(error));
 }
 
 function saveEditorPermissionsStatus(
@@ -444,7 +473,8 @@ function clearPreviousEditorDriveAccessRecord(
 		ctx.runMutation(internal.sessionsDriveInternal.clearPreviousEditorDriveAccess, {
 			driveClientEditorPermissionId: access.driveClientEditorPermissionId,
 			driveSessionId: access.driveSessionId,
-			editorTokenIdentifier: previousEditorTokenIdentifier
+			editorTokenIdentifier: previousEditorTokenIdentifier,
+			retired: access.editorRetired
 		})
 	);
 }
@@ -515,7 +545,8 @@ function clearFailedEditorDriveAccessRecord(ctx: ActionCtx, removal: FailedEdito
 		ctx.runMutation(internal.sessionsDriveInternal.clearPreviousEditorDriveAccess, {
 			driveClientEditorPermissionId: removal.driveClientEditorPermissionId,
 			driveSessionId: removal.driveSessionId,
-			editorTokenIdentifier: removal.editorTokenIdentifier
+			editorTokenIdentifier: removal.editorTokenIdentifier,
+			retired: removal.editorRetired
 		})
 	);
 }

@@ -1,4 +1,4 @@
-import { err, okAsync, type ResultAsync } from "neverthrow";
+import { err, okAsync, ResultAsync } from "neverthrow";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
 import type { DriveSetupInfo } from "#convex/lib/drive/driveLookup";
@@ -10,16 +10,28 @@ import {
 	failedEditorRemovalForSession,
 	loadEditorClientDriveData,
 	loadEditorProfileByToken,
+	listEditorAssetPermissionsForRetirement,
+	loadDriveSessionsForBookings,
+	listEditorRetirementSessions,
+	deleteEditorAssetPermissionIfOwned,
+	loadEditorAssetPermissionForClear,
+	markEditorDriveAccessRevokedForSession,
 	markPreviousEditorRemovalFailedForSession,
 	saveEditorAssignmentEmailResultForSession,
 	writeEditorDrivePermission,
 	writeEditorDrivePermissionsStatus
 } from "#convex/lib/drive/driveEditor";
 import {
+	getCompletedEditorBookingIds,
+	loadEditorRetirementAssetInfos,
+	mergeEditorRetirementSessions
+} from "#convex/lib/drive/editorRetirement";
+import {
 	loadDriveSessionRow,
 	loadDriveSessionRowByBookingId
 } from "#convex/lib/drive/driveBookingDriveClient";
 import { getDriveSetup } from "#convex/services/drive/driveSetupQuery";
+import { requireActiveEditor } from "#convex/lib/editor/editorAssignments";
 
 export function getEditorDriveSetup(ctx: QueryCtx, bookingId: Id<"bookings">) {
 	return getDriveSetup(ctx, bookingId).andThen((setup: DriveSetupInfo | null) =>
@@ -35,15 +47,8 @@ function loadEditorDriveSetupFromDriveSetup(ctx: QueryCtx, setup: DriveSetupInfo
 	}
 
 	return loadEditorProfileByToken(ctx, editorTokenIdentifier).andThen(
-		(editor: Doc<"editorProfiles"> | null) => editorDriveSetupFromLoadedStep(setup, editor)
+		(editor: Doc<"editorProfiles"> | null) => editorDriveSetupFromLoaded(setup, editor)
 	);
-}
-
-function editorDriveSetupFromLoadedStep(
-	setup: DriveSetupInfo | null,
-	editor: Doc<"editorProfiles"> | null
-) {
-	return editorDriveSetupFromLoaded(setup, editor);
 }
 
 export function getEditorDriveAccessToRemove(
@@ -52,16 +57,49 @@ export function getEditorDriveAccessToRemove(
 ) {
 	return loadDriveSessionRowByBookingId(ctx, args.bookingId).andThen(
 		(driveSession: Doc<"driveSessions"> | null) =>
-			editorDriveAccessToRemoveForLoadedSession(ctx, args, driveSession)
+			editorDriveAccessToRemoveForSession(ctx, driveSession, args)
 	);
 }
 
-function editorDriveAccessToRemoveForLoadedSession(
+function loadPendingEditorSessions(
 	ctx: QueryCtx,
-	args: Parameters<typeof getEditorDriveAccessToRemove>[1],
-	driveSession: Doc<"driveSessions"> | null
+	retirementRows: Parameters<typeof mergeEditorRetirementSessions>[0]
 ) {
-	return editorDriveAccessToRemoveForSession(ctx, driveSession, args);
+	const { assignedBookings } = retirementRows;
+
+	return loadDriveSessionsForBookings(ctx, getCompletedEditorBookingIds(assignedBookings)).map(
+		(sessions) => mergeEditorRetirementSessions(retirementRows, sessions)
+	);
+}
+
+export function getEditorRetirementSessions(ctx: QueryCtx, editorTokenIdentifier: string) {
+	return listEditorRetirementSessions(ctx, editorTokenIdentifier).andThen((retirementRows) =>
+		loadPendingEditorSessions(ctx, retirementRows)
+	);
+}
+
+export function getEditorRetirementAssets(ctx: QueryCtx, editorTokenIdentifier: string) {
+	return listEditorAssetPermissionsForRetirement(ctx, editorTokenIdentifier).andThen(
+		(permissions) => loadEditorRetirementAssetInfos(ctx, permissions)
+	);
+}
+
+export function clearEditorAssetPermission(
+	ctx: MutationCtx,
+	args: { permissionId: Id<"driveClientEditorPermissions"> | null; editorTokenIdentifier: string }
+) {
+	return loadEditorAssetPermissionForClear(ctx, args.permissionId).andThen((permission) =>
+		deleteEditorAssetPermissionIfOwned(ctx, permission, args)
+	);
+}
+
+export function markEditorDriveAccessRevoked(
+	ctx: MutationCtx,
+	args: { driveSessionId: Id<"driveSessions">; editorTokenIdentifier: string }
+) {
+	return loadDriveSessionRow(ctx, args.driveSessionId).andThen((driveSession) =>
+		markEditorDriveAccessRevokedForSession(ctx, driveSession, args)
+	);
 }
 
 export function clearPreviousEditorDriveAccess(
@@ -70,20 +108,25 @@ export function clearPreviousEditorDriveAccess(
 		driveClientEditorPermissionId: Id<"driveClientEditorPermissions"> | null;
 		driveSessionId: Id<"driveSessions">;
 		editorTokenIdentifier: string;
+		retired: boolean;
 	}
 ) {
-	return loadDriveSessionRow(ctx, args.driveSessionId).andThen(
-		(driveSession: Doc<"driveSessions"> | null) =>
-			clearPreviousEditorDriveAccessForLoadedSession(ctx, args, driveSession)
+	return loadDriveSessionRow(ctx, args.driveSessionId).andThen((session) =>
+		clearPreviousEditorDriveAccessAndAssetRecord(ctx, args, session)
 	);
 }
 
-function clearPreviousEditorDriveAccessForLoadedSession(
+function clearPreviousEditorDriveAccessAndAssetRecord(
 	ctx: MutationCtx,
 	args: Parameters<typeof clearPreviousEditorDriveAccess>[1],
 	driveSession: Doc<"driveSessions"> | null
 ) {
-	return clearPreviousEditorDriveAccessForSession(ctx, driveSession, args);
+	return clearPreviousEditorDriveAccessForSession(ctx, driveSession, args).andThen(() =>
+		clearEditorAssetPermission(ctx, {
+			permissionId: args.driveClientEditorPermissionId,
+			editorTokenIdentifier: args.editorTokenIdentifier
+		})
+	);
 }
 
 export function markPreviousEditorRemovalFailed(
@@ -92,16 +135,8 @@ export function markPreviousEditorRemovalFailed(
 ) {
 	return loadDriveSessionRowByBookingId(ctx, args.bookingId).andThen(
 		(driveSession: Doc<"driveSessions"> | null) =>
-			markPreviousEditorRemovalFailedForLoadedSession(ctx, args, driveSession)
+			markPreviousEditorRemovalFailedForSession(ctx, driveSession, args)
 	);
-}
-
-function markPreviousEditorRemovalFailedForLoadedSession(
-	ctx: MutationCtx,
-	args: Parameters<typeof markPreviousEditorRemovalFailed>[1],
-	driveSession: Doc<"driveSessions"> | null
-) {
-	return markPreviousEditorRemovalFailedForSession(ctx, driveSession, args);
 }
 
 export function getFailedEditorRemoval(ctx: QueryCtx, bookingId: Id<"bookings">) {
@@ -151,17 +186,8 @@ function loadFailedEditorRemovalWithProfile(
 ) {
 	return loadEditorProfileByToken(ctx, editorTokenIdentifier).map(
 		(editor: Doc<"editorProfiles"> | null) =>
-			mapFailedEditorRemoval(driveSession, bookingId, clientData, editor)
+			failedEditorRemovalForSession(driveSession, bookingId, editor, clientData)
 	);
-}
-
-function mapFailedEditorRemoval(
-	driveSession: Doc<"driveSessions">,
-	bookingId: Id<"bookings">,
-	clientData: Parameters<typeof failedEditorRemovalForSession>[3],
-	editor: Doc<"editorProfiles"> | null
-) {
-	return failedEditorRemovalForSession(driveSession, bookingId, editor, clientData);
 }
 
 export function saveEditorDrivePermission(
@@ -173,9 +199,12 @@ export function saveEditorDrivePermission(
 		permission: Parameters<typeof writeEditorDrivePermission>[2]["permission"];
 	}
 ) {
-	return getDriveSetup(ctx, args.bookingId).andThen((setup: DriveSetupInfo | null) =>
-		writeEditorDrivePermissionFromSetup(ctx, args, setup)
-	);
+	return loadEditorProfileByToken(ctx, args.editorTokenIdentifier)
+		.andThen(requireActiveEditor)
+		.andThen(() => getDriveSetup(ctx, args.bookingId))
+		.andThen((setup: DriveSetupInfo | null) =>
+			writeEditorDrivePermissionFromSetup(ctx, args, setup)
+		);
 }
 
 function writeEditorDrivePermissionFromSetup(
@@ -203,9 +232,12 @@ export function saveEditorDrivePermissionsStatus(
 	ctx: MutationCtx,
 	args: { bookingId: Id<"bookings">; editorTokenIdentifier: string; status: "failed" | "ready" }
 ) {
-	return getDriveSetup(ctx, args.bookingId).andThen((setup: DriveSetupInfo | null) =>
-		writeEditorDrivePermissionsStatusFromSetup(ctx, args, setup)
-	);
+	return loadEditorProfileByToken(ctx, args.editorTokenIdentifier)
+		.andThen(requireActiveEditor)
+		.andThen(() => getDriveSetup(ctx, args.bookingId))
+		.andThen((setup: DriveSetupInfo | null) =>
+			writeEditorDrivePermissionsStatusFromSetup(ctx, args, setup)
+		);
 }
 
 function writeEditorDrivePermissionsStatusFromSetup(
@@ -255,17 +287,8 @@ function claimEditorAssignmentEmailFromSetup(
 
 	return loadEditorProfileByToken(ctx, args.editorTokenIdentifier).andThen(
 		(editor: Doc<"editorProfiles"> | null) =>
-			claimEditorAssignmentEmailForEditorStep(ctx, { ...setup, driveSession }, args, editor)
+			claimEditorAssignmentEmailForEditor(ctx, { ...setup, driveSession }, args, editor)
 	);
-}
-
-function claimEditorAssignmentEmailForEditorStep(
-	ctx: MutationCtx,
-	setup: DriveSetupInfo & { driveSession: Doc<"driveSessions"> },
-	args: Parameters<typeof claimEditorAssignmentEmail>[1],
-	editor: Doc<"editorProfiles"> | null
-) {
-	return claimEditorAssignmentEmailForEditor(ctx, setup, args, editor);
 }
 
 export function saveEditorAssignmentEmailResult(
@@ -279,14 +302,6 @@ export function saveEditorAssignmentEmailResult(
 ) {
 	return loadDriveSessionRowByBookingId(ctx, args.bookingId).andThen(
 		(driveSession: Doc<"driveSessions"> | null) =>
-			saveEditorAssignmentEmailResultForLoadedSession(ctx, args, driveSession)
+			saveEditorAssignmentEmailResultForSession(ctx, driveSession, args)
 	);
-}
-
-function saveEditorAssignmentEmailResultForLoadedSession(
-	ctx: MutationCtx,
-	args: Parameters<typeof saveEditorAssignmentEmailResult>[1],
-	driveSession: Doc<"driveSessions"> | null
-) {
-	return saveEditorAssignmentEmailResultForSession(ctx, driveSession, args);
 }

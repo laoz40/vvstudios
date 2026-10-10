@@ -12,6 +12,7 @@ import {
 	runEditorDriveAccessUpdate,
 	type DriveEditorPermissionsError
 } from "#convex/services/drive/driveEditorPermissions";
+import { retireEditorDriveAccess as retireEditorDriveAccessStep } from "#convex/services/drive/editorRetirement";
 
 type RetryEditorAccessError =
 	| DriveEditorPermissionsError
@@ -45,6 +46,12 @@ export const updateEditorDriveAccess = internalAction({
 	args: { bookingId: v.id("bookings"), previousEditorTokenIdentifier: v.string() },
 	handler: (ctx, args): Promise<Result<null, DriveEditorPermissionsError>> =>
 		runEditorDriveAccessUpdate(ctx, args).match(tupleOk, tupleErr)
+});
+
+export const retireEditorDriveAccess = internalAction({
+	args: { editorTokenIdentifier: v.string() },
+	handler: (ctx, args): Promise<Result<null, DriveEditorPermissionsError>> =>
+		retireEditorDriveAccessStep(ctx, args).match(tupleOk, tupleErr)
 });
 
 export const retryPreviousEditorRemoval = action({

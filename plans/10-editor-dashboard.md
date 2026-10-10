@@ -79,12 +79,12 @@ The steps below group the implemented behavior by feature. They no longer imply 
    - Add an admin-only Editors tab backed by functions protected with `update:editor-access`.
    - Let admins activate or deactivate editors and save private editor notes.
    - Show each editor's active state, current workload status (`assigned`, `editing`, or `unassigned`), latest assignment time, and persistent completed-edit total.
-   - On deactivation, retain all booking assignment identifiers for audit history and immediately deny the editor's dashboard query and actions.
-   - Keep sign-in profile refresh from reactivating an inactive editor. Admins may reactivate the editor or manually reassign affected sessions.
+   - On deactivation, unassign bookings whose `editStatus` is not `completed`, preserve completed-session attribution, immediately deny dashboard access, and revoke all editor Drive access, including completed sessions and shared client assets.
+   - Keep sign-in profile refresh from reactivating an inactive editor. Reactivation does not restore assignments or Drive access.
    - Record an editor's latest assignment time when they receive a session.
    - Increment the assigned editor's completed-edit total only when an assigned session transitions into `completed`; repeated saves of `completed` must not increment it again.
    - Restrict new assignments and reassignments to confirmed, visible sessions. Allow an existing assignment to be removed even after the session becomes ineligible.
-   - Test editor listing and projections, notes, activation and deactivation, immediate access loss, retained assignments, failed sign-in reactivation, reactivation, assignment timestamps, completed-edit totals, and assignment eligibility.
+   - Test editor listing and projections, notes, activation and deactivation, immediate access loss, unfinished-session unassignment, completed-session attribution, Drive revocation and recovery, failed sign-in reactivation, reactivation, assignment timestamps, completed-edit totals, and assignment eligibility.
 
 8. **Close every remaining backend authorization path** _(implemented earlier alongside the permission foundation)_
    - Assign a specific permission to each sensitive query, mutation, and action rather than introducing a broad `manage:sessions` permission.
@@ -109,7 +109,7 @@ The steps below group the implemented behavior by feature. They no longer imply 
 - **Client notes:** keep booking notes visible because editors need the client's production instructions. If customers may enter sensitive contact or billing data there, add a separate editor-facing production-notes field before rollout.
 - **Role source:** keep Clerk public metadata only for identifying admins (`role: "admin"`). Every other authenticated user requires an active Convex editor profile. Clerk sign-up remains invite-only.
 - **Assignment cardinality:** assign one editor per session initially. This keeps the schema, query, policy, and admin UI simple.
-- **Deactivated editors:** retain assignments for audit history and block access immediately. Admins can reactivate the editor or manually reassign affected sessions.
+- **Deactivated editors:** retain only completed-session attribution, unassign unfinished sessions, block dashboard access immediately, and revoke all editor Drive permissions. Reactivation does not restore assignments or access.
 - **Existing data:** the new booking assignment field is optional, so existing sessions remain unassigned. No backfill is recommended unless existing live sessions must appear in an editor dashboard; confirm that need before implementation.
 - **Security model:** use granular `action:resource` permissions derived from the role rather than scattered `isAdmin` checks. Backend authorization and response shaping remain authoritative; `hasPermission` only controls the UI.
 

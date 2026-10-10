@@ -169,11 +169,40 @@ export const getEditorDriveAccessToRemove = internalQuery({
 		driveInternal.getEditorDriveAccessToRemove(ctx, args).match(tupleOk, tupleErr)
 });
 
+export const getEditorRetirementSessions = internalQuery({
+	args: { editorTokenIdentifier: v.string() },
+	handler: (ctx, args) =>
+		driveInternal
+			.getEditorRetirementSessions(ctx, args.editorTokenIdentifier)
+			.match(tupleOk, tupleErr)
+});
+
+export const getEditorRetirementAssets = internalQuery({
+	args: { editorTokenIdentifier: v.string() },
+	handler: (ctx, args) =>
+		driveInternal
+			.getEditorRetirementAssets(ctx, args.editorTokenIdentifier)
+			.match(tupleOk, tupleErr)
+});
+
+export const clearEditorAssetPermission = internalMutation({
+	args: { permissionId: v.id("driveClientEditorPermissions"), editorTokenIdentifier: v.string() },
+	handler: (ctx, args) =>
+		driveInternal.clearEditorAssetPermission(ctx, args).match(tupleOk, tupleErr)
+});
+
+export const markEditorDriveAccessRevoked = internalMutation({
+	args: { driveSessionId: v.id("driveSessions"), editorTokenIdentifier: v.string() },
+	handler: (ctx, args) =>
+		driveInternal.markEditorDriveAccessRevoked(ctx, args).match(tupleOk, tupleErr)
+});
+
 export const clearPreviousEditorDriveAccess = internalMutation({
 	args: {
 		driveClientEditorPermissionId: v.union(v.id("driveClientEditorPermissions"), v.null()),
 		driveSessionId: v.id("driveSessions"),
-		editorTokenIdentifier: v.string()
+		editorTokenIdentifier: v.string(),
+		retired: v.boolean()
 	},
 	handler: (ctx, args) =>
 		driveInternal.clearPreviousEditorDriveAccess(ctx, args).match(tupleOk, tupleErr)

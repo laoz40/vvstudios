@@ -126,6 +126,8 @@ function editorDrivePermissionsAttentionLabel(
 			return "Editor access will be set up after the session folders are ready";
 		case "ready":
 			return editorDrivePermissionsCompleteLabel();
+		case "revoked":
+			return "Editor Google Drive access revoked";
 		case "not_assigned":
 			return "No editor assigned";
 		default:
@@ -208,10 +210,13 @@ function buildEditorDrivePermissionsRow(
 	editor: EditorDrivePermissions,
 	driveFoldersReady: boolean
 ) {
-	if (editor.status === "ready") {
+	if (editor.status === "ready" || editor.status === "revoked") {
 		return {
 			variant: "complete" as const,
-			label: editorDrivePermissionsCompleteLabel(),
+			label:
+				editor.status === "revoked"
+					? "Editor Google Drive access revoked"
+					: editorDrivePermissionsCompleteLabel(),
 			showRetry: false
 		};
 	}
@@ -408,22 +413,24 @@ function EditorDrivePermissionRows({
 					) : undefined
 				}
 			/>
-			<DriveStatusRow
-				variant={assignmentEmailRow.variant}
-				label={assignmentEmailRow.label}
-				retry={
-					editorDrivePermissions.status === "ready" &&
-					editorDrivePermissions.assignmentEmailStatus === "failed" ? (
-						<DriveInlineRetryButton
-							run={() => retryEditorAssignmentEmail({ bookingId })}
-							label="Retry"
-							pendingLabel="Sending"
-							errorMessage="Editor assignment email could not be sent."
-							successMessage="Assignment email sent."
-						/>
-					) : undefined
-				}
-			/>
+			{editorDrivePermissions.status !== "revoked" ? (
+				<DriveStatusRow
+					variant={assignmentEmailRow.variant}
+					label={assignmentEmailRow.label}
+					retry={
+						editorDrivePermissions.status === "ready" &&
+						editorDrivePermissions.assignmentEmailStatus === "failed" ? (
+							<DriveInlineRetryButton
+								run={() => retryEditorAssignmentEmail({ bookingId })}
+								label="Retry"
+								pendingLabel="Sending"
+								errorMessage="Editor assignment email could not be sent."
+								successMessage="Assignment email sent."
+							/>
+						) : undefined
+					}
+				/>
+			) : null}
 		</>
 	);
 }

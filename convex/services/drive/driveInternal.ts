@@ -35,8 +35,12 @@ export { getDriveSetup } from "#convex/services/drive/driveSetupQuery";
 
 export {
 	claimEditorAssignmentEmail,
+	clearEditorAssetPermission,
 	clearPreviousEditorDriveAccess,
 	getEditorDriveAccessToRemove,
+	getEditorRetirementAssets,
+	getEditorRetirementSessions,
+	markEditorDriveAccessRevoked,
 	getEditorDriveSetup,
 	getFailedEditorRemoval,
 	markPreviousEditorRemovalFailed,

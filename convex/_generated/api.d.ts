@@ -56,6 +56,7 @@ import type * as lib_drive_driveLookup from "../lib/drive/driveLookup.js";
 import type * as lib_drive_driveScheduling from "../lib/drive/driveScheduling.js";
 import type * as lib_drive_driveSetupLoad from "../lib/drive/driveSetupLoad.js";
 import type * as lib_drive_driveStatus from "../lib/drive/driveStatus.js";
+import type * as lib_drive_editorRetirement from "../lib/drive/editorRetirement.js";
 import type * as lib_drive_googleDrive from "../lib/drive/googleDrive.js";
 import type * as lib_drive_sessionFolders_allocateNumbers from "../lib/drive/sessionFolders/allocateNumbers.js";
 import type * as lib_drive_sessionFolders_cancelCleanup from "../lib/drive/sessionFolders/cancelCleanup.js";
@@ -165,6 +166,7 @@ import type * as services_drive_driveInternalEditor from "../services/drive/driv
 import type * as services_drive_driveSetupQuery from "../services/drive/driveSetupQuery.js";
 import type * as services_drive_driveStatusQuery from "../services/drive/driveStatusQuery.js";
 import type * as services_drive_editorDrivePermissions from "../services/drive/editorDrivePermissions.js";
+import type * as services_drive_editorRetirement from "../services/drive/editorRetirement.js";
 import type * as services_drive_ensureSessionDriveFolderClientSteps from "../services/drive/ensureSessionDriveFolderClientSteps.js";
 import type * as services_drive_ensureSessionDriveFolderHelpers from "../services/drive/ensureSessionDriveFolderHelpers.js";
 import type * as services_drive_ensureSessionDriveFolderSessionSteps from "../services/drive/ensureSessionDriveFolderSessionSteps.js";
@@ -312,6 +314,7 @@ declare const fullApi: ApiFromModules<{
   "lib/drive/driveScheduling": typeof lib_drive_driveScheduling;
   "lib/drive/driveSetupLoad": typeof lib_drive_driveSetupLoad;
   "lib/drive/driveStatus": typeof lib_drive_driveStatus;
+  "lib/drive/editorRetirement": typeof lib_drive_editorRetirement;
   "lib/drive/googleDrive": typeof lib_drive_googleDrive;
   "lib/drive/sessionFolders/allocateNumbers": typeof lib_drive_sessionFolders_allocateNumbers;
   "lib/drive/sessionFolders/cancelCleanup": typeof lib_drive_sessionFolders_cancelCleanup;
@@ -421,6 +424,7 @@ declare const fullApi: ApiFromModules<{
   "services/drive/driveSetupQuery": typeof services_drive_driveSetupQuery;
   "services/drive/driveStatusQuery": typeof services_drive_driveStatusQuery;
   "services/drive/editorDrivePermissions": typeof services_drive_editorDrivePermissions;
+  "services/drive/editorRetirement": typeof services_drive_editorRetirement;
   "services/drive/ensureSessionDriveFolderClientSteps": typeof services_drive_ensureSessionDriveFolderClientSteps;
   "services/drive/ensureSessionDriveFolderHelpers": typeof services_drive_ensureSessionDriveFolderHelpers;
   "services/drive/ensureSessionDriveFolderSessionSteps": typeof services_drive_ensureSessionDriveFolderSessionSteps;
