@@ -14,7 +14,7 @@ export const Route = createFileRoute("/_public/_convex/package-schedule/$token")
 
 function PackageSchedulePage() {
 	const { token } = Route.useParams();
-	const packageResult = useQuery(api.packageScheduling.getPackageByToken, { token });
+	const packageResult = useQuery(api.packages.packageScheduling.getPackageByToken, { token });
 
 	if (packageResult === undefined) {
 		return (

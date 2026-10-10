@@ -291,7 +291,7 @@
 			"rules": { "max-lines": "off" }
 		},
 		{
-			"files": ["convex/lib/tests/**"],
+			"files": ["convex/shared/lib/tests/**"],
 			"rules": {
 				"typescript/no-unsafe-type-assertion": "off",
 				"convex-layers/no-lib-test-setup-import": "error"
@@ -299,25 +299,46 @@
 		},
 		{ "files": ["convex/tests/**"], "rules": { "anti-slop/no-module-mocking": "error" } },
 		{
-			"files": ["convex/lib/**", "convex/services/**", "convex/*.ts"],
+			"files": [
+				"convex/lib/**",
+				"convex/services/**",
+				"convex/*/lib/**",
+				"convex/*/services/**",
+				"convex/shared/lib/**",
+				"convex/shared/services/**",
+				"convex/*.ts",
+				"convex/*/*.ts"
+			],
 			"rules": {
 				"neverthrow/no-service-error-remap-switch": "error",
 				"neverthrow/no-trypromise-rethrow": "error"
 			}
 		},
 		{
-			"files": ["convex/services/**", "convex/*.ts"],
+			"files": [
+				"convex/services/**",
+				"convex/*/services/**",
+				"convex/shared/services/**",
+				"convex/*.ts",
+				"convex/*/*.ts"
+			],
 			"rules": { "neverthrow/no-export-okorthrow-on-call": "error" }
 		},
 		{
-			"files": ["convex/lib/**"],
+			"files": ["convex/lib/**", "convex/*/lib/**", "convex/shared/lib/**"],
 			"rules": {
 				"convex-layers/no-lib-loader-orchestration": "error",
 				"neverthrow/no-export-okorthrow-on-call": "error"
 			}
 		},
 		{
-			"files": ["convex/services/**", "convex/*.ts"],
+			"files": [
+				"convex/services/**",
+				"convex/*/services/**",
+				"convex/shared/services/**",
+				"convex/*.ts",
+				"convex/*/*.ts"
+			],
 			"rules": {
 				"convex-layers/no-db-in-services": "error",
 				"convex-layers/no-lib-reexport": "error",

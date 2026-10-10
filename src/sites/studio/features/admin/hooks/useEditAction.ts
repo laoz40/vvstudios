@@ -13,7 +13,7 @@ import { getSessionEditWarningState } from "#studio/features/admin/lib/session-e
 import type { SessionRecord } from "#studio/features/admin/lib/admin-sessions";
 
 export function useEditAction(session: SessionRecord) {
-	const updateSession = useAction(api.googleCalendar.updateSessionFromAdmin);
+	const updateSession = useAction(api.googleCalendar.googleCalendar.updateSessionFromAdmin);
 	const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 
 	const invoice = useEditInvoice({ kind: "booking", bookingId: session._id }, () => {

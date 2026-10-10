@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { normalizePhone } from "#convex/lib/contactNormalization";
+import { normalizePhone } from "#convex/shared/lib/contactNormalization";
 
 const bookingPhoneInputSchema = z
 	.string()

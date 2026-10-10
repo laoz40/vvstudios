@@ -17,7 +17,7 @@ tester.run("convex-layers/no-lib-test-setup-import", noLibTestSetupImportRule, {
 	valid: [
 		{
 			filename: libTest,
-			code: `import { parse } from "#convex/lib/booking/parse";`
+			code: `import { parse } from "#convex/booking/lib/parse";`
 		},
 		{
 			filename: libTest,

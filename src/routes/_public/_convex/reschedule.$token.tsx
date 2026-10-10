@@ -50,10 +50,10 @@ function ReschedulePage() {
 	const navigate = useNavigate();
 
 	// Convex reads and actions
-	const rescheduleSession = useAction(api.googleCalendar.rescheduleSession);
+	const rescheduleSession = useAction(api.googleCalendar.googleCalendar.rescheduleSession);
 
 	const liveRescheduleBooking = useQuery(
-		api.sessionReschedule.getRescheduleSessionByToken,
+		api.sessions.sessionReschedule.getRescheduleSessionByToken,
 		activeDevScenario ? "skip" : { token }
 	);
 

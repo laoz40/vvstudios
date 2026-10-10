@@ -341,8 +341,14 @@ function ClientDrivePermissionRows({
 	bookingId: Id<"bookings">;
 	clientDrivePermissions: ClientDrivePermissions;
 }) {
-	const retryClientDrivePermissions = useAction(api.googleCalendar.retryClientDrivePermissions);
-	const retryClientAssetsEmail = useAction(api.googleCalendar.retryClientAssetsEmail);
+	const retryClientDrivePermissions = useAction(
+		api.googleCalendar.googleCalendar.retryClientDrivePermissions
+	);
+
+	const retryClientAssetsEmail = useAction(
+		api.googleCalendar.googleCalendar.retryClientAssetsEmail
+	);
+
 	const permissionsRow = buildClientDrivePermissionsRow(clientDrivePermissions);
 	const assetsEmailRow = buildClientAssetsEmailRow(clientDrivePermissions);
 
@@ -391,8 +397,8 @@ function EditorDrivePermissionRows({
 	driveFoldersReady: boolean;
 	editorDrivePermissions: EditorDrivePermissions;
 }) {
-	const retryEditorAccess = useAction(api.drive.retryEditorAccess);
-	const retryEditorAssignmentEmail = useAction(api.drive.retryEditorAssignmentEmail);
+	const retryEditorAccess = useAction(api.drive.drive.retryEditorAccess);
+	const retryEditorAssignmentEmail = useAction(api.drive.drive.retryEditorAssignmentEmail);
 	const permissionsRow = buildEditorDrivePermissionsRow(editorDrivePermissions, driveFoldersReady);
 	const assignmentEmailRow = buildEditorAssignmentEmailRow(editorDrivePermissions);
 
@@ -436,7 +442,7 @@ function EditorDrivePermissionRows({
 }
 
 function PreviousEditorRemovalRow({ bookingId }: { bookingId: Id<"bookings"> }) {
-	const retryPreviousEditorRemoval = useAction(api.drive.retryPreviousEditorRemoval);
+	const retryPreviousEditorRemoval = useAction(api.drive.drive.retryPreviousEditorRemoval);
 
 	return (
 		<DriveStatusRow

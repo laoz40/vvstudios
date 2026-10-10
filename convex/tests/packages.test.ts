@@ -20,7 +20,7 @@ import { api, internal } from "#convex/_generated/api";
 import type { Id } from "#convex/_generated/dataModel";
 import type { BookingAddon } from "#/domain/booking/catalog";
 import { getPackageExpiresAt } from "#/domain/booking/pricing";
-import { hashRescheduleToken } from "#convex/lib/sessions/sessionRescheduleLinks";
+import { hashRescheduleToken } from "#convex/sessions/lib/sessionRescheduleLinks";
 import { createConvexTest } from "#convex/test.setup";
 
 const now = Date.parse("2030-01-01T00:00:00.000Z");
@@ -53,7 +53,7 @@ describe("package payment claim", () => {
 		const expiresAt = getPackageExpiresAt(now, 4);
 
 		const [error, paymentResult] = await t.mutation(
-			internal.packages.markPackagePaidAndCreateScheduleToken,
+			internal.packages.packages.markPackagePaidAndCreateScheduleToken,
 			{ packageId, paidAt: now }
 		);
 
@@ -81,13 +81,13 @@ describe("package payment claim", () => {
 		const packageId = await seedPendingPackage(t);
 
 		expect(
-			await t.mutation(internal.packages.markPackagePaidAndCreateScheduleToken, {
+			await t.mutation(internal.packages.packages.markPackagePaidAndCreateScheduleToken, {
 				packageId,
 				paidAt: now
 			})
 		).toEqual([null, expect.objectContaining({ paidAt: now })]);
 		expect(
-			await t.mutation(internal.packages.markPackagePaidAndCreateScheduleToken, {
+			await t.mutation(internal.packages.packages.markPackagePaidAndCreateScheduleToken, {
 				packageId,
 				paidAt: now + 1
 			})
@@ -99,15 +99,15 @@ describe("package payment claim", () => {
 		const t = createConvexTest();
 		const packageId = await seedPendingPackage(t);
 
-		await t.mutation(internal.packages.markPackagePaidAndCreateScheduleToken, {
+		await t.mutation(internal.packages.packages.markPackagePaidAndCreateScheduleToken, {
 			packageId,
 			paidAt: now
 		});
-		await t.mutation(internal.packages.markPackageScheduleEmailAttempt, {
+		await t.mutation(internal.packages.packages.markPackageScheduleEmailAttempt, {
 			packageId,
 			status: "sent"
 		});
-		await t.mutation(internal.packages.markPackageScheduleEmailAttempt, {
+		await t.mutation(internal.packages.packages.markPackageScheduleEmailAttempt, {
 			packageId,
 			status: "sent"
 		});
@@ -147,7 +147,7 @@ describe("admin package management", () => {
 
 		const result = await t
 			.withIdentity(adminIdentity)
-			.mutation(api.packages.updatePackageFromAdmin, {
+			.mutation(api.packages.packages.updatePackageFromAdmin, {
 				packageId: packageId,
 				...editedPackage,
 				packageSize: 4
@@ -162,7 +162,7 @@ describe("admin package management", () => {
 		const packageId = await seedPackage(t);
 		const admin = t.withIdentity(adminIdentity);
 
-		const result = await admin.mutation(api.packages.updatePackageFromAdmin, {
+		const result = await admin.mutation(api.packages.packages.updatePackageFromAdmin, {
 			packageId: packageId,
 			name: "Updated customer",
 			phone: "0411 111 111",
@@ -200,7 +200,7 @@ describe("admin package management", () => {
 		const packageId = await seedPackage(t);
 		const admin = t.withIdentity(adminIdentity);
 
-		const calculatedResult = await admin.mutation(api.packages.updatePackageFromAdmin, {
+		const calculatedResult = await admin.mutation(api.packages.packages.updatePackageFromAdmin, {
 			packageId: packageId,
 			...editedPackage
 		});
@@ -234,7 +234,7 @@ describe("package receipt number", () => {
 		const bookingId = await seedPackageSession(t, packageId, 0, "confirmed");
 		const receiptNumber = "VV-20300101-ABCD";
 
-		const [error] = await t.mutation(internal.packages.markPackageReceiptEmailAttempt, {
+		const [error] = await t.mutation(internal.packages.packages.markPackageReceiptEmailAttempt, {
 			packageId,
 			receiptNumber,
 			status: "sent"
@@ -270,12 +270,12 @@ describe("package receipt number", () => {
 
 		const receiptArgs = { packageId, receiptNumber, status: "sent" as const };
 
-		expect(await t.mutation(internal.packages.markPackageReceiptEmailAttempt, receiptArgs)).toEqual(
-			[null, null]
-		);
-		expect(await t.mutation(internal.packages.markPackageReceiptEmailAttempt, receiptArgs)).toEqual(
-			[null, null]
-		);
+		expect(
+			await t.mutation(internal.packages.packages.markPackageReceiptEmailAttempt, receiptArgs)
+		).toEqual([null, null]);
+		expect(
+			await t.mutation(internal.packages.packages.markPackageReceiptEmailAttempt, receiptArgs)
+		).toEqual([null, null]);
 
 		const sessions = await readAdminSessions(t, `receipt:${receiptNumber}`);
 		expect(sessions).toHaveLength(3);
@@ -317,7 +317,7 @@ describe("package receipt number", () => {
 		const sessionsBefore = await readAdminSessions(t);
 
 		await expect(
-			t.mutation(internal.packages.markPackageReceiptEmailAttempt, {
+			t.mutation(internal.packages.packages.markPackageReceiptEmailAttempt, {
 				packageId,
 				receiptNumber: "VV-20300101-ROLLBACK",
 				status: "sent"
@@ -345,7 +345,7 @@ async function seedEditorProfile(t: TestClient, tokenIdentifier: string, display
 async function readAdminSessions(t: TestClient, searchQuery?: string) {
 	const result = await t
 		.withIdentity(adminIdentity)
-		.query(api.sessions.listSessions, {
+		.query(api.sessions.sessions.listSessions, {
 			paginationOpts: { numItems: 20, cursor: null },
 			view: "all",
 			includeStale: true,
@@ -479,7 +479,9 @@ async function seedPaidPackageWithToken(t: TestClient) {
 }
 
 async function readPackageSlots(t: TestClient, token: string) {
-	const [error, packageRecord] = await t.query(api.packageScheduling.getPackageByToken, { token });
+	const [error, packageRecord] = await t.query(api.packages.packageScheduling.getPackageByToken, {
+		token
+	});
 
 	if (error !== null) throw new Error("Expected package scheduling data");
 

@@ -43,10 +43,13 @@ function useBookingCompletePageData(search: BookingCompleteSearch) {
 			? { stripeSessionId: usableStripeSessionId }
 			: "skip";
 
-	const liveBooking = useQuery(api.sessions.getSessionStatusByStripeSessionId, stripeQueryArgs);
+	const liveBooking = useQuery(
+		api.sessions.sessions.getSessionStatusByStripeSessionId,
+		stripeQueryArgs
+	);
 
 	const livePackage = useQuery(
-		api.packageCheckout.getPackageStatusByStripeSessionId,
+		api.packages.packageCheckout.getPackageStatusByStripeSessionId,
 		stripeQueryArgs !== "skip" && liveBooking === null ? stripeQueryArgs : "skip"
 	);
 

@@ -42,7 +42,7 @@ export function BookingStatusLayout({
 	const [isCreatingRescheduleLink, setIsCreatingRescheduleLink] = useState(false);
 
 	const createFailedSessionRescheduleLink = useMutation(
-		api.sessionReschedule.createPublicFailedSessionRescheduleLink
+		api.sessions.sessionReschedule.createPublicFailedSessionRescheduleLink
 	);
 
 	const isFailedBooking = bookingStatus === "failed";

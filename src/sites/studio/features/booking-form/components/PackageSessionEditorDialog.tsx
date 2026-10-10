@@ -14,7 +14,7 @@ import type { FunctionReturnType } from "convex/server";
 import { api } from "#convex/_generated/api";
 
 type PackageData = NonNullable<
-	FunctionReturnType<typeof api.packageScheduling.getPackageByToken>[1]
+	FunctionReturnType<typeof api.packages.packageScheduling.getPackageByToken>[1]
 >;
 
 interface PackageSessionSelection {

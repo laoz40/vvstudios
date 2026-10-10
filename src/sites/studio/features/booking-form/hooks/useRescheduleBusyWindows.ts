@@ -41,7 +41,7 @@ export function useRescheduleBusyWindows({
 	const queryClient = useQueryClient();
 
 	const fetchRescheduleBusyWindows = useAction(
-		api.googleCalendar.getRescheduleBookableRangeBusyWindows
+		api.googleCalendar.googleCalendar.getRescheduleBookableRangeBusyWindows
 	);
 
 	// Reuse the same browser key for Google Calendar rate limiting across visits.

@@ -8,7 +8,9 @@ import { selectablePillButtonClassName } from "#studio/features/booking-form/lib
 import { cn } from "#/lib/utils";
 
 interface PackageSessionDetailsModalProps {
-	packageData: NonNullable<FunctionReturnType<typeof api.packageScheduling.getPackageByToken>[1]>;
+	packageData: NonNullable<
+		FunctionReturnType<typeof api.packages.packageScheduling.getPackageByToken>[1]
+	>;
 }
 
 export function PackageSessionDetailsModal({ packageData }: PackageSessionDetailsModalProps) {

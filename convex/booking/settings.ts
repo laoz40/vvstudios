@@ -1,7 +1,7 @@
 import { v } from "convex/values";
 import { mutation, query } from "#convex/_generated/server";
 import { tupleErr, tupleOk } from "#/lib/result";
-import { requirePermission } from "#convex/services/auth";
+import { requirePermission } from "#convex/shared/services/auth";
 import {
 	loadBookingAvailabilitySettings,
 	writeBookingAvailabilitySettings

@@ -88,8 +88,8 @@ export function EmployeesTable({
 	editors,
 	isLoadingEmployees
 }: EmployeesTableProps) {
-	const enrollAdminAsEditor = useMutation(api.auth.enrollAdminAsEditor);
-	const updateEmployeeAccess = useMutation(api.employees.updateEmployeeAccess);
+	const enrollAdminAsEditor = useMutation(api.shared.auth.enrollAdminAsEditor);
+	const updateEmployeeAccess = useMutation(api.employees.employees.updateEmployeeAccess);
 	const [showRetired, setShowRetired] = useState(false);
 	const [openActionsEditorToken, setOpenActionsEditorToken] = useState<string | null>(null);
 	const [updatingEditorToken, setUpdatingEditorToken] = useState<string | null>(null);

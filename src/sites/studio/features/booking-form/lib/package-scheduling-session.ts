@@ -5,18 +5,22 @@ import { tryCatch, type UnexpectedError } from "#/lib/result";
 import type { BookingFormValues } from "#studio/features/booking-form/lib/booking-form-model";
 
 type PackageData = NonNullable<
-	FunctionReturnType<typeof api.packageScheduling.getPackageByToken>[1]
+	FunctionReturnType<typeof api.packages.packageScheduling.getPackageByToken>[1]
 >;
 
 export type PackageSession = PackageData["sessions"][number];
 
 type SavePackageBookingError =
-	| NonNullable<FunctionReturnType<typeof api.packageScheduling.createPackageSession>[0]>
-	| NonNullable<FunctionReturnType<typeof api.packageScheduling.reschedulePackageSession>[0]>
+	| NonNullable<FunctionReturnType<typeof api.packages.packageScheduling.createPackageSession>[0]>
+	| NonNullable<
+			FunctionReturnType<typeof api.packages.packageScheduling.reschedulePackageSession>[0]
+	  >
 	| UnexpectedError;
 
 type UnschedulePackageSessionError =
-	| NonNullable<FunctionReturnType<typeof api.packageScheduling.unschedulePackageSession>[0]>
+	| NonNullable<
+			FunctionReturnType<typeof api.packages.packageScheduling.unschedulePackageSession>[0]
+	  >
 	| UnexpectedError;
 
 export type PackageSessionInput = {
@@ -41,10 +45,10 @@ export async function performPackageSessionSave(
 	sessionInput: PackageSessionInput,
 	createPackageSession: (
 		input: PackageSessionInput
-	) => Promise<FunctionReturnType<typeof api.packageScheduling.createPackageSession>>,
+	) => Promise<FunctionReturnType<typeof api.packages.packageScheduling.createPackageSession>>,
 	reschedulePackageSession: (
 		input: PackageSessionInput & { bookingId: Id<"bookings"> }
-	) => Promise<FunctionReturnType<typeof api.packageScheduling.reschedulePackageSession>>
+	) => Promise<FunctionReturnType<typeof api.packages.packageScheduling.reschedulePackageSession>>
 ): Promise<PackageSessionSaveOutcome> {
 	const saveOutcome = activeBooking
 		? await tryCatch(reschedulePackageSession({ bookingId: activeBooking._id, ...sessionInput }))
@@ -69,7 +73,7 @@ export async function performPackageSessionUnschedule(
 	unschedulePackageSession: (input: {
 		bookingId: Id<"bookings">;
 		token: string;
-	}) => Promise<FunctionReturnType<typeof api.packageScheduling.unschedulePackageSession>>
+	}) => Promise<FunctionReturnType<typeof api.packages.packageScheduling.unschedulePackageSession>>
 ): Promise<PackageSessionUnscheduleOutcome> {
 	const [unscheduleError] = await tryCatch(unschedulePackageSession({ bookingId, token }));
 

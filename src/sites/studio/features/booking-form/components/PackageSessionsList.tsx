@@ -7,7 +7,7 @@ import { PackageSessionListItem } from "#studio/features/booking-form/components
 import type { BookingFormValues } from "#studio/features/booking-form/lib/booking-form-model";
 
 type PackageData = NonNullable<
-	FunctionReturnType<typeof api.packageScheduling.getPackageByToken>[1]
+	FunctionReturnType<typeof api.packages.packageScheduling.getPackageByToken>[1]
 >;
 
 interface PackageSessionsListProps {

@@ -28,7 +28,7 @@ describe("listSessions admin views", () => {
 
 		const result = await t
 			.withIdentity(adminIdentity)
-			.query(api.sessions.listSessions, { paginationOpts, view: "inbox" });
+			.query(api.sessions.sessions.listSessions, { paginationOpts, view: "inbox" });
 
 		const ids = result.page.map((session) => session._id);
 		expect(ids).toContain(visibleId);
@@ -42,7 +42,7 @@ describe("listSessions admin views", () => {
 
 		const result = await t
 			.withIdentity(adminIdentity)
-			.query(api.sessions.listSessions, { paginationOpts, view: "all" });
+			.query(api.sessions.sessions.listSessions, { paginationOpts, view: "all" });
 
 		expect(result.page.map((session) => session._id)).toContain(archivedId);
 	});

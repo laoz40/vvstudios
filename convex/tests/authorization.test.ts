@@ -25,7 +25,7 @@ import { makeFunctionReference } from "convex/server";
 import { describe, expect, test } from "vitest";
 import { api } from "#convex/_generated/api";
 import type { Id } from "#convex/_generated/dataModel";
-import { requirePermission } from "#convex/services/auth";
+import { requirePermission } from "#convex/shared/services/auth";
 import { createConvexTest } from "#convex/test.setup";
 import { PERMISSIONS, ROLE_PERMISSIONS } from "#/lib/permissions";
 import { tupleErr, tupleOk } from "#/lib/result";
@@ -36,7 +36,7 @@ const listEditorSessions = makeFunctionReference<
 	"query",
 	{ paginationOpts: { cursor: string | null; numItems: number } },
 	unknown
->("sessions:listEditorSessions");
+>("sessions/sessions:listEditorSessions");
 
 const identities = [
 	{ label: "anonymous users", identity: null, reason: "NOT_AUTHENTICATED" },
@@ -52,9 +52,9 @@ describe("admin list authorization", () => {
 		const t = createConvexTest();
 		const client = identity === null ? t : t.withIdentity(identity);
 
-		await expect(client.query(api.sessions.listSessions, { paginationOpts })).rejects.toMatchObject(
-			{ data: { reason } }
-		);
+		await expect(
+			client.query(api.sessions.sessions.listSessions, { paginationOpts })
+		).rejects.toMatchObject({ data: { reason } });
 	});
 
 	test("rejects active editors from the sensitive booking list", async () => {
@@ -62,7 +62,9 @@ describe("admin list authorization", () => {
 		await seedEditorProfile(t, editorMetadataIdentity, true);
 
 		await expect(
-			t.withIdentity(editorMetadataIdentity).query(api.sessions.listSessions, { paginationOpts })
+			t
+				.withIdentity(editorMetadataIdentity)
+				.query(api.sessions.sessions.listSessions, { paginationOpts })
 		).rejects.toMatchObject({ data: { reason: "NOT_AUTHORIZED" } });
 	});
 
@@ -70,9 +72,9 @@ describe("admin list authorization", () => {
 		const t = createConvexTest();
 		const client = identity === null ? t : t.withIdentity(identity);
 
-		await expect(client.query(api.packages.listPackages, { paginationOpts })).rejects.toMatchObject(
-			{ data: { reason } }
-		);
+		await expect(
+			client.query(api.packages.packages.listPackages, { paginationOpts })
+		).rejects.toMatchObject({ data: { reason } });
 	});
 
 	test("allows an admin to read bookings and packages", async () => {
@@ -105,8 +107,8 @@ describe("admin list authorization", () => {
 		);
 
 		const [bookings, packages] = await Promise.all([
-			admin.query(api.sessions.listSessions, { paginationOpts }),
-			admin.query(api.packages.listPackages, { paginationOpts })
+			admin.query(api.sessions.sessions.listSessions, { paginationOpts }),
+			admin.query(api.packages.packages.listPackages, { paginationOpts })
 		]);
 
 		expect(bookings.page).toEqual([
@@ -127,7 +129,7 @@ describe.each(identities)("admin mutation authorization rejects $label", ({ iden
 		const before = await readBooking(t, bookingId);
 		const client = identity === null ? t : t.withIdentity(identity);
 
-		const result = await client.mutation(api.sessions.archiveSession, {
+		const result = await client.mutation(api.sessions.sessions.archiveSession, {
 			bookingId,
 			archived: true
 		});
@@ -146,7 +148,7 @@ describe("admin mutation authorization rejects inactive editors", () => {
 
 		const result = await t
 			.withIdentity(editorMetadataIdentity)
-			.mutation(api.sessions.archiveSession, { bookingId, archived: true });
+			.mutation(api.sessions.sessions.archiveSession, { bookingId, archived: true });
 
 		expect(result).toEqual([{ reason: "NOT_AUTHORIZED" }, null]);
 		expect(await readBooking(t, bookingId)).toEqual(before);
@@ -162,7 +164,7 @@ describe("admin mutation authorization rejects active editors", () => {
 
 		const result = await t
 			.withIdentity(editorMetadataIdentity)
-			.mutation(api.sessions.archiveSession, { bookingId, archived: true });
+			.mutation(api.sessions.sessions.archiveSession, { bookingId, archived: true });
 
 		expect(result).toEqual([{ reason: "NOT_AUTHORIZED" }, null]);
 		expect(await readBooking(t, bookingId)).toEqual(before);
@@ -231,7 +233,7 @@ async function seedEditorProfile(
 
 describe("editor profile access resolution", () => {
 	test("reports signed-out access without a role or permissions", async () => {
-		const result = await createConvexTest().query(api.auth.getCurrentUserAccess, {});
+		const result = await createConvexTest().query(api.shared.auth.getCurrentUserAccess, {});
 
 		expect(result).toEqual([{ reason: "NOT_AUTHENTICATED" }, null]);
 	});
@@ -239,7 +241,7 @@ describe("editor profile access resolution", () => {
 	test("reports an admin's real role and complete permissions without a profile", async () => {
 		const result = await createConvexTest()
 			.withIdentity(adminIdentity)
-			.query(api.auth.getCurrentUserAccess, {});
+			.query(api.shared.auth.getCurrentUserAccess, {});
 
 		expect(result).toEqual([
 			null,
@@ -253,7 +255,7 @@ describe("editor profile access resolution", () => {
 
 		const result = await t
 			.withIdentity(editorMetadataIdentity)
-			.query(api.auth.getCurrentUserAccess, {});
+			.query(api.shared.auth.getCurrentUserAccess, {});
 
 		expect(result).toEqual([null, { role: "editor", permissions: ROLE_PERMISSIONS.editor }]);
 	});
@@ -264,13 +266,13 @@ describe("editor profile access resolution", () => {
 
 		const inactiveResult = await t
 			.withIdentity(editorMetadataIdentity)
-			.query(api.auth.getCurrentUserAccess, {});
+			.query(api.shared.auth.getCurrentUserAccess, {});
 
 		expect(inactiveResult).toEqual([{ reason: "NOT_AUTHORIZED" }, null]);
 
 		const missingProfileResult = await createConvexTest()
 			.withIdentity(editorMetadataIdentity)
-			.query(api.auth.getCurrentUserAccess, {});
+			.query(api.shared.auth.getCurrentUserAccess, {});
 
 		expect(missingProfileResult).toEqual([{ reason: "NOT_AUTHORIZED" }, null]);
 	});
@@ -306,7 +308,9 @@ describe("requirePermission", () => {
 		const t = createConvexTest();
 
 		await expect(
-			t.withIdentity(editorMetadataIdentity).query(api.sessions.listSessions, { paginationOpts })
+			t
+				.withIdentity(editorMetadataIdentity)
+				.query(api.sessions.sessions.listSessions, { paginationOpts })
 		).rejects.toMatchObject({ data: { reason: "NOT_AUTHORIZED" } });
 	});
 
@@ -320,9 +324,9 @@ describe("requirePermission", () => {
 		);
 
 		expect(editorPermission).toMatchObject([null, editorMetadataIdentity]);
-		await expect(editor.query(api.packages.listPackages, { paginationOpts })).rejects.toMatchObject(
-			{ data: { reason: "NOT_AUTHORIZED" } }
-		);
+		await expect(
+			editor.query(api.packages.packages.listPackages, { paginationOpts })
+		).rejects.toMatchObject({ data: { reason: "NOT_AUTHORIZED" } });
 	});
 
 	test("allows admins through the shared guard", async () => {

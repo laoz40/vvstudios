@@ -15,9 +15,9 @@ export function usePackagePaymentActions(
 	packageRow: AdminPackageRow,
 	setPendingAction: SetPackagePendingAction
 ) {
-	const resendPackageEmail = useAction(api.packagePayment.resendPackageEmail);
-	const getAdminPackageReceiptPdf = useAction(api.invoices.getAdminPackageReceiptPdfById);
-	const archivePackage = useMutation(api.packages.archivePackage);
+	const resendPackageEmail = useAction(api.packages.packagePayment.resendPackageEmail);
+	const getAdminPackageReceiptPdf = useAction(api.stripe.invoices.getAdminPackageReceiptPdfById);
+	const archivePackage = useMutation(api.packages.packages.archivePackage);
 	const [isPackageEmailDialogOpen, setIsPackageEmailDialogOpen] = useState(false);
 
 	async function handleArchiveChange(archived: boolean) {

@@ -394,7 +394,7 @@ describe("employee retirement Drive cleanup", () => {
 		seedRemoteGrants();
 
 		expect(
-			await admin.mutation(api.employees.updateEmployeeAccess, {
+			await admin.mutation(api.employees.employees.updateEmployeeAccess, {
 				tokenIdentifier: editorTokenIdentifier,
 				isActive: false
 			})
@@ -418,22 +418,23 @@ describe("employee retirement Drive cleanup", () => {
 
 		const completedBookingId = requireBookingId(bookings, 1);
 
-		const [retiredStatusError, retiredStatus] = await admin.query(api.sessions.getDriveStatus, {
-			bookingId: completedBookingId
-		});
+		const [retiredStatusError, retiredStatus] = await admin.query(
+			api.sessions.sessions.getDriveStatus,
+			{ bookingId: completedBookingId }
+		);
 
 		expect(retiredStatusError).toBeNull();
 		expect(retiredStatus?.editorDrivePermissions.status).toBe("revoked");
 
 		expect(
-			await admin.mutation(api.employees.updateEmployeeAccess, {
+			await admin.mutation(api.employees.employees.updateEmployeeAccess, {
 				tokenIdentifier: editorTokenIdentifier,
 				isActive: true
 			})
 		).toEqual([null, null]);
 
 		const [reactivatedStatusError, reactivatedStatus] = await admin.query(
-			api.sessions.getDriveStatus,
+			api.sessions.sessions.getDriveStatus,
 			{ bookingId: completedBookingId }
 		);
 
@@ -450,7 +451,7 @@ describe("employee retirement Drive cleanup", () => {
 		failedDeletePermissionIds.add("session-permission-1");
 
 		expect(
-			await admin.mutation(api.employees.updateEmployeeAccess, {
+			await admin.mutation(api.employees.employees.updateEmployeeAccess, {
 				tokenIdentifier: editorTokenIdentifier,
 				isActive: false
 			})
@@ -465,12 +466,12 @@ describe("employee retirement Drive cleanup", () => {
 		);
 
 		expect(
-			await admin.action(api.drive.retryPreviousEditorRemoval, {
+			await admin.action(api.drive.drive.retryPreviousEditorRemoval, {
 				bookingId: requireBookingId(bookings, 0)
 			})
 		).toEqual([null, null]);
 		expect(
-			await admin.action(api.drive.retryPreviousEditorRemoval, {
+			await admin.action(api.drive.drive.retryPreviousEditorRemoval, {
 				bookingId: requireBookingId(bookings, 1)
 			})
 		).toEqual([null, null]);
@@ -488,7 +489,7 @@ describe("employee retirement Drive cleanup", () => {
 		expect([...remotePermissions.values()].flat()).toEqual([]);
 
 		const [driveStatusError, completedDriveStatus] = await admin.query(
-			api.sessions.getDriveStatus,
+			api.sessions.sessions.getDriveStatus,
 			{ bookingId: requireBookingId(bookings, 1) }
 		);
 
@@ -502,14 +503,14 @@ describe("employee retirement Drive cleanup", () => {
 		const { bookings } = await seedRetirementData(t);
 		holdNextPermissionCreate = true;
 
-		const setupPromise = admin.action(api.drive.retryEditorAccess, {
+		const setupPromise = admin.action(api.drive.drive.retryEditorAccess, {
 			bookingId: requireBookingId(bookings, 0)
 		});
 
 		await permissionCreateStarted;
 
 		expect(
-			await admin.mutation(api.employees.updateEmployeeAccess, {
+			await admin.mutation(api.employees.employees.updateEmployeeAccess, {
 				tokenIdentifier: editorTokenIdentifier,
 				isActive: false
 			})
@@ -526,9 +527,10 @@ describe("employee retirement Drive cleanup", () => {
 		expect(deleteRequests).toContainEqual(lastCreatedPermission);
 		expect(remotePermissions.get(lastCreatedPermission.fileId)).toEqual([]);
 
-		const [driveStatusError, driveStatus] = await admin.query(api.sessions.getDriveStatus, {
-			bookingId: requireBookingId(bookings, 0)
-		});
+		const [driveStatusError, driveStatus] = await admin.query(
+			api.sessions.sessions.getDriveStatus,
+			{ bookingId: requireBookingId(bookings, 0) }
+		);
 
 		expect(driveStatusError).toBeNull();
 		expect(driveStatus?.editorDrivePermissions.status).toBe("not_assigned");
@@ -541,7 +543,7 @@ describe("employee retirement Drive cleanup", () => {
 		seedRemoteGrants();
 		failedDeletePermissionIds.add("assets-permission");
 
-		await admin.mutation(api.employees.updateEmployeeAccess, {
+		await admin.mutation(api.employees.employees.updateEmployeeAccess, {
 			tokenIdentifier: editorTokenIdentifier,
 			isActive: false
 		});
@@ -575,13 +577,13 @@ describe("employee retirement Drive cleanup", () => {
 		);
 
 		expect(
-			await admin.mutation(api.employees.updateEmployeeAccess, {
+			await admin.mutation(api.employees.employees.updateEmployeeAccess, {
 				tokenIdentifier: editorTokenIdentifier,
 				isActive: false
 			})
 		).toEqual([null, null]);
 		expect(
-			await admin.mutation(api.sessions.assignSessionEditor, {
+			await admin.mutation(api.sessions.sessions.assignSessionEditor, {
 				bookingId: requireBookingId(bookings, 0),
 				editorTokenIdentifier: replacementEditorTokenIdentifier,
 				adminNotes: "Reassign after retirement"

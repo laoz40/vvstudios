@@ -1,5 +1,5 @@
 import { CONTACT_EMAIL } from "#/config/contact";
-import { escapeHtml, sendEmail } from "#convex/lib/email/emailSend";
+import { escapeHtml, sendEmail } from "#convex/shared/lib/email/emailSend";
 
 export function sendFeedbackEmailForMessage(message: string) {
 	return sendEmail({

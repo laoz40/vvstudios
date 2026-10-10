@@ -9,7 +9,7 @@ import {
 	readBookingAvailabilitySettings,
 	validateBookingSettings
 } from "#convex/booking/lib/bookingSettings";
-import { okOrThrow } from "#convex/lib/result";
+import { okOrThrow } from "#convex/shared/lib/result";
 import type { Doc } from "#convex/_generated/dataModel";
 
 type BookingSettingsRowValue = BookingAvailabilitySettings & {

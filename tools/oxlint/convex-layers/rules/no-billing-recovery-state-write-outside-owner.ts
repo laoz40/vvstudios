@@ -8,12 +8,12 @@ import {
 } from "../shared/direct-db-writes.ts";
 
 const TABLE_WRITERS = new Map([
-	["stripeInvoices", new Set(["convex/lib/stripe/stripeInvoices.ts"])],
+	["stripeInvoices", new Set(["convex/stripe/lib/stripeInvoices.ts"])],
 	[
 		"packageAdjustments",
 		new Set([
-			"convex/lib/packages/packageAdjustments.ts",
-			"convex/lib/packages/packageAdjustmentInvoicePayment.ts"
+			"convex/packages/lib/packageAdjustments.ts",
+			"convex/packages/lib/packageAdjustmentInvoicePayment.ts"
 		])
 	]
 ]);
@@ -22,15 +22,15 @@ const ORIGINAL_PAID_AMOUNT_WRITERS = new Map([
 	[
 		"bookings",
 		new Set([
-			"convex/lib/booking/bookingConfirmationSessionPatches.ts",
-			"convex/lib/stripe/editInvoiceDb.ts"
+			"convex/booking/lib/bookingConfirmationSessionPatches.ts",
+			"convex/stripe/lib/editInvoiceDb.ts"
 		])
 	],
 	[
 		"packages",
 		new Set([
-			"convex/lib/packages/packageUpdates.ts",
-			"convex/lib/stripe/editInvoiceDb.ts"
+			"convex/packages/lib/packageUpdates.ts",
+			"convex/stripe/lib/editInvoiceDb.ts"
 		])
 	]
 ]);
@@ -45,13 +45,13 @@ export const noBillingRecoveryStateWriteOutsideOwnerRule = defineRule({
 		},
 		messages: {
 			stripeInvoicesWrite:
-				"Write stripeInvoices through recordBookingStripeInvoice, recordPackageStripeInvoice, recordPackageAdjustmentStripeInvoice, or patchStripeInvoicePaymentStatus in convex/lib/stripe/stripeInvoices.ts.",
+				"Write stripeInvoices through recordBookingStripeInvoice, recordPackageStripeInvoice, recordPackageAdjustmentStripeInvoice, or patchStripeInvoicePaymentStatus in convex/stripe/lib/stripeInvoices.ts.",
 			packageAdjustmentsWrite:
-				"Write packageAdjustments through insertNoChargePackageAdjustment, insertPackageAdjustmentInvoice, patchPackageAdjustmentInvoiceNumber, patchPackageAdjustmentInvoiceEmailClaimed, patchPackageAdjustmentInvoiceEmailFailed, patchPackageAdjustmentInvoiceEmailSent, or patchPackageAdjustmentPaymentStatus in convex/lib/packages/packageAdjustments.ts, or claimPackageAdjustmentInvoicePayment in convex/lib/packages/packageAdjustmentInvoicePayment.ts.",
+				"Write packageAdjustments through insertNoChargePackageAdjustment, insertPackageAdjustmentInvoice, patchPackageAdjustmentInvoiceNumber, patchPackageAdjustmentInvoiceEmailClaimed, patchPackageAdjustmentInvoiceEmailFailed, patchPackageAdjustmentInvoiceEmailSent, or patchPackageAdjustmentPaymentStatus in convex/packages/lib/packageAdjustments.ts, or claimPackageAdjustmentInvoicePayment in convex/packages/lib/packageAdjustmentInvoicePayment.ts.",
 			bookingOriginalPaidAmount:
-				"Write bookings.originalPaidAmount through patchBookingStripeConfirmationClaim in convex/lib/booking/bookingConfirmationSessionPatches.ts or patchOriginalPaidAmount in convex/lib/stripe/editInvoiceDb.ts.",
+				"Write bookings.originalPaidAmount through patchBookingStripeConfirmationClaim in convex/booking/lib/bookingConfirmationSessionPatches.ts or patchOriginalPaidAmount in convex/stripe/lib/editInvoiceDb.ts.",
 			packageOriginalPaidAmount:
-				"Write packages.originalPaidAmount through patchPackageCheckoutClaimed in convex/lib/packages/packageUpdates.ts or patchOriginalPaidAmount in convex/lib/stripe/editInvoiceDb.ts."
+				"Write packages.originalPaidAmount through patchPackageCheckoutClaimed in convex/packages/lib/packageUpdates.ts or patchOriginalPaidAmount in convex/stripe/lib/editInvoiceDb.ts."
 		}
 	},
 	create(context) {

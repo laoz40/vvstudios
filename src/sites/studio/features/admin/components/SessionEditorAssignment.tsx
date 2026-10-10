@@ -26,7 +26,7 @@ import { Textarea } from "#/components/ui/textarea";
 import { exhaustiveCheck, tryCatch, type UnexpectedError } from "#/lib/result";
 import type { SessionRecord } from "#studio/features/admin/lib/admin-sessions";
 
-type ActiveEditor = FunctionReturnType<typeof api.sessions.listActiveEditors>[number];
+type ActiveEditor = FunctionReturnType<typeof api.sessions.sessions.listActiveEditors>[number];
 
 type SessionEditorAssignmentProps = { isMenuOpen: boolean; session: SessionRecord };
 
@@ -35,7 +35,7 @@ type AssignmentConfirmation =
 	| { status: "open"; nextEditor: ActiveEditor | null };
 
 type AssignmentError =
-	| NonNullable<FunctionReturnType<typeof api.sessions.assignSessionEditor>[0]>
+	| NonNullable<FunctionReturnType<typeof api.sessions.sessions.assignSessionEditor>[0]>
 	| UnexpectedError;
 
 const UNASSIGNED_VALUE = "__unassigned__";
@@ -159,8 +159,13 @@ function EditorSelect({
 }
 
 export function SessionEditorAssignment({ isMenuOpen, session }: SessionEditorAssignmentProps) {
-	const assignSessionEditor = useMutation(api.sessions.assignSessionEditor);
-	const activeEditorsResult = useQuery(api.sessions.listActiveEditors, isMenuOpen ? {} : "skip");
+	const assignSessionEditor = useMutation(api.sessions.sessions.assignSessionEditor);
+
+	const activeEditorsResult = useQuery(
+		api.sessions.sessions.listActiveEditors,
+		isMenuOpen ? {} : "skip"
+	);
+
 	const activeEditors = activeEditorsResult ?? [];
 	const isLoadingEditors = isMenuOpen && activeEditorsResult === undefined;
 	const [isSaving, setIsSaving] = useState(false);

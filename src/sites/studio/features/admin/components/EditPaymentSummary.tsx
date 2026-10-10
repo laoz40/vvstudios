@@ -1,4 +1,4 @@
-import type { EditInvoiceQuote } from "#convex/lib/stripe/editInvoiceBilling";
+import type { EditInvoiceQuote } from "#convex/stripe/lib/editInvoiceBilling";
 import {
 	formatAudAmount,
 	getAudAmountRowShowCents

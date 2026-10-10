@@ -7,8 +7,8 @@ const tester = new RuleTester({ languageOptions: { parserOptions: { lang: "ts" }
 tester.run("convex-layers/no-handler-lib-import", noHandlerLibImportRule, {
 	valid: [
 		{
-			filename: "convex/sessions.ts",
-			code: `import { listSessionsService } from "#convex/services/sessions/sessions";`
+			filename: "convex/sessions/sessions.ts",
+			code: `import { listSessionsService } from "#convex/sessions/services/sessions";`
 		},
 		{
 			filename: "convex/booking/settings.ts",
@@ -19,18 +19,18 @@ tester.run("convex-layers/no-handler-lib-import", noHandlerLibImportRule, {
 			code: `import { foo } from "#convex/lib/http/foo";`
 		},
 		{
-			filename: "convex/sessionsDriveInternal.ts",
-			code: `import { linkBookingDriveClient } from "#convex/lib/drive/driveBookingDriveClient";`
+			filename: "convex/sessions/sessionsDriveInternal.ts",
+			code: `import { linkBookingDriveClient } from "#convex/drive/lib/driveBookingDriveClient";`
 		},
 		{
-			filename: "convex/services/sessions/sessions.ts",
-			code: `import { getSessionFromDb } from "#convex/lib/sessions/sessionLookup";`
+			filename: "convex/sessions/services/sessions.ts",
+			code: `import { getSessionFromDb } from "#convex/sessions/lib/sessionLookup";`
 		}
 	],
 	invalid: [
 		{
-			filename: "convex/sessions.ts",
-			code: `import { getDriveSetup } from "#convex/lib/drive/driveLookup";`,
+			filename: "convex/sessions/sessions.ts",
+			code: `import { getDriveSetup } from "#convex/drive/lib/driveLookup";`,
 			errors: [{ messageId: "handlerLibImport" }]
 		}
 	]

@@ -123,7 +123,7 @@ describe("package Calendar operation errors", () => {
 		const t = createConvexTest();
 
 		const result = await t.action(
-			internal.packageSchedulingCalendar.createPackageSessionCalendarEvent,
+			internal.packages.packageSchedulingCalendar.createPackageSessionCalendarEvent,
 			{ session: null, details: quantityDetails }
 		);
 
@@ -138,7 +138,7 @@ describe("package Calendar operation errors", () => {
 		const t = createConvexTest();
 
 		const result = await t.action(
-			internal.packageSchedulingCalendar.updatePackageSessionCalendarEvent,
+			internal.packages.packageSchedulingCalendar.updatePackageSessionCalendarEvent,
 			{ session, details: quantityDetails }
 		);
 
@@ -151,10 +151,10 @@ describe("package Calendar operation errors", () => {
 		events.insert.mockRejectedValue(new Error("Calendar unavailable"));
 
 		expect(
-			await t.action(internal.packageSchedulingCalendar.createPackageSessionCalendarEvent, {
-				session: null,
-				details
-			})
+			await t.action(
+				internal.packages.packageSchedulingCalendar.createPackageSessionCalendarEvent,
+				{ session: null, details }
+			)
 		).toEqual([{ reason: "GOOGLE_CALENDAR_CREATE_FAILED" }, null]);
 	});
 
@@ -163,10 +163,10 @@ describe("package Calendar operation errors", () => {
 		events.patch.mockRejectedValue(new Error("Calendar unavailable"));
 
 		expect(
-			await t.action(internal.packageSchedulingCalendar.updatePackageSessionCalendarEvent, {
-				session,
-				details
-			})
+			await t.action(
+				internal.packages.packageSchedulingCalendar.updatePackageSessionCalendarEvent,
+				{ session, details }
+			)
 		).toEqual([{ reason: "GOOGLE_CALENDAR_UPDATE_FAILED" }, null]);
 	});
 
@@ -175,9 +175,10 @@ describe("package Calendar operation errors", () => {
 		events.delete.mockRejectedValue(new Error("Calendar unavailable"));
 
 		expect(
-			await t.action(internal.packageSchedulingCalendar.deletePackageSessionCalendarEvent, {
-				session
-			})
+			await t.action(
+				internal.packages.packageSchedulingCalendar.deletePackageSessionCalendarEvent,
+				{ session }
+			)
 		).toEqual([{ reason: "GOOGLE_CALENDAR_DELETE_FAILED" }, null]);
 	});
 
@@ -186,10 +187,10 @@ describe("package Calendar operation errors", () => {
 		events.list.mockRejectedValue(new Error("Calendar unavailable"));
 
 		expect(
-			await t.action(internal.packageSchedulingCalendar.createPackageSessionCalendarEvent, {
-				session: null,
-				details
-			})
+			await t.action(
+				internal.packages.packageSchedulingCalendar.createPackageSessionCalendarEvent,
+				{ session: null, details }
+			)
 		).toEqual([{ reason: "GOOGLE_CALENDAR_AVAILABILITY_FAILED" }, null]);
 	});
 
@@ -203,10 +204,10 @@ describe("package Calendar operation errors", () => {
 		);
 
 		expect(
-			await t.action(internal.packageSchedulingCalendar.createPackageSessionCalendarEvent, {
-				session: null,
-				details
-			})
+			await t.action(
+				internal.packages.packageSchedulingCalendar.createPackageSessionCalendarEvent,
+				{ session: null, details }
+			)
 		).toEqual([{ reason }, null]);
 	});
 });

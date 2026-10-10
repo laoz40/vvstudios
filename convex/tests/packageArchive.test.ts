@@ -36,7 +36,7 @@ describe("package auto-archive", () => {
 		const t = createConvexTest();
 		const packageId = await seedPendingPackage(t, "cs_abandon_archive");
 
-		await t.mutation(internal.packageCheckout.abandonPendingPackage, {
+		await t.mutation(internal.packages.packageCheckout.abandonPendingPackage, {
 			packageId,
 			stripeSessionId: "cs_abandon_archive"
 		});
@@ -49,7 +49,7 @@ describe("package auto-archive", () => {
 		const packageId = await seedPaidPackage(t);
 		await seedPackageSession(t, packageId, []);
 
-		await t.mutation(internal.packageScheduling.processPackageAdjustmentAtExpiry, {
+		await t.mutation(internal.packages.packageScheduling.processPackageAdjustmentAtExpiry, {
 			packageId,
 			expectedExpiresAt: now
 		});
@@ -62,21 +62,21 @@ describe("package auto-archive", () => {
 		const packageId = await seedPaidPackage(t);
 		await seedPackageSession(t, packageId, []);
 
-		await t.mutation(internal.packageScheduling.processPackageAdjustmentAtExpiry, {
+		await t.mutation(internal.packages.packageScheduling.processPackageAdjustmentAtExpiry, {
 			packageId,
 			expectedExpiresAt: now
 		});
 
 		await t.run((ctx) => ctx.db.patch("packages", packageId, { archived: false }));
 
-		await t.mutation(internal.stripeInvoices.recordPackageStripeInvoice, {
+		await t.mutation(internal.stripe.stripeInvoices.recordPackageStripeInvoice, {
 			packageId,
 			stripeInvoiceId: "in_pkg_paid_archive",
 			lineItems: [{ description: "Extra", amount: 80 }],
 			requestId: "req_pkg_paid_archive"
 		});
 
-		await t.mutation(internal.stripeInvoices.markStripeInvoicePaid, {
+		await t.mutation(internal.stripe.stripeInvoices.markStripeInvoicePaid, {
 			stripeInvoiceId: "in_pkg_paid_archive",
 			paidAt: now
 		});

@@ -12,7 +12,9 @@ import { packageFormSchema } from "#studio/features/booking-form/lib/booking-for
 import { pickBookingAddonQuantities } from "#/domain/booking/addon-quantities";
 import { getBookingStartTimestamp } from "#studio/lib/bookingdatetime";
 
-type UpdatePackageFromAdminResult = FunctionReturnType<typeof api.packages.updatePackageFromAdmin>;
+type UpdatePackageFromAdminResult = FunctionReturnType<
+	typeof api.packages.packages.updatePackageFromAdmin
+>;
 
 type ParsedPackageValues = ReturnType<typeof packageFormSchema.parse>;
 
@@ -110,7 +112,7 @@ function showPackageUpdateError(error: PackageUpdateError) {
 }
 
 export function usePackageEditAction(packageRow: AdminPackageRow) {
-	const updatePackage = useMutation(api.packages.updatePackageFromAdmin);
+	const updatePackage = useMutation(api.packages.packages.updatePackageFromAdmin);
 	const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 
 	const invoice = useEditInvoice({ kind: "package", packageId: packageRow.id }, () => {

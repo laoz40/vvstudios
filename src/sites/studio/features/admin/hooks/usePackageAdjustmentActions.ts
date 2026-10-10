@@ -47,7 +47,7 @@ export function usePackageAdjustmentActions(
 	setPendingAction: SetPackagePendingAction
 ) {
 	const retryAdjustmentInvoiceEmail = useAction(
-		api.packageAdjustmentInvoices.retryPackageAdjustmentInvoiceEmail
+		api.packages.packageAdjustmentInvoices.retryPackageAdjustmentInvoiceEmail
 	);
 
 	const [isAdjustmentInvoiceDialogOpen, setIsAdjustmentInvoiceDialogOpen] = useState(false);

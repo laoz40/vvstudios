@@ -72,13 +72,13 @@ describe("booking time reservations", () => {
 			throw new Error("Failed to replace reservation");
 		}
 
-		const staleClearResult = await t.mutation(internal.sessionScheduling.clearSessionReservation, {
-			bookingId,
-			reservation: firstReservationResult[1].reservation
-		});
+		const staleClearResult = await t.mutation(
+			internal.sessions.sessionScheduling.clearSessionReservation,
+			{ bookingId, reservation: firstReservationResult[1].reservation }
+		);
 
 		const staleSaveResult = await t.mutation(
-			internal.sessionScheduling.saveClientSessionReschedule,
+			internal.sessions.sessionScheduling.saveClientSessionReschedule,
 			{
 				bookingId,
 				date: "2030-01-11",
@@ -109,13 +109,16 @@ describe("booking time reservations", () => {
 			throw new Error("Failed to reserve target");
 		}
 
-		const saveResult = await t.mutation(internal.sessionScheduling.saveClientSessionReschedule, {
-			bookingId,
-			date: "2030-01-11",
-			time: "10:00",
-			sessionStartAt: targetStartAt,
-			reservation: reservationResult[1].reservation
-		});
+		const saveResult = await t.mutation(
+			internal.sessions.sessionScheduling.saveClientSessionReschedule,
+			{
+				bookingId,
+				date: "2030-01-11",
+				time: "10:00",
+				sessionStartAt: targetStartAt,
+				reservation: reservationResult[1].reservation
+			}
+		);
 
 		const booking = await readBooking(t, bookingId);
 
@@ -133,7 +136,7 @@ async function createReservation(
 	sessionStartAt: number,
 	at: number
 ) {
-	return await t.mutation(internal.sessionScheduling.reserveSessionReservation, {
+	return await t.mutation(internal.sessions.sessionScheduling.reserveSessionReservation, {
 		bookingId,
 		duration: "1h",
 		eventBufferMinutes,

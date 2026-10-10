@@ -186,7 +186,9 @@ describe("package adjustment Stripe delivery", () => {
 		expect(
 			await t
 				.withIdentity(adminIdentity)
-				.action(api.packageAdjustmentInvoices.retryPackageAdjustmentInvoiceEmail, { adjustmentId })
+				.action(api.packages.packageAdjustmentInvoices.retryPackageAdjustmentInvoiceEmail, {
+					adjustmentId
+				})
 		).toEqual([null, null]);
 		expect(await readAdjustment(t, adjustmentId)).toMatchObject({
 			invoiceEmailStatus: "sent",
@@ -273,7 +275,7 @@ async function seedAdjustment(
 }
 
 function sendInvoice(t: TestClient, adjustmentId: Id<"packageAdjustments">) {
-	return t.action(internal.packageAdjustmentInvoices.sendPackageAdjustmentInvoice, {
+	return t.action(internal.packages.packageAdjustmentInvoices.sendPackageAdjustmentInvoice, {
 		adjustmentId,
 		attempt: "automatic"
 	});

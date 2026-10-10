@@ -11,7 +11,7 @@ import {
 	type DevRescheduleCompleteScenario
 } from "#studio/components/booking/RescheduleCompleteDevScenarioPanel";
 import { rescheduleCompleteSearchSchema } from "#studio/features/reschedule-complete/lib/reschedule-complete-search";
-import type { buildPublicSessionStatusResponse } from "#convex/services/sessions/sessions";
+import type { buildPublicSessionStatusResponse } from "#convex/sessions/services/sessions";
 
 type PublicRescheduleSession = ReturnType<typeof buildPublicSessionStatusResponse>;
 
@@ -38,7 +38,7 @@ function RescheduleCompletePage() {
 	const activeDevScenario = import.meta.env.DEV ? devScenario : undefined;
 
 	const liveBookingResult: RescheduleCompletePageResult | undefined = useQuery(
-		api.sessions.getPublicRescheduleCompleteSession,
+		api.sessions.sessions.getPublicRescheduleCompleteSession,
 		bookingId && !activeDevScenario ? { bookingId } : "skip"
 	);
 

@@ -3,7 +3,7 @@
 import type { ActionCtx } from "#convex/_generated/server";
 import { parseFeedbackMessage } from "#convex/feedback/lib/feedback";
 import { sendFeedbackEmailForMessage } from "#convex/feedback/services/feedbackEmail";
-import { checkFeedbackSubmitRateLimit } from "#convex/lib/rateLimits";
+import { checkFeedbackSubmitRateLimit } from "#convex/shared/lib/rateLimits";
 
 function passthroughValue<T>(value: T) {
 	return value;

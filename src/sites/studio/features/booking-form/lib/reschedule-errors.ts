@@ -1,4 +1,4 @@
-import type { RescheduleLinkLookupError } from "#convex/sessionReschedule";
+import type { RescheduleLinkLookupError } from "#convex/sessions/sessionReschedule";
 import { exhaustiveCheck } from "#/lib/result";
 import type { FunctionReturnType } from "convex/server";
 import { z } from "zod";
@@ -11,14 +11,16 @@ export type RescheduleLinkInvalidContent = { title: string; description: string 
 type RescheduleAvailabilityError =
 	| Exclude<
 			NonNullable<
-				FunctionReturnType<typeof api.googleCalendar.getRescheduleBookableRangeBusyWindows>[0]
+				FunctionReturnType<
+					typeof api.googleCalendar.googleCalendar.getRescheduleBookableRangeBusyWindows
+				>[0]
 			>,
 			RescheduleLinkLookupError
 	  >
 	| UnexpectedError;
 
 type RescheduleUpdateToastError =
-	| NonNullable<FunctionReturnType<typeof api.googleCalendar.rescheduleSession>[0]>
+	| NonNullable<FunctionReturnType<typeof api.googleCalendar.googleCalendar.rescheduleSession>[0]>
 	| DevRescheduleUpdateError;
 
 function getInvalidMessage(error: RescheduleLinkLookupError): RescheduleLinkInvalidContent {

@@ -54,7 +54,7 @@ type ArchivePastDeadCheckoutBatch = {
 
 async function archivePastDeadCheckoutSessionsUntilDone(
 	archivePastDeadCheckoutSessions: ReactMutation<
-		typeof api.sessions.archivePastDeadCheckoutSessions
+		typeof api.sessions.sessions.archivePastDeadCheckoutSessions
 	>,
 	cursor: string | null = null
 ) {
@@ -74,7 +74,7 @@ async function archivePastDeadCheckoutSessionsUntilDone(
 	}
 }
 
-type EmployeeListResult = FunctionReturnType<typeof api.employees.listEmployees>;
+type EmployeeListResult = FunctionReturnType<typeof api.employees.employees.listEmployees>;
 
 type EmployeeListError = NonNullable<EmployeeListResult[0]>;
 
@@ -147,7 +147,7 @@ function BookingsDashboardView({
 		searchQuery: hasActiveSessionSearch ? trimmedSessionSearchQuery : undefined
 	};
 
-	const sessions = usePaginatedQuery(api.sessions.listSessions, sessionListQuery, {
+	const sessions = usePaginatedQuery(api.sessions.sessions.listSessions, sessionListQuery, {
 		initialNumItems: sessionPageSize
 	});
 
@@ -244,7 +244,7 @@ function PackagesDashboardView({
 		searchQuery: hasActivePackageSearch ? trimmedPackageSearchQuery : undefined
 	};
 
-	const packages = usePaginatedQuery(api.packages.listPackages, packageListQuery, {
+	const packages = usePaginatedQuery(api.packages.packages.listPackages, packageListQuery, {
 		initialNumItems: packagePageSize
 	});
 
@@ -310,7 +310,7 @@ function EmployeesDashboardView({
 }: {
 	adminEditorProfile: AdminEditorProfile | null;
 }) {
-	const editorsResult = useQuery(api.employees.listEmployees, {});
+	const editorsResult = useQuery(api.employees.employees.listEmployees, {});
 
 	if (editorsResult !== undefined) {
 		const [editorsError] = editorsResult;
@@ -330,7 +330,7 @@ function EmployeesDashboardView({
 }
 
 export function AdminDashboard({ dashboardRole }: { dashboardRole: DashboardRole }) {
-	const accessResult = useQuery(api.auth.getCurrentUserAccess, {});
+	const accessResult = useQuery(api.shared.auth.getCurrentUserAccess, {});
 	const { user } = useUser();
 	const [activeView, setActiveView] = useState<AdminDashboardView>("bookings");
 	const [initialSessionSearchQuery, setInitialSessionSearchQuery] = useState<string | null>(null);
@@ -351,7 +351,9 @@ export function AdminDashboard({ dashboardRole }: { dashboardRole: DashboardRole
 		initialTablePreferences.sessions.showStaleBookings
 	);
 
-	const archivePastDeadCheckoutSessions = useMutation(api.sessions.archivePastDeadCheckoutSessions);
+	const archivePastDeadCheckoutSessions = useMutation(
+		api.sessions.sessions.archivePastDeadCheckoutSessions
+	);
 
 	const handleShowStaleSessionsChange = useCallback(
 		(nextShowStaleSessions: boolean) => {

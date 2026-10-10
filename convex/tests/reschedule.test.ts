@@ -74,10 +74,10 @@ describe("customer booking rescheduling", () => {
 
 				const bookingBefore = await readBooking(t, seeded.bookingId);
 
-				const result = await t.query(internal.sessionReschedule.getValidRescheduleLinkAndSession, {
-					token,
-					now
-				});
+				const result = await t.query(
+					internal.sessions.sessionReschedule.getValidRescheduleLinkAndSession,
+					{ token, now }
+				);
 
 				expect(result).toEqual([{ reason: testCase.expectedReason }, null]);
 				expect(await readBooking(t, seeded.bookingId)).toEqual(bookingBefore);
@@ -97,10 +97,10 @@ describe("customer booking rescheduling", () => {
 				const seeded = await seedReschedulableSession(t);
 				await t.run((ctx) => ctx.db.patch("bookings", seeded.bookingId, bookingState));
 
-				const result = await t.query(internal.sessionReschedule.getValidRescheduleLinkAndSession, {
-					token: seeded.token,
-					now
-				});
+				const result = await t.query(
+					internal.sessions.sessionReschedule.getValidRescheduleLinkAndSession,
+					{ token: seeded.token, now }
+				);
 
 				expect(result[0]).toBeNull();
 				expect(result[1]?.session._id).toBe(seeded.bookingId);
@@ -115,7 +115,7 @@ describe("customer booking rescheduling", () => {
 
 		await t.run((ctx) => ctx.db.delete("bookingRescheduleLinks", linkId));
 
-		const result = await t.mutation(internal.sessionReschedule.unlockRescheduleLink, {
+		const result = await t.mutation(internal.sessions.sessionReschedule.unlockRescheduleLink, {
 			linkId,
 			lockedAt: now
 		});
@@ -130,7 +130,7 @@ describe("reschedule reservation and failure guards", () => {
 		const { bookingId } = await seedReschedulableSession(t);
 
 		const firstReservation = await t.mutation(
-			internal.sessionScheduling.reserveSessionReservation,
+			internal.sessions.sessionScheduling.reserveSessionReservation,
 			{
 				bookingId,
 				duration: "1h",
@@ -145,7 +145,7 @@ describe("reschedule reservation and failure guards", () => {
 		}
 
 		const secondReservation = await t.mutation(
-			internal.sessionScheduling.reserveSessionReservation,
+			internal.sessions.sessionScheduling.reserveSessionReservation,
 			{
 				bookingId,
 				duration: "1h",
@@ -160,7 +160,7 @@ describe("reschedule reservation and failure guards", () => {
 		}
 
 		expect(
-			await t.mutation(internal.sessionScheduling.saveClientSessionReschedule, {
+			await t.mutation(internal.sessions.sessionScheduling.saveClientSessionReschedule, {
 				bookingId,
 				date: "2030-01-12",
 				time: "10:00",
@@ -212,7 +212,7 @@ describe("reschedule reservation and failure guards", () => {
 		});
 
 		expect(
-			await t.mutation(internal.bookingConfirmation.markBookingConfirmationFailed, {
+			await t.mutation(internal.booking.bookingConfirmation.markBookingConfirmationFailed, {
 				bookingId,
 				failureCode: "BOOKING_TIME_UNAVAILABLE"
 			})
@@ -264,11 +264,10 @@ async function seedReschedulableSession(t: TestClient) {
 		);
 	});
 
-	const linkResult = await t.mutation(internal.sessionReschedule.createActiveRescheduleLink, {
-		bookingId,
-		expiresAt: originalSessionStartAt,
-		now
-	});
+	const linkResult = await t.mutation(
+		internal.sessions.sessionReschedule.createActiveRescheduleLink,
+		{ bookingId, expiresAt: originalSessionStartAt, now }
+	);
 
 	if (linkResult[0] !== null) throw new Error("Failed to seed reschedule link");
 

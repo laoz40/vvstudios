@@ -9,7 +9,7 @@
  */
 import { describe, expect, test } from "vitest";
 import { tupleErr, tupleOk } from "#/lib/result";
-import { reserveClaimedBookingSession } from "#convex/lib/booking/bookingConfirmationActionBoundaries";
+import { reserveClaimedBookingSession } from "#convex/booking/lib/bookingConfirmationActionBoundaries";
 import { createConvexTest } from "#convex/test.setup";
 import { bookingDocument } from "#convex/tests/insertDocumentDefaults";
 

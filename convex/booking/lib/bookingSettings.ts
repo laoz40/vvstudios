@@ -6,7 +6,7 @@ import {
 	type BookingAvailabilitySettings
 } from "#studio/lib/bookingAvailabilitySettings";
 import { parseScheduleTime, scheduleTimeStringSchema } from "#studio/lib/calendarDate";
-import { okOrThrow } from "#convex/lib/result";
+import { okOrThrow } from "#convex/shared/lib/result";
 
 export async function readBookingAvailabilitySettings(ctx: QueryCtx) {
 	const settings = await ctx.db

@@ -63,10 +63,10 @@ describe("booking payment completion", () => {
 			ctx.db.patch("bookings", bookingId, { status: "confirmed", bookingFailureCode: undefined })
 		);
 
-		const result = await t.mutation(internal.bookingConfirmation.markBookingConfirmationFailed, {
-			bookingId,
-			failureCode: "GOOGLE_CALENDAR_CREATE_FAILED"
-		});
+		const result = await t.mutation(
+			internal.booking.bookingConfirmation.markBookingConfirmationFailed,
+			{ bookingId, failureCode: "GOOGLE_CALENDAR_CREATE_FAILED" }
+		);
 
 		expect(result).toEqual([null, null]);
 		expect(await readBooking(t, bookingId)).toMatchObject({ status: "confirmed" });
@@ -82,12 +82,12 @@ describe("booking payment completion", () => {
 		});
 
 		const confirmedResult = await t.mutation(
-			internal.bookingConfirmation.markSessionInvoiceEmailFailed,
+			internal.booking.bookingConfirmation.markSessionInvoiceEmailFailed,
 			{ bookingId: confirmedBookingId }
 		);
 
 		const cancelledResult = await t.mutation(
-			internal.bookingConfirmation.markSessionInvoiceEmailFailed,
+			internal.booking.bookingConfirmation.markSessionInvoiceEmailFailed,
 			{ bookingId: cancelledBookingId }
 		);
 
@@ -148,7 +148,7 @@ async function seedBooking(t: TestClient, email = "customer@example.com") {
 }
 
 async function claimBooking(t: TestClient, bookingId: Id<"bookings">, stripeEventId: string) {
-	return await t.mutation(internal.bookingConfirmation.claimBookingConfirmation, {
+	return await t.mutation(internal.booking.bookingConfirmation.claimBookingConfirmation, {
 		bookingId,
 		stripeSessionId: "cs-1",
 		stripePaymentIntentId: "pi-1",
@@ -189,7 +189,7 @@ async function seedPendingPackage(t: TestClient) {
 }
 
 async function claimPackage(t: TestClient, packageId: Id<"packages">) {
-	return await t.mutation(internal.packageCheckout.claimPackageCheckoutPayment, {
+	return await t.mutation(internal.packages.packageCheckout.claimPackageCheckoutPayment, {
 		packageId,
 		stripeSessionId: "cs-1",
 		stripePaymentIntentId: "pi-1",

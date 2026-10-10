@@ -36,7 +36,7 @@ import {
 	deliverableStatusTabClassNameMap,
 	deliverableStatusTabLabelMap
 } from "#studio/features/admin/lib/session-edit-status";
-import { isBookingArchived } from "#convex/lib/archiveState";
+import { isBookingArchived } from "#convex/shared/lib/archiveState";
 import type { SessionActionDetails } from "#studio/features/admin/lib/admin-sessions";
 import { resolveBookingReceiptNumberForDisplay } from "#studio/features/booking-invoice/lib/receipt-number";
 import type { SessionRecord } from "#studio/features/admin/lib/admin-sessions";

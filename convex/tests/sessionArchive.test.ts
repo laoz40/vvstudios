@@ -40,7 +40,10 @@ describe("session auto-archive", () => {
 
 		const [error] = await t
 			.withIdentity(adminIdentity)
-			.mutation(api.sessions.updateSessionEditStatus, { bookingId, editStatus: "completed" });
+			.mutation(api.sessions.sessions.updateSessionEditStatus, {
+				bookingId,
+				editStatus: "completed"
+			});
 
 		expect(error).toBeNull();
 		expect(await readBooking(t, bookingId)).toMatchObject({ archived: true });
@@ -50,7 +53,7 @@ describe("session auto-archive", () => {
 		const t = createConvexTest();
 		const bookingId = await seedPastConfirmedBooking(t);
 
-		await t.mutation(internal.sessions.markSessionCalendarEventDeleted, { bookingId });
+		await t.mutation(internal.sessions.sessions.markSessionCalendarEventDeleted, { bookingId });
 
 		expect(await readBooking(t, bookingId)).toMatchObject({ status: "cancelled", archived: true });
 	});
@@ -59,7 +62,7 @@ describe("session auto-archive", () => {
 		const t = createConvexTest();
 		const bookingId = await seedPendingBooking(t, "cs_failed");
 
-		await t.mutation(internal.bookingConfirmation.markBookingConfirmationFailed, {
+		await t.mutation(internal.booking.bookingConfirmation.markBookingConfirmationFailed, {
 			bookingId,
 			failureCode: "BOOKING_TIME_UNAVAILABLE"
 		});
@@ -72,7 +75,7 @@ describe("session auto-archive", () => {
 		const t = createConvexTest();
 		const bookingId = await seedPastConfirmedBooking(t, { archived: true });
 
-		await t.mutation(internal.stripeInvoices.recordBookingStripeInvoice, {
+		await t.mutation(internal.stripe.stripeInvoices.recordBookingStripeInvoice, {
 			bookingId,
 			stripeInvoiceId: "in_unarchive_test",
 			lineItems: [{ description: "Extra", amount: 80 }],
@@ -87,14 +90,14 @@ describe("session auto-archive", () => {
 		const t = createConvexTest();
 		const bookingId = await seedPastConfirmedBooking(t, { editStatus: "completed" });
 
-		await t.mutation(internal.stripeInvoices.recordBookingStripeInvoice, {
+		await t.mutation(internal.stripe.stripeInvoices.recordBookingStripeInvoice, {
 			bookingId,
 			stripeInvoiceId: "in_paid_archive",
 			lineItems: [{ description: "Extra", amount: 80 }],
 			requestId: "req_paid_archive"
 		});
 
-		await t.mutation(internal.stripeInvoices.markStripeInvoicePaid, {
+		await t.mutation(internal.stripe.stripeInvoices.markStripeInvoicePaid, {
 			stripeInvoiceId: "in_paid_archive",
 			paidAt: now
 		});

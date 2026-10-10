@@ -20,11 +20,11 @@ import {
 import { tryCatch } from "#/lib/result";
 
 type CreateEmbeddedCheckoutSessionAction = ReturnType<
-	typeof useAction<typeof api.stripe.createEmbeddedCheckoutSession>
+	typeof useAction<typeof api.stripe.stripe.createEmbeddedCheckoutSession>
 >;
 
 type CreatePackageCheckoutSessionAction = ReturnType<
-	typeof useAction<typeof api.packagePayment.createPackageCheckoutSession>
+	typeof useAction<typeof api.packages.packagePayment.createPackageCheckoutSession>
 >;
 
 interface UseBookingSubmitOptions {

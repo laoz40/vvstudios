@@ -61,13 +61,13 @@ describe("employee retirement", () => {
 			);
 		});
 
-		await admin.mutation(api.employees.updateEmployeeAccess, {
+		await admin.mutation(api.employees.employees.updateEmployeeAccess, {
 			tokenIdentifier: editorTokenIdentifier,
 			isActive: false
 		});
 		await t.finishInProgressScheduledFunctions();
 
-		const retiredBookings = await admin.query(api.sessions.listSessions, {
+		const retiredBookings = await admin.query(api.sessions.sessions.listSessions, {
 			paginationOpts: { cursor: null, numItems: 20 },
 			view: "all"
 		});
@@ -76,7 +76,10 @@ describe("employee retirement", () => {
 			.filter((booking) => bookingIds.includes(booking._id))
 			.toSorted((left, right) => left.sessionStartAt - right.sessionStartAt);
 
-		const [employeeError, retiredEmployees] = await admin.query(api.employees.listEmployees, {});
+		const [employeeError, retiredEmployees] = await admin.query(
+			api.employees.employees.listEmployees,
+			{}
+		);
 
 		expect(
 			retiredRows.map(
@@ -133,13 +136,13 @@ describe("employee retirement", () => {
 			}
 		]);
 
-		await admin.mutation(api.employees.updateEmployeeAccess, {
+		await admin.mutation(api.employees.employees.updateEmployeeAccess, {
 			tokenIdentifier: editorTokenIdentifier,
 			isActive: true
 		});
 		await t.finishInProgressScheduledFunctions();
 
-		const reactivatedBookings = await admin.query(api.sessions.listSessions, {
+		const reactivatedBookings = await admin.query(api.sessions.sessions.listSessions, {
 			paginationOpts: { cursor: null, numItems: 20 },
 			view: "all"
 		});

@@ -20,13 +20,13 @@ export function useInvoiceActions(session: SessionRecord) {
 	const [isLegacyCustomInvoicesDialogOpen, setIsLegacyCustomInvoicesDialogOpen] = useState(false);
 
 	const customInvoicesResult = useQuery(
-		api.customInvoices.listCustomInvoicesForBooking,
+		api.stripe.customInvoices.listCustomInvoicesForBooking,
 		isLegacyCustomInvoicesDialogOpen ? { bookingId: session._id } : "skip"
 	);
 
 	const [isStripeBillingDialogOpen, setIsStripeBillingDialogOpen] = useState(false);
 
-	const stripeInvoicesResult = useQuery(api.stripeInvoices.listStripeInvoicesForBooking, {
+	const stripeInvoicesResult = useQuery(api.stripe.stripeInvoices.listStripeInvoicesForBooking, {
 		bookingId: session._id
 	});
 
