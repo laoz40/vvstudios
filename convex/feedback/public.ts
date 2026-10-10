@@ -3,7 +3,7 @@
 import { v } from "convex/values";
 import { action } from "#convex/_generated/server";
 import { tupleErr, tupleOk } from "#/lib/result";
-import { submitFeedbackMessage } from "#convex/services/feedback/submitFeedback";
+import { submitFeedbackMessage } from "#convex/feedback/services/submitFeedback";
 
 export const submit = action({
 	args: { message: v.string() },

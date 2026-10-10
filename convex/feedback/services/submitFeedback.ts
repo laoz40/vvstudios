@@ -1,8 +1,8 @@
 "use node";
 
 import type { ActionCtx } from "#convex/_generated/server";
-import { sendFeedbackEmailForMessage } from "#convex/services/feedback/feedbackEmail";
-import { parseFeedbackMessage } from "#convex/lib/feedback";
+import { parseFeedbackMessage } from "#convex/feedback/lib/feedback";
+import { sendFeedbackEmailForMessage } from "#convex/feedback/services/feedbackEmail";
 import { checkFeedbackSubmitRateLimit } from "#convex/lib/rateLimits";
 
 function passthroughValue<T>(value: T) {

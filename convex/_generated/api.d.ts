@@ -22,7 +22,10 @@ import type * as editInvoicing from "../editInvoicing.js";
 import type * as employeeInvitations from "../employeeInvitations.js";
 import type * as employees from "../employees.js";
 import type * as env from "../env.js";
-import type * as feedback from "../feedback.js";
+import type * as feedback_lib_feedback from "../feedback/lib/feedback.js";
+import type * as feedback_public from "../feedback/public.js";
+import type * as feedback_services_feedbackEmail from "../feedback/services/feedbackEmail.js";
+import type * as feedback_services_submitFeedback from "../feedback/services/submitFeedback.js";
 import type * as googleCalendar from "../googleCalendar.js";
 import type * as http from "../http.js";
 import type * as invoices from "../invoices.js";
@@ -70,7 +73,6 @@ import type * as lib_editor_editorSessions from "../lib/editor/editorSessions.js
 import type * as lib_email_emailDomain from "../lib/email/emailDomain.js";
 import type * as lib_email_emailRenders from "../lib/email/emailRenders.js";
 import type * as lib_email_emailSend from "../lib/email/emailSend.js";
-import type * as lib_feedback from "../lib/feedback.js";
 import type * as lib_googleCalendar_googleAuth from "../lib/googleCalendar/googleAuth.js";
 import type * as lib_googleCalendar_googleCalendarAvailability from "../lib/googleCalendar/googleCalendarAvailability.js";
 import type * as lib_googleCalendar_googleCalendarClient from "../lib/googleCalendar/googleCalendarClient.js";
@@ -183,8 +185,6 @@ import type * as services_email_packageReminderEmails from "../services/email/pa
 import type * as services_email_templateEmails from "../services/email/templateEmails.js";
 import type * as services_employees_employeeInvitation from "../services/employees/employeeInvitation.js";
 import type * as services_employees_employeeManagement from "../services/employees/employeeManagement.js";
-import type * as services_feedback_feedbackEmail from "../services/feedback/feedbackEmail.js";
-import type * as services_feedback_submitFeedback from "../services/feedback/submitFeedback.js";
 import type * as services_googleCalendar_cancelBookingFromAdmin from "../services/googleCalendar/cancelBookingFromAdmin.js";
 import type * as services_googleCalendar_packageCalendarAvailability from "../services/googleCalendar/packageCalendarAvailability.js";
 import type * as services_googleCalendar_packageCalendarDetails from "../services/googleCalendar/packageCalendarDetails.js";
@@ -280,7 +280,10 @@ declare const fullApi: ApiFromModules<{
   employeeInvitations: typeof employeeInvitations;
   employees: typeof employees;
   env: typeof env;
-  feedback: typeof feedback;
+  "feedback/lib/feedback": typeof feedback_lib_feedback;
+  "feedback/public": typeof feedback_public;
+  "feedback/services/feedbackEmail": typeof feedback_services_feedbackEmail;
+  "feedback/services/submitFeedback": typeof feedback_services_submitFeedback;
   googleCalendar: typeof googleCalendar;
   http: typeof http;
   invoices: typeof invoices;
@@ -328,7 +331,6 @@ declare const fullApi: ApiFromModules<{
   "lib/email/emailDomain": typeof lib_email_emailDomain;
   "lib/email/emailRenders": typeof lib_email_emailRenders;
   "lib/email/emailSend": typeof lib_email_emailSend;
-  "lib/feedback": typeof lib_feedback;
   "lib/googleCalendar/googleAuth": typeof lib_googleCalendar_googleAuth;
   "lib/googleCalendar/googleCalendarAvailability": typeof lib_googleCalendar_googleCalendarAvailability;
   "lib/googleCalendar/googleCalendarClient": typeof lib_googleCalendar_googleCalendarClient;
@@ -441,8 +443,6 @@ declare const fullApi: ApiFromModules<{
   "services/email/templateEmails": typeof services_email_templateEmails;
   "services/employees/employeeInvitation": typeof services_employees_employeeInvitation;
   "services/employees/employeeManagement": typeof services_employees_employeeManagement;
-  "services/feedback/feedbackEmail": typeof services_feedback_feedbackEmail;
-  "services/feedback/submitFeedback": typeof services_feedback_submitFeedback;
   "services/googleCalendar/cancelBookingFromAdmin": typeof services_googleCalendar_cancelBookingFromAdmin;
   "services/googleCalendar/packageCalendarAvailability": typeof services_googleCalendar_packageCalendarAvailability;
   "services/googleCalendar/packageCalendarDetails": typeof services_googleCalendar_packageCalendarDetails;

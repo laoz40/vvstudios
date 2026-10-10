@@ -11,6 +11,10 @@ tester.run("convex-layers/no-handler-lib-import", noHandlerLibImportRule, {
 			code: `import { listSessionsService } from "#convex/services/sessions/sessions";`
 		},
 		{
+			filename: "convex/booking/settings.ts",
+			code: `import { loadBookingAvailabilitySettings } from "#convex/booking/services/bookingSettings";`
+		},
+		{
 			filename: "convex/http.ts",
 			code: `import { foo } from "#convex/lib/http/foo";`
 		},

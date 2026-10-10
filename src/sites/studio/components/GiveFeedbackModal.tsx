@@ -28,7 +28,7 @@ export function GiveFeedbackModalButton(): ReactNode {
 export function GiveFeedbackModal() {
 	const [feedback, setFeedback] = useState("");
 	const [isSubmitting, setIsSubmitting] = useState(false);
-	const submitFeedback = useAction(api.feedback.submit);
+	const submitFeedback = useAction(api.feedback.public.submit);
 	const canSubmit = feedback.trim().length > 0 && !isSubmitting;
 
 	async function handleSubmit(event: SubmitEvent<HTMLFormElement>): Promise<void> {
