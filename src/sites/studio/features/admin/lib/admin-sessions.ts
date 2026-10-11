@@ -29,8 +29,6 @@ export function getLegacySessionEstimatedPrice(
 		SessionRecord,
 		| "status"
 		| "packageId"
-		| "stripeSessionId"
-		| "stripePaymentIntentId"
 		| "originalPaidAmount"
 		| "duration"
 		| "addons"
@@ -43,9 +41,7 @@ export function getLegacySessionEstimatedPrice(
 	if (
 		(session.status !== "confirmed" && session.status !== "email_failed") ||
 		session.packageId !== undefined ||
-		session.originalPaidAmount !== undefined ||
-		session.stripeSessionId !== undefined ||
-		session.stripePaymentIntentId !== undefined
+		session.originalPaidAmount !== undefined
 	) {
 		return null;
 	}

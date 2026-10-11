@@ -3,13 +3,16 @@
  *
  * 1. Uses the current full booking price for a confirmed legacy session, including legacy duration labels.
  * 2. Includes quantities for selected editing add-ons in the estimated price.
- * 3. Suppresses estimates when a payment amount or Stripe link proves payment tracking exists.
+ * 3. Preserves recorded payment amounts, including zero, and estimates older Stripe-linked bookings without an amount.
  * 4. Suppresses estimates for non-confirmed sessions and invalid durations while estimating valid sessions.
  */
 import { describe, expect, test } from "vitest";
 import { getLegacySessionEstimatedPrice } from "#studio/features/admin/lib/admin-sessions";
 
-type LegacySessionEstimateInput = Parameters<typeof getLegacySessionEstimatedPrice>[0];
+type LegacySessionEstimateInput = Parameters<typeof getLegacySessionEstimatedPrice>[0] & {
+	stripeSessionId?: string;
+	stripePaymentIntentId?: string;
+};
 
 function createSession(
 	overrides: Partial<LegacySessionEstimateInput> = {}
@@ -45,16 +48,18 @@ describe("getLegacySessionEstimatedPrice", () => {
 		).toBeNull();
 	});
 
-	test("does not estimate sessions linked to Stripe when the paid amount is missing", () => {
+	test("estimates legacy Stripe bookings when the paid amount is missing", () => {
 		const legacySession = createSession({ duration: "2h", addons: ["Teleprompter"] });
 
 		expect(getLegacySessionEstimatedPrice(legacySession)).toBe(328);
 		expect(
-			getLegacySessionEstimatedPrice({ ...legacySession, stripeSessionId: "cs_123" })
-		).toBeNull();
+			getLegacySessionEstimatedPrice(createSession({ ...legacySession, stripeSessionId: "cs_123" }))
+		).toBe(328);
 		expect(
-			getLegacySessionEstimatedPrice({ ...legacySession, stripePaymentIntentId: "pi_123" })
-		).toBeNull();
+			getLegacySessionEstimatedPrice(
+				createSession({ ...legacySession, stripePaymentIntentId: "pi_123" })
+			)
+		).toBe(328);
 	});
 
 	test("estimates confirmed sessions and suppresses pending, cancelled, and invalid-duration rows", () => {
