@@ -1,6 +1,8 @@
 import type { Doc } from "#convex/_generated/dataModel";
 import { sessionConsumesPackageCapacity } from "#convex/packages/lib/sessionCapacity";
 import { DURATION_OPTIONS } from "#/domain/booking/catalog";
+import { pickBookingAddonQuantities } from "#/domain/booking/addon-quantities";
+import { calculateBookingInvoiceAmounts } from "#studio/features/booking-invoice/lib/calculate-booking-invoice-amounts";
 import { type BookingFormValues } from "#studio/features/booking-form/lib/booking-form-model";
 
 export type SessionRecord = Doc<"bookings"> & {
@@ -20,6 +22,44 @@ export function getSessionPaidBookingAmount(session: SessionRecord) {
 		session.originalPaidAmount +
 		(session.paidRemainingBalance ? (session.remainingBalanceAmount ?? 0) : 0)
 	);
+}
+
+export function getLegacySessionEstimatedPrice(
+	session: Pick<
+		SessionRecord,
+		| "status"
+		| "packageId"
+		| "stripeSessionId"
+		| "stripePaymentIntentId"
+		| "originalPaidAmount"
+		| "duration"
+		| "addons"
+		| "essentialEditQuantity"
+		| "completeEditQuantity"
+		| "clipsPackageQuantity"
+		| "handcraftedClipsQuantity"
+	>
+) {
+	if (
+		(session.status !== "confirmed" && session.status !== "email_failed") ||
+		session.packageId !== undefined ||
+		session.originalPaidAmount !== undefined ||
+		session.stripeSessionId !== undefined ||
+		session.stripePaymentIntentId !== undefined
+	) {
+		return null;
+	}
+
+	const duration = toAdminSessionDuration(formatAdminDashboardDuration(session.duration));
+
+	if (!duration) return null;
+
+	return calculateBookingInvoiceAmounts({
+		duration,
+		addons: session.addons,
+		...pickBookingAddonQuantities(session),
+		includeDepositLineItem: false
+	}).subtotalAmount;
 }
 
 export function toAdminSessionDuration(

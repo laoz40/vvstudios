@@ -29,6 +29,7 @@ import { useDeliverablesEmailAction } from "#studio/features/admin/hooks/useDeli
 import {
 	formatAdminDashboardDuration,
 	getPackageSessionProgressLabel,
+	getLegacySessionEstimatedPrice,
 	getSessionPaidBookingAmount,
 	type SessionRecord
 } from "#studio/features/admin/lib/admin-sessions";
@@ -281,6 +282,39 @@ function SessionNotesCell({
 	);
 }
 
+function SessionBookingAmount({
+	rowId,
+	receiptAmount,
+	estimatedPrice,
+	showCents
+}: {
+	rowId: string;
+	receiptAmount: number | null;
+	estimatedPrice: number | null;
+	showCents: boolean;
+}) {
+	const amount = receiptAmount ?? estimatedPrice;
+	const amountLabel = amount !== null ? formatAudAmount(amount, { showCents }) : "-";
+
+	return (
+		<p
+			className={amount === null ? "text-muted-foreground" : "text-green"}
+			title={
+				estimatedPrice !== null
+					? "Estimated price. Based on current rates. Payment has not been verified."
+					: undefined
+			}>
+			<PrivacySensitiveText
+				rowId={rowId}
+				value={amountLabel}
+				label={estimatedPrice !== null ? "estimated price" : "original payment"}
+				copyable={false}>
+				{amountLabel}
+			</PrivacySensitiveText>
+		</p>
+	);
+}
+
 function SessionAmountCell({ rowId, session }: { rowId: string; session: SessionRecord }) {
 	const packageSessionProgressLabel = getPackageSessionProgressLabel(session);
 
@@ -295,38 +329,29 @@ function SessionAmountCell({ rowId, session }: { rowId: string; session: Session
 	}
 
 	const receiptAmount = showReceiptAmount ? getSessionPaidBookingAmount(session) : null;
+	const estimatedPrice = showReceiptAmount ? getLegacySessionEstimatedPrice(session) : null;
+	const displayedBookingAmount = receiptAmount ?? estimatedPrice;
 
 	const stripeInvoiceAmount = stripeInvoicesSummary?.totalAmount ?? null;
 
-	const rowAmounts = [receiptAmount, stripeInvoiceAmount].filter(
+	const rowAmounts = [displayedBookingAmount, stripeInvoiceAmount].filter(
 		(amount): amount is number => amount !== null
 	);
 
 	const showCents = getAudAmountRowShowCents(rowAmounts);
-
-	let receiptAmountLabel: string | null = null;
-
-	if (receiptAmount !== null) {
-		receiptAmountLabel = formatAudAmount(receiptAmount, { showCents });
-	} else if (showReceiptAmount) {
-		receiptAmountLabel = "-";
-	}
 
 	const stripeInvoiceAmountLabel =
 		stripeInvoiceAmount !== null ? formatAudAmount(stripeInvoiceAmount, { showCents }) : null;
 
 	return (
 		<div className="flex flex-col items-end gap-1">
-			{receiptAmountLabel ? (
-				<p className={receiptAmount === null ? "text-muted-foreground" : "text-green"}>
-					<PrivacySensitiveText
-						rowId={rowId}
-						value={receiptAmountLabel}
-						label="original payment"
-						copyable={false}>
-						{receiptAmountLabel}
-					</PrivacySensitiveText>
-				</p>
+			{showReceiptAmount ? (
+				<SessionBookingAmount
+					rowId={rowId}
+					receiptAmount={receiptAmount}
+					estimatedPrice={estimatedPrice}
+					showCents={showCents}
+				/>
 			) : null}
 			{stripeInvoiceAmountLabel && stripeInvoicesSummary ? (
 				<p className={getStripeInvoiceAmountClassName(stripeInvoicesSummary.paymentStatus)}>
