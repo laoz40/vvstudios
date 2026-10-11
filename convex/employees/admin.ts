@@ -1,4 +1,5 @@
 import { v } from "convex/values";
+import { ok, safeTry } from "neverthrow";
 import { tupleErr, tupleOk } from "#/lib/result";
 import { mutation, query } from "#convex/_generated/server";
 import { requirePermission } from "#convex/shared/services/auth";
@@ -11,23 +12,32 @@ import {
 export const listEmployees = query({
 	args: {},
 	handler: (ctx) =>
-		requirePermission(ctx, "update:editor-access")
-			.andThen(() => loadEmployeeRoster(ctx))
-			.match(tupleOk, tupleErr)
+		safeTry(async function* () {
+			yield* requirePermission(ctx, "update:editor-access");
+			const employees = yield* loadEmployeeRoster(ctx);
+
+			return ok(employees);
+		}).match(tupleOk, tupleErr)
 });
 
 export const updateEmployeeNotes = mutation({
 	args: { tokenIdentifier: v.string(), notes: v.string() },
 	handler: (ctx, args) =>
-		requirePermission(ctx, "update:editor-access")
-			.andThen(() => saveEmployeeNotes(ctx, args.tokenIdentifier, args.notes))
-			.match(tupleOk, tupleErr)
+		safeTry(async function* () {
+			yield* requirePermission(ctx, "update:editor-access");
+			const result = yield* saveEmployeeNotes(ctx, args.tokenIdentifier, args.notes);
+
+			return ok(result);
+		}).match(tupleOk, tupleErr)
 });
 
 export const updateEmployeeAccess = mutation({
 	args: { tokenIdentifier: v.string(), isActive: v.boolean() },
 	handler: (ctx, args) =>
-		requirePermission(ctx, "update:editor-access")
-			.andThen(() => saveEmployeeAccess(ctx, args.tokenIdentifier, args.isActive))
-			.match(tupleOk, tupleErr)
+		safeTry(async function* () {
+			yield* requirePermission(ctx, "update:editor-access");
+			const result = yield* saveEmployeeAccess(ctx, args.tokenIdentifier, args.isActive);
+
+			return ok(result);
+		}).match(tupleOk, tupleErr)
 });

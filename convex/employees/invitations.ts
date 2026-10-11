@@ -1,6 +1,7 @@
 "use node";
 
 import { v } from "convex/values";
+import { ok, safeTry } from "neverthrow";
 import { tupleErr, tupleOk, type Result } from "#/lib/result";
 import { action } from "#convex/_generated/server";
 import { requirePermissionActions } from "#convex/shared/services/requirePermissionActions";
@@ -18,7 +19,10 @@ type InviteUserError =
 export const inviteUser = action({
 	args: { email: v.string() },
 	handler: (ctx, args): Promise<Result<{ invitedEmail: string }, InviteUserError>> =>
-		requirePermissionActions(ctx, "update:editor-access")
-			.andThen(() => inviteEmployeeByEmail(args.email))
-			.match(tupleOk, tupleErr)
+		safeTry(async function* () {
+			yield* requirePermissionActions(ctx, "update:editor-access");
+			const invitation = yield* inviteEmployeeByEmail(args.email);
+
+			return ok(invitation);
+		}).match(tupleOk, tupleErr)
 });

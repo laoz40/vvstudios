@@ -1,4 +1,4 @@
-import { ResultAsync } from "neverthrow";
+import { ok, ResultAsync, safeTry } from "neverthrow";
 import type { Doc } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
 
@@ -36,23 +36,35 @@ function combineEditorWorkStatuses(ctx: QueryCtx, editors: Doc<"editorProfiles">
 }
 
 export function loadEmployeeRoster(ctx: QueryCtx) {
-	return listEditorProfiles(ctx).andThen((editors: Doc<"editorProfiles">[]) =>
-		combineEditorWorkStatuses(ctx, editors)
-	);
+	return safeTry(async function* () {
+		const editors = yield* listEditorProfiles(ctx);
+		const workStatuses = yield* combineEditorWorkStatuses(ctx, editors);
+
+		return ok(workStatuses);
+	});
 }
 
 function requireEditorProfileByToken(ctx: MutationCtx, tokenIdentifier: string) {
-	return lookupEditorProfileByToken(ctx, tokenIdentifier).andThen(assertEditorProfileFound);
+	return safeTry(async function* () {
+		const editor = yield* lookupEditorProfileByToken(ctx, tokenIdentifier);
+		const foundEditor = yield* assertEditorProfileFound(editor);
+
+		return ok(foundEditor);
+	});
 }
 
 function clearIncompleteBookingAssignment(ctx: MutationCtx, booking: Doc<"bookings">) {
-	return buildUnassignedBookingSearchPatch(ctx, booking).andThen((searchBlobPatch) =>
-		patchBookingEditorAssignment(ctx, booking._id, {
+	return safeTry(async function* () {
+		const searchBlobPatch = yield* buildUnassignedBookingSearchPatch(ctx, booking);
+
+		const updatedBooking = yield* patchBookingEditorAssignment(ctx, booking._id, {
 			adminNotes: booking.adminNotes,
 			assignedEditorTokenIdentifier: undefined,
 			searchBlobPatch
-		})
-	);
+		});
+
+		return ok(updatedBooking);
+	});
 }
 
 function unassignIncompleteBookingRows(ctx: MutationCtx, bookings: Doc<"bookings">[]) {
@@ -68,19 +80,35 @@ export function saveEmployeeAccess(
 	tokenIdentifier: string,
 	isActive: boolean
 ): ResultAsync<null, { reason: "EDITOR_NOT_FOUND" }> {
-	return requireEditorProfileByToken(ctx, tokenIdentifier)
-		.andThen((editor) => patchEditorAccess(ctx, editor._id, isActive))
-		.andThen(() => finishEmployeeAccessChange(ctx, tokenIdentifier, isActive));
+	return safeTry(async function* () {
+		const editor = yield* requireEditorProfileByToken(ctx, tokenIdentifier);
+		yield* patchEditorAccess(ctx, editor._id, isActive);
+		const result = yield* finishEmployeeAccessChange(ctx, tokenIdentifier, isActive);
+
+		return ok(result);
+	});
 }
 
 function finishEmployeeAccessChange(ctx: MutationCtx, tokenIdentifier: string, isActive: boolean) {
-	return loadBookingsForEmployeeAccessChange(ctx, tokenIdentifier, isActive)
-		.andThen((retiredBookings) => unassignIncompleteBookingRows(ctx, retiredBookings))
-		.andThen(() => scheduleEditorDriveRetirement(ctx, isActive ? null : tokenIdentifier));
+	return safeTry(async function* () {
+		const retiredBookings = yield* loadBookingsForEmployeeAccessChange(
+			ctx,
+			tokenIdentifier,
+			isActive
+		);
+
+		yield* unassignIncompleteBookingRows(ctx, retiredBookings);
+		const result = yield* scheduleEditorDriveRetirement(ctx, isActive ? null : tokenIdentifier);
+
+		return ok(result);
+	});
 }
 
 export function saveEmployeeNotes(ctx: MutationCtx, tokenIdentifier: string, notes: string) {
-	return requireEditorProfileByToken(ctx, tokenIdentifier).andThen(
-		(editor: Doc<"editorProfiles">) => patchEditorNotes(ctx, editor._id, notes)
-	);
+	return safeTry(async function* () {
+		const editor = yield* requireEditorProfileByToken(ctx, tokenIdentifier);
+		const result = yield* patchEditorNotes(ctx, editor._id, notes);
+
+		return ok(result);
+	});
 }

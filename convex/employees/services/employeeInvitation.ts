@@ -7,13 +7,15 @@ import {
 	emailDomainCanReceiveMailAsync,
 	rejectUninvitableEmailDomain
 } from "#convex/shared/lib/email/emailDomain";
-
-function inviteValidatedEmail(email: string) {
-	return emailDomainCanReceiveMailAsync(email)
-		.andThen((canReceiveMail) => rejectUninvitableEmailDomain(email, canReceiveMail))
-		.andThen(inviteEmployeeAfterDomainCheck);
-}
+import { ok, safeTry } from "neverthrow";
 
 export function inviteEmployeeByEmail(emailInput: string) {
-	return parseInviteEmail(emailInput).asyncAndThen(inviteValidatedEmail);
+	return safeTry(async function* () {
+		const email = yield* parseInviteEmail(emailInput);
+		const canReceiveMail = yield* emailDomainCanReceiveMailAsync(email);
+		yield* rejectUninvitableEmailDomain(email, canReceiveMail);
+		const invitation = yield* inviteEmployeeAfterDomainCheck(email);
+
+		return ok(invitation);
+	});
 }

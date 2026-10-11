@@ -2,8 +2,7 @@ import {
 	buildAdminPackageListRow,
 	applyAdminPackageListVisibility
 } from "#convex/shared/lib/listAdminPackages";
-import type { AdminSearchListPage } from "#convex/shared/lib/adminSearch/adminListSearchPage";
-import { ResultAsync } from "neverthrow";
+import { ok, ResultAsync, safeTry } from "neverthrow";
 import type { Doc } from "#convex/_generated/dataModel";
 import type { QueryCtx } from "#convex/_generated/server";
 import {
@@ -18,56 +17,41 @@ import {
 } from "#convex/stripe/lib/invoices";
 
 function loadAdminPackageListRow(ctx: QueryCtx, packageFromDb: Doc<"packages">) {
-	return getPackageAdjustment(ctx, packageFromDb._id).andThen((adjustment) =>
-		loadPackageSessionsForRow(ctx, packageFromDb, adjustment)
-	);
-}
+	return safeTry(async function* () {
+		const adjustment = yield* getPackageAdjustment(ctx, packageFromDb._id);
 
-function loadPackageSessionsForRow(
-	ctx: QueryCtx,
-	packageFromDb: Doc<"packages">,
-	adjustment: Doc<"packageAdjustments"> | null
-) {
-	return getCapacityConsumingPackageSessions(
-		ctx,
-		packageFromDb._id,
-		packageFromDb.packageSize
-	).andThen((sessions) => loadPackageInvoicesForRow(ctx, packageFromDb, adjustment, sessions));
-}
-
-function loadPackageInvoicesForRow(
-	ctx: QueryCtx,
-	packageFromDb: Doc<"packages">,
-	adjustment: Doc<"packageAdjustments"> | null,
-	sessions: Doc<"bookings">[]
-) {
-	return ResultAsync.combine([
-		listStripeInvoicesForPackage(ctx, packageFromDb._id),
-		listStripeInvoicesForBookings(
+		const sessions = yield* getCapacityConsumingPackageSessions(
 			ctx,
-			sessions.map((booking) => booking._id)
-		)
-	]).map((invoices) => buildAdminPackageListRow(packageFromDb, adjustment, sessions, invoices));
-}
+			packageFromDb._id,
+			packageFromDb.packageSize
+		);
 
-function loadAdminPackageListRows(
-	ctx: QueryCtx,
-	args: ListAdminPackagesArgs,
-	packagesPage: AdminSearchListPage<Doc<"packages">>
-) {
-	const visiblePackages = applyAdminPackageListVisibility(
-		packagesPage.page,
-		args.view ?? "inbox",
-		args.includeStale ?? false
-	);
+		const invoices = yield* ResultAsync.combine([
+			listStripeInvoicesForPackage(ctx, packageFromDb._id),
+			listStripeInvoicesForBookings(
+				ctx,
+				sessions.map((booking) => booking._id)
+			)
+		]);
 
-	return ResultAsync.combine(visiblePackages.map((row) => loadAdminPackageListRow(ctx, row))).map(
-		(rows) => ({ ...packagesPage, page: rows })
-	);
+		return ok(buildAdminPackageListRow(packageFromDb, adjustment, sessions, invoices));
+	});
 }
 
 export function listAdminPackages(ctx: QueryCtx, args: ListAdminPackagesArgs) {
-	return fetchAdminPackagesListPage(ctx, args).andThen((page) =>
-		loadAdminPackageListRows(ctx, args, page)
-	);
+	return safeTry(async function* () {
+		const packagesPage = yield* fetchAdminPackagesListPage(ctx, args);
+
+		const visiblePackages = applyAdminPackageListVisibility(
+			packagesPage.page,
+			args.view ?? "inbox",
+			args.includeStale ?? false
+		);
+
+		const rows = yield* ResultAsync.combine(
+			visiblePackages.map((row) => loadAdminPackageListRow(ctx, row))
+		);
+
+		return ok({ ...packagesPage, page: rows });
+	});
 }
