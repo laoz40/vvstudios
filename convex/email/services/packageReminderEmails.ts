@@ -2,11 +2,15 @@ import {
 	renderPackageExpiryReminderEmailHtml,
 	type SendPackageExpiryReminderEmailArgs
 } from "#convex/shared/lib/email/emailRenders";
+import { ok, safeTry } from "neverthrow";
 
 import { sendPackageExpiryReminderEmailWithHtml } from "#convex/email/lib/packageReminderEmailsSteps";
 
 export function sendPackageExpiryReminderEmail(args: SendPackageExpiryReminderEmailArgs) {
-	return renderPackageExpiryReminderEmailHtml(args).andThen((html: string) =>
-		sendPackageExpiryReminderEmailWithHtml(args, html)
-	);
+	return safeTry(async function* () {
+		const html = yield* renderPackageExpiryReminderEmailHtml(args);
+		const result = yield* sendPackageExpiryReminderEmailWithHtml(args, html);
+
+		return ok(result);
+	});
 }

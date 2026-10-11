@@ -1,6 +1,6 @@
 "use node";
 
-import { okAsync, type ResultAsync } from "neverthrow";
+import { okAsync } from "neverthrow";
 
 import { sendEmail } from "#convex/shared/lib/email/emailSend";
 
@@ -18,7 +18,7 @@ export function sendSessionHostDetailsEmailWithHtml(
 	args: SendSessionHostDetailsEmailArgs | null,
 
 	html: string | null
-): ReturnType<typeof sendEmail> {
+) {
 	if (args === null || html === null) return okAsync(null);
 
 	return sendEmail({ to: hostEmails, subject: sessionHostDetailsEmailSubject(args), html }).map(
@@ -31,7 +31,7 @@ export function sendPackageHostDetailsEmailWithHtml(
 	args: SendPackageHostDetailsEmailArgs | null,
 
 	html: string | null
-): ReturnType<typeof sendEmail> {
+) {
 	if (args === null || html === null) return okAsync(null);
 
 	return sendEmail({ to: hostEmails, subject: packageHostDetailsEmailSubject(args), html }).map(
@@ -42,7 +42,7 @@ export function sendPackageHostDetailsEmailWithHtml(
 export function renderSessionHostEmailWhenNeeded(
 	args: SendSessionHostDetailsEmailArgs | null,
 	hosts: string[]
-): ResultAsync<string | null, { reason: "EMAIL_RENDER_FAILED" }> {
+) {
 	if (args === null || hosts.length === 0) return okAsync(null);
 
 	return renderSessionHostDetailsEmailHtml(args);
@@ -51,7 +51,7 @@ export function renderSessionHostEmailWhenNeeded(
 export function renderPackageHostEmailWhenNeeded(
 	args: SendPackageHostDetailsEmailArgs | null,
 	hosts: string[]
-): ResultAsync<string | null, { reason: "EMAIL_RENDER_FAILED" }> {
+) {
 	if (args === null || hosts.length === 0) return okAsync(null);
 
 	return renderPackageHostDetailsEmailHtml(args);
