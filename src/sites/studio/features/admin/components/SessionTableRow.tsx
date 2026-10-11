@@ -298,6 +298,7 @@ function SessionAmountCell({ rowId, session }: { rowId: string; session: Session
 			showBookingAmount={showBookingAmount}
 			receiptAmount={receiptAmount}
 			checkoutAmount={showBookingAmount ? (session.originalPaidAmount ?? null) : null}
+			checkoutPaymentId={session.stripePaymentIntentId}
 			estimatedPrice={getLegacySessionEstimatedPrice(session)}
 			paidRemainingBalanceAmount={
 				receiptAmount !== null && session.paidRemainingBalance

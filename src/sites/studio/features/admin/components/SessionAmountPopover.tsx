@@ -1,4 +1,4 @@
-import { useId, useState } from "react";
+import { useId, useState, type ReactNode } from "react";
 import { useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { api } from "#convex/_generated/api";
@@ -13,6 +13,7 @@ import {
 import { Separator } from "#/components/ui/separator";
 import { cn } from "#/lib/utils";
 import { useAdminPrivacyMode } from "#studio/features/admin/components/AdminPrivacyMode";
+import { copyText } from "#studio/features/admin/components/AdminDashboardTableUtils";
 import type { SessionRecord } from "#studio/features/admin/lib/admin-sessions";
 import {
 	formatAudAmount,
@@ -54,12 +55,35 @@ function getSessionInvoiceState(
 
 type SessionAmountDetailsProps = {
 	checkoutAmount: number | null;
+	checkoutPaymentId?: string;
 	estimatedPrice: number | null;
 	paidRemainingBalanceAmount: number;
 	stripeInvoicesSummary: SessionRecord["stripeInvoicesSummary"];
 	showCents: boolean;
 	invoiceState?: InvoiceState;
 };
+
+function StripePaymentAmount({
+	paymentId,
+	label = "Stripe payment ID",
+	children
+}: {
+	paymentId?: string;
+	label?: string;
+	children: ReactNode;
+}) {
+	if (!paymentId) return <span>{children}</span>;
+
+	return (
+		<button
+			type="button"
+			className="cursor-pointer rounded-sm underline-offset-4 hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+			aria-label={`Copy ${label}`}
+			onClick={() => void copyText(paymentId, label, `${label} copied`)}>
+			{children}
+		</button>
+	);
+}
 
 function SessionInvoiceAmounts({ invoiceState }: { invoiceState: InvoiceState }) {
 	if (invoiceState.kind === "loading") {
@@ -92,12 +116,22 @@ function SessionInvoiceAmounts({ invoiceState }: { invoiceState: InvoiceState })
 				<li
 					key={invoice.stripeInvoiceId}
 					className="flex justify-between gap-3">
-					<p>{formatStripeInvoiceKindLabel(invoice.kind)}</p>
+					<p>
+						<StripePaymentAmount
+							paymentId={invoice.stripeInvoiceId}
+							label="Stripe invoice ID">
+							{formatStripeInvoiceKindLabel(invoice.kind)}
+						</StripePaymentAmount>
+					</p>
 					<div className={getStripeInvoiceAmountClassName(invoice.paymentStatus)}>
 						<p
 							className="text-right tabular-nums"
 							aria-label={`${formatStripeInvoiceAmount(invoice)}, ${invoice.paymentStatus}`}>
-							{formatStripeInvoiceAmount(invoice)}
+							<StripePaymentAmount
+								paymentId={invoice.stripeInvoiceId}
+								label="Stripe invoice ID">
+								{formatStripeInvoiceAmount(invoice)}
+							</StripePaymentAmount>
 						</p>
 					</div>
 				</li>
@@ -108,6 +142,7 @@ function SessionInvoiceAmounts({ invoiceState }: { invoiceState: InvoiceState })
 
 export function SessionAmountDetails({
 	checkoutAmount,
+	checkoutPaymentId,
 	estimatedPrice,
 	paidRemainingBalanceAmount,
 	stripeInvoicesSummary,
@@ -134,11 +169,15 @@ export function SessionAmountDetails({
 	return (
 		<div className="flex flex-col gap-3 text-sm">
 			<dl className="grid grid-cols-[1fr_auto] gap-x-4 gap-y-2">
-				<dt className="text-muted-foreground">
-					{estimatedPrice === null ? "Checkout total" : "Estimated booking price"}
+				<dt>
+					<StripePaymentAmount paymentId={checkoutPaymentId}>
+						{estimatedPrice === null ? "Checkout total" : "Estimated booking price"}
+					</StripePaymentAmount>
 				</dt>
 				<dd className={cn("text-right tabular-nums", bookingAmount !== null && "text-green")}>
-					{formatAmount(bookingAmount)}
+					<StripePaymentAmount paymentId={checkoutPaymentId}>
+						{formatAmount(bookingAmount)}
+					</StripePaymentAmount>
 				</dd>
 				{paidRemainingBalanceAmount !== 0 ? (
 					<>
@@ -150,7 +189,7 @@ export function SessionAmountDetails({
 			<SessionInvoiceAmounts invoiceState={invoiceState} />
 			<Separator />
 			<dl className="grid grid-cols-[1fr_auto] gap-x-4 gap-y-2">
-				<dt className="text-muted-foreground">Invoices total</dt>
+				<dt>Invoices total</dt>
 				<dd className="text-right tabular-nums">{formatAmount(invoiceAmount)}</dd>
 				<dt className="font-medium">Total</dt>
 				<dd className="text-right font-medium tabular-nums">{formatAmount(total)}</dd>

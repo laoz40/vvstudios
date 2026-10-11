@@ -23,10 +23,10 @@ export function AdminTableInlineFieldSeparator() {
 	);
 }
 
-export async function copyText(value: string, label: string) {
+export async function copyText(value: string, label: string, successMessage = `Copied ${label}.`) {
 	try {
 		await navigator.clipboard.writeText(value);
-		toast.success(`Copied ${label}.`);
+		toast.success(successMessage);
 	} catch {
 		toast.error(`Unable to copy ${label}.`);
 	}
