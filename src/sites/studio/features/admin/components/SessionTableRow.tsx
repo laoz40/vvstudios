@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { exhaustiveCheck } from "#/lib/result";
 import { cn } from "#/lib/utils";
 import { AdminTableInfoPopover } from "#studio/features/admin/components/AdminTableInfoPopover";
+import { SessionAmountPopover } from "#studio/features/admin/components/SessionAmountPopover";
 import { SessionActions } from "#studio/features/admin/components/SessionActions";
 import { StatusIcon } from "#studio/features/admin/components/StatusIcon";
 import {
@@ -33,11 +34,6 @@ import {
 	getSessionPaidBookingAmount,
 	type SessionRecord
 } from "#studio/features/admin/lib/admin-sessions";
-import {
-	formatAudAmount,
-	getAudAmountRowShowCents
-} from "#studio/features/admin/lib/remaining-balance";
-import { getStripeInvoiceAmountClassName } from "#studio/features/admin/lib/stripe-invoice-billing";
 import { formatAdminSearchNarrowQuery } from "#studio/features/admin/lib/admin-search-narrow";
 import {
 	formatShortMonthFullDate,
@@ -282,89 +278,34 @@ function SessionNotesCell({
 	);
 }
 
-function SessionBookingAmount({
-	rowId,
-	receiptAmount,
-	estimatedPrice,
-	showCents
-}: {
-	rowId: string;
-	receiptAmount: number | null;
-	estimatedPrice: number | null;
-	showCents: boolean;
-}) {
-	const amount = receiptAmount ?? estimatedPrice;
-	const amountLabel = amount !== null ? formatAudAmount(amount, { showCents }) : "-";
-
-	return (
-		<p
-			className={amount === null ? "text-muted-foreground" : "text-green"}
-			title={
-				estimatedPrice !== null
-					? "Estimated price. Based on current rates. Payment has not been verified."
-					: undefined
-			}>
-			<PrivacySensitiveText
-				rowId={rowId}
-				value={amountLabel}
-				label={estimatedPrice !== null ? "estimated price" : "original payment"}
-				copyable={false}>
-				{amountLabel}
-			</PrivacySensitiveText>
-		</p>
-	);
-}
-
 function SessionAmountCell({ rowId, session }: { rowId: string; session: SessionRecord }) {
 	const packageSessionProgressLabel = getPackageSessionProgressLabel(session);
 
-	const showReceiptAmount =
+	const showBookingAmount =
 		!packageSessionProgressLabel &&
 		(session.status === "confirmed" || session.status === "email_failed");
 
-	const stripeInvoicesSummary = session.stripeInvoicesSummary;
-
-	if (!showReceiptAmount && !stripeInvoicesSummary) {
+	if (!showBookingAmount && !session.stripeInvoicesSummary) {
 		return <p className="text-muted-foreground">-</p>;
 	}
 
-	const receiptAmount = showReceiptAmount ? getSessionPaidBookingAmount(session) : null;
-	const estimatedPrice = showReceiptAmount ? getLegacySessionEstimatedPrice(session) : null;
-	const displayedBookingAmount = receiptAmount ?? estimatedPrice;
-
-	const stripeInvoiceAmount = stripeInvoicesSummary?.totalAmount ?? null;
-
-	const rowAmounts = [displayedBookingAmount, stripeInvoiceAmount].filter(
-		(amount): amount is number => amount !== null
-	);
-
-	const showCents = getAudAmountRowShowCents(rowAmounts);
-
-	const stripeInvoiceAmountLabel =
-		stripeInvoiceAmount !== null ? formatAudAmount(stripeInvoiceAmount, { showCents }) : null;
+	const receiptAmount = showBookingAmount ? getSessionPaidBookingAmount(session) : null;
 
 	return (
-		<div className="flex flex-col items-end gap-1">
-			{showReceiptAmount ? (
-				<SessionBookingAmount
-					rowId={rowId}
-					receiptAmount={receiptAmount}
-					estimatedPrice={estimatedPrice}
-					showCents={showCents}
-				/>
-			) : null}
-			{stripeInvoiceAmountLabel && stripeInvoicesSummary ? (
-				<p className={getStripeInvoiceAmountClassName(stripeInvoicesSummary.paymentStatus)}>
-					<PrivacySensitiveText
-						rowId={rowId}
-						value={stripeInvoiceAmountLabel}
-						label="Stripe invoice amount"
-						copyable={false}>
-						{stripeInvoiceAmountLabel}
-					</PrivacySensitiveText>
-				</p>
-			) : null}
-		</div>
+		<SessionAmountPopover
+			rowId={rowId}
+			bookingId={session._id}
+			showBookingAmount={showBookingAmount}
+			receiptAmount={receiptAmount}
+			checkoutAmount={showBookingAmount ? (session.originalPaidAmount ?? null) : null}
+			estimatedPrice={getLegacySessionEstimatedPrice(session)}
+			paidRemainingBalanceAmount={
+				receiptAmount !== null && session.paidRemainingBalance
+					? (session.remainingBalanceAmount ?? 0)
+					: 0
+			}
+			stripeInvoicesSummary={session.stripeInvoicesSummary}
+		/>
 	);
 }
 
