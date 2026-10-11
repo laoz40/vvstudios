@@ -43,25 +43,28 @@ function useBookingCompletePageData(search: BookingCompleteSearch) {
 			? { stripeSessionId: usableStripeSessionId }
 			: "skip";
 
-	const liveBooking = useQuery(
+	const liveBookingResult = useQuery(
 		api.sessions.admin.getSessionStatusByStripeSessionId,
 		stripeQueryArgs
 	);
 
-	const livePackage = useQuery(
+	const liveBooking = liveBookingResult === undefined ? undefined : liveBookingResult[1];
+
+	const livePackageResult = useQuery(
 		api.packages.checkout.getPackageStatusByStripeSessionId,
 		stripeQueryArgs !== "skip" && liveBooking === null ? stripeQueryArgs : "skip"
 	);
 
-	const isLoadingBooking = stripeQueryArgs !== "skip" && liveBooking === undefined;
+	const livePackage = livePackageResult === undefined ? undefined : livePackageResult[1];
 
-	const isLoadingPackage =
-		stripeQueryArgs !== "skip" && liveBooking === null && livePackage === undefined;
+	const isLoading =
+		stripeQueryArgs !== "skip" &&
+		(liveBooking === undefined || (liveBooking === null && livePackage === undefined));
 
 	return {
 		booking: activeDevScenario ? buildDevBooking(activeDevScenario) : liveBooking,
 		hasCheckoutRequest: Boolean(search.session_id || activeDevScenario),
-		isLoading: isLoadingBooking || isLoadingPackage,
+		isLoading,
 		package: livePackage,
 		previewStripeSessionId:
 			usableStripeSessionId ?? (activeDevScenario ? "dev_checkout_session" : null),

@@ -5,7 +5,6 @@ import type {
 	SessionAvailabilitySettings,
 	SessionAvailabilityValidationError
 } from "#convex/sessions/lib/calendarTime";
-import { checkSessionMeetsAvailabilitySettings } from "#convex/sessions/lib/calendarTime";
 import type { GoogleCalendarWriteError } from "#convex/googleCalendar/lib/googleCalendarErrors";
 import type { BookingSubmitRateLimitError } from "#convex/shared/lib/rateLimits";
 import type { SessionCalendarEventRecord } from "#convex/sessions/lib/calendarEventPayload";
@@ -16,7 +15,6 @@ import { getPackageExpiresAt } from "#/domain/booking/pricing";
 import { type PackageSize } from "#/domain/booking/price-constants";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { QueryCtx, MutationCtx } from "#convex/_generated/server";
-import { env } from "#convex/env";
 import { type ValidPackage, type ValidPackageByTokenError } from "#convex/packages/lib/lookup";
 import {
 	capacityConsumingSessionStatuses,
@@ -184,23 +182,6 @@ export function getPackageSessionForToken(
 		}
 
 		return session;
-	});
-}
-
-export function checkPackageSessionAvailability(
-	args: { date: string; time: string },
-	packageRecord: ValidPackage,
-	settings: SessionAvailabilitySettings,
-	now: number
-) {
-	return checkSessionMeetsAvailabilitySettings({
-		date: args.date,
-		duration: packageRecord.duration,
-		latestBookableDate: new Date(packageRecord.expiresAt),
-		now,
-		settings,
-		time: args.time,
-		timeZone: env.GOOGLE_CALENDAR_TIMEZONE
 	});
 }
 

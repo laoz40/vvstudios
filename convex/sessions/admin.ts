@@ -36,11 +36,7 @@ export const detectDeliverablesCustomerType = internalQuery({
 
 export const getSessionById = internalQuery({
 	args: { bookingId: v.id("bookings") },
-	handler: async (ctx, args) =>
-		(await loadBookingRowOrNull(ctx, args.bookingId)).match(
-			(session) => session,
-			() => null
-		)
+	handler: (ctx, args) => loadBookingRowOrNull(ctx, args.bookingId).match(tupleOk, tupleErr)
 });
 
 export const getDriveStatus = query({
@@ -64,35 +60,29 @@ export const listSessions = query({
 		includeStale: v.optional(v.boolean()),
 		searchQuery: v.optional(v.string())
 	},
-	handler: (ctx, args) =>
-		listSessionsService(ctx, args).match(
-			(page) => page,
-			(error) => {
-				throw new ConvexError(error);
-			}
-		)
+	handler: async (ctx, args) => {
+		const result = await listSessionsService(ctx, args);
+
+		if (result.isErr()) throw new ConvexError(result.error);
+
+		return result.value;
+	}
 });
 
 export const listActiveEditors = query({
 	args: {},
-	handler: async (ctx) =>
-		(await listActiveEditorsForAdmin(ctx)).match(
-			(editors) => editors,
-			(authError) => {
-				throw new ConvexError(authError);
-			}
-		)
+	handler: (ctx) => listActiveEditorsForAdmin(ctx).match(tupleOk, tupleErr)
 });
 
 export const listEditorSessions = query({
 	args: { paginationOpts: paginationOptsValidator },
-	handler: async (ctx, args) =>
-		(await listEditorSessionsForAssignee(ctx, args.paginationOpts)).match(
-			(sessionsPage) => sessionsPage,
-			(authError) => {
-				throw new ConvexError(authError);
-			}
-		)
+	handler: async (ctx, args) => {
+		const result = await listEditorSessionsForAssignee(ctx, args.paginationOpts);
+
+		if (result.isErr()) throw new ConvexError(result.error);
+
+		return result.value;
+	}
 });
 
 export const getPublicRescheduleCompleteSession = query({
@@ -103,11 +93,8 @@ export const getPublicRescheduleCompleteSession = query({
 
 export const getSessionStatusByStripeSessionId = query({
 	args: { stripeSessionId: v.string() },
-	handler: async (ctx, args) =>
-		(await loadSessionStatusByStripeSessionId(ctx, args.stripeSessionId)).match(
-			(status) => status,
-			() => null
-		)
+	handler: (ctx, args) =>
+		loadSessionStatusByStripeSessionId(ctx, args.stripeSessionId).match(tupleOk, tupleErr)
 });
 
 export const saveSessionInstagramHandle = mutation({

@@ -2,7 +2,7 @@
 
 import { createHash } from "node:crypto";
 import { err, ok, type Result } from "neverthrow";
-import type { EditInvoiceDraft } from "#convex/stripe/services/editInvoiceValidators";
+import type { EditInvoiceDraft } from "#convex/stripe/editInvoiceValidators";
 import type { EditInvoiceContext, EditInvoiceQuote } from "#convex/stripe/lib/editInvoiceBilling";
 
 export type ConfirmEditInvoiceArgs = {
@@ -66,6 +66,20 @@ export function getConfirmedEditAction(
 		return err({ reason: "INVOICE_RETRY_REQUIRES_REVIEW" });
 
 	return ok("send");
+}
+
+export function selectConfirmedEditSaveDrafts(
+	action: "complete" | "save" | "send",
+	draft: EditInvoiceDraft
+) {
+	return action === "save" ? [draft] : [];
+}
+
+export function selectConfirmedEditSendRequests(
+	action: "complete" | "save" | "send",
+	args: ConfirmEditInvoiceArgs
+) {
+	return action === "send" ? [args] : [];
 }
 
 export function validateNoInvoiceRequired(quote: EditInvoiceQuote) {

@@ -1,83 +1,31 @@
 "use node";
 
 import { type ResultAsync } from "neverthrow";
-import { api, internal } from "#convex/_generated/api";
+
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { ActionCtx } from "#convex/_generated/server";
 import { requirePermissionActions } from "#convex/shared/services/requirePermissionActions";
 import { sendBookingReceiptEmailsForBooking } from "#convex/booking/services/receiptEmails";
 import { validateConfirmedSessionForReceiptResend } from "#convex/booking/lib/receipt";
-import { fromConvexTuple, okOrThrow } from "#convex/shared/lib/result";
+import { queryBookingAvailabilitySettings } from "#convex/booking/lib/settingsIo";
+
 import { createRescheduleUrlForSession } from "#convex/sessions/lib/rescheduleLinks";
 import { getSessionFromQuery } from "#convex/sessions/services/lookup";
 import type { BookingAvailabilitySettings } from "#studio/lib/bookingAvailabilitySettings";
-
-function loadSessionForReceiptResend(ctx: ActionCtx, bookingId: Id<"bookings">) {
-	return getSessionFromQuery(ctx, bookingId);
-}
-
-function returnSameSession(session: Doc<"bookings">) {
-	return session;
-}
-
-function sendCustomerReceiptWithSettings(
-	ctx: ActionCtx,
-	session: Doc<"bookings">,
-	settings: BookingAvailabilitySettings
-) {
-	return getSessionFromQuery(ctx, session._id).andThen((sessionFromDb: Doc<"bookings">) =>
-		sendCustomerReceiptForLoadedSession(ctx, settings, sessionFromDb)
-	);
-}
-
-function sendCustomerReceiptForLoadedSession(
-	ctx: ActionCtx,
-	settings: BookingAvailabilitySettings,
-	sessionFromDb: Doc<"bookings">
-) {
-	return createRescheduleUrlForSession(ctx, sessionFromDb).andThen((rescheduleUrl: string) =>
-		sendReceiptEmailsForRescheduleUrl(sessionFromDb, settings, rescheduleUrl)
-	);
-}
-
-function sendReceiptEmailsForRescheduleUrl(
-	sessionFromDb: Doc<"bookings">,
-	settings: BookingAvailabilitySettings,
-	rescheduleUrl: string
-) {
-	return sendBookingReceiptEmailsForBooking(sessionFromDb, {
-		leadTimeMinutes: settings.leadTimeMinutes,
-		rescheduleUrl,
-		skipHostEmail: true
-	}).map((_value) => receiptResendResultForSession(sessionFromDb, _value));
-}
-
-function receiptResendResultForSession(
-	sessionFromDb: Doc<"bookings">,
-	{ receiptNumber }: { receiptNumber: string }
-) {
-	return { session: sessionFromDb, receiptNumber };
-}
-
-function markReceiptResendSent(ctx: ActionCtx, session: Doc<"bookings">) {
-	return fromConvexTuple(
-		ctx.runMutation(internal.booking.confirmation.markSessionInvoiceEmailRetrySent, {
-			bookingId: session._id
-		})
-	);
-}
+import {
+	recordReceiptNumberMutation,
+	ensureReceiptNumberMutation,
+	markReceiptResendSent
+} from "#convex/booking/lib/receiptResendSteps";
 
 function recordReceiptNumberBeforeResendSent(
 	ctx: ActionCtx,
 	session: Doc<"bookings">,
 	receiptNumber: string
 ) {
-	return fromConvexTuple(
-		ctx.runMutation(internal.booking.confirmation.recordBookingReceiptNumber, {
-			bookingId: session._id,
-			receiptNumber
-		})
-	).andThen(() => markReceiptResendSent(ctx, session));
+	return recordReceiptNumberMutation(ctx, session, receiptNumber).andThen(() =>
+		markReceiptResendSent(ctx, session)
+	);
 }
 
 export function loadConfirmedSessionForReceiptResend(
@@ -85,7 +33,7 @@ export function loadConfirmedSessionForReceiptResend(
 	args: { bookingId: Id<"bookings"> }
 ): ResultAsync<Doc<"bookings">, { reason: string }> {
 	return requirePermissionActions(ctx, "send:receipt-emails")
-		.andThen(() => loadSessionForReceiptResend(ctx, args.bookingId))
+		.andThen(() => getSessionFromQuery(ctx, args.bookingId))
 		.andThen(validateConfirmedSessionForReceiptResend);
 }
 
@@ -93,20 +41,23 @@ export function writeStandaloneBookingReceiptNumber(
 	ctx: ActionCtx,
 	session: Doc<"bookings">
 ): ResultAsync<Doc<"bookings">, { reason: string }> {
-	return fromConvexTuple(
-		ctx.runMutation(internal.booking.confirmation.ensureStandaloneBookingReceiptNumber, {
-			bookingId: session._id
-		})
-	).map(() => returnSameSession(session));
+	return ensureReceiptNumberMutation(ctx, session).map(() => session);
 }
 
 export function sendBookingReceiptEmailToCustomer(
 	ctx: ActionCtx,
 	session: Doc<"bookings">
 ): ResultAsync<{ receiptNumber: string; session: Doc<"bookings"> }, { reason: string }> {
-	return okOrThrow<BookingAvailabilitySettings>(ctx.runQuery(api.booking.settings.get, {})).andThen(
-		(settings: BookingAvailabilitySettings) =>
-			sendCustomerReceiptWithSettings(ctx, session, settings)
+	return queryBookingAvailabilitySettings(ctx).andThen((settings: BookingAvailabilitySettings) =>
+		getSessionFromQuery(ctx, session._id).andThen((sessionFromDb: Doc<"bookings">) =>
+			createRescheduleUrlForSession(ctx, sessionFromDb).andThen((rescheduleUrl: string) =>
+				sendBookingReceiptEmailsForBooking(sessionFromDb, {
+					leadTimeMinutes: settings.leadTimeMinutes,
+					rescheduleUrl,
+					skipHostEmail: true
+				}).map(({ receiptNumber }) => ({ session: sessionFromDb, receiptNumber }))
+			)
+		)
 	);
 }
 

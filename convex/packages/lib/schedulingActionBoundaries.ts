@@ -1,4 +1,4 @@
-import type { ResultAsync } from "neverthrow";
+import { okAsync, type ResultAsync } from "neverthrow";
 import { internal } from "#convex/_generated/api";
 import type { Id } from "#convex/_generated/dataModel";
 import type { ActionCtx } from "#convex/_generated/server";
@@ -148,4 +148,15 @@ export function cleanupCancelledPackageSessionDrive(
 	return fromConvexTuple(
 		ctx.runAction(internal.googleCalendar.calendar.cleanupCancelledSessionDrive, { bookingId })
 	);
+}
+
+export function deleteOrphanPackageSessionCalendarEvent(
+	ctx: ActionCtx,
+	session: SessionCalendarEventRecord
+) {
+	if (!session.googleEventId || !session.googleCalendarId) {
+		return okAsync(null);
+	}
+
+	return deletePackageSessionCalendarEvent(ctx, session).map(() => null);
 }

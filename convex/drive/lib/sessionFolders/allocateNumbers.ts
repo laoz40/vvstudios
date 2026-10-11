@@ -1,12 +1,8 @@
-import { errAsync, okAsync, ResultAsync } from "neverthrow";
+import { errAsync, okAsync, type ResultAsync } from "neverthrow";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { MutationCtx } from "#convex/_generated/server";
-import { linkBookingDriveClientFromRow } from "#convex/drive/lib/driveBookingDriveClient";
-import {
-	computeClientSessionFolderNumberResult,
-	computePackageSessionFolderNumberResult
-} from "#convex/drive/lib/sessionFolders/resolveFolderNames";
 import { okOrThrow } from "#convex/shared/lib/result";
+import { linkBookingDriveClientFromRow } from "#convex/drive/lib/driveBookingDriveClient";
 
 export type ClientSessionNumberError = {
 	reason: "BOOKING_NOT_FOUND" | "BOOKING_IS_PACKAGE" | "DRIVE_RECORD_NOT_FOUND";
@@ -24,41 +20,44 @@ export type ClientSessionNumberAllocation =
 			number: number;
 	  };
 
-export function clientSessionNumberFromExistingSession(
-	ctx: MutationCtx,
-	existingSession: Doc<"driveSessions"> | null,
-	standaloneBooking: StandaloneBooking
-): ResultAsync<ClientSessionNumberAllocation, ClientSessionNumberError> {
-	if (existingSession?.clientSessionNumber !== undefined) {
-		return okAsync({ kind: "already_saved" as const, number: existingSession.clientSessionNumber });
-	}
-
-	return loadNextClientSessionNumber(ctx, standaloneBooking).map((number) => ({
-		kind: "new" as const,
-		booking: standaloneBooking.booking,
-		driveClientId: standaloneBooking.driveClientId,
-		existingSession,
-		number
-	}));
+export function requireSessionFolderNumber(number: number | undefined) {
+	return number === undefined
+		? errAsync({ reason: "BOOKING_NOT_FOUND" as const })
+		: okAsync(number);
 }
 
-function loadNextClientSessionNumber(
-	ctx: MutationCtx,
-	standaloneBooking: StandaloneBooking
-): ResultAsync<number, ClientSessionNumberError> {
-	return computeClientSessionFolderNumberResult(
-		ctx,
-		standaloneBooking.booking,
-		standaloneBooking.driveClientId
-	).andThen((number) =>
-		number === undefined ? errAsync({ reason: "BOOKING_NOT_FOUND" as const }) : okAsync(number)
-	);
+export function clientSessionNumberAllocation(
+	standaloneBooking: StandaloneBooking,
+	existingSession: Doc<"driveSessions"> | null,
+	number: number
+): ClientSessionNumberAllocation {
+	return existingSession?.clientSessionNumber !== undefined
+		? { kind: "already_saved", number: existingSession.clientSessionNumber }
+		: {
+				kind: "new",
+				booking: standaloneBooking.booking,
+				driveClientId: standaloneBooking.driveClientId,
+				existingSession,
+				number
+			};
+}
+
+export function packageSessionNumberAllocation(
+	packageBooking: PackageBooking,
+	existingSession: Doc<"driveSessions"> | null,
+	number: number
+): PackageSessionNumberAllocation {
+	return existingSession?.packageSessionNumber === undefined
+		? { kind: "new", booking: packageBooking.booking, existingSession, number }
+		: { kind: "already_saved", number: existingSession.packageSessionNumber };
 }
 
 export function saveClientSessionNumber(
 	ctx: MutationCtx,
-	allocation: Extract<ClientSessionNumberAllocation, { kind: "new" }>
+	allocation: ClientSessionNumberAllocation
 ): ResultAsync<number, ClientSessionNumberError> {
+	if (allocation.kind === "already_saved") return okAsync(allocation.number);
+
 	const persistNumber =
 		allocation.existingSession !== null
 			? okOrThrow(
@@ -81,13 +80,20 @@ export function saveClientSessionNumber(
 						.then(() => allocation.number)
 				);
 
-	return persistNumber.andThen((number) =>
-		linkBookingDriveClientFromRow(
-			ctx,
-			allocation.booking,
-			allocation.booking._id,
-			allocation.driveClientId
-		).map(() => number)
+	return persistNumber;
+}
+
+export function linkBookingDriveClientForNewClientSession(
+	ctx: MutationCtx,
+	allocation: ClientSessionNumberAllocation
+): ResultAsync<null, ClientSessionNumberError> {
+	if (allocation.kind === "already_saved") return okAsync(null);
+
+	return linkBookingDriveClientFromRow(
+		ctx,
+		allocation.booking,
+		allocation.booking._id,
+		allocation.driveClientId
 	);
 }
 
@@ -106,43 +112,12 @@ export type PackageSessionNumberAllocation =
 			number: number;
 	  };
 
-export function packageSessionNumberFromExistingSession(
-	ctx: MutationCtx,
-	existingSession: Doc<"driveSessions"> | null,
-	packageBooking: PackageBooking
-): ResultAsync<PackageSessionNumberAllocation, PackageSessionNumberError> {
-	if (existingSession?.packageSessionNumber !== undefined) {
-		return okAsync({
-			kind: "already_saved" as const,
-			number: existingSession.packageSessionNumber
-		});
-	}
-
-	return loadNextPackageSessionNumber(ctx, packageBooking).map((number) => ({
-		kind: "new" as const,
-		booking: packageBooking.booking,
-		existingSession,
-		number
-	}));
-}
-
-function loadNextPackageSessionNumber(
-	ctx: MutationCtx,
-	packageBooking: PackageBooking
-): ResultAsync<number, PackageSessionNumberError> {
-	return computePackageSessionFolderNumberResult(
-		ctx,
-		packageBooking.booking,
-		packageBooking.packageId
-	).andThen((number) =>
-		number === undefined ? errAsync({ reason: "BOOKING_NOT_FOUND" as const }) : okAsync(number)
-	);
-}
-
 export function savePackageSessionNumber(
 	ctx: MutationCtx,
-	allocation: Extract<PackageSessionNumberAllocation, { kind: "new" }>
+	allocation: PackageSessionNumberAllocation
 ): ResultAsync<number, PackageSessionNumberError> {
+	if (allocation.kind === "already_saved") return okAsync(allocation.number);
+
 	if (allocation.existingSession !== null) {
 		return okOrThrow(
 			ctx.db

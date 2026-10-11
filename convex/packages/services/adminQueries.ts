@@ -1,6 +1,6 @@
 import type { PaginationOptions } from "convex/server";
 import type { QueryCtx } from "#convex/_generated/server";
-import { listAdminPackages } from "#convex/shared/lib/listAdminPackages";
+import { listAdminPackages } from "#convex/shared/services/listAdminPackages";
 import { requirePermission } from "#convex/shared/services/auth";
 
 type ListAdminPackagesArgs = {

@@ -22,7 +22,7 @@ import { api, internal } from "#convex/_generated/api";
 import { env } from "#convex/env";
 import { createConvexTest } from "#convex/test.setup";
 import { bookingDocument, packageDocument } from "#convex/tests/insertDocumentDefaults";
-import type { EditInvoiceDraft } from "#convex/stripe/services/editInvoiceValidators";
+import type { EditInvoiceDraft } from "#convex/stripe/editInvoiceValidators";
 import type { EditInvoiceQuote } from "#convex/stripe/lib/editInvoiceBilling";
 import { mapPackageToAdminRow } from "#studio/features/admin/lib/admin-packages";
 
@@ -270,9 +270,15 @@ async function setup(kind: "booking" | "package") {
 			: { kind: "package" as const, packageId: draft.values.packageId };
 
 	async function read() {
-		return draft.kind === "booking"
-			? t.query(internal.sessions.admin.getSessionById, { bookingId: draft.values.bookingId })
-			: t.query(internal.packages.admin.getPackageById, { packageId: draft.values.packageId });
+		if (draft.kind === "booking") {
+			const [, session] = await t.query(internal.sessions.admin.getSessionById, {
+				bookingId: draft.values.bookingId
+			});
+
+			return session;
+		}
+
+		return t.query(internal.packages.admin.getPackageById, { packageId: draft.values.packageId });
 	}
 
 	async function quote(values = draft) {
@@ -698,9 +704,9 @@ test("package session increases invoice the package while Remote Podcast stays s
 	expect(
 		await flow.staff.query(api.stripe.invoiceRecords.listStripeInvoicesForPackage, { packageId })
 	).toMatchObject([null, [{ totalAmount: 99 }]]);
-	expect(await flow.t.query(internal.sessions.admin.getSessionById, { bookingId })).toMatchObject({
-		duration: "2h"
-	});
+	const [, session] = await flow.t.query(internal.sessions.admin.getSessionById, { bookingId });
+
+	expect(session).toMatchObject({ duration: "2h" });
 });
 
 async function readDashboardPaymentAmounts(flow: Awaited<ReturnType<typeof setup>>) {

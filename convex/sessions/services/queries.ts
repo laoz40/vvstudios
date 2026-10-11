@@ -1,4 +1,4 @@
-import { errAsync, okAsync, type ResultAsync as NeverthrowResultAsync } from "neverthrow";
+import { type ResultAsync as NeverthrowResultAsync } from "neverthrow";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { QueryCtx } from "#convex/_generated/server";
 import { detectDeliverablesCustomerType } from "#convex/editor/lib/editorSessions";
@@ -10,27 +10,12 @@ import {
 } from "#convex/sessions/lib/lookup";
 import { getSessionFromDb } from "#convex/sessions/services/lookup";
 import { requirePermission } from "#convex/shared/services/auth";
-import { buildPublicSessionStatusResponse } from "#convex/sessions/services/adminList";
-
-function loadDriveStatusAfterPermissionStep(ctx: QueryCtx, bookingId: Id<"bookings">) {
-	return getDriveStatus(ctx, bookingId);
-}
-
-function nullIfMissingBooking(session: Doc<"bookings"> | null) {
-	return session ?? null;
-}
-
-function deliverablesCustomerTypeStep(ctx: QueryCtx, session: Doc<"bookings">) {
-	return detectDeliverablesCustomerType(ctx, session);
-}
-
-function requirePublicRescheduleSession(session: Doc<"bookings"> | null) {
-	if (!session) {
-		return errAsync({ reason: "BOOKING_NOT_FOUND" as const });
-	}
-
-	return okAsync(buildPublicSessionStatusResponse(session));
-}
+import {
+	buildPublicSessionStatusResponse,
+	nullIfMissingBooking,
+	publicStatusFromStripeLookup,
+	requirePublicRescheduleSession
+} from "#convex/sessions/lib/adminList";
 
 function publicRescheduleSessionForNormalizedIdStep(
 	ctx: QueryCtx,
@@ -39,13 +24,9 @@ function publicRescheduleSessionForNormalizedIdStep(
 	return getBookingRow(ctx, normalizedBookingId).andThen(requirePublicRescheduleSession);
 }
 
-function publicStatusFromStripeLookup(session: Doc<"bookings"> | null) {
-	return session === null ? null : buildPublicSessionStatusResponse(session);
-}
-
 export function loadSensitiveBookingDriveStatus(ctx: QueryCtx, bookingId: Id<"bookings">) {
 	return requirePermission(ctx, "view:sensitive-booking-data").andThen(() =>
-		loadDriveStatusAfterPermissionStep(ctx, bookingId)
+		getDriveStatus(ctx, bookingId)
 	);
 }
 
@@ -55,7 +36,7 @@ export function loadBookingRowOrNull(ctx: QueryCtx, bookingId: Id<"bookings">) {
 
 export function loadInternalDeliverablesCustomerType(ctx: QueryCtx, bookingId: Id<"bookings">) {
 	return getSessionFromDb(ctx, bookingId).andThen((session: Doc<"bookings">) =>
-		deliverablesCustomerTypeStep(ctx, session)
+		detectDeliverablesCustomerType(ctx, session)
 	);
 }
 

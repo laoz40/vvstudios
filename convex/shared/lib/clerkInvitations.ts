@@ -1,6 +1,6 @@
 "use node";
 
-import { err, errAsync, ok } from "neverthrow";
+import { err, ok } from "neverthrow";
 import { z } from "zod";
 import { studioSite } from "#/config/sites";
 import { env } from "#convex/env";
@@ -77,11 +77,7 @@ export function parseInviteEmail(email: string) {
 	return ok(parsed.data.toLowerCase());
 }
 
-export function inviteEmployeeAfterDomainCheck(email: string) {
-	return createClerkInvitation(email).map(() => ({ invitedEmail: email }));
-}
-
-export function createClerkInvitation(email: string) {
+export function requestClerkInvitation(email: string) {
 	return tryPromise({
 		try: () =>
 			fetch(clerkInvitationsUrl, {
@@ -101,24 +97,29 @@ export function createClerkInvitation(email: string) {
 
 			return { reason: "CLERK_INVITATION_FAILED" as const };
 		}
-	}).andThen((response) =>
-		tryPromise({
-			try: () => response.json(),
-			catch: (cause) => {
-				console.error("Clerk invitation response parse failed", { cause });
+	});
+}
 
-				return { reason: "CLERK_INVITATION_FAILED" as const };
-			}
-		}).andThen((body) => {
-			if (!response.ok) {
-				const parsedBody = clerkErrorSchema.safeParse(body);
+export function readClerkInvitationBody(response: Response) {
+	return tryPromise({
+		try: async () => {
+			const body: unknown = await response.json();
+			const parsedBody = clerkErrorSchema.safeParse(body);
 
-				return errAsync(
-					mapInvitationError(parsedBody.success ? parsedBody.data : { errors: undefined })
-				);
-			}
+			return parsedBody.success ? parsedBody.data : { errors: undefined };
+		},
+		catch: (cause) => {
+			console.error("Clerk invitation response parse failed", { cause });
 
-			return ok(null);
-		})
-	);
+			return { reason: "CLERK_INVITATION_FAILED" as const };
+		}
+	});
+}
+
+export function validateClerkInvitationResponse(response: Response, body: ParsedClerkError) {
+	if (!response.ok) {
+		return err(mapInvitationError(body));
+	}
+
+	return ok(null);
 }

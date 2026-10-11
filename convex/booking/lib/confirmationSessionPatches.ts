@@ -1,7 +1,7 @@
+import { okAsync } from "neverthrow";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { MutationCtx } from "#convex/_generated/server";
 import type { BookingSearchPatchOverrides } from "#convex/shared/lib/adminSearch/adminSearchBlob";
-import { searchBlobPatchForBookingAsync } from "#convex/shared/lib/adminSearch/adminSearchBlob";
 import { okOrThrow } from "#convex/shared/lib/result";
 import {
 	clearedSessionReservationPatch,
@@ -29,8 +29,10 @@ export function patchBookingReceiptNumber(
 		bookingId: Id<"bookings">;
 		receiptNumber: string;
 		searchBlobPatch: BookingSearchPatchOverrides;
-	}
+	} | null
 ) {
+	if (args === null) return okAsync(null);
+
 	return okOrThrow(
 		ctx.db
 			.patch("bookings", args.bookingId, {
@@ -41,7 +43,9 @@ export function patchBookingReceiptNumber(
 	);
 }
 
-export function patchBookingInvoiceEmailFailed(ctx: MutationCtx, bookingId: Id<"bookings">) {
+export function patchBookingInvoiceEmailFailed(ctx: MutationCtx, bookingId: Id<"bookings"> | null) {
+	if (bookingId === null) return okAsync(null);
+
 	return okOrThrow(
 		ctx.db
 			.patch("bookings", bookingId, {
@@ -68,6 +72,7 @@ export function patchPendingBookingConfirmationFailed(
 	args: { bookingId: Id<"bookings">; failureCode: string; reservation?: SessionReservation }
 ) {
 	const basePatch = { status: "failed" as const, bookingFailureCode: args.failureCode };
+
 	const patch = args.reservation ? { ...basePatch, ...clearedSessionReservationPatch } : basePatch;
 
 	return okOrThrow(ctx.db.patch("bookings", args.bookingId, patch).then(() => null));
@@ -99,16 +104,5 @@ export function patchBookingInstagramHandle(
 				...patch.searchBlobPatch
 			})
 			.then(() => null)
-	);
-}
-
-export function patchBookingReceiptNumberWithSearchBlob(
-	ctx: MutationCtx,
-	session: Doc<"bookings">,
-	receiptNumber: string
-) {
-	return searchBlobPatchForBookingAsync(ctx, session, { receiptNumber }).andThen(
-		(searchBlobPatch) =>
-			patchBookingReceiptNumber(ctx, { bookingId: session._id, receiptNumber, searchBlobPatch })
 	);
 }

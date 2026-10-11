@@ -1,4 +1,4 @@
-import { err, ok } from "neverthrow";
+import { okAsync, err, ok } from "neverthrow";
 import { okOrThrow } from "#convex/shared/lib/result";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
@@ -66,6 +66,16 @@ export function requirePackageAdjustmentInvoiceRow(adjustment: Doc<"packageAdjus
 	}
 
 	return ok(adjustment);
+}
+
+export function requirePackageAdjustmentInvoiceRowFromLookup(
+	adjustment: Doc<"packageAdjustments"> | null
+) {
+	if (!adjustment) {
+		return err({ reason: "PACKAGE_ADJUSTMENT_NOT_FOUND" as const });
+	}
+
+	return requirePackageAdjustmentInvoiceRow(adjustment);
 }
 
 export function requirePackageAdjustmentPaymentEligibility(
@@ -196,9 +206,11 @@ export function insertPackageAdjustmentInvoice(
 
 export function patchPackageAdjustmentInvoiceNumber(
 	ctx: MutationCtx,
-	adjustmentId: Id<"packageAdjustments">,
+	adjustmentId: Id<"packageAdjustments"> | null,
 	createdAt: number
 ) {
+	if (adjustmentId === null) return okAsync(null);
+
 	return okOrThrow(
 		ctx.db.patch("packageAdjustments", adjustmentId, {
 			invoiceNumber: formatBookingInvoiceNumber(adjustmentId, createdAt)

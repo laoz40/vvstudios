@@ -1,9 +1,12 @@
 "use node";
 
+import { syncBookingDriveClientIdForRetryOperation } from "#convex/drive/lib/driveClientPermissionsIo";
+
 import type { ResultAsync } from "neverthrow";
-import { internal } from "#convex/_generated/api";
+
 import type { Id } from "#convex/_generated/dataModel";
 import type { ActionCtx } from "#convex/_generated/server";
+
 import {
 	loadReadyBookingDriveFolders,
 	recordClientDrivePermissionsFailure,
@@ -11,7 +14,6 @@ import {
 	sendClientAssetsFolderEmail,
 	type DriveClientPermissionsError
 } from "#convex/drive/services/clientDrivePermissions";
-import { fromConvexTuple } from "#convex/shared/lib/result";
 
 export function requireClientDrivePermissionsAndSendAssetsEmail(
 	ctx: ActionCtx,
@@ -35,7 +37,5 @@ export function syncBookingDriveClientIdForRetry(
 	ctx: ActionCtx,
 	bookingId: Id<"bookings">
 ): ResultAsync<null, DriveClientPermissionsError> {
-	return fromConvexTuple(
-		ctx.runMutation(internal.sessions.drive.syncBookingDriveClientIdFromSession, { bookingId })
-	);
+	return syncBookingDriveClientIdForRetryOperation(ctx, bookingId);
 }

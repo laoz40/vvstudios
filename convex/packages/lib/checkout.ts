@@ -64,6 +64,10 @@ export function buildPublicPackageStatusResponse(packageFromDb: Doc<"packages">)
 	};
 }
 
+export function buildPublicPackageStatusResponseIfPresent(packageFromDb: Doc<"packages"> | null) {
+	return packageFromDb === null ? null : buildPublicPackageStatusResponse(packageFromDb);
+}
+
 export function validateActivePackageForInstagramUpdate(
 	packageFromDb: Doc<"packages">
 ): Result<Doc<"packages">, { reason: "PACKAGE_NOT_ACTIVE" }> {

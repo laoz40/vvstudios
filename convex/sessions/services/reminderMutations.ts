@@ -16,28 +16,13 @@ import {
 
 type ReminderBookingArgs = { bookingId: Id<"bookings"> };
 
-function pairClaimedSessionStep(session: Doc<"bookings">) {
-	return { session };
-}
-
 function claimReminderAfterSessionStep(
 	ctx: MutationCtx,
 	args: ReminderBookingArgs & { now: number },
 
 	session: Doc<"bookings">
 ) {
-	return patchSessionReminderEmailClaimed(ctx, args).map(() => pairClaimedSessionStep(session));
-}
-
-function patchReminderSentStep(ctx: MutationCtx, args: ReminderBookingArgs & { now: number }) {
-	return patchSessionReminderEmailSent(ctx, args);
-}
-
-function patchReminderFailedStep(
-	ctx: MutationCtx,
-	args: ReminderBookingArgs & { failureCode: string }
-) {
-	return patchSessionReminderEmailFailed(ctx, args);
+	return patchSessionReminderEmailClaimed(ctx, args).map(() => ({ session }));
 }
 
 export function getTomorrowSessionReminderWindow(nowDate: Date) {
@@ -64,12 +49,16 @@ export function writeSessionReminderEmailSent(
 	ctx: MutationCtx,
 	args: ReminderBookingArgs & { now: number }
 ) {
-	return getSessionFromDb(ctx, args.bookingId).andThen(() => patchReminderSentStep(ctx, args));
+	return getSessionFromDb(ctx, args.bookingId).andThen(() =>
+		patchSessionReminderEmailSent(ctx, args)
+	);
 }
 
 export function writeSessionReminderEmailFailed(
 	ctx: MutationCtx,
 	args: ReminderBookingArgs & { failureCode: string }
 ) {
-	return getSessionFromDb(ctx, args.bookingId).andThen(() => patchReminderFailedStep(ctx, args));
+	return getSessionFromDb(ctx, args.bookingId).andThen(() =>
+		patchSessionReminderEmailFailed(ctx, args)
+	);
 }

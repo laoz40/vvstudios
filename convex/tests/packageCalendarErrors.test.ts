@@ -4,7 +4,10 @@
  * 1. Calendar creation and update
  *    Failed writes return create/update reasons, and successful writes carry every add-on quantity.
  *
- * 2. Calendar deletion and availability
+ * 2. Missing and cancelled Calendar events
+ *    Updates recreate events deleted before lookup or patch, and replace cancelled events.
+ *
+ * 3. Calendar deletion and availability
  *    Failed delete/read operations retain their reason; auth and rate limits stay distinct.
  */
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
@@ -144,6 +147,35 @@ describe("package Calendar operation errors", () => {
 
 		expect(result).toEqual([null, { googleCalendarId: "calendar", googleEventId: "event" }]);
 		expect(calendarEventRequestBodies).toMatchObject([{ description: quantityEventDescription }]);
+	});
+
+	test.each(["get", "patch"] as const)(
+		"recreates an event missing during %s",
+		async (operation) => {
+			const t = createConvexTest();
+			events[operation].mockImplementation(() =>
+				Promise.resolve(Response.json({ error: "Not Found" }, { status: 404 }))
+			);
+
+			expect(
+				await t.action(internal.packages.schedulingCalendar.updatePackageSessionCalendarEvent, {
+					session,
+					details
+				})
+			).toEqual([null, { googleCalendarId: "package-calendar-test", googleEventId: "new_event" }]);
+		}
+	);
+
+	test("replaces a cancelled Calendar event", async () => {
+		const t = createConvexTest();
+		events.get.mockImplementation(() => Promise.resolve(Response.json({ status: "cancelled" })));
+
+		expect(
+			await t.action(internal.packages.schedulingCalendar.updatePackageSessionCalendarEvent, {
+				session,
+				details
+			})
+		).toEqual([null, { googleCalendarId: "package-calendar-test", googleEventId: "new_event" }]);
 	});
 
 	test("preserves the create failure", async () => {

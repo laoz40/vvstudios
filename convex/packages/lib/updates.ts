@@ -61,6 +61,38 @@ type ParsedPackage = ReturnType<typeof packageFormSchema.parse>;
 
 export type ParsedPackageRequest = ParsedPackage;
 
+export function buildPackageReceiptEmailAttemptPatch(
+	packageRecord: Doc<"packages">,
+	args: { status: "sent" | "failed"; receiptNumber?: string; failureCode?: string },
+	now: number
+) {
+	return args.status === "sent"
+		? {
+				receiptEmailFailureCode: undefined,
+				receiptEmailSentAt: now,
+				receiptEmailStatus: "sent" as const,
+				receiptNumber: args.receiptNumber,
+				lastReceiptEmailAttemptAt: now,
+				...searchBlobPatchForPackage(packageRecord, { receiptNumber: args.receiptNumber })
+			}
+		: {
+				receiptEmailFailureCode: args.failureCode,
+				receiptEmailStatus: "failed" as const,
+				lastReceiptEmailAttemptAt: now
+			};
+}
+
+type PackageReceiptEmailAttemptArgs = {
+	packageId: Id<"packages">;
+	status: "sent" | "failed";
+	receiptNumber?: string;
+	failureCode?: string;
+};
+
+export function packageReceiptNumberForSync(args: PackageReceiptEmailAttemptArgs) {
+	return args.receiptNumber ?? "";
+}
+
 type PendingPackageRecord = {
 	name: string;
 	phone: string;
@@ -268,6 +300,10 @@ export function insertPendingPackageRow(
 	);
 }
 
+export function createPendingPackageRecord(ctx: MutationCtx, args: CreatePendingPackageArgs) {
+	return insertPendingPackageRow(ctx, buildPendingPackageRecord(args, Date.now()));
+}
+
 export function patchPackageStripeCheckoutIds(
 	ctx: MutationCtx,
 	args: { packageId: Id<"packages">; stripeSessionId: string; stripeCustomerId: string }
@@ -355,4 +391,12 @@ export function patchAdminPackageRow(
 	patch: Partial<Doc<"packages">>
 ) {
 	return okOrThrow(ctx.db.patch("packages", packageId, patch).then(() => null));
+}
+
+export function selectPackageReceiptSyncId(args: {
+	packageId: Id<"packages">;
+	status: "sent" | "failed";
+	receiptNumber?: string;
+}) {
+	return args.status === "sent" && Boolean(args.receiptNumber) ? args.packageId : null;
 }

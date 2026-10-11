@@ -78,7 +78,7 @@ describe("checkout Stripe ID setters", () => {
 			stripeCustomerId: "cus_checkout"
 		});
 
-		const booking = await t.query(internal.sessions.checkout.getSessionByStripeSessionId, {
+		const [, booking] = await t.query(internal.sessions.checkout.getSessionByStripeSessionId, {
 			stripeSessionId: "cs_checkout"
 		});
 
@@ -99,9 +99,10 @@ describe("checkout Stripe ID setters", () => {
 			stripeCustomerId: "cus_checkout"
 		});
 
-		const packageRecord = await t.query(internal.packages.checkout.getPackageByStripeSessionId, {
-			stripeSessionId: "cs_checkout"
-		});
+		const [, packageRecord] = await t.query(
+			internal.packages.checkout.getPackageByStripeSessionId,
+			{ stripeSessionId: "cs_checkout" }
+		);
 
 		expect({
 			result,
@@ -118,7 +119,7 @@ describe("customer checkout creation", () => {
 
 		const result = await t.action(api.stripe.checkout.createEmbeddedCheckoutSession, session);
 
-		const booking = await t.query(internal.sessions.checkout.getSessionByStripeSessionId, {
+		const [, booking] = await t.query(internal.sessions.checkout.getSessionByStripeSessionId, {
 			stripeSessionId: "cs_checkout"
 		});
 
@@ -139,9 +140,10 @@ describe("customer checkout creation", () => {
 			packageSize: 4
 		});
 
-		const packageRecord = await t.query(internal.packages.checkout.getPackageByStripeSessionId, {
-			stripeSessionId: "cs_checkout"
-		});
+		const [, packageRecord] = await t.query(
+			internal.packages.checkout.getPackageByStripeSessionId,
+			{ stripeSessionId: "cs_checkout" }
+		);
 
 		expect({ result, customerId: packageRecord?.stripeCustomerId }).toEqual({
 			result: [

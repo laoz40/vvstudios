@@ -9,6 +9,7 @@
  *
  * 3. Missing-folder recovery
  *    Scheduled setup leaves missing saved folders for admins to recreate.
+ *    Recreating a missing session also replaces its saved child folders.
  *
  * 4. Stale scheduled timing
  *    An old scheduled job cannot set up a rescheduled booking.
@@ -390,6 +391,28 @@ describe("Drive action recovery", () => {
 				{ name: "Session", url: "https://drive.example/session" },
 				{ name: "Raw Media", url: "https://drive.example/created-1" },
 				{ name: "Deliverables", url: "https://drive.example/deliverables" }
+			]
+		});
+	});
+
+	test("admin retry replaces children when their saved session folder is missing", async () => {
+		const t = createConvexTest();
+		const bookingId = await seedBooking(t);
+		await seedSavedFolders(t, bookingId);
+		missingFolderIds.add("session");
+
+		expect(
+			await t
+				.withIdentity(adminIdentity)
+				.action(api.googleCalendar.calendar.retryDriveSetup, { bookingId })
+		).toEqual([null, null]);
+		expect(await readStatus(t, bookingId)).toMatchObject({
+			status: "ready",
+			folders: [
+				{ name: "Assets", url: "https://drive.example/assets" },
+				{ name: "Session", url: "https://drive.example/created-1" },
+				{ name: "Raw Media", url: "https://drive.example/created-2" },
+				{ name: "Deliverables", url: "https://drive.example/created-3" }
 			]
 		});
 	});

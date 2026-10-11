@@ -1,9 +1,8 @@
 import type { MutationCtx } from "#convex/_generated/server";
-import { checkBookingSubmitRateLimit } from "#convex/shared/lib/rateLimits";
+import { checkBookingSubmitRateLimit } from "#convex/shared/services/rateLimits";
 import {
-	buildPendingPackageRecord,
-	type CreatePendingPackageArgs,
-	insertPendingPackageRow
+	createPendingPackageRecord,
+	type CreatePendingPackageArgs
 } from "#convex/packages/lib/updates";
 
 export function enforcePackageSubmitRateLimit(ctx: MutationCtx, submitRateLimitKey: string) {
@@ -11,12 +10,5 @@ export function enforcePackageSubmitRateLimit(ctx: MutationCtx, submitRateLimitK
 }
 
 export function insertPendingPackageRecord(ctx: MutationCtx, args: CreatePendingPackageArgs) {
-	const createdAt = Date.now();
-
-	const packageRecord = buildPendingPackageRecord(
-		{ ...args, email: args.email.trim().toLowerCase() },
-		createdAt
-	);
-
-	return insertPendingPackageRow(ctx, packageRecord);
+	return createPendingPackageRecord(ctx, args);
 }

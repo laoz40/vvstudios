@@ -1,10 +1,6 @@
 import { err, ok, okAsync, type Result, type ResultAsync } from "neverthrow";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { MutationCtx } from "#convex/_generated/server";
-import {
-	searchBlobPatchForBookingAsync,
-	type BookingSearchPatchOverrides
-} from "#convex/shared/lib/adminSearch/adminSearchBlob";
 import { scheduleDriveSetup } from "#convex/drive/lib/driveScheduling";
 import { okOrThrow } from "#convex/shared/lib/result";
 import { sessionConsumesPackageCapacity } from "#convex/packages/lib/sessionCapacity";
@@ -76,33 +72,10 @@ export function scheduleDriveSetupWhenConfirmed(
 	});
 }
 
-export function applySessionPatch(
+export function patchSessionBooking(
 	ctx: MutationCtx,
 	bookingId: Id<"bookings">,
-	booking: Doc<"bookings">,
-	patch: Partial<Doc<"bookings">>,
-	searchOverrides: BookingSearchPatchOverrides = {}
+	patch: Partial<Doc<"bookings">>
 ) {
-	return searchBlobPatchForBookingAsync(ctx, booking, searchOverrides).andThen((searchBlobPatch) =>
-		okOrThrow(
-			ctx.db.patch("bookings", bookingId, { ...patch, ...searchBlobPatch }).then(() => null)
-		)
-	);
-}
-
-export function writeSessionBookingPatchWithDriveSetup(args: {
-	ctx: MutationCtx;
-	bookingId: Id<"bookings">;
-	booking: Doc<"bookings">;
-	patch: Partial<Doc<"bookings">>;
-	searchOverrides?: BookingSearchPatchOverrides;
-	driveSetup: SessionDriveSetupArgs;
-}) {
-	return applySessionPatch(
-		args.ctx,
-		args.bookingId,
-		args.booking,
-		args.patch,
-		args.searchOverrides
-	).andThen(() => scheduleDriveSetupWhenConfirmed(args.ctx, args.driveSetup));
+	return okOrThrow(ctx.db.patch("bookings", bookingId, patch).then(() => null));
 }

@@ -1,5 +1,5 @@
 import { err, ok } from "neverthrow";
-import type { Id } from "#convex/_generated/dataModel";
+import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
 import {
 	DEFAULT_BOOKING_AVAILABILITY_SETTINGS,
@@ -97,4 +97,21 @@ export function insertBookingAvailabilitySettingsRow(
 	value: BookingAvailabilitySettings & { key: "main"; updatedAt: number; updatedBy: string }
 ) {
 	return okOrThrow(ctx.db.insert("bookingSettings", value).then(() => null));
+}
+
+export function buildBookingAvailabilitySettingsRowValue(
+	settings: BookingAvailabilitySettings,
+	updatedBy: string
+) {
+	return { ...settings, key: "main" as const, updatedAt: Date.now(), updatedBy };
+}
+
+export function upsertBookingAvailabilitySettingsRow(
+	ctx: MutationCtx,
+	value: BookingAvailabilitySettings & { key: "main"; updatedAt: number; updatedBy: string },
+	existing: Doc<"bookingSettings"> | null
+) {
+	return existing
+		? patchBookingAvailabilitySettingsRow(ctx, existing._id, value)
+		: insertBookingAvailabilitySettingsRow(ctx, value);
 }

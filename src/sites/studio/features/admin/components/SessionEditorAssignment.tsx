@@ -1,4 +1,5 @@
 import type { FunctionReturnType } from "convex/server";
+import { ConvexError } from "convex/values";
 import { useEffect, useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { LoaderCircle } from "lucide-react";
@@ -26,7 +27,9 @@ import { Textarea } from "#/components/ui/textarea";
 import { exhaustiveCheck, tryCatch, type UnexpectedError } from "#/lib/result";
 import type { SessionRecord } from "#studio/features/admin/lib/admin-sessions";
 
-type ActiveEditor = FunctionReturnType<typeof api.sessions.admin.listActiveEditors>[number];
+type ActiveEditorsResult = FunctionReturnType<typeof api.sessions.admin.listActiveEditors>;
+
+type ActiveEditor = NonNullable<ActiveEditorsResult[1]>[number];
 
 type SessionEditorAssignmentProps = { isMenuOpen: boolean; session: SessionRecord };
 
@@ -39,6 +42,16 @@ type AssignmentError =
 	| UnexpectedError;
 
 const UNASSIGNED_VALUE = "__unassigned__";
+
+function activeEditorsFromResult(result: ActiveEditorsResult | undefined) {
+	if (result === undefined) return undefined;
+
+	const [error, editors] = result;
+
+	if (error) throw new ConvexError(error);
+
+	return editors;
+}
 
 function showAssignmentError(error: AssignmentError) {
 	const reason = error.reason;
@@ -166,7 +179,7 @@ export function SessionEditorAssignment({ isMenuOpen, session }: SessionEditorAs
 		isMenuOpen ? {} : "skip"
 	);
 
-	const activeEditors = activeEditorsResult ?? [];
+	const activeEditors = activeEditorsFromResult(activeEditorsResult) ?? [];
 	const isLoadingEditors = isMenuOpen && activeEditorsResult === undefined;
 	const [isSaving, setIsSaving] = useState(false);
 	const [adminNotes, setAdminNotes] = useState(session.adminNotes ?? "");

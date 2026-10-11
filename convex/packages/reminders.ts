@@ -12,7 +12,8 @@ export { sendDuePackageReminders } from "#convex/packages/services/reminders";
 
 export const listPackagesPotentiallyDueForExpiryReminder = internalQuery({
 	args: { expiresAfter: v.number(), expiresBefore: v.number(), limit: v.optional(v.number()) },
-	handler: (ctx, args) => listPackagesPotentiallyDueForExpiryReminderService(ctx, args)
+	handler: (ctx, args) =>
+		listPackagesPotentiallyDueForExpiryReminderService(ctx, args).match(tupleOk, tupleErr)
 });
 
 export const claimPackageReminder = internalMutation({

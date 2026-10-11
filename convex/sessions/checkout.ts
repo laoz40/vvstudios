@@ -46,11 +46,8 @@ export const createPendingSession = internalMutation({
 
 export const getSessionByStripeSessionId = internalQuery({
 	args: { stripeSessionId: v.string() },
-	handler: async (ctx, args) =>
-		(await loadBookingRowByStripeSessionId(ctx, args.stripeSessionId)).match(
-			(booking) => booking,
-			() => null
-		)
+	handler: (ctx, args) =>
+		loadBookingRowByStripeSessionId(ctx, args.stripeSessionId).match(tupleOk, tupleErr)
 });
 
 export const setSessionStripeSessionId = internalMutation({

@@ -1,10 +1,6 @@
-import { err, errAsync, ok, okAsync, type Result, type ResultAsync } from "neverthrow";
+import { err, ok, type Result } from "neverthrow";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
-import {
-	lookupPackageAdjustmentRow,
-	requirePackageAdjustmentInvoiceRow
-} from "#convex/packages/lib/adjustments";
 import { okOrThrow } from "#convex/shared/lib/result";
 
 type InvoiceRequiredAdjustment = Extract<
@@ -25,10 +21,10 @@ type PayableAdjustmentDecision =
 	| { outcome: "already_completed" }
 	| { outcome: "ready"; adjustment: InvoiceRequiredAdjustment };
 
-function getPackageAdjustmentByStripeInvoiceId(
+export function getPackageAdjustmentByStripeInvoiceId(
 	ctx: QueryCtx | MutationCtx,
 	stripeInvoiceId: string
-): ResultAsync<InvoiceRequiredAdjustment, PackageAdjustmentInvoicePaymentClaimError> {
+) {
 	return okOrThrow(
 		ctx.db
 			.query("packageAdjustments")
@@ -36,45 +32,24 @@ function getPackageAdjustmentByStripeInvoiceId(
 				indexQuery.eq("stripeInvoiceId", stripeInvoiceId)
 			)
 			.unique()
-	).andThen((adjustment) => {
-		if (!adjustment || adjustment.outcome !== "invoice_required") {
-			return errAsync({ reason: "PACKAGE_ADJUSTMENT_NOT_FOUND" as const });
-		}
-
-		return okAsync(adjustment);
-	});
+	);
 }
 
-function resolvePackageAdjustmentForPayment(
-	ctx: MutationCtx,
-	args: { stripeInvoiceId: string; adjustmentId?: string }
-): ResultAsync<InvoiceRequiredAdjustment, PackageAdjustmentInvoicePaymentClaimError> {
-	if (args.adjustmentId) {
-		const normalizedAdjustmentId = ctx.db.normalizeId("packageAdjustments", args.adjustmentId);
+export function normalizePackageAdjustmentId(ctx: MutationCtx, adjustmentId: string) {
+	return ctx.db.normalizeId("packageAdjustments", adjustmentId);
+}
 
-		if (!normalizedAdjustmentId) {
-			return getPackageAdjustmentByStripeInvoiceId(ctx, args.stripeInvoiceId);
-		}
-
-		return lookupPackageAdjustmentRow(ctx, normalizedAdjustmentId).andThen((adjustment) => {
-			if (!adjustment) {
-				return errAsync({ reason: "PACKAGE_ADJUSTMENT_NOT_FOUND" as const });
-			}
-
-			const invoiceRow = requirePackageAdjustmentInvoiceRow(adjustment);
-
-			if (invoiceRow.isErr()) {
-				return errAsync({ reason: "PACKAGE_ADJUSTMENT_NOT_FOUND" as const });
-			}
-
-			return okAsync(invoiceRow.value);
-		});
+export function requireInvoiceRequiredAdjustment(
+	adjustment: Doc<"packageAdjustments"> | null
+): Result<InvoiceRequiredAdjustment, PackageAdjustmentInvoicePaymentClaimError> {
+	if (!adjustment || adjustment.outcome !== "invoice_required") {
+		return err({ reason: "PACKAGE_ADJUSTMENT_NOT_FOUND" });
 	}
 
-	return getPackageAdjustmentByStripeInvoiceId(ctx, args.stripeInvoiceId);
+	return ok(adjustment);
 }
 
-function requirePayableAdjustment(
+export function requirePayableAdjustment(
 	adjustment: InvoiceRequiredAdjustment,
 	stripeInvoiceId: string
 ): Result<PayableAdjustmentDecision, PackageAdjustmentInvoicePaymentClaimError> {
@@ -93,34 +68,18 @@ function requirePayableAdjustment(
 	return ok({ outcome: "ready", adjustment });
 }
 
-export function claimPackageAdjustmentInvoicePayment(
+export function markPackageAdjustmentInvoicePaid(
 	ctx: MutationCtx,
-	args: { stripeInvoiceId: string; adjustmentId?: string; paidAt: number }
-): ResultAsync<PackageAdjustmentInvoicePaymentClaim, PackageAdjustmentInvoicePaymentClaimError> {
-	return resolvePackageAdjustmentForPayment(ctx, args).andThen((adjustment) => {
-		const paymentDecision = requirePayableAdjustment(adjustment, args.stripeInvoiceId);
-
-		if (paymentDecision.isErr()) {
-			return errAsync(paymentDecision.error);
-		}
-
-		if (paymentDecision.value.outcome === "already_completed") {
-			return okAsync({ outcome: "already_completed" as const });
-		}
-
-		const payableAdjustment = paymentDecision.value.adjustment;
-
-		return okOrThrow(
-			ctx.db
-				.patch("packageAdjustments", payableAdjustment._id, {
-					paymentStatus: "paid",
-					paidAt: args.paidAt
-				})
-				.then(() => ({
-					outcome: "completed" as const,
-					adjustmentId: payableAdjustment._id,
-					packageId: payableAdjustment.packageId
-				}))
-		);
-	});
+	adjustment: InvoiceRequiredAdjustment,
+	paidAt: number
+) {
+	return okOrThrow(
+		ctx.db
+			.patch("packageAdjustments", adjustment._id, { paymentStatus: "paid", paidAt })
+			.then(() => ({
+				outcome: "completed" as const,
+				adjustmentId: adjustment._id,
+				packageId: adjustment.packageId
+			}))
+	);
 }

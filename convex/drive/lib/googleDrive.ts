@@ -1,7 +1,7 @@
 "use node";
 
 import { google, type drive_v3 } from "googleapis";
-import { err, ok } from "neverthrow";
+import { err, ok, okAsync, type ResultAsync } from "neverthrow";
 import { z } from "zod";
 import { getGoogleOAuthClient } from "#convex/googleCalendar/lib/googleAuth";
 import { tryPromise } from "#convex/shared/lib/result";
@@ -74,6 +74,10 @@ export type SavedDriveFolder = z.infer<typeof driveFolderSchema>;
 
 export type SavedDrivePermission = z.infer<typeof drivePermissionSchema>;
 
+export type AnyonePermission = z.infer<typeof anyonePermissionSchema>;
+
+export type ListedDrivePermission = z.infer<typeof listedDrivePermissionSchema>;
+
 export type DriveError = {
 	reason:
 		| "GOOGLE_DRIVE_AUTH_FAILED"
@@ -89,6 +93,95 @@ export type DriveError = {
 		| "GOOGLE_DRIVE_PERMISSION_RESPONSE_INVALID"
 		| "GOOGLE_DRIVE_SHARE_TARGET_MISSING";
 };
+
+export function parseDriveFolderResponse(
+	response: drive_v3.Schema$File | undefined
+): import("neverthrow").Result<SavedDriveFolder, DriveError> {
+	const folder = driveFolderSchema.safeParse(response);
+
+	return folder.success ? ok(folder.data) : err({ reason: "GOOGLE_DRIVE_FOLDER_RESPONSE_INVALID" });
+}
+
+export function parseDriveFolderResponseIfAvailable(
+	response: { data: drive_v3.Schema$File } | null
+) {
+	return response === null ? ok(null) : parseDriveFolderResponse(response.data);
+}
+
+export function parseDriveFolderValueIfAvailable(file: drive_v3.Schema$File | null) {
+	return file === null ? ok(null) : parseDriveFolderResponse(file);
+}
+
+export function parseDriveFolderListResponse(
+	files: drive_v3.Schema$File[] | undefined
+): import("neverthrow").Result<SavedDriveFolder[], DriveError> {
+	const folders = z.array(driveFolderSchema).safeParse(files ?? []);
+
+	return folders.success
+		? ok(folders.data)
+		: err({ reason: "GOOGLE_DRIVE_FOLDER_RESPONSE_INVALID" });
+}
+
+export function parseDriveFolderListIfAvailable(
+	response: { data: drive_v3.Schema$FileList } | null
+) {
+	if (response === null) return ok(null);
+
+	return parseDriveFolderListResponse(response.data.files).map(firstDriveFolderOrNull);
+}
+
+export function parseDriveFolderChildrenResponse(
+	files: drive_v3.Schema$File[] | undefined
+): import("neverthrow").Result<ListedDriveChild[], DriveError> {
+	const children = z.array(listedDriveChildSchema).safeParse(files ?? []);
+
+	return children.success
+		? ok(children.data)
+		: err({ reason: "GOOGLE_DRIVE_FOLDER_RESPONSE_INVALID" });
+}
+
+export function parseDrivePermissionListResponse(
+	permissions: drive_v3.Schema$Permission[] | undefined
+): import("neverthrow").Result<z.infer<typeof listedDrivePermissionSchema>[], DriveError> {
+	const listed = z.array(listedDrivePermissionSchema).safeParse(permissions ?? []);
+
+	return listed.success
+		? ok(listed.data)
+		: err({ reason: "GOOGLE_DRIVE_PERMISSION_RESPONSE_INVALID" });
+}
+
+export function parseDrivePermissionListForRemoval(
+	response: DrivePermissionListResponse | null,
+	input: { email: string; fileId: string | null; role: SavedDrivePermission["role"] }
+) {
+	if (response === null || input.fileId === null) {
+		return ok(null);
+	}
+
+	return parseDrivePermissionListResponse(response.data.permissions).map((permissions) =>
+		findDrivePermissionByEmailAndRole(permissions, { email: input.email, role: input.role })
+	);
+}
+
+export function parseDrivePermissionResponse(
+	response: drive_v3.Schema$Permission | undefined
+): import("neverthrow").Result<SavedDrivePermission, DriveError> {
+	const permission = drivePermissionSchema.safeParse(response);
+
+	return permission.success
+		? ok(permission.data)
+		: err({ reason: "GOOGLE_DRIVE_PERMISSION_RESPONSE_INVALID" });
+}
+
+export function parseAnyonePermissionResponse(
+	response: drive_v3.Schema$Permission | undefined
+): import("neverthrow").Result<AnyonePermission, DriveError> {
+	const permission = anyonePermissionSchema.safeParse(response);
+
+	return permission.success
+		? ok(permission.data)
+		: err({ reason: "GOOGLE_DRIVE_PERMISSION_RESPONSE_INVALID" });
+}
 
 type ParsedGoogleProviderError = z.infer<typeof googleProviderErrorSchema>;
 
@@ -218,7 +311,7 @@ export function loadDriveClient() {
 	);
 }
 
-export function createDriveFolder(
+export function createDriveFolderRequest(
 	drive: DriveClient,
 	input: { name: string; parentId: string; marker: string }
 ) {
@@ -235,19 +328,15 @@ export function createDriveFolder(
 			}
 		}),
 		"GOOGLE_DRIVE_FOLDER_CREATE_FAILED"
-	).andThen((response) => {
-		const parsedFolder = driveFolderSchema.safeParse(response.data);
-
-		return parsedFolder.success
-			? ok(parsedFolder.data)
-			: err({ reason: "GOOGLE_DRIVE_FOLDER_RESPONSE_INVALID" as const });
-	});
+	);
 }
 
-export function findDriveFolderByMarker(
+export function findDriveFolderByMarkerIfRequested(
 	drive: DriveClient,
-	input: { marker: string; parentId: string }
-) {
+	input: { marker: string; parentId: string } | null
+): ResultAsync<{ data: drive_v3.Schema$FileList } | null, DriveError> {
+	if (input === null) return okAsync(null);
+
 	const escapedMarker = input.marker.replaceAll("'", "\\'");
 	const escapedParentId = input.parentId.replaceAll("'", "\\'");
 
@@ -258,13 +347,7 @@ export function findDriveFolderByMarker(
 			q: `'${escapedParentId}' in parents and trashed = false and appProperties has { key='vvWorkspaceMarker' and value='${escapedMarker}' }`
 		}),
 		"GOOGLE_DRIVE_FOLDER_LOOKUP_FAILED"
-	).andThen((response) => {
-		const folders = z.array(driveFolderSchema).safeParse(response.data.files ?? []);
-
-		if (!folders.success) return err({ reason: "GOOGLE_DRIVE_FOLDER_RESPONSE_INVALID" as const });
-
-		return ok(folders.data.at(0) ?? null);
-	});
+	);
 }
 
 export const GOOGLE_DRIVE_FOLDER_MIME_TYPE = "application/vnd.google-apps.folder";
@@ -273,7 +356,7 @@ const listedDriveChildSchema = z.object({ id: z.string().min(1), mimeType: z.str
 
 export type ListedDriveChild = z.infer<typeof listedDriveChildSchema>;
 
-export function listDriveFolderChildren(drive: DriveClient, folderId: string) {
+export function listDriveFolderChildrenRequest(drive: DriveClient, folderId: string) {
 	const escapedFolderId = folderId.replaceAll("'", "\\'");
 
 	return driveFolderLookupAsync(
@@ -284,40 +367,36 @@ export function listDriveFolderChildren(drive: DriveClient, folderId: string) {
 			supportsAllDrives: false
 		}),
 		"GOOGLE_DRIVE_FOLDER_LOOKUP_FAILED"
-	).andThen((response) => {
-		const children = z.array(listedDriveChildSchema).safeParse(response.data.files ?? []);
-
-		if (!children.success) return err({ reason: "GOOGLE_DRIVE_FOLDER_RESPONSE_INVALID" as const });
-
-		return ok(children.data);
-	});
+	);
 }
 
-export function deleteDriveItem(drive: DriveClient, fileId: string) {
+export function deleteDriveItemRequest(drive: DriveClient, fileId: string) {
 	return driveFolderLookupAsync(
 		drive.files.delete({ fileId, supportsAllDrives: false }).then(() => null),
 		"GOOGLE_DRIVE_FOLDER_DELETE_FAILED"
-	).orElse((error) => {
-		if (error.reason === "GOOGLE_DRIVE_FOLDER_MISSING") return ok(null);
-
-		return err(error);
-	});
+	);
 }
 
-export function verifyDriveFolder(drive: DriveClient, folderId: string) {
+export function verifyDriveFolderRequest(drive: DriveClient, folderId: string) {
 	return driveFolderLookupAsync(
 		drive.files.get({ fileId: folderId, fields: "id,name,webViewLink", supportsAllDrives: false }),
 		"GOOGLE_DRIVE_FOLDER_LOOKUP_FAILED"
-	).andThen((response) => {
-		const folder = driveFolderSchema.safeParse(response.data);
-
-		return folder.success
-			? ok(folder.data)
-			: err({ reason: "GOOGLE_DRIVE_FOLDER_RESPONSE_INVALID" as const });
-	});
+	);
 }
 
-export function renameDriveFolder(drive: DriveClient, input: { folderId: string; name: string }) {
+export function verifyDriveFolderIfPresent(
+	drive: DriveClient,
+	folderId: string | null
+): ResultAsync<{ data: drive_v3.Schema$File } | null, DriveError> {
+	if (folderId === null) return okAsync(null);
+
+	return verifyDriveFolderRequest(drive, folderId);
+}
+
+export function renameDriveFolderRequest(
+	drive: DriveClient,
+	input: { folderId: string; name: string }
+) {
 	return driveFolderLookupAsync(
 		drive.files.update({
 			fileId: input.folderId,
@@ -326,19 +405,19 @@ export function renameDriveFolder(drive: DriveClient, input: { folderId: string;
 			supportsAllDrives: false
 		}),
 		"GOOGLE_DRIVE_FOLDER_RENAME_FAILED"
-	).andThen((response) => {
-		const folder = driveFolderSchema.safeParse(response.data);
-
-		return folder.success
-			? ok(folder.data)
-			: err({ reason: "GOOGLE_DRIVE_FOLDER_RESPONSE_INVALID" as const });
-	});
+	);
 }
 
-export function findDrivePermission(
-	drive: DriveClient,
-	input: { email: string; fileId: string; role: SavedDrivePermission["role"] }
-) {
+type DrivePermissionListResponse = { data: drive_v3.Schema$PermissionList };
+
+export function findDrivePermissionRequest(
+	drive: DriveClient | null,
+	input: { email: string; fileId: string | null; role: SavedDrivePermission["role"] } | null
+): ResultAsync<DrivePermissionListResponse | null, DriveError> {
+	if (drive === null || input === null || input.fileId === null) {
+		return okAsync(null);
+	}
+
 	return driveResultAsync(
 		drive.permissions.list({
 			fileId: input.fileId,
@@ -347,30 +426,10 @@ export function findDrivePermission(
 			supportsAllDrives: false
 		}),
 		"GOOGLE_DRIVE_PERMISSION_LOOKUP_FAILED"
-	).andThen((response) => {
-		// The list also contains owner, domain, and public permissions. Only the matching
-		// client permission needs the narrower role and email shape used by this workflow.
-		const permissions = z
-			.array(listedDrivePermissionSchema)
-			.safeParse(response.data.permissions ?? []);
-
-		if (!permissions.success) {
-			return err({ reason: "GOOGLE_DRIVE_PERMISSION_RESPONSE_INVALID" as const });
-		}
-
-		const permission = permissions.data.find(
-			(candidate) =>
-				candidate.emailAddress?.toLowerCase() === input.email.toLowerCase() &&
-				candidate.role === input.role
-		);
-
-		if (permission === undefined || permission.emailAddress === undefined) return ok(null);
-
-		return ok({ id: permission.id, emailAddress: permission.emailAddress, role: input.role });
-	});
+	);
 }
 
-export function createDrivePermission(
+export function createDrivePermissionRequest(
 	drive: DriveClient,
 	input: {
 		email: string;
@@ -388,20 +447,25 @@ export function createDrivePermission(
 			supportsAllDrives: false
 		}),
 		"GOOGLE_DRIVE_PERMISSION_CREATE_FAILED"
-	).andThen((response) => {
-		const permission = drivePermissionSchema.safeParse(response.data);
-
-		return permission.success
-			? ok(permission.data)
-			: err({ reason: "GOOGLE_DRIVE_PERMISSION_RESPONSE_INVALID" as const });
-	});
+	);
 }
 
-export function ensureAnyonePermission(
+export function createDrivePermissionIfMissingRequest(
 	drive: DriveClient,
-	fileId: string,
-	role: "reader" | "writer"
+	input: {
+		email: string;
+		fileId: string;
+		role: SavedDrivePermission["role"];
+		sendNotificationEmail: boolean;
+	},
+	existing: SavedDrivePermission | null
 ) {
+	return existing === null
+		? createDrivePermissionRequest(drive, input).map((response) => response.data)
+		: okAsync(existing);
+}
+
+export function listDrivePermissionsRequest(drive: DriveClient, fileId: string) {
 	return driveResultAsync(
 		drive.permissions.list({
 			fileId,
@@ -410,62 +474,89 @@ export function ensureAnyonePermission(
 			supportsAllDrives: false
 		}),
 		"GOOGLE_DRIVE_PERMISSION_LOOKUP_FAILED"
-	).andThen((response) => {
-		const permissions = z
-			.array(listedDrivePermissionSchema)
-			.safeParse(response.data.permissions ?? []);
-
-		if (!permissions.success) {
-			return err({ reason: "GOOGLE_DRIVE_PERMISSION_RESPONSE_INVALID" as const });
-		}
-
-		const existingPermission = permissions.data.find(
-			(candidate) => candidate.type === "anyone" && candidate.role === role
-		);
-
-		if (existingPermission !== undefined) {
-			return ok({ id: existingPermission.id, role, type: "anyone" as const });
-		}
-
-		return driveResultAsync(
-			drive.permissions.create({
-				fileId,
-				fields: "id,role,type",
-				sendNotificationEmail: false,
-				requestBody: { role, type: "anyone" },
-				supportsAllDrives: false
-			}),
-			"GOOGLE_DRIVE_PERMISSION_CREATE_FAILED"
-		).andThen((createResponse) => {
-			const permission = anyonePermissionSchema.safeParse(createResponse.data);
-
-			return permission.success
-				? ok(permission.data)
-				: err({ reason: "GOOGLE_DRIVE_PERMISSION_RESPONSE_INVALID" as const });
-		});
-	});
+	);
 }
 
-export function ensureAnyoneReaderPermission(drive: DriveClient, fileId: string) {
-	return ensureAnyonePermission(drive, fileId, "reader").map(() => null);
-}
-
-export function deleteDrivePermission(
+export function createDriveAnyonePermissionRequest(
 	drive: DriveClient,
-	input: { fileId: string; permissionId: string }
+	fileId: string,
+	role: "reader" | "writer"
 ) {
+	return driveResultAsync(
+		drive.permissions.create({
+			fileId,
+			fields: "id,role,type",
+			sendNotificationEmail: false,
+			requestBody: { role, type: "anyone" },
+			supportsAllDrives: false
+		}),
+		"GOOGLE_DRIVE_PERMISSION_CREATE_FAILED"
+	);
+}
+
+export function deleteDrivePermissionRequest(
+	drive: DriveClient | null,
+	input: { fileId: string; permissionId: string } | null
+) {
+	if (drive === null || input === null) {
+		return okAsync(null);
+	}
+
 	return drivePermissionDeleteAsync(
 		drive.permissions
 			.delete({ fileId: input.fileId, permissionId: input.permissionId, supportsAllDrives: false })
 			.then(() => null)
-	).orElse((error) => {
-		// A prior partial attempt may already have removed this permission.
-		if (error.permissionIsMissing) return ok(null);
-
-		return err({ reason: error.reason });
-	});
+	);
 }
 
 export function normalizeDriveEmail(email: string) {
 	return email.trim().toLowerCase();
+}
+
+export function firstDriveFolderOrNull(folders: SavedDriveFolder[]) {
+	return folders.at(0) ?? null;
+}
+
+export function findDrivePermissionByEmailAndRole(
+	permissions: ListedDrivePermission[],
+	input: { email: string; role: SavedDrivePermission["role"] }
+) {
+	const permission = permissions.find(
+		(candidate) =>
+			candidate.emailAddress?.toLowerCase() === input.email.toLowerCase() &&
+			candidate.role === input.role
+	);
+
+	if (permission === undefined || permission.emailAddress === undefined) return null;
+
+	return { id: permission.id, emailAddress: permission.emailAddress, role: input.role };
+}
+
+export function findAnyoneDrivePermission(
+	permissions: ListedDrivePermission[],
+	role: "reader" | "writer"
+): AnyonePermission | null {
+	const permission = permissions.find(
+		(candidate) => candidate.type === "anyone" && candidate.role === role
+	);
+
+	return permission === undefined ? null : { id: permission.id, role, type: "anyone" };
+}
+
+export function ignoreMissingDriveFolder(error: DriveError) {
+	return error.reason === "GOOGLE_DRIVE_FOLDER_MISSING" ? ok(null) : err(error);
+}
+
+export function ignoreMissingDrivePermission(error: {
+	permissionIsMissing: boolean;
+	reason: DriveError["reason"];
+}) {
+	return error.permissionIsMissing ? ok(null) : err({ reason: error.reason });
+}
+
+export function useExistingOrCreateDrivePermission(
+	permission: AnyonePermission | null,
+	create: () => ResultAsync<AnyonePermission, DriveError>
+): ResultAsync<AnyonePermission, DriveError> {
+	return permission === null ? create() : okAsync(permission);
 }

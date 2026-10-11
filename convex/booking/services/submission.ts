@@ -1,13 +1,7 @@
-import { internal } from "#convex/_generated/api";
+import { checkPackageSubmitRateLimitForKey } from "#convex/booking/lib/submissionRateLimit";
+
 import type { ActionCtx } from "#convex/_generated/server";
 import { getBookingSubmitRateLimitKey } from "#convex/booking/lib/submission";
-import { fromConvexTuple } from "#convex/shared/lib/result";
-
-function checkPackageSubmitRateLimitForKey(ctx: ActionCtx, submitRateLimitKey: string) {
-	return fromConvexTuple(
-		ctx.runMutation(internal.packages.admin.checkPackageSubmitRateLimit, { submitRateLimitKey })
-	);
-}
 
 export function checkPackageSubmitRateLimit(ctx: ActionCtx, email: string) {
 	return getBookingSubmitRateLimitKey(email).andThen((submitRateLimitKey: string) =>

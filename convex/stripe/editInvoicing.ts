@@ -4,7 +4,7 @@ import { v } from "convex/values";
 import { tupleErr, tupleOk } from "#/lib/result";
 import { action, internalAction } from "#convex/_generated/server";
 import { editInvoiceTargetValidator } from "#convex/stripe/editInvoices";
-import { editInvoiceDraftValidator } from "#convex/stripe/services/editInvoiceValidators";
+import { editInvoiceDraftValidator } from "#convex/stripe/editInvoiceValidators";
 import {
 	loadEditInvoicePreviewFromAction,
 	backfillCheckoutPayments,

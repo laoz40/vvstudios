@@ -1,4 +1,4 @@
-import { err, errAsync, ok, okAsync, ResultAsync } from "neverthrow";
+import { err, errAsync, ok, okAsync, type ResultAsync } from "neverthrow";
 import { exhaustiveCheck } from "#/lib/result";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
@@ -12,6 +12,13 @@ export type EditorDriveSetupRecord = {
 	driveSession: Doc<"driveSessions">;
 	editor: Doc<"editorProfiles">;
 };
+
+type EditorClientDriveData = [
+	Doc<"driveClients"> | null,
+	Doc<"driveClientEditorPermissions"> | null,
+	Doc<"bookings">[],
+	Doc<"editorProfiles"> | null
+];
 
 export function getEditorPermissionFolder(
 	setup: EditorDriveSetupRecord,
@@ -92,7 +99,14 @@ function hasOtherClientAssignment(
 	return editorIsActive && assignedBookings.some((booking) => booking._id !== bookingId);
 }
 
-export function loadEditorProfileByToken(ctx: QueryCtx, editorTokenIdentifier: string) {
+export function loadEditorProfileByToken(
+	ctx: QueryCtx,
+	editorTokenIdentifier: string | null
+): ResultAsync<Doc<"editorProfiles"> | null, never> {
+	if (editorTokenIdentifier === null) {
+		return okAsync(null);
+	}
+
 	return okOrThrow(
 		ctx.db
 			.query("editorProfiles")
@@ -107,7 +121,7 @@ export function loadEditorClientDriveData(
 	ctx: QueryCtx,
 	driveSession: Doc<"driveSessions">,
 	editorTokenIdentifier: string
-) {
+): ResultAsync<EditorClientDriveData, never> {
 	return okOrThrow(
 		Promise.all([
 			ctx.db.get("driveClients", driveSession.driveClientId),
@@ -135,6 +149,16 @@ export function loadEditorClientDriveData(
 				.unique()
 		])
 	);
+}
+
+export function loadEditorClientDriveDataWhenAvailable(
+	ctx: QueryCtx,
+	driveSession: Doc<"driveSessions"> | null,
+	editorTokenIdentifier: string | null
+): ResultAsync<EditorClientDriveData | null, never> {
+	return driveSession === null || editorTokenIdentifier === null
+		? okAsync(null)
+		: loadEditorClientDriveData(ctx, driveSession, editorTokenIdentifier);
 }
 
 export function editorDriveAccessToRemoveForSession(
@@ -279,14 +303,7 @@ export function failedEditorRemovalForSession(
 	driveSession: Doc<"driveSessions"> | null,
 	bookingId: Id<"bookings">,
 	editor: Doc<"editorProfiles"> | null,
-	clientData:
-		| [
-				Doc<"driveClients"> | null,
-				Doc<"driveClientEditorPermissions"> | null,
-				Doc<"bookings">[],
-				Doc<"editorProfiles"> | null
-		  ]
-		| null
+	clientData: EditorClientDriveData | null
 ) {
 	const editorTokenIdentifier = driveSession?.failedRemovalEditorTokenIdentifier;
 
@@ -439,56 +456,14 @@ export function editorDriveSetupFromLoaded(
 	return okAsync({ ...setup, driveClient, driveSession, editor });
 }
 
-export type EditorDrivePermissionSetup = {
-	driveClient: Doc<"driveClients">;
-	driveSession: Doc<"driveSessions">;
-};
+export function loadEditorAssetsPermission(
+	ctx: QueryCtx,
+	args: { driveClientId: Id<"driveClients">; editorTokenIdentifier: string } | null
+): ResultAsync<Doc<"driveClientEditorPermissions"> | null, never> {
+	if (args === null) {
+		return okAsync(null);
+	}
 
-export function writeEditorDrivePermission(
-	ctx: MutationCtx,
-	setup: EditorDrivePermissionSetup,
-	args: {
-		editorTokenIdentifier: string;
-		name: "Assets" | "Deliverables" | "Session";
-		permission: SavedDrivePermission;
-	}
-) {
-	switch (args.name) {
-		case "Assets":
-			// Assets access is shared across every session for this client and editor.
-			return saveEditorAssetsPermission(ctx, {
-				driveClientId: setup.driveClient._id,
-				editorTokenIdentifier: args.editorTokenIdentifier,
-				permission: args.permission
-			});
-		case "Session":
-			// Session-specific permissions stay on the session's Drive record.
-			return saveEditorSessionPermission(ctx, {
-				driveSessionId: setup.driveSession._id,
-				editorTokenIdentifier: args.editorTokenIdentifier,
-				field: "editorSessionPermission",
-				permission: args.permission
-			});
-		case "Deliverables":
-			return saveEditorSessionPermission(ctx, {
-				driveSessionId: setup.driveSession._id,
-				editorTokenIdentifier: args.editorTokenIdentifier,
-				field: "editorDeliverablesPermission",
-				permission: args.permission
-			});
-		default:
-			return exhaustiveCheck(args.name);
-	}
-}
-
-function saveEditorAssetsPermission(
-	ctx: MutationCtx,
-	args: {
-		driveClientId: Id<"driveClients">;
-		editorTokenIdentifier: string;
-		permission: SavedDrivePermission;
-	}
-) {
 	return okOrThrow(
 		ctx.db
 			.query("driveClientEditorPermissions")
@@ -498,25 +473,62 @@ function saveEditorAssetsPermission(
 					.eq("editorTokenIdentifier", args.editorTokenIdentifier)
 			)
 			.unique()
-	).andThen((existing) => {
-		if (existing !== null) return ok(null);
-		const now = Date.now();
+	);
+}
 
-		return okOrThrow(
-			ctx.db
-				.insert("driveClientEditorPermissions", {
+export function saveEditorPermissionForSetup(
+	ctx: MutationCtx,
+	args: {
+		driveClientId: Id<"driveClients">;
+		driveSessionId: Id<"driveSessions">;
+		editorTokenIdentifier: string;
+		name: "Assets" | "Deliverables" | "Session";
+		permission: SavedDrivePermission;
+	},
+	existingAssetsPermission: Doc<"driveClientEditorPermissions"> | null
+) {
+	if (args.name === "Assets") {
+		return existingAssetsPermission === null
+			? insertEditorAssetsPermission(ctx, {
 					driveClientId: args.driveClientId,
 					editorTokenIdentifier: args.editorTokenIdentifier,
-					assetsPermission: args.permission,
-					createdAt: now,
-					updatedAt: now
+					permission: args.permission
 				})
-				.then(() => null)
-		);
+			: okAsync(null);
+	}
+
+	return saveEditorSessionPermission(ctx, {
+		driveSessionId: args.driveSessionId,
+		editorTokenIdentifier: args.editorTokenIdentifier,
+		field: args.name === "Session" ? "editorSessionPermission" : "editorDeliverablesPermission",
+		permission: args.permission
 	});
 }
 
-function saveEditorSessionPermission(
+export function insertEditorAssetsPermission(
+	ctx: MutationCtx,
+	args: {
+		driveClientId: Id<"driveClients">;
+		editorTokenIdentifier: string;
+		permission: SavedDrivePermission;
+	}
+) {
+	const now = Date.now();
+
+	return okOrThrow(
+		ctx.db
+			.insert("driveClientEditorPermissions", {
+				driveClientId: args.driveClientId,
+				editorTokenIdentifier: args.editorTokenIdentifier,
+				assetsPermission: args.permission,
+				createdAt: now,
+				updatedAt: now
+			})
+			.then(() => null)
+	);
+}
+
+export function saveEditorSessionPermission(
 	ctx: MutationCtx,
 	args: {
 		driveSessionId: Id<"driveSessions">;

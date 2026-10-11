@@ -39,7 +39,7 @@ function writeBookingReceiptNumbers(
 
 export function syncPackageBookingsReceiptNumber(
 	ctx: MutationCtx,
-	packageId: Id<"packages">,
+	packageId: Id<"packages"> | null,
 	receiptNumber: string
 ) {
 	return loadPackageBookingsForReceiptSync(ctx, packageId)

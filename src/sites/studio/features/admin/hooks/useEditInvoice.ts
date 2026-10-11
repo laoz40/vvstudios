@@ -3,7 +3,7 @@ import { useAction } from "convex/react";
 import { toast } from "sonner";
 import { api } from "#convex/_generated/api";
 import { tryCatch } from "#/lib/result";
-import type { EditInvoiceDraft } from "#convex/stripe/services/editInvoiceValidators";
+import type { EditInvoiceDraft } from "#convex/stripe/editInvoiceValidators";
 import type { EditInvoiceTarget } from "#convex/stripe/lib/editInvoiceDb";
 import type { EditInvoiceQuote } from "#convex/stripe/lib/editInvoiceBilling";
 import { sessionUpdateErrorMessageMap } from "#studio/features/admin/lib/session-edit";

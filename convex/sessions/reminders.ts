@@ -11,11 +11,8 @@ import {
 
 export const listSessionsDueForReminderEmail = internalQuery({
 	args: { dayStart: v.number(), dayEnd: v.number(), limit: v.optional(v.number()) },
-	handler: async (ctx, args) =>
-		await listConfirmedSessionsDueForReminderEmail(ctx, args).match(
-			(bookings) => bookings,
-			() => []
-		)
+	handler: (ctx, args) =>
+		listConfirmedSessionsDueForReminderEmail(ctx, args).match(tupleOk, tupleErr)
 });
 
 export const claimReminder = internalMutation({
@@ -35,5 +32,5 @@ export const markReminderFailed = internalMutation({
 
 export const sendDueReminders = internalAction({
 	args: {},
-	handler: async (ctx) => sendDueSessionAndPackageReminders(ctx, new Date())
+	handler: (ctx) => sendDueSessionAndPackageReminders(ctx, new Date()).match(tupleOk, tupleErr)
 });

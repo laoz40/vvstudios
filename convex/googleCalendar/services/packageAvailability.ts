@@ -1,21 +1,21 @@
 "use node";
 
 import { ResultAsync } from "neverthrow";
-import { internal } from "#convex/_generated/api";
 import type { ActionCtx } from "#convex/_generated/server";
+import { loadPackageByToken } from "#convex/googleCalendar/lib/packageAvailability";
+import {
+	groupedPackageBusyWindows,
+	packageAvailabilityDates,
+	type PackageAvailabilityContext
+} from "#convex/googleCalendar/lib/packageAvailability";
 import { getBusyWindowsInRange } from "#convex/googleCalendar/lib/googleCalendarAvailability";
 import { loadGoogleCalendarClient } from "#convex/googleCalendar/lib/googleCalendarClient";
 import { tryGoogleCalendarAvailability } from "#convex/googleCalendar/lib/googleCalendarErrors";
-import { fromConvexTuple } from "#convex/shared/lib/result";
+import { checkGoogleCalendarAvailabilityRateLimit } from "#convex/shared/services/rateLimits";
 import type { ValidPackageByTokenError } from "#convex/packages/lib/scheduling";
-import { checkGoogleCalendarAvailabilityRateLimit } from "#convex/shared/lib/rateLimits";
-import {
-	groupBusyDaysByMonth,
-	groupBusyWindowsByDay,
-	type BusyDayWindow as LibBusyDayWindow
-} from "#convex/sessions/lib/calendarTime";
+import type { BusyDayWindow as LibBusyDayWindow } from "#convex/sessions/lib/calendarTime";
 import { getDateAvailabilityRange } from "#convex/googleCalendar/services/calendarTime";
-import { formatDateValue, startOfToday } from "#studio/lib/bookingdatetime";
+import { groupBusyWindowsByDay } from "#convex/sessions/lib/calendarTime";
 
 export type BusyDayWindow = LibBusyDayWindow;
 
@@ -31,92 +31,30 @@ export type PackageAvailabilityError =
 				| "INVALID_ZONED_TIME";
 	  };
 
-type PackageAvailabilityContext = {
-	availabilityRange: { timeMax: string; timeMin: string };
-	client: {
-		calendar: Parameters<typeof getBusyWindowsInRange>[0]["calendar"];
-		calendarIds: string[];
-		timeZone: string;
-	};
-	packageFromDb: { expiresAt: number };
-};
-
-function retainValueStep<T>(value: T) {
-	return value;
-}
-
-function packageFromDbAfterRateLimitStep(
-	ctx: ActionCtx,
-	rateLimitKey: string,
-	packageFromDb: PackageAvailabilityContext["packageFromDb"]
-) {
-	return checkGoogleCalendarAvailabilityRateLimit(ctx, rateLimitKey).map(() =>
-		retainValueStep(packageFromDb)
-	);
-}
-
-function pairPackageWithCalendarClient(
-	packageFromDb: PackageAvailabilityContext["packageFromDb"],
-	client: PackageAvailabilityContext["client"]
-) {
-	return { client, packageFromDb };
-}
-
-function loadPackageCalendarClientForPackageStep(
-	packageFromDb: PackageAvailabilityContext["packageFromDb"]
-) {
-	return loadGoogleCalendarClient("GOOGLE_CALENDAR_AVAILABILITY_FAILED").map(
-		(client: PackageAvailabilityContext["client"]) =>
-			pairPackageWithCalendarClient(packageFromDb, client)
-	);
-}
-
-function packageAvailabilityContextStep({
-	client,
-	packageFromDb
-}: {
-	client: PackageAvailabilityContext["client"];
-	packageFromDb: PackageAvailabilityContext["packageFromDb"];
-}) {
-	const startDate = formatDateValue(startOfToday());
-	const endDate = formatDateValue(new Date(packageFromDb.expiresAt));
-
-	return getDateAvailabilityRange(startDate, endDate, client.timeZone).map(
-		(availabilityRange: PackageAvailabilityContext["availabilityRange"]) =>
-			packageAvailabilityRangeStep(client, packageFromDb, availabilityRange)
-	);
-}
-
-function packageAvailabilityRangeStep(
-	client: PackageAvailabilityContext["client"],
-	packageFromDb: PackageAvailabilityContext["packageFromDb"],
-	availabilityRange: PackageAvailabilityContext["availabilityRange"]
-) {
-	return { availabilityRange, client, packageFromDb };
-}
-
 export function loadValidPackageForCalendarAvailability(
 	ctx: ActionCtx,
 	args: { rateLimitKey: string; token: string }
 ): ResultAsync<PackageAvailabilityContext, PackageAvailabilityError> {
-	return fromConvexTuple(
-		ctx.runQuery(internal.packages.scheduling.getValidPackageByToken, {
-			now: Date.now(),
-			token: args.token
-		})
-	)
+	return loadPackageByToken(ctx, args.token)
 		.andThen((packageFromDb: PackageAvailabilityContext["packageFromDb"]) =>
-			packageFromDbAfterRateLimitStep(ctx, args.rateLimitKey, packageFromDb)
+			checkGoogleCalendarAvailabilityRateLimit(ctx, args.rateLimitKey).map(() => packageFromDb)
 		)
-		.andThen(loadPackageCalendarClientForPackageStep)
-		.andThen(packageAvailabilityContextStep);
-}
+		.andThen((packageFromDb) =>
+			loadGoogleCalendarClient("GOOGLE_CALENDAR_AVAILABILITY_FAILED").map(
+				(client: PackageAvailabilityContext["client"]) => ({ client, packageFromDb })
+			)
+		)
+		.andThen(({ client, packageFromDb }) => {
+			const { startDate, endDate } = packageAvailabilityDates(packageFromDb);
 
-function packageBusyWindowsContextStep(
-	context: PackageAvailabilityContext,
-	busyWindows: Awaited<ReturnType<typeof getBusyWindowsInRange>>
-) {
-	return { ...context, busyWindows };
+			return getDateAvailabilityRange(startDate, endDate, client.timeZone).map(
+				(availabilityRange: PackageAvailabilityContext["availabilityRange"]) => ({
+					availabilityRange,
+					client,
+					packageFromDb
+				})
+			);
+		});
 }
 
 export function loadPackageBookableRangeBusyWindows(
@@ -133,24 +71,10 @@ export function loadPackageBookableRangeBusyWindows(
 			timeMin: context.availabilityRange.timeMin,
 			timeZone: context.client.timeZone
 		})
-	).map((busyWindows: Awaited<ReturnType<typeof getBusyWindowsInRange>>) =>
-		packageBusyWindowsContextStep(context, busyWindows)
-	);
-}
-
-function groupedPackageBusyWindowsStep(
-	context: {
-		busyWindows: Awaited<ReturnType<typeof getBusyWindowsInRange>>;
-		client: { timeZone: string };
-		packageFromDb: { expiresAt: number };
-	},
-	busyDays: BusyDayWindow[]
-) {
-	return {
-		busyWindowsByMonth: groupBusyDaysByMonth(busyDays),
-		packageExpiresAt: context.packageFromDb.expiresAt,
-		timeZone: context.client.timeZone
-	};
+	).map((busyWindows: Awaited<ReturnType<typeof getBusyWindowsInRange>>) => ({
+		...context,
+		busyWindows
+	}));
 }
 
 export function groupPackageBusyWindowsByMonth(context: {
@@ -159,6 +83,6 @@ export function groupPackageBusyWindowsByMonth(context: {
 	packageFromDb: { expiresAt: number };
 }) {
 	return groupBusyWindowsByDay(context.busyWindows, context.client.timeZone).map(
-		(busyDays: BusyDayWindow[]) => groupedPackageBusyWindowsStep(context, busyDays)
+		(busyDays: BusyDayWindow[]) => groupedPackageBusyWindows(context, busyDays)
 	);
 }

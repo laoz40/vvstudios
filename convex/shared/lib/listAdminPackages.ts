@@ -1,15 +1,12 @@
-import { okAsync, ResultAsync, type ResultAsync as ResultAsyncType } from "neverthrow";
+import {
+	calculatePaidAmount,
+	summarizeCustomPackageStripeInvoices
+} from "#convex/stripe/lib/invoices";
+import { okAsync, type ResultAsync as ResultAsyncType } from "neverthrow";
 import { okOrThrow } from "#convex/shared/lib/result";
 import type { Doc } from "#convex/_generated/dataModel";
 import type { QueryCtx } from "#convex/_generated/server";
 import { exhaustiveCheck } from "#/lib/result";
-import { getCapacityConsumingPackageSessions } from "#convex/packages/lib/scheduling";
-import {
-	calculatePaidAmount,
-	listStripeInvoicesForBookings,
-	listStripeInvoicesForPackage,
-	summarizeCustomPackageStripeInvoices
-} from "#convex/stripe/lib/invoices";
 import { normalizeAbn, normalizePhone } from "#convex/shared/lib/contactNormalization";
 import {
 	adminPartialFieldSearchArgs,
@@ -92,7 +89,7 @@ function passesAdminPackageListRow(
 	return passesAdminPackageStaleFilter(packageRecord, includeStale);
 }
 
-function applyAdminPackageListVisibility(
+export function applyAdminPackageListVisibility(
 	packages: Doc<"packages">[],
 	view: AdminPackagesView,
 	includeStale: boolean
@@ -303,56 +300,7 @@ function paginateAdminPackagesWithoutSearch(ctx: QueryCtx, args: AdminPackageSea
 	}));
 }
 
-function loadAdminPackageListRow(ctx: QueryCtx, packageFromDb: Doc<"packages">) {
-	return okOrThrow(
-		ctx.db
-			.query("packageAdjustments")
-			.withIndex("by_packageId", (indexQuery) => indexQuery.eq("packageId", packageFromDb._id))
-			.unique()
-	).andThen((packageAdjustment) =>
-		getCapacityConsumingPackageSessions(ctx, packageFromDb._id, packageFromDb.packageSize).andThen(
-			(packageSessions) =>
-				ResultAsync.combine([
-					listStripeInvoicesForPackage(ctx, packageFromDb._id),
-					listStripeInvoicesForBookings(
-						ctx,
-						packageSessions.map((booking) => booking._id)
-					)
-				]).map(([stripeInvoices, sessionInvoices]) => {
-					const customStripeInvoicesSummary = summarizeCustomPackageStripeInvoices(stripeInvoices);
-
-					return {
-						...packageFromDb,
-						bookedSessions: packageSessions.length,
-						areSessionsComplete: packageAdjustment !== null,
-						adjustment:
-							packageAdjustment?.outcome === "invoice_required"
-								? {
-										_id: packageAdjustment._id,
-										totalAmount: packageAdjustment.totalAmount,
-										invoiceDueAt: packageAdjustment.invoiceDueAt,
-										invoiceEmailStatus: packageAdjustment.invoiceEmailStatus,
-										paymentStatus: packageAdjustment.paymentStatus
-									}
-								: null,
-						paidAmount: calculatePaidAmount({
-							originalPaidAmount: packageFromDb.originalPaidAmount ?? null,
-							invoices: [...stripeInvoices, ...sessionInvoices]
-						}),
-						customStripeInvoicesSummary
-					};
-				})
-		)
-	);
-}
-
-function loadAdminPackageListRows(ctx: QueryCtx, packagesOnPage: Doc<"packages">[]) {
-	return ResultAsync.combine(
-		packagesOnPage.map((packageFromDb) => loadAdminPackageListRow(ctx, packageFromDb))
-	);
-}
-
-function fetchAdminPackagesListPage(
+export function fetchAdminPackagesListPage(
 	ctx: QueryCtx,
 	args: ListAdminPackagesArgs
 ): ResultAsyncType<AdminSearchListPage<Doc<"packages">>, never> {
@@ -373,16 +321,39 @@ function fetchAdminPackagesListPage(
 		: paginateAdminPackagesWithoutSearch(ctx, searchContext);
 }
 
-export function listAdminPackages(ctx: QueryCtx, args: ListAdminPackagesArgs) {
-	const view = args.view ?? "inbox";
-	const includeStale = args.includeStale ?? false;
+export function getPackageAdjustment(ctx: QueryCtx, packageId: Doc<"packages">["_id"]) {
+	return okOrThrow(
+		ctx.db
+			.query("packageAdjustments")
+			.withIndex("by_packageId", (query) => query.eq("packageId", packageId))
+			.unique()
+	);
+}
 
-	return fetchAdminPackagesListPage(ctx, args).andThen((packagesPage) => {
-		const visiblePackages = applyAdminPackageListVisibility(packagesPage.page, view, includeStale);
-
-		return loadAdminPackageListRows(ctx, visiblePackages).map((page) => ({
-			...packagesPage,
-			page
-		}));
-	});
+export function buildAdminPackageListRow(
+	packageFromDb: Doc<"packages">,
+	adjustment: Doc<"packageAdjustments"> | null,
+	sessions: Doc<"bookings">[],
+	[invoices, sessionInvoices]: [Doc<"stripeInvoices">[], Doc<"stripeInvoices">[]]
+) {
+	return {
+		...packageFromDb,
+		bookedSessions: sessions.length,
+		areSessionsComplete: adjustment !== null,
+		adjustment:
+			adjustment?.outcome === "invoice_required"
+				? {
+						_id: adjustment._id,
+						totalAmount: adjustment.totalAmount,
+						invoiceDueAt: adjustment.invoiceDueAt,
+						invoiceEmailStatus: adjustment.invoiceEmailStatus,
+						paymentStatus: adjustment.paymentStatus
+					}
+				: null,
+		paidAmount: calculatePaidAmount({
+			originalPaidAmount: packageFromDb.originalPaidAmount ?? null,
+			invoices: [...invoices, ...sessionInvoices]
+		}),
+		customStripeInvoicesSummary: summarizeCustomPackageStripeInvoices(invoices)
+	};
 }

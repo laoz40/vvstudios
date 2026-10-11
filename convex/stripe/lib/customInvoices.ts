@@ -2,7 +2,7 @@ import { err, ok, okAsync, type ResultAsync } from "neverthrow";
 import { internal } from "#convex/_generated/api";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { ActionCtx, MutationCtx, QueryCtx } from "#convex/_generated/server";
-import { okOrThrow } from "#convex/shared/lib/result";
+import { fromConvexTuple, okOrThrow } from "#convex/shared/lib/result";
 
 type CustomInvoiceInsert = Omit<
 	Doc<"customInvoices">,
@@ -18,7 +18,7 @@ export function getSelectedBookingCustomInvoice(
 		return okAsync(undefined);
 	}
 
-	return okOrThrow<Doc<"customInvoices"> | null>(
+	return fromConvexTuple(
 		ctx.runQuery(internal.stripe.customInvoices.getBookingCustomInvoiceInput, {
 			bookingId,
 			customInvoiceId
@@ -41,6 +41,13 @@ export function getCustomInvoiceRow(
 	customInvoiceId: Id<"customInvoices">
 ) {
 	return okOrThrow(ctx.db.get("customInvoices", customInvoiceId));
+}
+
+export function customInvoiceForBooking(
+	bookingId: Id<"bookings">,
+	customInvoice: Doc<"customInvoices"> | null
+) {
+	return customInvoice?.bookingId === bookingId ? customInvoice : null;
 }
 
 export function validateCustomTotalDueAmount(amount: number | undefined) {

@@ -6,7 +6,7 @@ import {
 	loadMissingCheckoutPayments,
 	saveOriginalPaidAmount
 } from "#convex/stripe/services/editInvoiceBilling";
-import { editInvoiceDraftValidator } from "#convex/stripe/services/editInvoiceValidators";
+import { editInvoiceDraftValidator } from "#convex/stripe/editInvoiceValidators";
 
 export const editInvoiceTargetValidator = v.union(
 	v.object({ kind: v.literal("booking"), bookingId: v.id("bookings") }),

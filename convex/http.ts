@@ -44,6 +44,129 @@ function getCheckoutPaidAmount(session: Stripe.Checkout.Session) {
 		: undefined;
 }
 
+async function handleCompletedPackageCheckout(
+	ctx: ActionCtx,
+	event: Stripe.CheckoutSessionCompletedEvent,
+	packageId: string
+) {
+	const session = event.data.object;
+
+	const stripePaymentIntentId = getStripePaymentIntentId(session.payment_intent);
+
+	const checkoutCompletion = await completePackageCheckoutService(ctx, {
+		packageId,
+		stripeSessionId: session.id,
+		originalPaidAmount: getCheckoutPaidAmount(session),
+		stripePaymentIntentId
+	});
+
+	if (checkoutCompletion.isErr()) {
+		const failure = checkoutCompletion.error;
+
+		const failureKind = failure.kind;
+
+		switch (failureKind) {
+			case "claim_failed":
+				console.error("Package completion claim failed", {
+					eventId: event.id,
+					sessionId: session.id,
+					packageId,
+					claimError: failure.error
+				});
+
+				return new Response("claim failed", { status: 200 });
+			case "completion_failed":
+				console.error("Package completion failed", {
+					eventId: event.id,
+					sessionId: session.id,
+					packageId,
+					completionError: failure.error
+				});
+
+				return new Response("completion failed", { status: 200 });
+			default:
+				return exhaustiveCheck(failureKind);
+		}
+	}
+
+	const { outcome } = checkoutCompletion.value;
+
+	switch (outcome) {
+		case "already_completed":
+			return new Response("already completed", { status: 200 });
+		case "completed":
+			return new Response("confirmed", { status: 200 });
+		default:
+			return exhaustiveCheck(outcome);
+	}
+}
+
+async function handleCompletedSessionCheckout(
+	ctx: ActionCtx,
+	event: Stripe.CheckoutSessionCompletedEvent,
+	bookingId: string
+) {
+	const session = event.data.object;
+
+	const stripePaymentIntentId = getStripePaymentIntentId(session.payment_intent);
+
+	const checkoutCompletion = await completeSessionCheckoutService(ctx, {
+		bookingId,
+		stripeSessionId: session.id,
+		originalPaidAmount: getCheckoutPaidAmount(session),
+		stripePaymentIntentId,
+		stripeEventId: event.id
+	});
+
+	if (checkoutCompletion.isErr()) {
+		const failure = checkoutCompletion.error;
+
+		const failureKind = failure.kind;
+
+		switch (failureKind) {
+			case "claim_failed":
+				console.error("Booking completion claim failed", {
+					eventId: event.id,
+					sessionId: session.id,
+					bookingId,
+					claimError: failure.error
+				});
+
+				return new Response("claim failed", { status: 200 });
+			case "completion_failed":
+				console.error("Booking completion failed", {
+					eventId: event.id,
+					sessionId: session.id,
+					bookingId,
+					completionError: failure.error
+				});
+
+				return new Response("completion failed", { status: 200 });
+			default:
+				return exhaustiveCheck(failureKind);
+		}
+	}
+
+	const { outcome } = checkoutCompletion.value;
+
+	switch (outcome) {
+		case "already_confirmed":
+			return new Response("already confirmed", { status: 200 });
+		case "already_claimed":
+			return new Response("already claimed", { status: 200 });
+		case "completed":
+		case "already_completed":
+			return new Response("confirmed", { status: 200 });
+		case "booking_time_unavailable":
+		case "booking_invalid_input":
+		case "google_calendar_create_failed":
+		case "reservation_lost":
+			return new Response(outcome, { status: 200 });
+		default:
+			return exhaustiveCheck(outcome);
+	}
+}
+
 async function handleCompletedCheckout(
 	ctx: ActionCtx,
 	event: Stripe.CheckoutSessionCompletedEvent
@@ -51,55 +174,7 @@ async function handleCompletedCheckout(
 	const session = event.data.object;
 	const packageId = session.metadata?.packageId;
 
-	if (packageId) {
-		const stripePaymentIntentId = getStripePaymentIntentId(session.payment_intent);
-
-		const checkoutCompletion = await completePackageCheckoutService(ctx, {
-			packageId,
-			stripeSessionId: session.id,
-			originalPaidAmount: getCheckoutPaidAmount(session),
-			stripePaymentIntentId
-		});
-
-		return checkoutCompletion.match(
-			({ outcome }) => {
-				switch (outcome) {
-					case "already_completed":
-						return new Response("already completed", { status: 200 });
-					case "completed":
-						return new Response("confirmed", { status: 200 });
-					default:
-						return exhaustiveCheck(outcome);
-				}
-			},
-			(failure) => {
-				const failureKind = failure.kind;
-
-				switch (failureKind) {
-					case "claim_failed":
-						console.error("Package completion claim failed", {
-							eventId: event.id,
-							sessionId: session.id,
-							packageId,
-							claimError: failure.error
-						});
-
-						return new Response("claim failed", { status: 200 });
-					case "completion_failed":
-						console.error("Package completion failed", {
-							eventId: event.id,
-							sessionId: session.id,
-							packageId,
-							completionError: failure.error
-						});
-
-						return new Response("completion failed", { status: 200 });
-					default:
-						return exhaustiveCheck(failureKind);
-				}
-			}
-		);
-	}
+	if (packageId) return handleCompletedPackageCheckout(ctx, event, packageId);
 
 	const bookingId = session.metadata?.bookingId;
 
@@ -112,62 +187,7 @@ async function handleCompletedCheckout(
 		return new Response("Missing bookingId metadata", { status: 400 });
 	}
 
-	const stripePaymentIntentId = getStripePaymentIntentId(session.payment_intent);
-
-	const checkoutCompletion = await completeSessionCheckoutService(ctx, {
-		bookingId,
-		stripeSessionId: session.id,
-		originalPaidAmount: getCheckoutPaidAmount(session),
-		stripePaymentIntentId,
-		stripeEventId: event.id
-	});
-
-	return checkoutCompletion.match(
-		({ outcome }) => {
-			switch (outcome) {
-				case "already_confirmed":
-					return new Response("already confirmed", { status: 200 });
-				case "already_claimed":
-					return new Response("already claimed", { status: 200 });
-				case "completed":
-				case "already_completed":
-					return new Response("confirmed", { status: 200 });
-				case "booking_time_unavailable":
-				case "booking_invalid_input":
-				case "google_calendar_create_failed":
-				case "reservation_lost":
-					return new Response(outcome, { status: 200 });
-				default:
-					return exhaustiveCheck(outcome);
-			}
-		},
-		(failure) => {
-			const failureKind = failure.kind;
-
-			switch (failureKind) {
-				case "claim_failed":
-					console.error("Booking completion claim failed", {
-						eventId: event.id,
-						sessionId: session.id,
-						bookingId,
-						claimError: failure.error
-					});
-
-					return new Response("claim failed", { status: 200 });
-				case "completion_failed":
-					console.error("Booking completion failed", {
-						eventId: event.id,
-						sessionId: session.id,
-						bookingId,
-						completionError: failure.error
-					});
-
-					return new Response("completion failed", { status: 200 });
-				default:
-					return exhaustiveCheck(failureKind);
-			}
-		}
-	);
+	return handleCompletedSessionCheckout(ctx, event, bookingId);
 }
 
 function isManagedStripeInvoice(invoice: Stripe.Invoice) {
@@ -208,44 +228,45 @@ async function handlePaidInvoice(ctx: ActionCtx, event: Stripe.InvoicePaidEvent)
 		paidAt: Date.now()
 	});
 
-	return paymentCompletion.match(
-		({ outcome }) => {
-			switch (outcome) {
-				case "already_completed":
-					return new Response("already completed", { status: 200 });
-				case "completed":
-					return new Response("paid", { status: 200 });
-				default:
-					return exhaustiveCheck(outcome);
-			}
-		},
-		(failure) => {
-			const retryWebhook = shouldRetryStripeInvoicePaymentWebhook(invoice, failure);
+	if (paymentCompletion.isErr()) {
+		const failure = paymentCompletion.error;
 
-			switch (failure.kind) {
-				case "not_found":
-					console.error("Stripe invoice payment had no matching record", {
-						eventId: event.id,
-						stripeInvoiceId,
-						adjustmentId,
-						metadata: invoice.metadata
-					});
+		const retryWebhook = shouldRetryStripeInvoicePaymentWebhook(invoice, failure);
 
-					return new Response("not found", { status: retryWebhook ? 500 : 200 });
-				case "claim_failed":
-					console.error("Stripe invoice payment claim failed", {
-						eventId: event.id,
-						stripeInvoiceId,
-						adjustmentId,
-						claimError: failure.error
-					});
+		switch (failure.kind) {
+			case "not_found":
+				console.error("Stripe invoice payment had no matching record", {
+					eventId: event.id,
+					stripeInvoiceId,
+					adjustmentId,
+					metadata: invoice.metadata
+				});
 
-					return new Response("claim failed", { status: retryWebhook ? 500 : 200 });
-				default:
-					return exhaustiveCheck(failure);
-			}
+				return new Response("not found", { status: retryWebhook ? 500 : 200 });
+			case "claim_failed":
+				console.error("Stripe invoice payment claim failed", {
+					eventId: event.id,
+					stripeInvoiceId,
+					adjustmentId,
+					claimError: failure.error
+				});
+
+				return new Response("claim failed", { status: retryWebhook ? 500 : 200 });
+			default:
+				return exhaustiveCheck(failure);
 		}
-	);
+	}
+
+	const { outcome } = paymentCompletion.value;
+
+	switch (outcome) {
+		case "already_completed":
+			return new Response("already completed", { status: 200 });
+		case "completed":
+			return new Response("paid", { status: 200 });
+		default:
+			return exhaustiveCheck(outcome);
+	}
 }
 
 async function handleStripeEvent(ctx: ActionCtx, event: Stripe.Event) {

@@ -1,12 +1,11 @@
 "use node";
 
-import { err, errAsync, ok, type ResultAsync } from "neverthrow";
+import { errAsync, type ResultAsync } from "neverthrow";
 import Stripe from "stripe";
 import { internal } from "#convex/_generated/api";
 import type { Id } from "#convex/_generated/dataModel";
 import type { ActionCtx } from "#convex/_generated/server";
 import { env } from "#convex/env";
-import { emailDomainCanReceiveMailAsync } from "#convex/shared/lib/email/emailDomain";
 import { fromConvexTuple, tryPromise } from "#convex/shared/lib/result";
 import type { SessionAvailabilityValidationError } from "#convex/sessions/lib/calendarTime";
 import type {
@@ -37,14 +36,6 @@ type StripeCheckoutDraft = SessionCheckoutDraft & {
 	stripeCustomerId: string;
 	session: Stripe.Checkout.Session;
 };
-
-export function requireValidBookingEmailDomain(
-	email: string
-): ResultAsync<null, { reason: "BOOKING_EMAIL_DOMAIN_INVALID" }> {
-	return emailDomainCanReceiveMailAsync(email).andThen((canReceiveMail) =>
-		canReceiveMail ? ok(null) : err({ reason: "BOOKING_EMAIL_DOMAIN_INVALID" as const })
-	);
-}
 
 export function createPendingSessionForCheckout(
 	ctx: ActionCtx,
@@ -180,32 +171,35 @@ export function createStripeCheckoutDiscountCoupon(
 
 export function createEmbeddedStripePackageCheckoutSession(
 	stripe: Stripe,
-	checkoutDraft: PackageCheckoutDraft & { stripeCustomerId: string }
+	checkoutDraft: PackageCheckoutDraft & { stripeCustomerId: string; couponId: string }
 ): ResultAsync<StripePackageCheckoutDraft, StripeCheckoutCreateFailed> {
-	return createStripeCheckoutDiscountCoupon(stripe, checkoutDraft.discount).andThen(
-		({ couponId }) =>
-			tryPromise({
-				try: () =>
-					stripe.checkout.sessions
-						.create({
-							mode: "payment",
-							ui_mode: "embedded_page",
-							payment_method_types: ["card"],
-							return_url: `${env.STRIPE_CHECKOUT_RETURN_URL}?session_id={CHECKOUT_SESSION_ID}`,
-							customer: checkoutDraft.stripeCustomerId,
-							metadata: { packageId: checkoutDraft.packageId },
-							line_items: checkoutDraft.lineItems,
-							discounts: [{ coupon: couponId }],
-							payment_intent_data: { description: "Package booking" }
-						})
-						.then((session) => ({ ...checkoutDraft, session })),
-				catch: (cause) => {
-					console.error("Stripe package checkout session create failed", { cause });
+	return tryPromise({
+		try: () =>
+			stripe.checkout.sessions
+				.create({
+					mode: "payment",
+					ui_mode: "embedded_page",
+					payment_method_types: ["card"],
+					return_url: `${env.STRIPE_CHECKOUT_RETURN_URL}?session_id={CHECKOUT_SESSION_ID}`,
+					customer: checkoutDraft.stripeCustomerId,
+					metadata: { packageId: checkoutDraft.packageId },
+					line_items: checkoutDraft.lineItems,
+					discounts: [{ coupon: checkoutDraft.couponId }],
+					payment_intent_data: { description: "Package booking" }
+				})
+				.then((session) => ({
+					packageId: checkoutDraft.packageId,
+					lineItems: checkoutDraft.lineItems,
+					discount: checkoutDraft.discount,
+					stripeCustomerId: checkoutDraft.stripeCustomerId,
+					session
+				})),
+		catch: (cause) => {
+			console.error("Stripe package checkout session create failed", { cause });
 
-					return { reason: "STRIPE_CHECKOUT_CREATE_FAILED" as const };
-				}
-			})
-	);
+			return { reason: "STRIPE_CHECKOUT_CREATE_FAILED" as const };
+		}
+	});
 }
 
 type StripeCheckoutCloseLogContext = {

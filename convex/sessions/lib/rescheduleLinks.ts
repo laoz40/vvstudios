@@ -1,4 +1,4 @@
-import { err, ok, okAsync, type Result, type ResultAsync } from "neverthrow";
+import { err, ok, type Result, type ResultAsync } from "neverthrow";
 import { internal } from "#convex/_generated/api";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { ActionCtx, MutationCtx, QueryCtx } from "#convex/_generated/server";
@@ -6,7 +6,7 @@ import { env } from "#convex/env";
 import { bytesToHex } from "#convex/shared/lib/crypto/bytesToHex";
 import { fromConvexTuple, okOrThrow } from "#convex/shared/lib/result";
 
-const rescheduleLinkInvalidationBatchSize = 100;
+export const RESCHEDULE_LINK_INVALIDATION_BATCH_SIZE = 100;
 
 const rescheduleTokenByteLength = 32;
 
@@ -62,12 +62,11 @@ export function hashRescheduleTokenAsync(token: string): ResultAsync<string, nev
 }
 
 export async function hashRescheduleToken(token: string) {
-	return hashRescheduleTokenAsync(token).match(
-		(hash) => hash,
-		() => {
-			throw new Error("hashRescheduleToken failed");
-		}
-	);
+	const result = await hashRescheduleTokenAsync(token);
+
+	if (result.isErr()) throw new Error("hashRescheduleToken failed");
+
+	return result.value;
 }
 
 export function buildRescheduleUrl(baseUrl: string, token: string) {
@@ -190,73 +189,53 @@ export function isRescheduleLinkExpired(
 	return now >= link.expiresAt || now >= session.sessionStartAt;
 }
 
-export function createActiveRescheduleLinkForSession({
-	session,
-	ctx,
-	expiresAt,
-	now
-}: {
-	session: Doc<"bookings">;
-	ctx: MutationCtx;
-	expiresAt: number;
-	now: number;
-}): ResultAsync<{ linkId: Id<"bookingRescheduleLinks">; token: string }, never> {
-	return writeRescheduleLinksUsedForBooking(ctx, { bookingId: session._id, now }).andThen(() => {
-		const token = generateRescheduleToken();
-
-		return hashRescheduleTokenAsync(token).andThen((tokenHash) =>
-			okOrThrow(
-				ctx.db
-					.insert("bookingRescheduleLinks", {
-						bookingId: session._id,
-						tokenHash,
-						status: "active" as const,
-						expiresAt,
-						createdAt: now
-					})
-					.then((linkId) => ({ linkId, token }))
-			)
-		);
-	});
-}
-
-function invalidateNextRescheduleLinksBatch(
-	ctx: MutationCtx,
-	args: { bookingId: Id<"bookings">; now: number }
-): ResultAsync<null, never> {
+export function listActiveRescheduleLinks(ctx: MutationCtx, bookingId: Id<"bookings">) {
 	return okOrThrow(
 		ctx.db
 			.query("bookingRescheduleLinks")
 			.withIndex("by_bookingId_and_status", (q) =>
-				q.eq("bookingId", args.bookingId).eq("status", "active")
+				q.eq("bookingId", bookingId).eq("status", "active")
 			)
-			.take(rescheduleLinkInvalidationBatchSize)
-	).andThen((activeLinks) => {
-		if (activeLinks.length === 0) {
-			return okAsync(null);
-		}
-
-		return okOrThrow(
-			Promise.all(
-				activeLinks.map((link) =>
-					ctx.db.patch("bookingRescheduleLinks", link._id, { status: "used", usedAt: args.now })
-				)
-			)
-		).andThen(() => {
-			if (activeLinks.length < rescheduleLinkInvalidationBatchSize) {
-				return okAsync(null);
-			}
-
-			return invalidateNextRescheduleLinksBatch(ctx, args);
-		});
-	});
+			.take(RESCHEDULE_LINK_INVALIDATION_BATCH_SIZE)
+	);
 }
 
-export function writeRescheduleLinksUsedForBooking(
-	ctx: MutationCtx,
+export function selectNextRescheduleLinkInvalidationBatches(
+	links: Doc<"bookingRescheduleLinks">[],
 	args: { bookingId: Id<"bookings">; now: number }
 ) {
-	return invalidateNextRescheduleLinksBatch(ctx, args);
+	return links.length >= RESCHEDULE_LINK_INVALIDATION_BATCH_SIZE ? [args] : [];
+}
+
+export function markRescheduleLinksUsed(
+	ctx: MutationCtx,
+	links: Doc<"bookingRescheduleLinks">[],
+	now: number
+) {
+	return okOrThrow(
+		Promise.all(
+			links.map((link) =>
+				ctx.db.patch("bookingRescheduleLinks", link._id, { status: "used", usedAt: now })
+			)
+		)
+	);
+}
+
+export function insertActiveRescheduleLink(
+	ctx: MutationCtx,
+	args: { bookingId: Id<"bookings">; tokenHash: string; expiresAt: number; now: number }
+) {
+	return okOrThrow(
+		ctx.db
+			.insert("bookingRescheduleLinks", {
+				bookingId: args.bookingId,
+				tokenHash: args.tokenHash,
+				status: "active" as const,
+				expiresAt: args.expiresAt,
+				createdAt: args.now
+			})
+			.then((linkId) => linkId)
+	);
 }
 
 export function lookupRescheduleLinkByTokenHash(ctx: QueryCtx, tokenHash: string) {

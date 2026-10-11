@@ -1,87 +1,87 @@
 "use node";
 
-import { okAsync, type ResultAsync } from "neverthrow";
-import { validateListedDriveFolderTreeEmpty } from "#convex/drive/lib/driveFolderTreeValidation";
+import { okAsync, ResultAsync } from "neverthrow";
+import {
+	driveTreeEmptyCheckPlan,
+	driveChildDeletionTargets,
+	selectRemainingDriveTreeChecks,
+	selectDriveFolderTrees
+} from "#convex/drive/lib/driveFolderTreeValidation";
+import type { DriveClient, DriveError, ListedDriveChild } from "#convex/drive/lib/googleDrive";
 import {
 	deleteDriveItem,
-	GOOGLE_DRIVE_FOLDER_MIME_TYPE,
-	listDriveFolderChildren,
-	type DriveClient,
-	type DriveError,
-	type ListedDriveChild
-} from "#convex/drive/lib/googleDrive";
-
-function continueEmptyTreeCheck(
-	drive: DriveClient,
-	remainingChildren: ListedDriveChild[],
-	childIsEmpty: boolean
-) {
-	return childIsEmpty ? areListedDriveChildrenEmpty(drive, remainingChildren) : okAsync(false);
-}
-
-function checkListedChildEmptiness(
-	drive: DriveClient,
-	child: ListedDriveChild,
-	remainingChildren: ListedDriveChild[]
-) {
-	return isDriveFolderTreeEmpty(drive, child.id).andThen((childIsEmpty: boolean) =>
-		continueEmptyTreeCheck(drive, remainingChildren, childIsEmpty)
-	);
-}
+	listDriveFolderChildren
+} from "#convex/drive/services/googleDriveOperations";
 
 function areListedDriveChildrenEmpty(
 	drive: DriveClient,
 	children: ListedDriveChild[]
 ): ResultAsync<boolean, DriveError> {
-	if (children.length === 0) return okAsync(true);
+	const plan = driveTreeEmptyCheckPlan(children);
 
-	const child = children[0];
-
-	if (child === undefined) return okAsync(true);
-
-	const remainingChildren = children.slice(1);
-
-	if (child.mimeType !== GOOGLE_DRIVE_FOLDER_MIME_TYPE) return okAsync(false);
-
-	return checkListedChildEmptiness(drive, child, remainingChildren);
+	return ResultAsync.combine(
+		plan.folderIds.map((folderId) => isDriveFolderTreeEmpty(drive, folderId))
+	)
+		.map((results) => results[0] ?? plan.isEmpty)
+		.andThen((childIsEmpty) =>
+			ResultAsync.combine(
+				selectRemainingDriveTreeChecks(plan.remainingLists, childIsEmpty).map((remaining) =>
+					areListedDriveChildrenEmpty(drive, remaining)
+				)
+			).map((results) => results[0] ?? childIsEmpty)
+		);
 }
 
-export function isDriveFolderTreeEmpty(drive: DriveClient, folderId: string) {
+export function isDriveFolderTreeEmpty(
+	drive: DriveClient,
+	folderId: string
+): ResultAsync<boolean, DriveError> {
 	return listDriveFolderChildren(drive, folderId).andThen((children) =>
-		validateListedDriveFolderTreeEmpty(drive, areListedDriveChildrenEmpty, children)
+		areListedDriveChildrenEmpty(drive, children)
 	);
-}
-
-function deleteDriveChildFromTree(drive: DriveClient, child: ListedDriveChild) {
-	return child.mimeType === GOOGLE_DRIVE_FOLDER_MIME_TYPE
-		? deleteDriveFolderTree(drive, child.id)
-		: deleteDriveItem(drive, child.id);
 }
 
 function deleteDriveFolderTreeChildren(
 	drive: DriveClient,
 	folderId: string,
 	children: ListedDriveChild[]
-) {
-	let chain: ResultAsync<null, DriveError> = okAsync(null);
+): ResultAsync<null, DriveError> {
+	return children
+		.reduce<ResultAsync<null, DriveError>>((previous, child) => {
+			const targets = driveChildDeletionTargets(child);
 
-	for (const child of children) {
-		chain = chain.andThen(() => deleteDriveChildStep(drive, child));
-	}
-
-	return chain.andThen(() => deleteDriveFolderAfterChildren(drive, folderId));
+			return previous.andThen(() =>
+				ResultAsync.combine([
+					...targets.folderIds.map((id) => deleteDriveFolderTree(drive, id)),
+					...targets.fileIds.map((id) => deleteDriveItem(drive, id))
+				]).map(() => null)
+			);
+		}, okAsync(null))
+		.andThen(() => deleteDriveItem(drive, folderId));
 }
 
-function deleteDriveChildStep(drive: DriveClient, child: ListedDriveChild) {
-	return deleteDriveChildFromTree(drive, child);
-}
-
-function deleteDriveFolderAfterChildren(drive: DriveClient, folderId: string) {
-	return deleteDriveItem(drive, folderId);
-}
-
-export function deleteDriveFolderTree(drive: DriveClient, folderId: string) {
-	return listDriveFolderChildren(drive, folderId).andThen((children: ListedDriveChild[]) =>
+export function deleteDriveFolderTree(
+	drive: DriveClient,
+	folderId: string
+): ResultAsync<null, DriveError> {
+	return listDriveFolderChildren(drive, folderId).andThen((children) =>
 		deleteDriveFolderTreeChildren(drive, folderId, children)
 	);
+}
+
+export function cleanDriveFolderTreeIfEmpty(
+	drive: DriveClient | null,
+	folderId: string | null
+): ResultAsync<boolean, DriveError> {
+	return ResultAsync.combine(
+		selectDriveFolderTrees(drive, folderId, true).map((root) =>
+			isDriveFolderTreeEmpty(root.drive, root.folderId).andThen((isEmpty) =>
+				ResultAsync.combine(
+					selectDriveFolderTrees(root.drive, root.folderId, isEmpty).map((emptyRoot) =>
+						deleteDriveFolderTree(emptyRoot.drive, emptyRoot.folderId)
+					)
+				).map(() => isEmpty)
+			)
+		)
+	).map((results) => results[0] ?? true);
 }

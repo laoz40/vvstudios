@@ -1,27 +1,37 @@
-import { errAsync, okAsync, ResultAsync } from "neverthrow";
+import {
+	billingBookingIds,
+	selectMissingCheckoutPayments,
+	billingInvoiceContext,
+	loadRedirectedBillingRecord,
+	requirePackageBillingRecord,
+	requireLoadedBillingRecord,
+	parseOptionalPackageDraft,
+	validateOptionalPackageDraft,
+	type BillingWithInvoices
+} from "#convex/stripe/lib/editInvoiceBillingSteps";
+import { ResultAsync, type Result } from "neverthrow";
 import type { Doc } from "#convex/_generated/dataModel";
 import type { QueryCtx, MutationCtx } from "#convex/_generated/server";
 import { env } from "#convex/env";
-import {
-	listStripeInvoicesForBookings,
-	listStripeInvoicesForBooking,
-	listStripeInvoicesForPackage
-} from "#convex/stripe/lib/invoices";
+import { listStripeInvoicesForBookings } from "#convex/stripe/lib/invoices";
 import {
 	loadEditInvoiceRecord,
 	listCheckoutPaymentPage,
 	cacheOriginalPaymentIfMissing,
-	listPackageBookingsForEditInvoice,
 	type EditInvoiceTarget
 } from "#convex/stripe/lib/editInvoiceDb";
 import {
 	applyEditInvoiceDraft,
-	buildEditInvoiceContext,
-	needsCheckoutPayment,
+	buildOptionalPackageEditInvoiceDraft,
+	requirePackageDraftMatchesRecord,
 	type BillingRecord,
 	type EditInvoiceContext
 } from "#convex/stripe/lib/editInvoiceBilling";
-import type { EditInvoiceDraft } from "#convex/stripe/services/editInvoiceValidators";
+import type { EditInvoiceDraft } from "#convex/stripe/editInvoiceValidators";
+import {
+	loadBillingSessions,
+	loadTargetInvoices
+} from "#convex/stripe/lib/editInvoiceBillingSteps";
 
 export function loadMissingCheckoutPayments(
 	ctx: QueryCtx,
@@ -29,7 +39,7 @@ export function loadMissingCheckoutPayments(
 ) {
 	return listCheckoutPaymentPage(ctx, args.table, args.cursor).map((page) => ({
 		...page,
-		page: page.page.filter(needsCheckoutPayment)
+		page: selectMissingCheckoutPayments(page.page)
 	}));
 }
 
@@ -42,47 +52,12 @@ export function saveOriginalPaidAmount(
 	);
 }
 
-function resolveBillingRecord(
-	ctx: QueryCtx,
-	target: EditInvoiceTarget,
-	record: BillingRecord["record"] | null
-): ResultAsync<BillingRecord, { reason: string }> {
-	if (!record) return errAsync({ reason: "BILLING_RECORD_NOT_FOUND" });
-
-	if ("packageId" in record && record.packageId) {
-		const packageTarget = { kind: "package" as const, packageId: record.packageId };
-
-		return loadEditInvoiceRecord(ctx, packageTarget).andThen((pkg) =>
-			resolveBillingRecord(ctx, packageTarget, pkg)
-		);
-	}
-
-	return okAsync({ target, record });
-}
-
 type BillingSessions = BillingRecord & { bookings: Doc<"bookings">[] };
 
-function loadBillingSessions(ctx: QueryCtx, billing: BillingRecord) {
-	if (!("packageSize" in billing.record)) return okAsync({ ...billing, bookings: [] });
-
-	return listPackageBookingsForEditInvoice(ctx, billing.record._id).map((bookings) => ({
-		...billing,
-		bookings
-	}));
-}
-
-function loadTargetInvoices(ctx: QueryCtx, target: EditInvoiceTarget) {
-	if (target.kind === "booking") return listStripeInvoicesForBooking(ctx, target.bookingId);
-
-	return listStripeInvoicesForPackage(ctx, target.packageId);
-}
-
 function loadBillingInvoices(ctx: QueryCtx, billing: BillingSessions) {
-	const bookingIds = billing.bookings.map((booking) => booking._id);
-
 	return ResultAsync.combine([
 		loadTargetInvoices(ctx, billing.target),
-		listStripeInvoicesForBookings(ctx, bookingIds)
+		listStripeInvoicesForBookings(ctx, billingBookingIds(billing))
 	]).map(([invoices, sessionInvoices]) => ({
 		...billing,
 		invoices: [...invoices, ...sessionInvoices]
@@ -92,13 +67,34 @@ function loadBillingInvoices(ctx: QueryCtx, billing: BillingSessions) {
 function quoteDraftChanges(
 	billing: BillingSessions & { invoices: Doc<"stripeInvoices">[] },
 	draft: EditInvoiceDraft | undefined
-) {
-	return applyEditInvoiceDraft(
-		billing.record,
-		billing.bookings,
-		draft,
-		env.GOOGLE_CALENDAR_TIMEZONE
-	).map((next) => buildEditInvoiceContext(billing, billing.bookings, next, billing.invoices));
+): Result<EditInvoiceContext, { reason: string }> {
+	const packageDraft = draft?.kind === "package" ? draft : null;
+	const regularDraft = draft?.kind === "package" ? undefined : draft;
+	const regularChanges = quoteRegularDraftChanges(billing, regularDraft);
+
+	return requirePackageBillingRecord(billing.record, packageDraft)
+		.andThen((record) => requirePackageDraftMatchesRecord(record, packageDraft).map(() => record))
+		.andThen((record) =>
+			parseOptionalPackageDraft(packageDraft).map((parsed) => ({ record, parsed }))
+		)
+		.andThen(({ record, parsed }) =>
+			validateOptionalPackageDraft(packageDraft, parsed, billing.bookings.length).map(
+				(validated) => ({ record, validated })
+			)
+		)
+		.andThen(({ validated }) =>
+			buildOptionalPackageEditInvoiceDraft(
+				billing.record,
+				billing.bookings,
+				packageDraft,
+				validated
+			)
+		)
+		.andThen((packageChanges) =>
+			regularChanges.map((regular) =>
+				billingInvoiceContext(billing, packageDraft === null ? regular : packageChanges)
+			)
+		);
 }
 
 export function loadEditInvoiceContext(
@@ -106,8 +102,24 @@ export function loadEditInvoiceContext(
 	args: { target: EditInvoiceTarget; draft?: EditInvoiceDraft }
 ): ResultAsync<EditInvoiceContext, { reason: string }> {
 	return loadEditInvoiceRecord(ctx, args.target)
-		.andThen((record) => resolveBillingRecord(ctx, args.target, record))
+		.andThen((record) =>
+			requireLoadedBillingRecord(record === null ? null : { target: args.target, record })
+		)
+		.andThen((billing) => loadRedirectedBillingRecord(ctx, billing))
+		.andThen(requireLoadedBillingRecord)
 		.andThen((billing) => loadBillingSessions(ctx, billing))
 		.andThen((billing) => loadBillingInvoices(ctx, billing))
 		.andThen((billing) => quoteDraftChanges(billing, args.draft));
+}
+
+function quoteRegularDraftChanges(
+	billing: BillingWithInvoices,
+	draft: Exclude<EditInvoiceDraft, { kind: "package" }> | undefined
+) {
+	return applyEditInvoiceDraft(
+		billing.record,
+		billing.bookings,
+		draft,
+		env.GOOGLE_CALENDAR_TIMEZONE
+	);
 }

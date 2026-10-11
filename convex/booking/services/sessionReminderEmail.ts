@@ -1,61 +1,26 @@
 "use node";
 
-import { okAsync, type ResultAsync } from "neverthrow";
-import { internal } from "#convex/_generated/api";
+import { okAsync, ResultAsync } from "neverthrow";
+
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { ActionCtx } from "#convex/_generated/server";
 import { sendBookingReminderEmailForSession } from "#convex/booking/services/confirmationWorkflow";
-import { fromConvexTuple } from "#convex/shared/lib/result";
+
+import {
+	claimReminderMutation,
+	selectClaimedReminderSessions,
+	markReminderSentAfterEmail,
+	markReminderFailedAfterEmailError
+} from "#convex/booking/lib/sessionReminderEmailSteps";
 
 type ReminderClaim = { session: Doc<"bookings"> };
-
-function reminderClaimFromMutation(claim: ReminderClaim) {
-	return claim;
-}
-
-function markReminderSentAfterEmail(ctx: ActionCtx, bookingId: Id<"bookings">, _value: null) {
-	return fromConvexTuple(
-		ctx.runMutation(internal.sessions.reminders.markReminderSent, { bookingId, now: Date.now() })
-	).map(reminderEmailDeliveryComplete);
-}
-
-function reminderEmailDeliveryComplete() {
-	return null;
-}
-
-function markReminderFailedAfterEmailError(
-	ctx: ActionCtx,
-	bookingId: Id<"bookings">,
-	reminderError: { reason: string }
-) {
-	return fromConvexTuple(
-		ctx.runMutation(internal.sessions.reminders.markReminderFailed, {
-			bookingId,
-			failureCode: reminderError.reason
-		})
-	)
-		.map(reminderEmailDeliveryComplete)
-		.orElse(reminderFailureRecordComplete);
-}
-
-function reminderFailureRecordComplete() {
-	return okAsync(null);
-}
-
-function noopReminderClaimOnFailure() {
-	return okAsync(null);
-}
 
 export function claimSessionReminderSend(
 	ctx: ActionCtx,
 	bookingId: Id<"bookings">,
 	now: number
 ): ResultAsync<ReminderClaim | null, never> {
-	return fromConvexTuple(
-		ctx.runMutation(internal.sessions.reminders.claimReminder, { bookingId, now })
-	)
-		.map(reminderClaimFromMutation)
-		.orElse(noopReminderClaimOnFailure);
+	return claimReminderMutation(ctx, bookingId, now).orElse(() => okAsync(null));
 }
 
 export function deliverClaimedSessionReminderEmail(
@@ -75,9 +40,9 @@ export function sendSessionReminderWhenClaimed(
 	bookingId: Id<"bookings">,
 	claim: ReminderClaim | null
 ): ResultAsync<null, never> {
-	if (claim === null) {
-		return okAsync(null);
-	}
-
-	return deliverClaimedSessionReminderEmail(ctx, bookingId, claim);
+	return ResultAsync.combine(
+		selectClaimedReminderSessions(claim).map((session) =>
+			deliverClaimedSessionReminderEmail(ctx, bookingId, { session })
+		)
+	).map(() => null);
 }

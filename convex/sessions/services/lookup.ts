@@ -1,10 +1,9 @@
 import type { ResultAsync } from "neverthrow";
-import { internal } from "#convex/_generated/api";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { ActionCtx, MutationCtx, QueryCtx } from "#convex/_generated/server";
-import { okOrThrow } from "#convex/shared/lib/result";
 import {
 	getBookingRow,
+	getBookingRowForAction,
 	lookupBookingByStripeSessionId,
 	requireBookingRow
 } from "#convex/sessions/lib/lookup";
@@ -21,7 +20,5 @@ export function getSessionFromQuery(
 	ctx: ActionCtx,
 	bookingId: Id<"bookings">
 ): ResultAsync<Doc<"bookings">, { reason: "BOOKING_NOT_FOUND" }> {
-	return okOrThrow(ctx.runQuery(internal.sessions.admin.getSessionById, { bookingId })).andThen(
-		requireBookingRow
-	);
+	return getBookingRowForAction(ctx, bookingId).andThen(requireBookingRow);
 }

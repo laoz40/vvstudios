@@ -6,10 +6,6 @@ import {
 } from "#convex/packages/lib/scheduling";
 import { archiveDeadCheckoutBooking } from "#convex/sessions/services/archive";
 
-function cancelledPackageSessionBookingResult(bookingId: Id<"bookings">) {
-	return { cancelled: true as const, bookingId };
-}
-
 export function cancelPackageSessionBooking(ctx: MutationCtx, bookingId: Id<"bookings">) {
 	return archiveDeadCheckoutBooking(ctx, bookingId, {
 		bookingFailureCode: undefined,
@@ -18,8 +14,8 @@ export function cancelPackageSessionBooking(ctx: MutationCtx, bookingId: Id<"boo
 		reminderEmailClaimedAt: undefined,
 		reminderEmailSentAt: undefined,
 		reminderEmailFailureCode: undefined,
-		status: "cancelled"
-	}).map(() => cancelledPackageSessionBookingResult(bookingId));
+		status: "cancelled" as const
+	}).map(() => ({ cancelled: true as const, bookingId }));
 }
 
 export function loadPackageSessionOwnedByToken(

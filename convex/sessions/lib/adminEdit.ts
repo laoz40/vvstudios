@@ -1,5 +1,6 @@
 import type { calendar_v3 } from "googleapis/build/src/apis/calendar/v3";
-import { err, ok, okAsync, type Result, type ResultAsync } from "neverthrow";
+import type { Result } from "neverthrow";
+import { err, ok } from "neverthrow";
 import { internal } from "#convex/_generated/api";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { ActionCtx } from "#convex/_generated/server";
@@ -8,15 +9,11 @@ import type { BookingAddon } from "#/domain/booking/catalog";
 import { fromConvexTuple } from "#convex/shared/lib/result";
 import type { SessionReservation } from "#convex/sessions/lib/reservations";
 import {
-	checkSessionMeetsAvailabilitySettings,
 	getUtcDateForZonedDateTime,
-	isTimeSlotAvailable,
 	type SessionAvailabilitySettings,
 	type SessionTimeParseError
 } from "#convex/sessions/lib/calendarTime";
 import { normalizePhone } from "#convex/shared/lib/contactNormalization";
-import { getBusyWindows } from "#convex/googleCalendar/lib/googleCalendarAvailability";
-import { tryGoogleCalendarAvailability } from "#convex/googleCalendar/lib/googleCalendarErrors";
 
 type SessionEditValues = {
 	name: string;
@@ -208,24 +205,16 @@ export function buildAdminSessionUpdatePatch({
 	});
 }
 
-type GoogleCalendarLike = Pick<calendar_v3.Calendar, "events">;
+export type SessionTimingValues = Pick<Doc<"bookings">, "date" | "duration" | "time">;
 
-interface VerifySessionCanBeScheduledArgs {
-	session: Doc<"bookings">;
-	calendar: GoogleCalendarLike;
-	calendarIds: string[];
-	settings: SessionAvailabilitySettings;
-	timeZone: string;
-}
+export type GoogleCalendarLike = Pick<calendar_v3.Calendar, "events">;
 
-type SessionTimingValues = Pick<Doc<"bookings">, "date" | "duration" | "time">;
-
-interface ExistingSessionTiming extends SessionTimingValues {
+export interface ExistingSessionTiming extends SessionTimingValues {
 	googleCalendarId?: string;
 	googleEventId?: string;
 }
 
-interface ValidateSessionTimingEditArgs {
+export interface ValidateSessionTimingEditArgs {
 	bypassAvailabilitySettings?: boolean;
 	calendar: GoogleCalendarLike;
 	calendarIds: string[];
@@ -258,47 +247,6 @@ export function failBookingConfirmation(
 	);
 }
 
-export function verifySessionCanBeScheduled({
-	session,
-	calendar,
-	calendarIds,
-	settings,
-	timeZone
-}: VerifySessionCanBeScheduledArgs): ResultAsync<
-	boolean,
-	{
-		reason:
-			| "GOOGLE_CALENDAR_AUTH_FAILED"
-			| "GOOGLE_CALENDAR_AVAILABILITY_FAILED"
-			| "GOOGLE_CALENDAR_RATE_LIMITED";
-	}
-> {
-	const availabilityResult = checkSessionMeetsAvailabilitySettings({
-		date: session.date,
-		duration: session.duration,
-		settings,
-		time: session.time,
-		timeZone
-	});
-
-	if (availabilityResult.isErr()) {
-		return okAsync(false);
-	}
-
-	return tryGoogleCalendarAvailability(() =>
-		getBusyWindows({ calendar, calendarIds, date: session.date, timeZone })
-	).map((busyWindows) =>
-		isTimeSlotAvailable({
-			busyWindows,
-			date: session.date,
-			duration: session.duration,
-			eventBufferMinutes: settings.eventBufferMinutes,
-			time: session.time,
-			timeZone
-		})
-	);
-}
-
 export type AdminSessionUpdateError =
 	| { reason: "BOOKING_INVALID_DATE" }
 	| { reason: "BOOKING_INVALID_DURATION" }
@@ -316,59 +264,41 @@ export type AdminSessionUpdateError =
 	| { reason: "GOOGLE_CALENDAR_UPDATE_FAILED" }
 	| { reason: "INVALID_ZONED_TIME" };
 
-export function validateSessionTimingEdit({
-	bypassAvailabilitySettings = false,
-	calendar,
-	calendarIds,
-	existing,
-	next,
-	settings,
-	timeZone
-}: ValidateSessionTimingEditArgs) {
-	if (!didSessionTimingChange(existing, next)) {
-		return okAsync(null);
-	}
-
-	const settingsResult = bypassAvailabilitySettings
-		? ok(null)
-		: checkSessionMeetsAvailabilitySettings({
-				date: next.date,
-				duration: next.duration,
-				settings,
-				time: next.time,
-				timeZone
-			});
-
-	return settingsResult.asyncAndThen(() =>
-		tryGoogleCalendarAvailability(() =>
-			getBusyWindows({
-				calendar,
-				calendarIds,
-				date: next.date,
-				ignoredEvent: { calendarId: existing.googleCalendarId, eventId: existing.googleEventId },
-				timeZone
-			}).then((busyWindows) =>
-				isTimeSlotAvailable({
-					busyWindows,
-					date: next.date,
-					duration: next.duration,
-					eventBufferMinutes: settings.eventBufferMinutes,
-					time: next.time,
-					timeZone
-				})
-			)
-		).andThen((isAvailable) =>
-			isAvailable ? ok(null) : err({ reason: "BOOKING_TIME_UNAVAILABLE" as const })
-		)
-	);
-}
-
 export function didSessionTimingChange(existing: SessionTimingValues, next: SessionTimingValues) {
 	return (
 		existing.date !== next.date ||
 		existing.time !== next.time ||
 		existing.duration !== next.duration
 	);
+}
+
+export function selectChangedSessionTimingEdits(args: ValidateSessionTimingEditArgs) {
+	return didSessionTimingChange(args.existing, args.next) ? [args] : [];
+}
+
+export function selectSessionTimingEditsRequiringSettingsValidation(
+	args: ValidateSessionTimingEditArgs
+) {
+	return args.bypassAvailabilitySettings ? [] : [args];
+}
+
+export type SessionSchedulingAvailabilityArgs = {
+	calendar: GoogleCalendarLike;
+	calendarIds: string[];
+	session: Doc<"bookings">;
+	settings: SessionAvailabilitySettings;
+	timeZone: string;
+};
+
+export function selectAvailableSessionSchedulingChecks(
+	available: boolean,
+	args: SessionSchedulingAvailabilityArgs
+) {
+	return available ? [args] : [];
+}
+
+export function sessionTimingAvailabilityResult(isAvailable: boolean) {
+	return isAvailable ? ok(null) : err({ reason: "BOOKING_TIME_UNAVAILABLE" as const });
 }
 
 export type AdminSessionUpdateArgs = SessionEditValues & { bookingId: Id<"bookings"> };

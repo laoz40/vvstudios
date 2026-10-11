@@ -2,12 +2,9 @@ import { internal } from "#convex/_generated/api";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
 import { getEditorWorkStatus } from "#convex/editor/lib/editorAccess";
-import { err, ok, okAsync, ResultAsync, type Result } from "neverthrow";
+import { err, ok, type Result } from "neverthrow";
 import { okOrThrow } from "#convex/shared/lib/result";
-import {
-	type BookingSearchBlobPatch,
-	searchBlobPatchForBookingAsync
-} from "#convex/shared/lib/adminSearch/adminSearchBlob";
+import { type BookingSearchBlobPatch } from "#convex/shared/lib/adminSearch/adminSearchBlob";
 
 const ACTIVE_EDITOR_LIMIT = 200;
 
@@ -27,22 +24,7 @@ export function editorProfileDisplayName(
 	return editor.displayName || editor.email;
 }
 
-function patchBookingAssignedEditorDisplayName(
-	ctx: MutationCtx,
-	booking: Doc<"bookings">,
-	assignedEditorDisplayName: string
-) {
-	return searchBlobPatchForBookingAsync(ctx, booking, { assignedEditorDisplayName }).andThen(
-		(searchBlobPatch) =>
-			okOrThrow(ctx.db.patch("bookings", booking._id, searchBlobPatch).then(() => null))
-	);
-}
-
-function writeBookingsAssignedEditorDisplayNameChain(
-	ctx: MutationCtx,
-	editorTokenIdentifier: string,
-	assignedEditorDisplayName: string
-) {
+export function listBookingsAssignedToEditor(ctx: MutationCtx, editorTokenIdentifier: string) {
 	return okOrThrow(
 		ctx.db
 			.query("bookings")
@@ -50,27 +32,15 @@ function writeBookingsAssignedEditorDisplayNameChain(
 				query.eq("assignedEditorTokenIdentifier", editorTokenIdentifier)
 			)
 			.collect()
-	).andThen((bookings) =>
-		bookings.length === 0
-			? okAsync(null)
-			: ResultAsync.combine(
-					bookings.map((booking) =>
-						patchBookingAssignedEditorDisplayName(ctx, booking, assignedEditorDisplayName)
-					)
-				).map(() => null)
 	);
 }
 
-export function writeBookingsAssignedEditorDisplayName(
+export function patchBookingAssignedEditorDisplayName(
 	ctx: MutationCtx,
-	editorTokenIdentifier: string,
-	assignedEditorDisplayName: string
+	bookingId: Id<"bookings">,
+	searchBlobPatch: BookingSearchBlobPatch
 ) {
-	return writeBookingsAssignedEditorDisplayNameChain(
-		ctx,
-		editorTokenIdentifier,
-		assignedEditorDisplayName
-	);
+	return okOrThrow(ctx.db.patch("bookings", bookingId, searchBlobPatch).then(() => null));
 }
 
 export function listActiveEditorProfiles(ctx: QueryCtx) {
@@ -144,17 +114,6 @@ export function patchBookingEditorAssignment(
 				...patch.searchBlobPatch
 			})
 			.then(() => null)
-	);
-}
-
-export function listBookingsAssignedToEditor(ctx: MutationCtx, tokenIdentifier: string) {
-	return okOrThrow(
-		ctx.db
-			.query("bookings")
-			.withIndex("by_assignedEditorTokenIdentifier_and_driveClientId", (query) =>
-				query.eq("assignedEditorTokenIdentifier", tokenIdentifier)
-			)
-			.collect()
 	);
 }
 

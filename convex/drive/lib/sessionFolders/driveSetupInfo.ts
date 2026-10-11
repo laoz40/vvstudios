@@ -85,6 +85,12 @@ export function areDriveSetupFoldersSaved(setupInfo: DriveSetupInfo | null) {
 	return true;
 }
 
+export function validateSavedDriveSetupFolders(setupInfo: DriveSetupInfo) {
+	return areDriveSetupFoldersSaved(setupInfo)
+		? ok(null)
+		: err({ reason: "DRIVE_FOLDERS_INCOMPLETE" as const });
+}
+
 const recordDriveSetupFailureByReason = {
 	GOOGLE_DRIVE_AUTH_FAILED: true,
 	GOOGLE_DRIVE_FOLDER_CREATE_FAILED: true,

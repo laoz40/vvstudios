@@ -5,6 +5,7 @@ import type { BookingAddonQuantitiesArgs } from "#convex/booking/lib/addonQuanti
 import type { BookingAddon } from "#/domain/booking/catalog";
 import { requirePermission } from "#convex/shared/services/auth";
 import {
+	customInvoiceForBooking,
 	getCustomInvoiceRow,
 	insertPendingCustomInvoice,
 	listCustomInvoicesByBookingId,
@@ -29,21 +30,10 @@ export type CreateBookingCustomInvoiceArgs = CustomInvoiceDetails & {
 
 type StaffIdentity = { email?: string };
 
-function listCustomInvoicesForBookingId(ctx: QueryCtx, bookingId: Id<"bookings">) {
-	return listCustomInvoicesByBookingId(ctx, bookingId);
-}
-
 export function listCustomInvoicesForBooking(ctx: QueryCtx, args: { bookingId: Id<"bookings"> }) {
 	return requirePermission(ctx, "view:sensitive-booking-data").andThen(() =>
-		listCustomInvoicesForBookingId(ctx, args.bookingId)
+		listCustomInvoicesByBookingId(ctx, args.bookingId)
 	);
-}
-
-function customInvoiceForBooking(
-	bookingId: Id<"bookings">,
-	customInvoice: Doc<"customInvoices"> | null
-) {
-	return customInvoice?.bookingId === bookingId ? customInvoice : null;
 }
 
 export function loadBookingCustomInvoiceInput(
@@ -56,74 +46,26 @@ export function loadBookingCustomInvoiceInput(
 	);
 }
 
-function keepIdentity(identity: StaffIdentity) {
-	return identity;
-}
-
-function validateCustomTotalDueAmountForArgs(
-	args: CreateBookingCustomInvoiceArgs,
-	identity: StaffIdentity
-) {
-	return validateCustomTotalDueAmount(args.customTotalDueAmount).map(() => keepIdentity(identity));
-}
-
-function loadSessionForCustomInvoiceArgs(
-	ctx: MutationCtx,
-	args: CreateBookingCustomInvoiceArgs,
-	identity: StaffIdentity
-) {
-	return getSessionFromDb(ctx, args.bookingId).map(() => keepIdentity(identity));
-}
-
-function toCreatedCustomInvoiceResult(
-	customInvoiceId: Id<"customInvoices">,
-	invoiceNumber: string,
-	createdAt: number
-) {
-	return { customInvoiceId, invoiceNumber, createdAt };
-}
-
-function numberCustomInvoiceAfterInsert(
-	ctx: MutationCtx,
-	{ customInvoiceId, createdAt }: { customInvoiceId: Id<"customInvoices">; createdAt: number }
-) {
-	const invoiceNumber = formatBookingInvoiceNumber(customInvoiceId, createdAt);
-
-	return patchCustomInvoiceNumber(ctx, customInvoiceId, invoiceNumber).map(() =>
-		toCreatedCustomInvoiceResult(customInvoiceId, invoiceNumber, createdAt)
-	);
-}
-
-function insertCustomInvoiceFromAdminIdentity(
-	ctx: MutationCtx,
-	args: CreateBookingCustomInvoiceArgs,
-
-	identity: StaffIdentity
-) {
-	return insertPendingCustomInvoice(ctx, {
-		bookingId: args.bookingId,
-		dueDate: args.dueDate,
-		service: args.service,
-		duration: args.duration,
-		addons: args.addons,
-		essentialEditQuantity: args.essentialEditQuantity,
-		completeEditQuantity: args.completeEditQuantity,
-		clipsPackageQuantity: args.clipsPackageQuantity,
-		handcraftedClipsQuantity: args.handcraftedClipsQuantity,
-		includeDepositLineItem: args.includeDepositLineItem,
-		customTotalDueAmount: args.customTotalDueAmount,
-		createdBy: identity.email
-	}).andThen((_value) => numberCustomInvoiceAfterInsert(ctx, _value));
-}
-
 export function createBookingCustomInvoiceFromAdmin(
 	ctx: MutationCtx,
 	args: CreateBookingCustomInvoiceArgs
 ) {
 	return requirePermission(ctx, "create:invoices")
-		.andThen((identity: StaffIdentity) => validateCustomTotalDueAmountForArgs(args, identity))
-		.andThen((identity: StaffIdentity) => loadSessionForCustomInvoiceArgs(ctx, args, identity))
 		.andThen((identity: StaffIdentity) =>
-			insertCustomInvoiceFromAdminIdentity(ctx, args, identity)
+			validateCustomTotalDueAmount(args.customTotalDueAmount).map(() => identity)
+		)
+		.andThen((identity: StaffIdentity) => getSessionFromDb(ctx, args.bookingId).map(() => identity))
+		.andThen((identity: StaffIdentity) =>
+			insertPendingCustomInvoice(ctx, { ...args, createdBy: identity.email }).andThen(
+				({ customInvoiceId, createdAt }) => {
+					const invoiceNumber = formatBookingInvoiceNumber(customInvoiceId, createdAt);
+
+					return patchCustomInvoiceNumber(ctx, customInvoiceId, invoiceNumber).map(() => ({
+						customInvoiceId,
+						invoiceNumber,
+						createdAt
+					}));
+				}
+			)
 		);
 }

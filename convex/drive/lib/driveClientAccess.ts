@@ -1,7 +1,8 @@
-import { err, ok } from "neverthrow";
+import { errAsync, okAsync, type ResultAsync } from "neverthrow";
 import { exhaustiveCheck } from "#/lib/result";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { MutationCtx } from "#convex/_generated/server";
+import { bookingRequiresClientAssetsEmail } from "#convex/booking/lib/addonQuantities";
 import { DRIVE_EMAIL_CLAIM_TIMEOUT_MS } from "#convex/drive/lib/driveLookup";
 import { okOrThrow } from "#convex/shared/lib/result";
 import type { SavedDrivePermission } from "#convex/drive/lib/googleDrive";
@@ -56,6 +57,57 @@ export function writeClientDrivePermission(
 		default:
 			return exhaustiveCheck(args.name);
 	}
+}
+
+export function requireDriveSession(
+	driveSession: Doc<"driveSessions"> | null
+): ResultAsync<Doc<"driveSessions">, { reason: "DRIVE_RECORD_NOT_FOUND" }> {
+	return driveSession === null
+		? errAsync({ reason: "DRIVE_RECORD_NOT_FOUND" as const })
+		: okAsync(driveSession);
+}
+
+export function requireDriveClient(
+	driveClient: Doc<"driveClients"> | null
+): ResultAsync<Doc<"driveClients">, { reason: "DRIVE_RECORD_NOT_FOUND" }> {
+	return driveClient === null
+		? errAsync({ reason: "DRIVE_RECORD_NOT_FOUND" as const })
+		: okAsync(driveClient);
+}
+
+export function requireClientAssetsEmailBooking(
+	booking: Doc<"bookings"> | null
+): ResultAsync<ClientAssetsEmailBooking, { reason: "CLIENT_ASSETS_EMAIL_NOT_SENDABLE" }> {
+	return booking === null ||
+		booking.driveClientId === undefined ||
+		!bookingRequiresClientAssetsEmail(booking.addons)
+		? errAsync({ reason: "CLIENT_ASSETS_EMAIL_NOT_SENDABLE" as const })
+		: okAsync({ booking, driveClientId: booking.driveClientId });
+}
+
+export type ClientAssetsEmailBooking = {
+	booking: Doc<"bookings">;
+	driveClientId: Id<"driveClients">;
+};
+
+export function claimClientAssetsEmailFromRows(
+	ctx: MutationCtx,
+	args: { bookingId: Id<"bookings">; attempt: "automatic" | "retry"; now: number },
+	booking: Doc<"bookings">,
+	[driveClient, driveSession]: [Doc<"driveClients"> | null, Doc<"driveSessions"> | null]
+): ResultAsync<ClientAssetsEmailClaim, { reason: "CLIENT_ASSETS_EMAIL_NOT_SENDABLE" }> {
+	const assetsFolder = driveClient?.assetsFolder;
+
+	return driveSession === null || assetsFolder === undefined
+		? errAsync({ reason: "CLIENT_ASSETS_EMAIL_NOT_SENDABLE" as const })
+		: claimClientAssetsEmailRecord(ctx, {
+				attempt: args.attempt,
+				assetsFolder,
+				booking,
+				driveClient,
+				driveSession,
+				now: args.now
+			});
 }
 
 export function writeClientDrivePermissionsStatusForSession(
@@ -138,7 +190,7 @@ export function claimClientAssetsEmailRecord(
 		driveSession: Doc<"driveSessions">;
 		now: number;
 	}
-) {
+): ResultAsync<ClientAssetsEmailClaim, { reason: "CLIENT_ASSETS_EMAIL_NOT_SENDABLE" }> {
 	const isEmailCurrent =
 		args.driveSession.assetsEmailStatus === "sent" &&
 		args.driveSession.assetsEmailFolderId === args.assetsFolder.id;
@@ -153,7 +205,7 @@ export function claimClientAssetsEmailRecord(
 			now: args.now
 		})
 	) {
-		return err({ reason: "CLIENT_ASSETS_EMAIL_NOT_SENDABLE" as const });
+		return errAsync({ reason: "CLIENT_ASSETS_EMAIL_NOT_SENDABLE" as const });
 	}
 
 	return okOrThrow(
@@ -177,9 +229,9 @@ export function saveClientAssetsEmailResultForSession(
 	ctx: MutationCtx,
 	driveSession: Doc<"driveSessions"> | null,
 	args: { assetsFolderId: string; claimedAt: number; status: "sent" | "failed" }
-) {
+): ResultAsync<null, never> {
 	if (driveSession === null || driveSession.assetsEmailClaimedAt !== args.claimedAt) {
-		return ok(null);
+		return okAsync(null);
 	}
 
 	return okOrThrow(

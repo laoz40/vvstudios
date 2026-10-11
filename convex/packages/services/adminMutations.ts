@@ -13,11 +13,11 @@ import {
 	validatePackageUpdate
 } from "#convex/packages/lib/updates";
 import {
-	patchPackageSessionBookingsContactSearchStep,
-	searchBlobPatchForPackage,
-	type PackageContactSearchFields
-} from "#convex/shared/lib/adminSearch/adminSearchBlob";
-import { okAsync } from "neverthrow";
+	buildAdminPackageContactFields,
+	buildAdminPackagePatch,
+	selectPackageContactSyncId
+} from "#convex/packages/lib/adminMutations";
+import { patchPackageSessionBookingsContactSearch } from "#convex/shared/services/adminSearch";
 
 type ArchivePackageArgs = { packageId: Id<"packages">; archived: boolean };
 
@@ -26,26 +26,13 @@ type ValidatedPackageUpdate = {
 	updatedPackage: Parameters<typeof buildPackageUpdatePatch>[1];
 };
 
-function attachUpdatedPackage(
-	existingPackage: Doc<"packages">,
-	updatedPackage: ValidatedPackageUpdate["updatedPackage"]
-) {
-	return { existingPackage, updatedPackage };
-}
-
 function parseAdminPackageUpdate(args: UpdatePackageArgs, existingPackage: Doc<"packages">) {
-	return parsePackageUpdate(args).map((updatedPackage: ValidatedPackageUpdate["updatedPackage"]) =>
-		attachUpdatedPackage(existingPackage, updatedPackage)
+	return parsePackageUpdate(args).map(
+		(updatedPackage: ValidatedPackageUpdate["updatedPackage"]) => ({
+			existingPackage,
+			updatedPackage
+		})
 	);
-}
-
-function attachActiveSessionsForUpdate(
-	existingPackage: Doc<"packages">,
-	updatedPackage: ValidatedPackageUpdate["updatedPackage"],
-
-	activeBookedSessions: Doc<"bookings">[]
-) {
-	return { activeBookedSessions, existingPackage, updatedPackage };
 }
 
 function loadActiveSessionsForAdminUpdate(
@@ -59,16 +46,11 @@ function loadActiveSessionsForAdminUpdate(
 		ctx,
 		existingPackage._id,
 		existingPackage.packageSize
-	).map((activeBookedSessions: Doc<"bookings">[]) =>
-		attachActiveSessionsForUpdate(existingPackage, updatedPackage, activeBookedSessions)
-	);
-}
-
-function toValidatedPackageUpdate(
-	existingPackage: Doc<"packages">,
-	updatedPackage: ValidatedPackageUpdate["updatedPackage"]
-) {
-	return { existingPackage, updatedPackage };
+	).map((activeBookedSessions: Doc<"bookings">[]) => ({
+		activeBookedSessions,
+		existingPackage,
+		updatedPackage
+	}));
 }
 
 function validateAdminPackageUpdate(
@@ -84,48 +66,16 @@ function validateAdminPackageUpdate(
 	}
 ) {
 	return validatePackageUpdate(args, updatedPackage, activeBookedSessions.length).map(
-		(validatedPackage: ValidatedPackageUpdate["updatedPackage"]) =>
-			toValidatedPackageUpdate(existingPackage, validatedPackage)
+		(validatedPackage: ValidatedPackageUpdate["updatedPackage"]) => ({
+			existingPackage,
+			updatedPackage: validatedPackage
+		})
 	);
-}
-
-function loadPackageAfterEditPermission(ctx: MutationCtx, packageId: Id<"packages">) {
-	return getPackageFromDb(ctx, packageId);
-}
-
-function syncContactSearchAfterAdminPatch(
-	ctx: MutationCtx,
-	args: UpdatePackageArgs,
-	contactChanged: boolean,
-	contactFields: PackageContactSearchFields
-) {
-	if (!contactChanged) {
-		return okAsync(null);
-	}
-
-	return patchPackageSessionBookingsContactSearchStep(ctx, args.packageId, contactFields);
-}
-
-function loadPackageAfterArchivePermission(ctx: MutationCtx, packageId: Id<"packages">) {
-	return getPackageFromDb(ctx, packageId);
-}
-
-function archivePackageWithPermission(ctx: MutationCtx, args: ArchivePackageArgs) {
-	return setPackageArchived(ctx, args.packageId, args.archived);
-}
-
-function syncContactSearchAfterAdminPatchStep(
-	ctx: MutationCtx,
-	args: UpdatePackageArgs,
-	contactChanged: boolean,
-	contactFields: PackageContactSearchFields
-) {
-	return syncContactSearchAfterAdminPatch(ctx, args, contactChanged, contactFields);
 }
 
 export function loadAdminPackageUpdateValidation(ctx: MutationCtx, args: UpdatePackageArgs) {
 	return requirePermission(ctx, "edit:sessions")
-		.andThen(() => loadPackageAfterEditPermission(ctx, args.packageId))
+		.andThen(() => getPackageFromDb(ctx, args.packageId))
 		.andThen((existingPackage: Doc<"packages">) => parseAdminPackageUpdate(args, existingPackage))
 		.andThen((_value) => loadActiveSessionsForAdminUpdate(ctx, _value))
 		.andThen((_value) => validateAdminPackageUpdate(args, _value));
@@ -136,34 +86,18 @@ export function writeAdminPackageFields(
 	args: UpdatePackageArgs,
 	{ existingPackage, updatedPackage }: ValidatedPackageUpdate
 ) {
-	const contactFields: PackageContactSearchFields = {
-		name: updatedPackage.name,
-		phone: updatedPackage.phone,
-		accountName: updatedPackage.accountName,
-		abn: updatedPackage.abn,
-		email: updatedPackage.email.trim().toLowerCase(),
-		instagramHandle: existingPackage.instagramHandle
-	};
+	const contactFields = buildAdminPackageContactFields(existingPackage, updatedPackage);
+	const contactSyncId = selectPackageContactSyncId(args.packageId, existingPackage, contactFields);
 
-	const contactChanged =
-		existingPackage.name !== contactFields.name ||
-		existingPackage.phone !== contactFields.phone ||
-		existingPackage.accountName !== contactFields.accountName ||
-		existingPackage.abn !== contactFields.abn ||
-		existingPackage.email !== contactFields.email;
-
-	return patchAdminPackageRow(ctx, args.packageId, {
-		...buildPackageUpdatePatch(args, updatedPackage),
-		...searchBlobPatchForPackage(existingPackage, {
-			...contactFields,
-			notes: updatedPackage.notes,
-			receiptNumber: existingPackage.receiptNumber
-		})
-	}).andThen(() => syncContactSearchAfterAdminPatchStep(ctx, args, contactChanged, contactFields));
+	return patchAdminPackageRow(
+		ctx,
+		args.packageId,
+		buildAdminPackagePatch(args, existingPackage, updatedPackage, contactFields)
+	).andThen(() => patchPackageSessionBookingsContactSearch(ctx, contactSyncId, contactFields));
 }
 
 export function archivePackageFromAdmin(ctx: MutationCtx, args: ArchivePackageArgs) {
 	return requirePermission(ctx, "archive:sessions")
-		.andThen(() => loadPackageAfterArchivePermission(ctx, args.packageId))
-		.andThen(() => archivePackageWithPermission(ctx, args));
+		.andThen(() => getPackageFromDb(ctx, args.packageId))
+		.andThen(() => setPackageArchived(ctx, args.packageId, args.archived));
 }
