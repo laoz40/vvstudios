@@ -1,4 +1,4 @@
-import { ResultAsync } from "neverthrow";
+import { ok, ResultAsync, safeTry } from "neverthrow";
 import type { Doc } from "#convex/_generated/dataModel";
 import type { MutationCtx } from "#convex/_generated/server";
 import {
@@ -12,9 +12,17 @@ export function writeBookingsAssignedEditorDisplayName(
 	editorTokenIdentifier: string,
 	assignedEditorDisplayName: string
 ) {
-	return listBookingsAssignedToEditor(ctx, editorTokenIdentifier).andThen((bookings) =>
-		updateBookingsAssignedEditorDisplayName(ctx, bookings, assignedEditorDisplayName)
-	);
+	return safeTry(async function* () {
+		const bookings = yield* listBookingsAssignedToEditor(ctx, editorTokenIdentifier);
+
+		const result = yield* updateBookingsAssignedEditorDisplayName(
+			ctx,
+			bookings,
+			assignedEditorDisplayName
+		);
+
+		return ok(result);
+	});
 }
 
 export function updateBookingsAssignedEditorDisplayName(
@@ -24,10 +32,15 @@ export function updateBookingsAssignedEditorDisplayName(
 ) {
 	return ResultAsync.combine(
 		bookings.map((booking) =>
-			searchBlobPatchForBookingAsync(ctx, booking, { assignedEditorDisplayName }).andThen(
-				(searchBlobPatch) =>
-					patchBookingAssignedEditorDisplayName(ctx, booking._id, searchBlobPatch)
-			)
+			safeTry(async function* () {
+				const searchBlobPatch = yield* searchBlobPatchForBookingAsync(ctx, booking, {
+					assignedEditorDisplayName
+				});
+
+				yield* patchBookingAssignedEditorDisplayName(ctx, booking._id, searchBlobPatch);
+
+				return ok(null);
+			})
 		)
 	).map(() => null);
 }

@@ -1,3 +1,5 @@
+import { ok, safeTry } from "neverthrow";
+
 import { loadEditorForCompletedTransition } from "#convex/editor/lib/sessionEditStatusSteps";
 
 import type { Doc } from "#convex/_generated/dataModel";
@@ -11,9 +13,13 @@ export function saveSessionEditStatus(
 	session: Doc<"bookings">,
 	editStatus: "to_edit" | "editing" | "review" | "completed"
 ) {
-	return loadEditorForCompletedTransition(ctx, session, editStatus).andThen((editor) =>
-		patchSessionEditStatus(ctx, session._id, editStatus).andThen(() =>
-			incrementEditorTotalEdits(ctx, editor)
-		)
-	);
+	return safeTry(async function* () {
+		const editor = yield* loadEditorForCompletedTransition(ctx, session, editStatus);
+
+		yield* patchSessionEditStatus(ctx, session._id, editStatus);
+
+		const result = yield* incrementEditorTotalEdits(ctx, editor);
+
+		return ok(result);
+	});
 }
