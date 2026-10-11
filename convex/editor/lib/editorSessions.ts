@@ -1,6 +1,6 @@
 import type { UserIdentity } from "convex/server";
 import type { PaginationOptions } from "convex/server";
-import { err, ok } from "neverthrow";
+import { err, ok, okAsync } from "neverthrow";
 import type { Doc } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
 import { isAdminIdentity } from "#convex/shared/lib/auth";
@@ -51,6 +51,10 @@ export function paginateBookingsForAssigneeEditor(
 export function isEditorVisibleSession(session: Doc<"bookings">): boolean {
 	// Admin archive must not hide work from editors.
 	return session.status === "confirmed" || session.status === "email_failed";
+}
+
+export function visibleEditorSessions(bookings: Doc<"bookings">[]) {
+	return bookings.filter(isEditorVisibleSession);
 }
 
 export function requireDeliverablesOwnership<T extends DeliverablesEligibilitySession>(
@@ -116,11 +120,16 @@ export function patchSessionEditStatus(
 
 export function incrementEditorTotalEdits(
 	ctx: MutationCtx,
-	editorId: Doc<"editorProfiles">["_id"],
-	currentTotalEdits: number
+	editor: Pick<Doc<"editorProfiles">, "_id" | "totalEdits"> | null
 ) {
+	if (editor === null) {
+		return okAsync(null);
+	}
+
 	return okOrThrow(
-		ctx.db.patch("editorProfiles", editorId, { totalEdits: currentTotalEdits + 1 }).then(() => null)
+		ctx.db
+			.patch("editorProfiles", editor._id, { totalEdits: editor.totalEdits + 1 })
+			.then(() => null)
 	);
 }
 

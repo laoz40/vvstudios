@@ -21,10 +21,12 @@ export const Route = createFileRoute("/_public/_convex/booking-expired")({
 function BookingExpiredPage() {
 	const { session_id: stripeSessionId } = Route.useSearch();
 
-	const booking = useQuery(
+	const bookingResult = useQuery(
 		api.sessions.admin.getSessionStatusByStripeSessionId,
 		stripeSessionId ? { stripeSessionId } : "skip"
 	);
+
+	const booking = bookingResult?.[1];
 
 	let supportReference: string | null = null;
 

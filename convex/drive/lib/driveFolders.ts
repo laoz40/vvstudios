@@ -1,12 +1,18 @@
 import { err, errAsync, ok, okAsync, type ResultAsync } from "neverthrow";
 import { exhaustiveCheck } from "#/lib/result";
 import type { Doc, Id } from "#convex/_generated/dataModel";
-import type { MutationCtx } from "#convex/_generated/server";
-import { loadDriveSessionRowByBookingId } from "#convex/drive/lib/driveBookingDriveClient";
+import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
 import type { DriveChildFolderName, SavedDriveFolder } from "#convex/drive/lib/googleDrive";
 import { okOrThrow } from "#convex/shared/lib/result";
+import {
+	loadBookingRow,
+	loadDriveSessionRowByBookingId
+} from "#convex/drive/lib/driveBookingDriveClient";
 
-export function loadDriveClientByNormalizedEmail(ctx: MutationCtx, normalizedEmail: string) {
+export function loadDriveClientByNormalizedEmail(
+	ctx: Pick<QueryCtx | MutationCtx, "db">,
+	normalizedEmail: string
+) {
 	return okOrThrow(
 		ctx.db
 			.query("driveClients")
@@ -176,41 +182,18 @@ export type ClearSavedDriveFolderArgs =
 	| { kind: "session"; bookingId: Id<"bookings"> }
 	| { kind: "child"; bookingId: Id<"bookings">; name: DriveChildFolderName };
 
-export function clearSavedDriveFolder(ctx: MutationCtx, args: ClearSavedDriveFolderArgs) {
-	const folderKind = args.kind;
+export function clearDriveClientFolder(ctx: MutationCtx, driveClientId: Id<"driveClients">) {
+	return okOrThrow(
+		ctx.db
+			.patch("driveClients", driveClientId, { folderId: undefined, folderUrl: undefined })
+			.then(() => null)
+	);
+}
 
-	switch (folderKind) {
-		case "client":
-			return okOrThrow(
-				ctx.db
-					.patch("driveClients", args.driveClientId, { folderId: undefined, folderUrl: undefined })
-					.then(() => null)
-			);
-		case "assets":
-			return okOrThrow(
-				ctx.db
-					.patch("driveClients", args.driveClientId, { assetsFolder: undefined })
-					.then(() => null)
-			);
-		case "package":
-			return clearDriveSessionFields(ctx, args.bookingId, { packageFolder: undefined });
-		case "session":
-			return clearDriveSessionFields(ctx, args.bookingId, {
-				sessionFolder: undefined,
-				rawMediaFolder: undefined,
-				deliverablesFolder: undefined
-			});
-		case "child":
-			return clearDriveSessionFields(
-				ctx,
-				args.bookingId,
-				args.name === "Raw Media"
-					? { rawMediaFolder: undefined }
-					: { deliverablesFolder: undefined }
-			);
-		default:
-			return exhaustiveCheck(folderKind);
-	}
+export function clearDriveClientAssetsFolder(ctx: MutationCtx, driveClientId: Id<"driveClients">) {
+	return okOrThrow(
+		ctx.db.patch("driveClients", driveClientId, { assetsFolder: undefined }).then(() => null)
+	);
 }
 
 export function clearDriveSessionFieldsForRow(
@@ -229,21 +212,6 @@ export function clearDriveSessionFieldsForRow(
 		ctx.db
 			.patch("driveSessions", driveSession._id, { ...fields, updatedAt: Date.now() })
 			.then(() => null)
-	);
-}
-
-function clearDriveSessionFields(
-	ctx: MutationCtx,
-	bookingId: Id<"bookings">,
-	fields: {
-		packageFolder?: undefined;
-		sessionFolder?: undefined;
-		rawMediaFolder?: undefined;
-		deliverablesFolder?: undefined;
-	}
-) {
-	return loadDriveSessionRowByBookingId(ctx, bookingId).andThen((driveSession) =>
-		clearDriveSessionFieldsForRow(ctx, fields, driveSession)
 	);
 }
 
@@ -288,4 +256,58 @@ export function saveDriveChildFolderForRow(
 			.patch("driveSessions", driveSession._id, { ...folderFields, updatedAt: Date.now() })
 			.then(() => driveSession._id)
 	);
+}
+
+export function loadStandaloneDriveClient(ctx: MutationCtx, booking: Doc<"bookings">) {
+	if (booking.driveClientId !== undefined) return okAsync<Doc<"driveClients"> | null>(null);
+
+	return loadDriveClientByNormalizedEmail(ctx, booking.email.trim().toLowerCase());
+}
+
+export function loadBookingForPackageFolder(
+	ctx: MutationCtx,
+	bookingId: Id<"bookings">,
+	session: Doc<"driveSessions"> | null
+) {
+	if (session !== null) return okAsync<Doc<"bookings"> | null>(null);
+
+	return loadBookingRow(ctx, bookingId);
+}
+
+export function loadDriveSessionForFolderClear(ctx: MutationCtx, args: ClearSavedDriveFolderArgs) {
+	if (args.kind === "client" || args.kind === "assets")
+		return okAsync<Doc<"driveSessions"> | null>(null);
+
+	return loadDriveSessionRowByBookingId(ctx, args.bookingId);
+}
+
+export function clearSavedDriveFolderForRow(
+	ctx: MutationCtx,
+	args: ClearSavedDriveFolderArgs,
+	session: Doc<"driveSessions"> | null
+) {
+	switch (args.kind) {
+		case "client":
+			return clearDriveClientFolder(ctx, args.driveClientId);
+		case "assets":
+			return clearDriveClientAssetsFolder(ctx, args.driveClientId);
+		case "package":
+			return clearDriveSessionFieldsForRow(ctx, { packageFolder: undefined }, session);
+		case "session":
+			return clearDriveSessionFieldsForRow(
+				ctx,
+				{ sessionFolder: undefined, rawMediaFolder: undefined, deliverablesFolder: undefined },
+				session
+			);
+		case "child":
+			return clearDriveSessionFieldsForRow(
+				ctx,
+				args.name === "Raw Media"
+					? { rawMediaFolder: undefined }
+					: { deliverablesFolder: undefined },
+				session
+			);
+		default:
+			return exhaustiveCheck(args);
+	}
 }

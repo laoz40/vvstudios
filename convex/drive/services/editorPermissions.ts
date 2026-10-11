@@ -1,4 +1,3 @@
-import { err, okAsync, ResultAsync } from "neverthrow";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
 import type { DriveSetupInfo } from "#convex/drive/lib/driveLookup";
@@ -8,7 +7,7 @@ import {
 	editorDriveAccessToRemoveForSession,
 	editorDriveSetupFromLoaded,
 	failedEditorRemovalForSession,
-	loadEditorClientDriveData,
+	loadEditorClientDriveDataWhenAvailable,
 	loadEditorProfileByToken,
 	listEditorAssetPermissionsForRetirement,
 	loadDriveSessionsForBookings,
@@ -18,9 +17,16 @@ import {
 	markEditorDriveAccessRevokedForSession,
 	markPreviousEditorRemovalFailedForSession,
 	saveEditorAssignmentEmailResultForSession,
-	writeEditorDrivePermission,
+	loadEditorAssetsPermission,
+	saveEditorPermissionForSetup,
 	writeEditorDrivePermissionsStatus
 } from "#convex/drive/lib/driveEditor";
+import {
+	requireEditorPermissionSetup,
+	requireEditorPermissionStatusSetup,
+	requireEditorAssignmentEmailSetup,
+	type EditorPermissionSetupContext
+} from "#convex/drive/lib/editorPermissionSteps";
 import {
 	getCompletedEditorBookingIds,
 	loadEditorRetirementAssetInfos,
@@ -40,15 +46,10 @@ export function getEditorDriveSetup(ctx: QueryCtx, bookingId: Id<"bookings">) {
 }
 
 function loadEditorDriveSetupFromDriveSetup(ctx: QueryCtx, setup: DriveSetupInfo | null) {
-	const editorTokenIdentifier = setup?.booking.assignedEditorTokenIdentifier;
-
-	if (editorTokenIdentifier === undefined) {
-		return editorDriveSetupFromLoaded(setup, null);
-	}
-
-	return loadEditorProfileByToken(ctx, editorTokenIdentifier).andThen(
-		(editor: Doc<"editorProfiles"> | null) => editorDriveSetupFromLoaded(setup, editor)
-	);
+	return loadEditorProfileByToken(
+		ctx,
+		setup?.booking.assignedEditorTokenIdentifier ?? null
+	).andThen((editor) => editorDriveSetupFromLoaded(setup, editor));
 }
 
 export function getEditorDriveAccessToRemove(
@@ -151,42 +152,13 @@ function loadFailedEditorRemovalForSession(
 	bookingId: Id<"bookings">,
 	driveSession: Doc<"driveSessions"> | null
 ) {
-	const editorTokenIdentifier = driveSession?.failedRemovalEditorTokenIdentifier;
+	const token = driveSession?.failedRemovalEditorTokenIdentifier;
 
-	if (driveSession === null || editorTokenIdentifier === undefined) {
-		return okAsync(null);
-	}
-
-	return loadEditorClientDriveData(ctx, driveSession, editorTokenIdentifier).andThen(
-		(
-			clientData: Awaited<
-				ReturnType<typeof loadEditorClientDriveData> extends ResultAsync<infer T, infer _E>
-					? T
-					: never
-			>
-		) =>
-			loadFailedEditorRemovalWithProfile(
-				ctx,
-				driveSession,
-				bookingId,
-				editorTokenIdentifier,
-				clientData
+	return loadEditorClientDriveDataWhenAvailable(ctx, driveSession, token ?? null).andThen(
+		(clientData) =>
+			loadEditorProfileByToken(ctx, token ?? null).map((editor) =>
+				failedEditorRemovalForSession(driveSession, bookingId, editor, clientData)
 			)
-	);
-}
-
-function loadFailedEditorRemovalWithProfile(
-	ctx: QueryCtx,
-	driveSession: Doc<"driveSessions">,
-	bookingId: Id<"bookings">,
-	editorTokenIdentifier: string,
-	clientData: Awaited<
-		ReturnType<typeof loadEditorClientDriveData> extends ResultAsync<infer T, infer _E> ? T : never
-	>
-) {
-	return loadEditorProfileByToken(ctx, editorTokenIdentifier).map(
-		(editor: Doc<"editorProfiles"> | null) =>
-			failedEditorRemovalForSession(driveSession, bookingId, editor, clientData)
 	);
 }
 
@@ -196,36 +168,27 @@ export function saveEditorDrivePermission(
 		bookingId: Id<"bookings">;
 		editorTokenIdentifier: string;
 		name: "Assets" | "Deliverables" | "Session";
-		permission: Parameters<typeof writeEditorDrivePermission>[2]["permission"];
+		permission: import("#convex/drive/lib/googleDrive").SavedDrivePermission;
 	}
 ) {
 	return loadEditorProfileByToken(ctx, args.editorTokenIdentifier)
 		.andThen(requireActiveEditor)
 		.andThen(() => getDriveSetup(ctx, args.bookingId))
-		.andThen((setup: DriveSetupInfo | null) =>
-			writeEditorDrivePermissionFromSetup(ctx, args, setup)
-		);
+		.andThen((setup: DriveSetupInfo | null) => requireEditorPermissionSetup(setup, args))
+		.andThen((context) => writeEditorPermissionForValidSetup(ctx, args, context));
 }
 
-function writeEditorDrivePermissionFromSetup(
+function writeEditorPermissionForValidSetup(
 	ctx: MutationCtx,
 	args: Parameters<typeof saveEditorDrivePermission>[1],
-	setup: DriveSetupInfo | null
+	context: EditorPermissionSetupContext
 ) {
-	if (
-		setup === null ||
-		setup.driveClient === null ||
-		setup.driveSession === null ||
-		setup.booking.assignedEditorTokenIdentifier !== args.editorTokenIdentifier
-	) {
-		return err({ reason: "DRIVE_RECORD_NOT_FOUND" as const });
-	}
-
-	return writeEditorDrivePermission(
+	return loadEditorAssetsPermission(
 		ctx,
-		{ driveClient: setup.driveClient, driveSession: setup.driveSession },
-		args
-	);
+		args.name === "Assets"
+			? { driveClientId: context.driveClientId, editorTokenIdentifier: args.editorTokenIdentifier }
+			: null
+	).andThen((existing) => saveEditorPermissionForSetup(ctx, { ...context, ...args }, existing));
 }
 
 export function saveEditorDrivePermissionsStatus(
@@ -235,60 +198,21 @@ export function saveEditorDrivePermissionsStatus(
 	return loadEditorProfileByToken(ctx, args.editorTokenIdentifier)
 		.andThen(requireActiveEditor)
 		.andThen(() => getDriveSetup(ctx, args.bookingId))
-		.andThen((setup: DriveSetupInfo | null) =>
-			writeEditorDrivePermissionsStatusFromSetup(ctx, args, setup)
-		);
-}
-
-function writeEditorDrivePermissionsStatusFromSetup(
-	ctx: MutationCtx,
-	args: Parameters<typeof saveEditorDrivePermissionsStatus>[1],
-	setup: DriveSetupInfo | null
-) {
-	if (
-		setup?.driveSession === null ||
-		setup?.driveSession === undefined ||
-		setup.booking.assignedEditorTokenIdentifier !== args.editorTokenIdentifier
-	) {
-		return err({ reason: "DRIVE_RECORD_NOT_FOUND" as const });
-	}
-
-	return writeEditorDrivePermissionsStatus(ctx, setup.driveSession, args);
+		.andThen((setup: DriveSetupInfo | null) => requireEditorPermissionStatusSetup(setup, args))
+		.andThen((session) => writeEditorDrivePermissionsStatus(ctx, session, args));
 }
 
 export function claimEditorAssignmentEmail(
 	ctx: MutationCtx,
 	args: { bookingId: Id<"bookings">; editorTokenIdentifier: string; now: number }
 ) {
-	return getDriveSetup(ctx, args.bookingId).andThen((setup: DriveSetupInfo | null) =>
-		claimEditorAssignmentEmailFromSetup(ctx, args, setup)
-	);
-}
-
-function claimEditorAssignmentEmailFromSetup(
-	ctx: MutationCtx,
-	args: Parameters<typeof claimEditorAssignmentEmail>[1],
-	setup: DriveSetupInfo | null
-) {
-	if (setup === null) {
-		return err({ reason: "EDITOR_ASSIGNMENT_EMAIL_NOT_SENDABLE" as const });
-	}
-
-	const driveSession = setup.driveSession;
-
-	if (
-		driveSession === null ||
-		setup.booking.assignedEditorTokenIdentifier !== args.editorTokenIdentifier ||
-		driveSession.editorDrivePermissionsStatus !== "ready" ||
-		driveSession.editorDrivePermissionsTokenIdentifier !== args.editorTokenIdentifier
-	) {
-		return err({ reason: "EDITOR_ASSIGNMENT_EMAIL_NOT_SENDABLE" as const });
-	}
-
-	return loadEditorProfileByToken(ctx, args.editorTokenIdentifier).andThen(
-		(editor: Doc<"editorProfiles"> | null) =>
-			claimEditorAssignmentEmailForEditor(ctx, { ...setup, driveSession }, args, editor)
-	);
+	return getDriveSetup(ctx, args.bookingId)
+		.andThen((setup) => requireEditorAssignmentEmailSetup(setup, args))
+		.andThen((setup) =>
+			loadEditorProfileByToken(ctx, args.editorTokenIdentifier).andThen((editor) =>
+				claimEditorAssignmentEmailForEditor(ctx, setup, args, editor)
+			)
+		);
 }
 
 export function saveEditorAssignmentEmailResult(

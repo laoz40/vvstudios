@@ -10,7 +10,12 @@ export type SyncBookingDriveClientIdFromSessionError = {
 	reason: "BOOKING_NOT_FOUND" | "DRIVE_RECORD_NOT_FOUND";
 };
 
-export function loadDriveClientRow(ctx: Pick<QueryCtx, "db">, driveClientId: Id<"driveClients">) {
+export function loadDriveClientRow(
+	ctx: Pick<QueryCtx, "db">,
+	driveClientId: Id<"driveClients"> | null
+) {
+	if (driveClientId === null) return okAsync<Doc<"driveClients"> | null>(null);
+
 	return okOrThrow(ctx.db.get("driveClients", driveClientId));
 }
 
@@ -42,8 +47,10 @@ export function loadDriveSessionRow(
 
 export function loadDriveSessionRowByBookingId(
 	ctx: Pick<QueryCtx, "db">,
-	bookingId: Id<"bookings">
+	bookingId: Id<"bookings"> | null
 ) {
+	if (bookingId === null) return okAsync<Doc<"driveSessions"> | null>(null);
+
 	return okOrThrow(
 		ctx.db
 			.query("driveSessions")

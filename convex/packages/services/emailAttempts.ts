@@ -1,19 +1,37 @@
-import { ok } from "neverthrow";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { MutationCtx } from "#convex/_generated/server";
-import { searchBlobPatchForPackage } from "#convex/shared/lib/adminSearch/adminSearchBlob";
 import { syncPackageBookingsReceiptNumber } from "#convex/packages/services/bookingsReceiptSync";
 import {
+	buildPackageReceiptEmailAttemptPatch,
+	packageReceiptNumberForSync,
+	selectPackageReceiptSyncId,
 	patchPackageReceiptEmailAttempt,
 	patchPackageScheduleEmailStatus
 } from "#convex/packages/lib/updates";
 import { getPackageFromDb } from "#convex/packages/services/lookup";
 
-function patchPackageScheduleEmailForArgs(
+type PackageReceiptEmailAttemptArgs = {
+	packageId: Id<"packages">;
+	status: "sent" | "failed";
+	receiptNumber?: string;
+};
+
+function patchReceiptEmailForPackage(
 	ctx: MutationCtx,
-	args: { packageId: Id<"packages">; status: "sent" | "failed" }
+	args: PackageReceiptEmailAttemptArgs & { failureCode?: string },
+	packageFromDb: Doc<"packages">
 ) {
-	return patchPackageScheduleEmailStatus(ctx, args.packageId, args.status);
+	return patchPackageReceiptEmailAttempt(
+		ctx,
+		args.packageId,
+		buildPackageReceiptEmailAttemptPatch(packageFromDb, args, Date.now())
+	).andThen(() =>
+		syncPackageBookingsReceiptNumber(
+			ctx,
+			selectPackageReceiptSyncId(args),
+			packageReceiptNumberForSync(args)
+		)
+	);
 }
 
 export function writePackageScheduleEmailAttempt(
@@ -21,65 +39,15 @@ export function writePackageScheduleEmailAttempt(
 	args: { packageId: Id<"packages">; status: "sent" | "failed" }
 ) {
 	return getPackageFromDb(ctx, args.packageId).andThen(() =>
-		patchPackageScheduleEmailForArgs(ctx, args)
-	);
-}
-
-function afterReceiptEmailPatch(
-	ctx: MutationCtx,
-	args: { packageId: Id<"packages">; status: "sent" | "failed"; receiptNumber?: string }
-) {
-	if (args.status !== "sent" || !args.receiptNumber) {
-		return ok(null);
-	}
-
-	return syncPackageBookingsReceiptNumber(ctx, args.packageId, args.receiptNumber);
-}
-
-function patchReceiptEmailForPackage(
-	ctx: MutationCtx,
-	args: {
-		packageId: Id<"packages">;
-		status: "sent" | "failed";
-		receiptNumber?: string;
-		failureCode?: string;
-	},
-
-	packageFromDb: Doc<"packages">
-) {
-	const now = Date.now();
-
-	const sentPatch =
-		args.status === "sent"
-			? {
-					receiptEmailFailureCode: undefined,
-					receiptEmailSentAt: now,
-					receiptEmailStatus: "sent" as const,
-					receiptNumber: args.receiptNumber,
-					lastReceiptEmailAttemptAt: now,
-					...searchBlobPatchForPackage(packageFromDb, { receiptNumber: args.receiptNumber })
-				}
-			: {
-					receiptEmailFailureCode: args.failureCode,
-					receiptEmailStatus: "failed" as const,
-					lastReceiptEmailAttemptAt: now
-				};
-
-	return patchPackageReceiptEmailAttempt(ctx, args.packageId, sentPatch).andThen(() =>
-		afterReceiptEmailPatch(ctx, args)
+		patchPackageScheduleEmailStatus(ctx, args.packageId, args.status)
 	);
 }
 
 export function writePackageReceiptEmailAttempt(
 	ctx: MutationCtx,
-	args: {
-		packageId: Id<"packages">;
-		status: "sent" | "failed";
-		receiptNumber?: string;
-		failureCode?: string;
-	}
+	args: PackageReceiptEmailAttemptArgs & { failureCode?: string }
 ) {
-	return getPackageFromDb(ctx, args.packageId).andThen((packageFromDb: Doc<"packages">) =>
+	return getPackageFromDb(ctx, args.packageId).andThen((packageFromDb) =>
 		patchReceiptEmailForPackage(ctx, args, packageFromDb)
 	);
 }

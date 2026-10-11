@@ -39,17 +39,11 @@ export const markPackageExpiredByStripeSessionId = internalMutation({
 export const getPackageByStripeSessionId = internalQuery({
 	args: { stripeSessionId: v.string() },
 	handler: async (ctx, args) =>
-		(await loadPackageRowByStripeSessionId(ctx, args.stripeSessionId)).match(
-			(packageFromDb) => packageFromDb,
-			() => null
-		)
+		loadPackageRowByStripeSessionId(ctx, args.stripeSessionId).match(tupleOk, tupleErr)
 });
 
 export const getPackageStatusByStripeSessionId = query({
 	args: { stripeSessionId: v.string() },
 	handler: async (ctx, args) =>
-		(await loadPublicPackageStatusByStripeSessionId(ctx, args.stripeSessionId)).match(
-			(status) => status,
-			() => null
-		)
+		loadPublicPackageStatusByStripeSessionId(ctx, args.stripeSessionId).match(tupleOk, tupleErr)
 });

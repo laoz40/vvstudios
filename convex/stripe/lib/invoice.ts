@@ -1,15 +1,82 @@
 "use node";
 
-import { err, ok, type Result } from "neverthrow";
+import { err, ok, okAsync, type Result } from "neverthrow";
 import { ResultAsync } from "neverthrow";
+import { internal } from "#convex/_generated/api";
 import type { Id } from "#convex/_generated/dataModel";
-import { tryPromise } from "#convex/shared/lib/result";
+import type { ActionCtx } from "#convex/_generated/server";
+import { fromConvexTuple, tryPromise } from "#convex/shared/lib/result";
+import type { EditInvoiceTarget } from "#convex/stripe/lib/editInvoiceDb";
 import type { StripeClient } from "#convex/stripe/lib/client";
 import { BOOKING_INVOICE_CURRENCY } from "#/domain/booking/price-constants";
 
 export const ADMIN_STRIPE_INVOICE_DAYS_UNTIL_DUE = 7;
 
 export type StripeInvoiceLineItem = { description: string; amount: number };
+
+export type StripeInvoiceSenderIdentity = { email?: string };
+
+export function requireStripeInvoiceCustomerId(stripeCustomerId: string | undefined) {
+	if (!stripeCustomerId) {
+		return err({ reason: "STRIPE_CUSTOMER_NOT_FOUND" as const });
+	}
+
+	return ok(stripeCustomerId);
+}
+
+export function createAndSendBookingStripeInvoice(
+	stripe: StripeClient,
+	args: { bookingId: Id<"bookings">; lineItems: StripeInvoiceLineItem[]; requestId: string },
+	stripeCustomerId: string
+) {
+	return createAndSendStripeInvoice(stripe, {
+		stripeCustomerId,
+		lineItems: args.lineItems,
+		metadata: { kind: "booking", bookingId: args.bookingId, requestId: args.requestId }
+	});
+}
+
+export function createAndSendPackageStripeInvoice(
+	stripe: StripeClient,
+	args: { packageId: Id<"packages">; lineItems: StripeInvoiceLineItem[]; requestId: string },
+	stripeCustomerId: string
+) {
+	return createAndSendStripeInvoice(stripe, {
+		stripeCustomerId,
+		lineItems: args.lineItems,
+		metadata: { kind: "package", packageId: args.packageId, requestId: args.requestId }
+	});
+}
+
+export function recordBookingStripeInvoiceFromAction(
+	ctx: ActionCtx,
+	args: { bookingId: Id<"bookings">; lineItems: StripeInvoiceLineItem[]; requestId: string },
+	identity: StripeInvoiceSenderIdentity,
+	stripeInvoiceId: string
+) {
+	return ctx.runMutation(internal.stripe.invoiceRecords.recordBookingStripeInvoice, {
+		bookingId: args.bookingId,
+		stripeInvoiceId,
+		lineItems: args.lineItems,
+		requestId: args.requestId,
+		createdBy: identity.email
+	});
+}
+
+export function recordPackageStripeInvoiceFromAction(
+	ctx: ActionCtx,
+	args: { packageId: Id<"packages">; lineItems: StripeInvoiceLineItem[]; requestId: string },
+	identity: StripeInvoiceSenderIdentity,
+	stripeInvoiceId: string
+) {
+	return ctx.runMutation(internal.stripe.invoiceRecords.recordPackageStripeInvoice, {
+		packageId: args.packageId,
+		stripeInvoiceId,
+		lineItems: args.lineItems,
+		requestId: args.requestId,
+		createdBy: identity.email
+	});
+}
 
 type StripeInvoiceMetadata =
 	| { kind: "booking"; bookingId: Id<"bookings">; requestId: string }
@@ -133,4 +200,60 @@ export function createAndSendStripeInvoice(
 		},
 		catch: () => ({ reason: "STRIPE_INVOICE_FAILED" as const })
 	}).map((stripeInvoiceId) => ({ stripeInvoiceId }));
+}
+
+export function createAndSendOptionalEditInvoice(
+	stripe: StripeClient,
+	input: {
+		stripeCustomerId: string;
+		lineItems: StripeInvoiceLineItem[];
+		requestId: string;
+		target: EditInvoiceTarget | null;
+	}
+): ResultAsync<{ stripeInvoiceId: string } | null, { reason: "STRIPE_INVOICE_FAILED" }> {
+	if (input.target === null) return okAsync(null);
+
+	const metadata: StripeInvoiceMetadata =
+		input.target.kind === "booking"
+			? { kind: "booking", bookingId: input.target.bookingId, requestId: input.requestId }
+			: { kind: "package", packageId: input.target.packageId, requestId: input.requestId };
+
+	return createAndSendStripeInvoice(stripe, {
+		stripeCustomerId: input.stripeCustomerId,
+		lineItems: input.lineItems,
+		metadata
+	});
+}
+
+export function recordOptionalEditInvoiceFromAction(
+	ctx: ActionCtx,
+	args: {
+		target: EditInvoiceTarget | null;
+		lineItems: StripeInvoiceLineItem[];
+		requestId: string;
+		createdBy?: string;
+		stripeInvoiceId: string | null;
+	}
+) {
+	if (args.target === null || args.stripeInvoiceId === null) return okAsync(null);
+
+	return args.target.kind === "booking"
+		? fromConvexTuple(
+				ctx.runMutation(internal.stripe.invoiceRecords.recordBookingStripeInvoice, {
+					bookingId: args.target.bookingId,
+					stripeInvoiceId: args.stripeInvoiceId,
+					lineItems: args.lineItems,
+					requestId: args.requestId,
+					createdBy: args.createdBy
+				})
+			)
+		: fromConvexTuple(
+				ctx.runMutation(internal.stripe.invoiceRecords.recordPackageStripeInvoice, {
+					packageId: args.target.packageId,
+					stripeInvoiceId: args.stripeInvoiceId,
+					lineItems: args.lineItems,
+					requestId: args.requestId,
+					createdBy: args.createdBy
+				})
+			);
 }

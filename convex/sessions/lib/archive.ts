@@ -1,18 +1,22 @@
-import type { PaginationResult } from "convex/server";
 import { okAsync, type ResultAsync } from "neverthrow";
+import type { PaginationResult } from "convex/server";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { MutationCtx } from "#convex/_generated/server";
-import {
-	bookingArchivedPatch,
-	isBookingArchived,
-	setBookingArchived
-} from "#convex/shared/lib/archiveState";
+import { getBookingRow } from "#convex/sessions/lib/lookup";
+import { listStripeInvoicesForBooking, summarizeStripeInvoices } from "#convex/stripe/lib/invoices";
+import { setBookingArchived } from "#convex/shared/lib/archiveState";
 import { okOrThrow } from "#convex/shared/lib/result";
 import type { StripeInvoiceAmountSummary } from "#convex/stripe/lib/invoices";
 
 const DEAD_CHECKOUT_STATUSES = ["cancelled", "expired", "abandoned"] as const;
 
+const PAST_DEAD_CHECKOUT_ARCHIVE_BATCH_SIZE = 25;
+
 export type DeadCheckoutStatus = (typeof DEAD_CHECKOUT_STATUSES)[number];
+
+export function getDeadCheckoutArchiveBatchSize(numItems: number | undefined) {
+	return numItems ?? PAST_DEAD_CHECKOUT_ARCHIVE_BATCH_SIZE;
+}
 
 export function isDeadCheckoutStatus(
 	status: Doc<"bookings">["status"]
@@ -34,69 +38,41 @@ export type ArchivePastDeadCheckoutBatchResult = {
 	scanned: number;
 };
 
-const PAST_DEAD_CHECKOUT_ARCHIVE_BATCH_SIZE = 25;
+export type SessionStripeArchiveSummary = {
+	session: Doc<"bookings">;
+	stripeSummary: StripeInvoiceAmountSummary | null;
+};
 
-function archiveBookingsOnDeadCheckoutPage(
-	ctx: MutationCtx,
-	bookings: Doc<"bookings">[],
-	now: number
-): ResultAsync<number, never> {
-	if (bookings.length === 0) {
-		return okAsync(0);
-	}
-
-	const [booking, ...rest] = bookings;
-
-	if (booking === undefined) {
-		return okAsync(0);
-	}
-
-	if (isBookingArchived(booking) || !isDeadCheckoutStatus(booking.status)) {
-		return archiveBookingsOnDeadCheckoutPage(ctx, rest, now);
-	}
-
-	if (!shouldArchiveDeadCheckoutBooking(booking.sessionStartAt, now)) {
-		return archiveBookingsOnDeadCheckoutPage(ctx, rest, now);
-	}
-
-	return setBookingArchived(ctx, booking._id, true).andThen(() =>
-		archiveBookingsOnDeadCheckoutPage(ctx, rest, now).map((archivedRest) => archivedRest + 1)
-	);
-}
-
-function archivePastDeadCheckoutSessionsBatchChain(
+export function loadDeadCheckoutArchivePage(
 	ctx: MutationCtx,
 	cursor: string | null,
-	numItems: number,
-	now: number
-): ResultAsync<ArchivePastDeadCheckoutBatchResult, never> {
-	return okOrThrow(ctx.db.query("bookings").paginate({ cursor, numItems })).andThen(
-		(page: PaginationResult<Doc<"bookings">>) =>
-			archiveBookingsOnDeadCheckoutPage(ctx, page.page, now).map((newlyArchived) => ({
-				continueCursor: page.isDone ? null : page.continueCursor,
-				isDone: page.isDone,
-				newlyArchived,
-				scanned: page.page.length
-			}))
-	);
-}
-
-/** Archives unarchived cancelled / expired / abandoned bookings after session start. */
-export function archivePastDeadCheckoutSessionsBatch(
-	ctx: MutationCtx,
-	cursor: string | null,
-	numItems = PAST_DEAD_CHECKOUT_ARCHIVE_BATCH_SIZE,
-	now = Date.now()
-): ResultAsync<ArchivePastDeadCheckoutBatchResult, never> {
-	return archivePastDeadCheckoutSessionsBatchChain(ctx, cursor, numItems, now);
-}
-
-export function archivePastDeadCheckoutSessionsBatchStep(
-	ctx: MutationCtx,
-	cursor: string | null,
-	numItems?: number
+	numItems: number
 ) {
-	return archivePastDeadCheckoutSessionsBatch(ctx, cursor, numItems);
+	return okOrThrow(ctx.db.query("bookings").paginate({ cursor, numItems }));
+}
+
+export function archiveLoadedDeadCheckoutPage(
+	ctx: MutationCtx,
+	{ continueCursor, isDone, page }: PaginationResult<Doc<"bookings">>,
+	now: number
+): ResultAsync<ArchivePastDeadCheckoutBatchResult, never> {
+	const bookingsToArchive = page.filter(
+		(booking) =>
+			!booking.archived &&
+			isDeadCheckoutStatus(booking.status) &&
+			shouldArchiveDeadCheckoutBooking(booking.sessionStartAt, now)
+	);
+
+	return okOrThrow(
+		Promise.all(
+			bookingsToArchive.map((booking) => ctx.db.patch("bookings", booking._id, { archived: true }))
+		)
+	).map(() => ({
+		continueCursor: isDone ? null : continueCursor,
+		isDone,
+		newlyArchived: bookingsToArchive.length,
+		scanned: page.length
+	}));
 }
 
 export function mergeDeadCheckoutBookingUpdates(
@@ -110,7 +86,7 @@ export function mergeDeadCheckoutBookingUpdates(
 		const sessionStartAt = merged.sessionStartAt ?? session.sessionStartAt;
 
 		if (shouldArchiveDeadCheckoutBooking(sessionStartAt, now)) {
-			Object.assign(merged, bookingArchivedPatch());
+			Object.assign(merged, { archived: true });
 		}
 	}
 
@@ -149,12 +125,47 @@ export function isSessionEligibleForAutoArchive(
 	return true;
 }
 
+export function archiveSessionIfEligible(
+	ctx: MutationCtx,
+	bookingId: Id<"bookings"> | null,
+	now: number,
+	summary: SessionStripeArchiveSummary | null
+): ResultAsync<null, never> {
+	if (summary === null || bookingId === null) return okAsync(null);
+	const { session, stripeSummary } = summary;
+
+	if (session.archived || !isSessionEligibleForAutoArchive(session, stripeSummary, now))
+		return okAsync(null);
+
+	return setBookingArchived(ctx, bookingId, true);
+}
+
+export function loadSessionForAutoArchive(ctx: MutationCtx, bookingId: Id<"bookings"> | null) {
+	if (bookingId === null) return okAsync<Doc<"bookings"> | null>(null);
+
+	return getBookingRow(ctx, bookingId);
+}
+
+export function loadSessionInvoiceSummary(
+	ctx: MutationCtx,
+	session: Doc<"bookings"> | null
+): ResultAsync<SessionStripeArchiveSummary | null, never> {
+	if (session === null) return okAsync(null);
+
+	return listStripeInvoicesForBooking(ctx, session._id).map((invoices) => ({
+		session,
+		stripeSummary: summarizeStripeInvoices(invoices)
+	}));
+}
+
 /** Puts a confirmed session back in the admin inbox when a new unpaid invoice needs attention. */
 export function unarchiveSessionForNewUnpaidInvoice(
 	ctx: MutationCtx,
-	session: Doc<"bookings">
+	session: Doc<"bookings"> | null
 ): ResultAsync<null, never> {
-	if (!isBookingArchived(session)) {
+	if (session === null) return okAsync(null);
+
+	if (!session.archived) {
 		return okAsync(null);
 	}
 

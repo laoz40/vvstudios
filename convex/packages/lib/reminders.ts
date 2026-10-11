@@ -1,6 +1,7 @@
 import { err, ok, type Result } from "neverthrow";
 import type { Doc } from "#convex/_generated/dataModel";
 import type { QueryCtx } from "#convex/_generated/server";
+import { okOrThrow } from "#convex/shared/lib/result";
 import { REMINDER_BATCH_SIZE } from "#convex/shared/lib/reminderScheduleTime";
 
 export type PackageReminderType = "expiry";
@@ -33,25 +34,32 @@ export function validatePackageReminderClaim(
 	return ok(null);
 }
 
-export async function listPackagesInExpiryReminderWindow(
+export function listPackagesInExpiryReminderWindow(
 	ctx: QueryCtx,
 	args: { expiresAfter: number; expiresBefore: number; limit?: number }
 ) {
 	const limit = args.limit ?? REMINDER_BATCH_SIZE;
 
-	const packagesByStatus = await Promise.all(
-		(["paid", "schedule_email_failed"] as const).map((status) =>
+	return okOrThrow(
+		Promise.all([
 			ctx.db
 				.query("packages")
 				.withIndex("by_status_and_expiresAt", (query) =>
 					query
-						.eq("status", status)
+						.eq("status", "paid")
+						.gt("expiresAt", args.expiresAfter)
+						.lt("expiresAt", args.expiresBefore)
+				)
+				.take(limit),
+			ctx.db
+				.query("packages")
+				.withIndex("by_status_and_expiresAt", (query) =>
+					query
+						.eq("status", "schedule_email_failed")
 						.gt("expiresAt", args.expiresAfter)
 						.lt("expiresAt", args.expiresBefore)
 				)
 				.take(limit)
-		)
-	);
-
-	return packagesByStatus.flat();
+		])
+	).map((rows) => rows.flat());
 }

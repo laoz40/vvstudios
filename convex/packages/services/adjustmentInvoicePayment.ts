@@ -1,8 +1,8 @@
+import { completePackageAdjustmentInvoicePaymentServiceOperation } from "#convex/packages/lib/adjustmentInvoicePaymentIo";
 import { type ResultAsync } from "neverthrow";
-import { internal } from "#convex/_generated/api";
+
 import type { ActionCtx } from "#convex/_generated/server";
-import type { PackageAdjustmentInvoicePaymentClaimError } from "#convex/packages/lib/adjustmentInvoicePayment";
-import { fromConvexTuple } from "#convex/shared/lib/result";
+import { type PackageAdjustmentInvoicePaymentClaimError } from "#convex/packages/lib/adjustmentInvoicePayment";
 
 type CompletePackageAdjustmentInvoicePaymentSuccess = {
 	outcome: "already_completed" | "completed";
@@ -13,22 +13,6 @@ type CompletePackageAdjustmentInvoicePaymentFailure = {
 	error: PackageAdjustmentInvoicePaymentClaimError;
 };
 
-function mapPackageAdjustmentInvoicePaymentClaimFailed(
-	error: PackageAdjustmentInvoicePaymentClaimError
-) {
-	return { kind: "claim_failed" as const, error };
-}
-
-function toPackageAdjustmentInvoicePaymentCompletionOutcome(claim: {
-	outcome: "already_completed" | "completed";
-}) {
-	if (claim.outcome === "already_completed") {
-		return { outcome: "already_completed" as const };
-	}
-
-	return { outcome: "completed" as const };
-}
-
 export function completePackageAdjustmentInvoicePaymentService(
 	ctx: ActionCtx,
 	args: { stripeInvoiceId: string; adjustmentId?: string; paidAt: number }
@@ -36,9 +20,7 @@ export function completePackageAdjustmentInvoicePaymentService(
 	CompletePackageAdjustmentInvoicePaymentSuccess,
 	CompletePackageAdjustmentInvoicePaymentFailure
 > {
-	return fromConvexTuple(
-		ctx.runMutation(internal.packages.adjustments.claimPackageAdjustmentInvoicePayment, args)
-	)
-		.mapErr(mapPackageAdjustmentInvoicePaymentClaimFailed)
-		.map(toPackageAdjustmentInvoicePaymentCompletionOutcome);
+	return completePackageAdjustmentInvoicePaymentServiceOperation(ctx, args)
+		.mapErr((error) => ({ kind: "claim_failed" as const, error }))
+		.map(({ outcome }) => ({ outcome }));
 }

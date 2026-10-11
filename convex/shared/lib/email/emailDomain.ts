@@ -17,13 +17,6 @@ export function emailDomainCanReceiveMailAsync(email: string): ResultAsync<boole
 	}).orElse((canReceiveMail) => okAsync(canReceiveMail));
 }
 
-export async function emailDomainCanReceiveMail(email: string) {
-	return emailDomainCanReceiveMailAsync(email).match(
-		(canReceiveMail) => canReceiveMail,
-		() => false
-	);
-}
-
 export function rejectUninvitableEmailDomain(email: string, canReceiveMail: boolean) {
 	return canReceiveMail ? okAsync(email) : errAsync({ reason: "EMAIL_DOMAIN_INVALID" as const });
 }

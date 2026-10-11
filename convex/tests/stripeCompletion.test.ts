@@ -12,6 +12,12 @@
  *
  * 4. Package checkout claim
  *    Concurrent package checkout webhooks must only let one handler run completion.
+ *
+ * 5. Completed booking replay
+ *    A claimed booking already confirmed completes without settings or external work.
+ *
+ * 6. Unclaimed booking
+ *    Calendar completion preserves the genuine missing-claim error.
  */
 import { beforeEach, describe, expect, test, vi } from "vitest";
 import { bookingDocument, packageDocument } from "#convex/tests/insertDocumentDefaults";
@@ -34,6 +40,26 @@ beforeEach(() => {
 });
 
 describe("booking payment completion", () => {
+	test("returns already completed for a confirmed claimed booking", async () => {
+		const t = createConvexTest();
+		const bookingId = await seedBooking(t);
+		await claimBooking(t, bookingId, "evt-first");
+		await t.run((ctx) => ctx.db.patch("bookings", bookingId, { status: "confirmed" }));
+
+		expect(
+			await t.action(internal.googleCalendar.calendar.completeClaimedSession, { bookingId })
+		).toEqual([null, { outcome: "already_completed" }]);
+	});
+
+	test("rejects calendar completion for an unclaimed booking", async () => {
+		const t = createConvexTest();
+		const bookingId = await seedBooking(t);
+
+		expect(
+			await t.action(internal.googleCalendar.calendar.completeClaimedSession, { bookingId })
+		).toEqual([{ reason: "BOOKING_CONFIRMATION_NOT_CLAIMED" }, null]);
+	});
+
 	test("claims a Stripe completion once without overwriting the first claim", async () => {
 		const t = createConvexTest();
 		const bookingId = await seedBooking(t);

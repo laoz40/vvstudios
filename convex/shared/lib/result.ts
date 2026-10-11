@@ -18,8 +18,8 @@ export function fromConvexTuple<P extends Promise<ConvexResult<unknown, { reason
 	promise: P
 ): ResultAsync<ConvexSuccess<Awaited<P>>, ConvexError<Awaited<P>>>;
 export function fromConvexTuple(promise: Promise<ConvexResult<unknown, { reason: string }>>) {
-	return ResultAsync.fromSafePromise<ConvexResult<unknown, { reason: string }>>(promise).andThen(
-		([error, value]) => (error !== null ? err(error) : ok(value))
+	return new ResultAsync(
+		promise.then(([error, value]) => (error !== null ? err(error) : ok(value)))
 	);
 }
 

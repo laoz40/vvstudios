@@ -1,21 +1,11 @@
+import { accessForIdentity } from "#convex/shared/lib/authPermissionsSteps";
+import { requireUser } from "#convex/shared/services/authIdentity";
 import type { UserIdentity } from "convex/server";
 import { type ResultAsync } from "neverthrow";
 import type { Doc } from "#convex/_generated/dataModel";
 import type { QueryCtx } from "#convex/_generated/server";
-import {
-	adminUserAccessFromEditor,
-	editorUserAccessFromProfile,
-	getEditorByToken,
-	isAdminIdentity,
-	requireUser,
-	type UserAccess,
-	verifyUserPermission
-} from "#convex/shared/lib/auth";
+import { getEditorByToken, type UserAccess, verifyUserPermission } from "#convex/shared/lib/auth";
 import type { Permission } from "#/lib/permissions";
-
-function identityAfterPermissionCheck(identity: UserIdentity, _access: UserAccess) {
-	return identity;
-}
 
 function authorizeIdentityForPermission(
 	loadEditor: (
@@ -27,7 +17,7 @@ function authorizeIdentityForPermission(
 ) {
 	return getUserRoleAndPermissions(identity, loadEditor)
 		.andThen((access: UserAccess) => verifyUserPermission(permission, access))
-		.map((_access: UserAccess) => identityAfterPermissionCheck(identity, _access));
+		.map(() => identity);
 }
 
 function getUserRoleAndPermissions(
@@ -36,11 +26,9 @@ function getUserRoleAndPermissions(
 		token: UserIdentity["tokenIdentifier"]
 	) => ResultAsync<Doc<"editorProfiles"> | null, never>
 ): ResultAsync<UserAccess, { reason: "NOT_AUTHORIZED" }> {
-	if (isAdminIdentity(identity)) {
-		return loadEditor(identity.tokenIdentifier).map(adminUserAccessFromEditor);
-	}
-
-	return loadEditor(identity.tokenIdentifier).andThen(editorUserAccessFromProfile);
+	return loadEditor(identity.tokenIdentifier).andThen((editor) =>
+		accessForIdentity(identity, editor)
+	);
 }
 
 export function requireUserPermission(

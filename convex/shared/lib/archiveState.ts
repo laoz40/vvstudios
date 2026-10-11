@@ -3,24 +3,12 @@ import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { MutationCtx } from "#convex/_generated/server";
 import { okOrThrow } from "#convex/shared/lib/result";
 
-type BookingArchiveFields = Pick<Doc<"bookings">, "archived">;
-
-type PackageArchiveFields = Pick<Doc<"packages">, "archived">;
-
-export function isBookingArchived(record: BookingArchiveFields): boolean {
+export function isBookingArchived(record: Pick<Doc<"bookings">, "archived">): boolean {
 	return record.archived;
 }
 
-export function isPackageArchived(record: PackageArchiveFields): boolean {
+export function isPackageArchived(record: Pick<Doc<"packages">, "archived">): boolean {
 	return record.archived;
-}
-
-export function bookingArchivedPatch(): Pick<Doc<"bookings">, "archived"> {
-	return { archived: true };
-}
-
-export function packageArchivedPatch(): Pick<Doc<"packages">, "archived"> {
-	return { archived: true };
 }
 
 export function setBookingArchived(

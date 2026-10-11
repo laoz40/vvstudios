@@ -1,32 +1,28 @@
-import { ok, okAsync, type ResultAsync } from "neverthrow";
+"use node";
+
+import type { ResultAsync } from "neverthrow";
 import type { Doc } from "#convex/_generated/dataModel";
-import {
-	createBookingReceiptEmailArtifactsForBooking,
-	createPackageReceiptEmailArtifacts,
-	type PackageInvoiceInput
-} from "#studio/features/booking-invoice/lib/booking-artifacts";
+import type { PackageInvoiceInput } from "#studio/features/booking-invoice/lib/booking-artifacts";
 import {
 	attachPdfToBookingReceiptArtifacts,
 	attachPdfToPackageReceiptArtifacts,
-	bookingReceiptNumberFromArtifacts,
-	type BookingReceiptCustomerSentStep,
-	type PackageReceiptArtifactsStep
-} from "#convex/booking/lib/receiptEmailPipeline";
-import {
+	buildBookingReceiptHostEmailArgs,
+	buildPackageReceiptHostEmailArgs,
+	createBookingReceiptArtifacts,
+	createPackageReceiptArtifacts,
+	logBookingReceiptHostEmailFailure,
+	logPackageReceiptHostEmailFailure,
 	sendBookingReceiptCustomerEmail,
-	sendPackageReceiptCustomerEmail
+	sendPackageReceiptCustomerEmail,
+	type SentBookingReceipt,
+	type BookingReceiptEmailOptions,
+	type PackageReceiptArtifacts,
+	type PackageReceiptEmailOptions
 } from "#convex/booking/lib/receiptEmailPipeline";
-import { formatTimestampDateLong } from "#convex/shared/lib/email/emailSend";
-import { pickBookingAddonQuantities } from "#/domain/booking/addon-quantities";
 import {
 	sendPackageHostDetailsEmail,
 	sendSessionHostDetailsEmail
 } from "#convex/email/services/hostBookingEmails";
-
-interface SessionHostRescheduleDetails {
-	originalDate: string;
-	originalTime: string;
-}
 
 type BookingReceiptEmailError = {
 	reason:
@@ -46,136 +42,48 @@ export type PackageReceiptEmailError = {
 		| "RECEIPT_PDF_RENDER_FAILED";
 };
 
-function bookingPaidAt(booking: Doc<"bookings">) {
-	return (
-		booking.paymentCompletedAt ?? booking.bookingConfirmedAt ?? booking.pendingPaymentCreatedAt
-	);
-}
-
-function logBookingReceiptHostEmailFailure(
-	bookingId: Doc<"bookings">["_id"],
-	error: { reason: string }
-) {
-	console.error("Booking receipt host email send failed", { bookingId, reason: error.reason });
-
-	return ok(null);
-}
-
-function maybeSendBookingReceiptHostEmail(
+function sendBookingReceiptHostEmail(
 	booking: Doc<"bookings">,
-	options: { reschedule?: SessionHostRescheduleDetails; skipHostEmail?: boolean },
-
-	{ artifacts, parsedBooking }: BookingReceiptCustomerSentStep
+	options: BookingReceiptEmailOptions,
+	receipt: SentBookingReceipt
 ) {
-	const { receiptNumber, parsedBooking: bookingForHost } = bookingReceiptNumberFromArtifacts({
-		artifacts,
-		parsedBooking
-	});
-
-	if (options.skipHostEmail) {
-		return okAsync({ receiptNumber });
-	}
-
-	return sendSessionHostDetailsEmail({
-		invoiceNumber: receiptNumber,
-		name: bookingForHost.name,
-		email: bookingForHost.email,
-		phone: bookingForHost.phone,
-		accountName: bookingForHost.accountName,
-		abn: bookingForHost.abn,
-		date: bookingForHost.date,
-		time: bookingForHost.time,
-		service: bookingForHost.service,
-		duration: bookingForHost.duration,
-		addons: bookingForHost.addons,
-		notes: bookingForHost.notes,
-		reschedule: options.reschedule,
-		...pickBookingAddonQuantities(bookingForHost)
-	})
+	return sendSessionHostDetailsEmail(buildBookingReceiptHostEmailArgs(options, receipt))
 		.orElse((error: { reason: string }) => logBookingReceiptHostEmailFailure(booking._id, error))
-		.map(() => ({ receiptNumber }));
+		.map(() => ({ receiptNumber: receipt.artifacts.data.receipt.number }));
 }
 
-function logPackageReceiptHostEmailFailure(
-	packageId: PackageInvoiceInput["_id"],
-	error: { reason: string }
-) {
-	console.error("Package receipt host email send failed", { packageId, reason: error.reason });
-
-	return ok(null);
-}
-
-function maybeSendPackageReceiptHostEmail(
+function sendPackageReceiptHostEmail(
 	packageRecord: PackageInvoiceInput,
 	paidAt: number,
-	options: { skipHostEmail?: boolean },
-
-	{ artifacts }: { artifacts: PackageReceiptArtifactsStep["artifacts"] }
+	options: PackageReceiptEmailOptions,
+	receipt: PackageReceiptArtifacts
 ) {
-	const receiptNumber = artifacts.data.receipt.number;
-
-	if (options.skipHostEmail) {
-		return okAsync({ receiptNumber });
-	}
-
-	return sendPackageHostDetailsEmail({
-		invoiceNumber: receiptNumber,
-		name: packageRecord.name,
-		email: packageRecord.email,
-		phone: packageRecord.phone,
-		accountName: packageRecord.accountName,
-		abn: packageRecord.abn,
-		duration: packageRecord.duration,
-		addons: packageRecord.addons,
-		essentialEditQuantity: packageRecord.essentialEditQuantity,
-		completeEditQuantity: packageRecord.completeEditQuantity,
-		clipsPackageQuantity: packageRecord.clipsPackageQuantity,
-		handcraftedClipsQuantity: packageRecord.handcraftedClipsQuantity,
-		notes: packageRecord.notes,
-		packageSize: packageRecord.packageSize,
-		invoiceDueAt: paidAt
-	})
+	return sendPackageHostDetailsEmail(
+		buildPackageReceiptHostEmailArgs(packageRecord, paidAt, options, receipt)
+	)
 		.orElse((error: { reason: string }) =>
 			logPackageReceiptHostEmailFailure(packageRecord._id, error)
 		)
-		.map(() => ({ receiptNumber }));
+		.map(() => ({ receiptNumber: receipt.artifacts.data.receipt.number }));
 }
 
 export function sendBookingReceiptEmailsForBooking(
 	booking: Doc<"bookings">,
-	options: {
-		leadTimeMinutes: number;
-		reschedule?: SessionHostRescheduleDetails;
-		rescheduleUrl?: string;
-		skipHostEmail?: boolean;
-	}
+	options: BookingReceiptEmailOptions
 ): ResultAsync<{ receiptNumber: string }, BookingReceiptEmailError> {
-	return createBookingReceiptEmailArtifactsForBooking(booking, bookingPaidAt(booking), {
-		leadTimeMinutes: options.leadTimeMinutes,
-		rescheduleUrl: options.rescheduleUrl
-	})
+	return createBookingReceiptArtifacts(booking, options)
 		.andThen(attachPdfToBookingReceiptArtifacts)
-		.andThen((step) => sendBookingReceiptCustomerEmail(booking, step))
-		.andThen((_value) => maybeSendBookingReceiptHostEmail(booking, options, _value));
+		.andThen((receipt) => sendBookingReceiptCustomerEmail(booking, receipt))
+		.andThen((receipt) => sendBookingReceiptHostEmail(booking, options, receipt));
 }
 
 export function sendPackageReceiptEmailsForPackage(
 	packageRecord: PackageInvoiceInput,
 	paidAt: number,
-	options: {
-		expiresAt?: number;
-		leadTimeMinutes: number;
-		scheduleUrl: string;
-		skipHostEmail?: boolean;
-	}
+	options: PackageReceiptEmailOptions
 ): ResultAsync<{ receiptNumber: string }, PackageReceiptEmailError> {
-	const { expiresAt, ...artifactOptions } = options;
-
-	return createPackageReceiptEmailArtifacts(packageRecord, paidAt, {
-		...artifactOptions,
-		scheduleExpiresAtLabel: expiresAt === undefined ? undefined : formatTimestampDateLong(expiresAt)
-	})
+	return createPackageReceiptArtifacts(packageRecord, paidAt, options)
 		.andThen(attachPdfToPackageReceiptArtifacts)
-		.andThen((step) => sendPackageReceiptCustomerEmail(packageRecord, paidAt, step))
-		.andThen((_value) => maybeSendPackageReceiptHostEmail(packageRecord, paidAt, options, _value));
+		.andThen((receipt) => sendPackageReceiptCustomerEmail(packageRecord, paidAt, receipt))
+		.andThen((receipt) => sendPackageReceiptHostEmail(packageRecord, paidAt, options, receipt));
 }

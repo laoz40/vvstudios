@@ -1,78 +1,61 @@
-import { err, errAsync, okAsync, type ResultAsync as ResultAsyncType } from "neverthrow";
+import { type Result, type ResultAsync as ResultAsyncType } from "neverthrow";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
-import { getBookingAvailabilitySettings } from "#convex/booking/lib/settings";
+
 import { getOrCreateDriveClientId } from "#convex/drive/services/setup";
 import { insertPackageSessionBookingRow as persistPackageSessionBookingRow } from "#convex/packages/lib/sessionBookings";
-import { patchPackageExpiryReminderStateCleared } from "#convex/packages/lib/updates";
-import { scheduleDriveSetup } from "#convex/drive/lib/driveScheduling";
-import { formatDriveClientFolderName } from "#studio/lib/bookingdatetime";
+
 import { schedulePackageAdjustmentWhenSessionsComplete } from "#convex/packages/lib/adjustmentScheduling";
 import {
-	checkPackageSessionAvailability,
 	getCapacityConsumingPackageSessions,
 	rejectLockedEditablePackageSession,
 	rejectWhenPackageCapacityFull,
-	sessionConsumesPackageCapacity,
-	getPackageSessionForToken,
 	type PackageSessionEditError,
 	type UnschedulePackageSessionError
 } from "#convex/packages/lib/scheduling";
-import {
-	getValidPackageByToken,
-	type ValidPackage,
-	type ValidPackageByTokenError
-} from "#convex/packages/lib/lookup";
+import { type ValidPackage, type ValidPackageByTokenError } from "#convex/packages/lib/lookup";
+import { getValidPackageByToken } from "#convex/packages/services/tokenScheduling";
 import type { SessionAvailabilitySettings } from "#convex/sessions/lib/calendarTime";
-import { getSessionStartAt } from "#convex/sessions/lib/adminEdit";
-import { env } from "#convex/env";
-import { getPackageSessionAddons } from "#/domain/booking/catalog";
-import type { BookingService } from "#/domain/booking/catalog";
-import type { BookingAvailabilitySettings } from "#studio/lib/bookingAvailabilitySettings";
+import type { SessionTimeParseError } from "#convex/sessions/lib/calendarTime";
+import { checkSessionMeetsAvailabilitySettings } from "#convex/sessions/services/calendarTime";
 
-type RecordingSpace = BookingService;
+import type { BookingAvailabilitySettings } from "#studio/lib/bookingAvailabilitySettings";
+import {
+	type PackageSessionRequestDetails as LibPackageSessionRequestDetails,
+	type PackageRescheduleRequestDetails as LibPackageRescheduleRequestDetails,
+	type PackageUnscheduleRequestDetails as LibPackageUnscheduleRequestDetails,
+	type SaveCreatedPackageSessionArgs as LibSaveCreatedPackageSessionArgs,
+	packageSessionAvailabilityArgs,
+	validateRemainingPackageCapacity,
+	packageDriveClientArgs,
+	buildPackageBookingFields,
+	clearPendingPackageReminder,
+	attachPackageSessionForToken,
+	loadSettingsForEditableSession,
+	loadBookingSettingsForPackage,
+	parseCreateStartTimeForPackage,
+	parseRescheduleStartTimeForSession,
+	loadCapacityConsumingSessionsForPackage,
+	parseCreatedSessionStartTime,
+	scheduleDriveSetupAfterPackageSessionInsert
+} from "#convex/packages/lib/sessionMutationsSteps";
+
+function checkPackageSessionAvailability(
+	args: { date: string; time: string },
+	packageRecord: ValidPackage,
+	settings: SessionAvailabilitySettings,
+	now: number
+) {
+	return checkSessionMeetsAvailabilitySettings(
+		packageSessionAvailabilityArgs(args, packageRecord, settings, now)
+	);
+}
 
 type EditablePackageSessionDetails = {
 	packageRecord: ValidPackage;
 	session: Doc<"bookings">;
 	settings: SessionAvailabilitySettings;
 };
-
-function attachPackageSessionRecord(packageRecord: ValidPackage, session: Doc<"bookings"> | null) {
-	return { packageRecord, session };
-}
-
-function attachPackageSessionForToken(
-	ctx: QueryCtx,
-	bookingId: Id<"bookings">,
-	packageRecord: ValidPackage
-) {
-	return getPackageSessionForToken(ctx, packageRecord._id, bookingId).map(
-		(session: Doc<"bookings"> | null) => attachPackageSessionRecord(packageRecord, session)
-	);
-}
-
-function attachAvailabilitySettingsToSession(
-	packageRecord: ValidPackage,
-	session: Doc<"bookings">,
-
-	settings: SessionAvailabilitySettings
-) {
-	return { packageRecord, session, settings };
-}
-
-function loadSettingsForEditableSession(
-	ctx: QueryCtx,
-	{ packageRecord, session }: { packageRecord: ValidPackage; session: Doc<"bookings"> | null }
-) {
-	if (!session || !sessionConsumesPackageCapacity(session)) {
-		return err({ reason: "PACKAGE_BOOKING_NOT_FOUND" as const });
-	}
-
-	return getBookingAvailabilitySettings(ctx).map((settings: SessionAvailabilitySettings) =>
-		attachAvailabilitySettingsToSession(packageRecord, session, settings)
-	);
-}
 
 function getEditablePackageSession(
 	ctx: QueryCtx,
@@ -97,49 +80,13 @@ type PackageRescheduleRequestArgs = PackageSessionRequestArgs & { bookingId: Id<
 
 type PackageUnscheduleRequestArgs = { bookingId: Id<"bookings">; token: string; now: number };
 
-export type PackageSessionRequestDetails = {
-	packageRecord: ValidPackage;
-	eventBufferMinutes: number;
-	leadTimeMinutes: number;
-	sessionStartAt: number;
-};
+export type PackageSessionRequestDetails = LibPackageSessionRequestDetails;
 
-export type PackageRescheduleRequestDetails = {
-	session: Doc<"bookings">;
-	packageRecord: ValidPackage;
-	eventBufferMinutes: number;
-	sessionStartAt: number;
-};
+export type PackageRescheduleRequestDetails = LibPackageRescheduleRequestDetails;
 
-export type PackageUnscheduleRequestDetails = {
-	session: Doc<"bookings">;
-	packageRecord: ValidPackage;
-};
+export type PackageUnscheduleRequestDetails = LibPackageUnscheduleRequestDetails;
 
-export type SaveCreatedPackageSessionArgs = {
-	token: string;
-	date: string;
-	time: string;
-	service: RecordingSpace;
-	notes?: string;
-	remotePodcast: boolean;
-	now: number;
-	googleCalendarId?: string;
-	googleEventId?: string;
-};
-
-function attachPackageBookingSettings(
-	packageRecord: ValidPackage,
-	settings: BookingAvailabilitySettings
-) {
-	return { packageRecord, settings };
-}
-
-function loadBookingSettingsForPackage(ctx: QueryCtx, packageRecord: ValidPackage) {
-	return getBookingAvailabilitySettings(ctx).map((settings: BookingAvailabilitySettings) =>
-		attachPackageBookingSettings(packageRecord, settings)
-	);
-}
+export type SaveCreatedPackageSessionArgs = LibSaveCreatedPackageSessionArgs;
 
 export function loadValidPackageAndBookingSettings(ctx: QueryCtx, args: PackageSessionRequestArgs) {
 	return getValidPackageByToken(ctx, args.token, args.now).andThen((packageRecord: ValidPackage) =>
@@ -153,19 +100,21 @@ export function rejectPackageCreateWhenUnavailableOrFull(
 	packageRecord: ValidPackage,
 	settings: BookingAvailabilitySettings
 ) {
-	const availability = checkPackageSessionAvailability(args, packageRecord, settings, args.now);
+	return checkPackageSessionAvailability(args, packageRecord, settings, args.now).asyncAndThen(() =>
+		loadAvailablePackageCapacity(ctx, packageRecord, settings)
+	);
+}
 
-	if (availability.isErr()) {
-		return errAsync(availability.error);
-	}
-
+function loadAvailablePackageCapacity(
+	ctx: QueryCtx,
+	packageRecord: ValidPackage,
+	settings: BookingAvailabilitySettings
+) {
 	return getCapacityConsumingPackageSessions(
 		ctx,
 		packageRecord._id,
 		packageRecord.packageSize
-	).andThen((bookings: Doc<"bookings">[]) =>
-		rejectWhenPackageCapacityFull(packageRecord, settings, bookings)
-	);
+	).andThen((bookings) => rejectWhenPackageCapacityFull(packageRecord, settings, bookings));
 }
 
 export function parsePackageSessionCreateStartTime(
@@ -173,33 +122,7 @@ export function parsePackageSessionCreateStartTime(
 	packageRecord: ValidPackage,
 	settings: { eventBufferMinutes: number; leadTimeMinutes: number }
 ) {
-	return okAsync(null).andThen(() => parseCreateStartTimeForPackage(args, packageRecord, settings));
-}
-
-function toPackageSessionRequestDetails(
-	_args: PackageSessionRequestArgs,
-	packageRecord: ValidPackage,
-	settings: { eventBufferMinutes: number; leadTimeMinutes: number },
-
-	sessionStartAt: number
-) {
-	return {
-		packageRecord,
-		eventBufferMinutes: settings.eventBufferMinutes,
-		leadTimeMinutes: settings.leadTimeMinutes,
-		sessionStartAt
-	};
-}
-
-function parseCreateStartTimeForPackage(
-	args: PackageSessionRequestArgs,
-	packageRecord: ValidPackage,
-	settings: { eventBufferMinutes: number; leadTimeMinutes: number }
-) {
-	return getSessionStartAt(args.date, args.time, env.GOOGLE_CALENDAR_TIMEZONE).map(
-		(sessionStartAt: number) =>
-			toPackageSessionRequestDetails(args, packageRecord, settings, sessionStartAt)
-	);
+	return parseCreateStartTimeForPackage(args, packageRecord, settings);
 }
 
 export function loadEditablePackageSessionForReschedule(
@@ -215,18 +138,12 @@ function ensureRescheduleSlotAvailable(
 	args: PackageRescheduleRequestArgs,
 	details: EditablePackageSessionDetails
 ) {
-	const slotAvailability = checkPackageSessionAvailability(
+	return checkPackageSessionAvailability(
 		args,
 		details.packageRecord,
 		details.settings,
 		args.now
-	);
-
-	if (slotAvailability.isErr()) {
-		return errAsync(slotAvailability.error);
-	}
-
-	return okAsync(details);
+	).map(() => details);
 }
 
 export function parsePackageRescheduleStartTime(
@@ -237,36 +154,7 @@ export function parsePackageRescheduleStartTime(
 		settings: { eventBufferMinutes: number };
 	}
 ) {
-	return okAsync(null).andThen(() => parseRescheduleStartTimeForSession(args, details));
-}
-
-function toPackageRescheduleRequestDetails(
-	details: {
-		session: Doc<"bookings">;
-		packageRecord: ValidPackage;
-		settings: { eventBufferMinutes: number };
-	},
-	sessionStartAt: number
-) {
-	return {
-		session: details.session,
-		packageRecord: details.packageRecord,
-		eventBufferMinutes: details.settings.eventBufferMinutes,
-		sessionStartAt
-	};
-}
-
-function parseRescheduleStartTimeForSession(
-	args: PackageRescheduleRequestArgs,
-	details: {
-		session: Doc<"bookings">;
-		packageRecord: ValidPackage;
-		settings: { eventBufferMinutes: number };
-	}
-) {
-	return getSessionStartAt(args.date, args.time, env.GOOGLE_CALENDAR_TIMEZONE).map(
-		(sessionStartAt: number) => toPackageRescheduleRequestDetails(details, sessionStartAt)
-	);
+	return parseRescheduleStartTimeForSession(args, details);
 }
 
 export function loadEditablePackageSessionForUnschedule(
@@ -276,14 +164,10 @@ export function loadEditablePackageSessionForUnschedule(
 	PackageUnscheduleRequestDetails,
 	ValidPackageByTokenError | UnschedulePackageSessionError
 > {
-	return getEditablePackageSession(ctx, args).map(toPackageUnscheduleRequestDetails);
-}
-
-function toPackageUnscheduleRequestDetails({
-	session,
-	packageRecord
-}: EditablePackageSessionDetails): PackageUnscheduleRequestDetails {
-	return { session, packageRecord };
+	return getEditablePackageSession(ctx, args).map(({ session, packageRecord }) => ({
+		session,
+		packageRecord
+	}));
 }
 
 export function loadValidPackageAndCapacityConsumingSessions(
@@ -295,42 +179,17 @@ export function loadValidPackageAndCapacityConsumingSessions(
 	);
 }
 
-function attachCapacityConsumingSessionsForPackage(
-	packageFromDb: ValidPackage,
-	packageSessions: Doc<"bookings">[]
-) {
-	return { packageFromDb, packageSessions };
-}
-
-function loadCapacityConsumingSessionsForPackage(ctx: MutationCtx, packageFromDb: ValidPackage) {
-	return getCapacityConsumingPackageSessions(ctx, packageFromDb._id, packageFromDb.packageSize).map(
-		(packageSessions: Doc<"bookings">[]) =>
-			attachCapacityConsumingSessionsForPackage(packageFromDb, packageSessions)
-	);
-}
-
 export function rejectFullPackageAndParseSessionStartTime(
 	args: Pick<SaveCreatedPackageSessionArgs, "date" | "time">,
 	packageFromDb: ValidPackage,
 	packageSessions: Doc<"bookings">[]
-) {
-	if (packageSessions.length >= packageFromDb.packageSize) {
-		return errAsync({ reason: "PACKAGE_CAPACITY_EXCEEDED" as const });
-	}
-
-	return okAsync(null).andThen(() => parseCreatedSessionStartTime(args, packageFromDb));
-}
-
-function toCreatedSessionStartTime(packageFromDb: ValidPackage, sessionStartAt: number) {
-	return { packageFromDb, sessionStartAt };
-}
-
-function parseCreatedSessionStartTime(
-	args: Pick<SaveCreatedPackageSessionArgs, "date" | "time">,
-	packageFromDb: ValidPackage
-) {
-	return getSessionStartAt(args.date, args.time, env.GOOGLE_CALENDAR_TIMEZONE).map(
-		(sessionStartAt: number) => toCreatedSessionStartTime(packageFromDb, sessionStartAt)
+): Result<
+	{ packageFromDb: ValidPackage; sessionStartAt: number },
+	| { reason: "PACKAGE_CAPACITY_EXCEEDED" }
+	| Exclude<SessionTimeParseError, { reason: "BOOKING_INVALID_DURATION" }>
+> {
+	return validateRemainingPackageCapacity(packageFromDb, packageSessions).andThen(() =>
+		parseCreatedSessionStartTime(args, packageFromDb)
 	);
 }
 
@@ -340,14 +199,9 @@ export function insertPackageSessionBookingRow(
 	packageFromDb: ValidPackage,
 	sessionStartAt: number
 ) {
-	return getOrCreateDriveClientId(ctx, {
-		email: packageFromDb.email,
-		displayName: formatDriveClientFolderName({
-			accountName: packageFromDb.accountName,
-			contactName: packageFromDb.name
-		})
-	}).andThen((driveClientId: Id<"driveClients">) =>
-		persistPackageSessionAfterDriveClient(ctx, args, packageFromDb, sessionStartAt, driveClientId)
+	return getOrCreateDriveClientId(ctx, packageDriveClientArgs(packageFromDb)).andThen(
+		(driveClientId: Id<"driveClients">) =>
+			persistPackageSessionAfterDriveClient(ctx, args, packageFromDb, sessionStartAt, driveClientId)
 	);
 }
 
@@ -358,57 +212,16 @@ function persistPackageSessionAfterDriveClient(
 	sessionStartAt: number,
 	driveClientId: Id<"driveClients">
 ) {
-	const bookingFields = {
-		name: packageFromDb.name,
-		phone: packageFromDb.phone,
-		accountName: packageFromDb.accountName,
-		abn: packageFromDb.abn,
-		email: packageFromDb.email,
-		instagramHandle: packageFromDb.instagramHandle,
-		date: args.date,
-		time: args.time,
+	const bookingFields = buildPackageBookingFields(
+		args,
+		packageFromDb,
 		sessionStartAt,
-		duration: packageFromDb.duration,
-		service: args.service,
-		addons: getPackageSessionAddons(packageFromDb.addons, args.remotePodcast),
-		essentialEditQuantity: packageFromDb.essentialEditQuantity,
-		completeEditQuantity: packageFromDb.completeEditQuantity,
-		clipsPackageQuantity: packageFromDb.clipsPackageQuantity,
-		handcraftedClipsQuantity: packageFromDb.handcraftedClipsQuantity,
-		notes: args.notes,
-		status: "confirmed" as const,
-		pendingPaymentCreatedAt: packageFromDb.createdAt,
-		paymentCompletedAt: packageFromDb.paidAt,
-		bookingConfirmedAt: args.now,
-		googleCalendarId: args.googleCalendarId,
-		googleEventId: args.googleEventId,
-		packageId: packageFromDb._id,
-		receiptNumber: packageFromDb.receiptNumber,
-		archived: false,
 		driveClientId
-	};
+	);
 
 	return persistPackageSessionBookingRow(ctx, bookingFields).andThen((bookingId: Id<"bookings">) =>
 		scheduleDriveSetupAfterPackageSessionInsert(ctx, packageFromDb, sessionStartAt, bookingId)
 	);
-}
-
-function scheduleDriveSetupAfterPackageSessionInsert(
-	ctx: MutationCtx,
-	packageFromDb: ValidPackage,
-	sessionStartAt: number,
-	bookingId: Id<"bookings">
-) {
-	return scheduleDriveSetup(ctx, {
-		bookingId,
-		sessionStartAt,
-		duration: packageFromDb.duration,
-		packageId: packageFromDb._id
-	}).map(() => toPackageSessionInsertResult(packageFromDb, bookingId));
-}
-
-function toPackageSessionInsertResult(packageFromDb: ValidPackage, bookingId: Id<"bookings">) {
-	return { bookingId, packageFromDb };
 }
 
 export function clearPackageExpiryReminderStateWhenPending(
@@ -416,17 +229,7 @@ export function clearPackageExpiryReminderStateWhenPending(
 	packageFromDb: ValidPackage,
 	bookingId: Id<"bookings">
 ) {
-	if (packageFromDb.packageReminderState?.type !== "expiry") {
-		return okAsync({ bookingId, packageFromDb });
-	}
-
-	return patchPackageExpiryReminderStateCleared(ctx, packageFromDb._id).map(() =>
-		toClearedExpiryReminderResult(bookingId, packageFromDb)
-	);
-}
-
-function toClearedExpiryReminderResult(bookingId: Id<"bookings">, packageFromDb: ValidPackage) {
-	return { bookingId, packageFromDb };
+	return clearPendingPackageReminder(ctx, packageFromDb, bookingId);
 }
 
 export function schedulePackageAdjustmentWhenAllSessionsBooked(
@@ -434,11 +237,5 @@ export function schedulePackageAdjustmentWhenAllSessionsBooked(
 	packageId: Id<"packages">,
 	bookingId: Id<"bookings">
 ) {
-	return schedulePackageAdjustmentWhenSessionsComplete(ctx, packageId).map(() =>
-		toScheduledAdjustmentResult(bookingId)
-	);
-}
-
-function toScheduledAdjustmentResult(bookingId: Id<"bookings">) {
-	return { bookingId };
+	return schedulePackageAdjustmentWhenSessionsComplete(ctx, packageId).map(() => ({ bookingId }));
 }

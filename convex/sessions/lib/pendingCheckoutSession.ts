@@ -1,17 +1,12 @@
 import { err, ok, type Result, type ResultAsync } from "neverthrow";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { MutationCtx } from "#convex/_generated/server";
-import { env } from "#convex/env";
 import type { BookingAddonQuantitiesArgs } from "#convex/booking/lib/addonQuantities";
 import type { BookingAddon } from "#/domain/booking/catalog";
 import { buildBookingSearchBlob } from "#convex/shared/lib/adminSearch/adminSearchBlob";
 import { normalizePhone } from "#convex/shared/lib/contactNormalization";
 import { okOrThrow } from "#convex/shared/lib/result";
-import {
-	checkSessionMeetsAvailabilitySettings,
-	type SessionAvailabilityValidationError
-} from "#convex/sessions/lib/calendarTime";
-import type { BookingAvailabilitySettings } from "#studio/lib/bookingAvailabilitySettings";
+import type { SessionAvailabilityValidationError } from "#convex/sessions/lib/calendarTime";
 
 export type CreatePendingCheckoutSessionArgs = {
 	name: string;
@@ -26,19 +21,6 @@ export type CreatePendingCheckoutSessionArgs = {
 	addons: BookingAddon[];
 	notes?: string;
 } & BookingAddonQuantitiesArgs;
-
-export function validateCheckoutSessionAvailability(
-	settings: BookingAvailabilitySettings,
-	args: Pick<CreatePendingCheckoutSessionArgs, "date" | "duration" | "time">
-): Result<null, SessionAvailabilityValidationError> {
-	return checkSessionMeetsAvailabilitySettings({
-		date: args.date,
-		duration: args.duration,
-		settings,
-		time: args.time,
-		timeZone: env.GOOGLE_CALENDAR_TIMEZONE
-	}).map(() => null);
-}
 
 export function findPendingPaymentBookingAtStartTime(
 	ctx: MutationCtx,

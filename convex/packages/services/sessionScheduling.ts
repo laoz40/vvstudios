@@ -1,14 +1,21 @@
-import { err, ok } from "neverthrow";
+import {
+	createdPackageSessionSaveArgs,
+	checkRateLimitForPackageSession,
+	logOrphanCalendarCleanupFailure,
+	reservationFromPackageSessionSlot
+} from "#convex/packages/lib/sessionSchedulingSteps";
+
 import type { ResultAsync } from "neverthrow";
+import { errAsync } from "neverthrow";
 import type { Id } from "#convex/_generated/dataModel";
 import type { ActionCtx } from "#convex/_generated/server";
 import {
-	checkPackageIdSubmitRateLimit,
 	cancelPackageSessionBooking,
 	cleanupCancelledPackageSessionDrive,
 	clearPackageSessionReservation,
 	createPackageSessionCalendarEvent,
 	deletePackageSessionCalendarEvent,
+	deleteOrphanPackageSessionCalendarEvent,
 	loadPackageRescheduleRequest,
 	loadPackageSessionRequest,
 	loadPackageUnscheduleRequest,
@@ -32,12 +39,12 @@ import type { GoogleCalendarWriteError } from "#convex/googleCalendar/lib/google
 import type {
 	PackageRescheduleRequestDetails,
 	PackageSessionRequestDetails,
-	PackageUnscheduleRequestDetails,
-	SaveCreatedPackageSessionArgs
+	PackageUnscheduleRequestDetails
 } from "#convex/packages/services/sessionMutations";
-import { getPackageSessionAddons } from "#/domain/booking/catalog";
+
 import type { SessionReservation } from "#convex/sessions/lib/reservations";
 import type { BookingService } from "#/domain/booking/catalog";
+import { getPackageSessionAddons } from "#/domain/booking/catalog";
 
 type RecordingSpace = BookingService;
 
@@ -54,16 +61,6 @@ export type ReschedulePackageSessionArgs = PackageSessionArgs & { bookingId: Id<
 
 export type UnschedulePackageSessionArgs = { bookingId: Id<"bookings">; token: string };
 
-function keepPackageSessionRequestDetails(details: PackageSessionRequestDetails) {
-	return details;
-}
-
-function checkRateLimitForPackageSession(ctx: ActionCtx, details: PackageSessionRequestDetails) {
-	return checkPackageIdSubmitRateLimit(ctx, details.packageRecord._id).map(() =>
-		keepPackageSessionRequestDetails(details)
-	);
-}
-
 export function loadPackageCreateRequestAndCheckRateLimit(
 	ctx: ActionCtx,
 	args: PackageSessionArgs,
@@ -77,13 +74,6 @@ export function loadPackageCreateRequestAndCheckRateLimit(
 	}).andThen((details: PackageSessionRequestDetails) =>
 		checkRateLimitForPackageSession(ctx, details)
 	);
-}
-
-function attachCalendarToPackageSessionDetails(
-	details: PackageSessionRequestDetails,
-	calendar: { googleCalendarId?: string; googleEventId?: string }
-) {
-	return { calendar, details };
 }
 
 export function syncNewPackageSessionCalendar(
@@ -100,9 +90,10 @@ export function syncNewPackageSessionCalendar(
 	return createPackageSessionCalendarEvent(ctx, {
 		session: null,
 		details: toPackageCalendarDetails(args, details.packageRecord, details.eventBufferMinutes)
-	}).map((calendar: { googleCalendarId?: string; googleEventId?: string }) =>
-		attachCalendarToPackageSessionDetails(details, calendar)
-	);
+	}).map((calendar: { googleCalendarId?: string; googleEventId?: string }) => ({
+		calendar,
+		details
+	}));
 }
 
 function compensateOrphanCalendarAndFail<T>(
@@ -112,7 +103,7 @@ function compensateOrphanCalendarAndFail<T>(
 	calendar: { googleCalendarId?: string; googleEventId?: string },
 	saveError: T
 ) {
-	return deletePackageSessionCalendarEvent(ctx, {
+	return deleteOrphanPackageSessionCalendarEvent(ctx, {
 		date: args.date,
 		duration: details.packageRecord.duration,
 		email: details.packageRecord.email,
@@ -122,29 +113,7 @@ function compensateOrphanCalendarAndFail<T>(
 		time: args.time
 	})
 		.mapErr((cleanupError) => logOrphanCalendarCleanupFailure(saveError, cleanupError))
-		.andThen(() => err(saveError));
-}
-
-function logOrphanCalendarCleanupFailure<T>(saveError: T, cleanupError: { reason: string }) {
-	console.error("Failed to compensate orphan package Calendar event", cleanupError);
-
-	return saveError;
-}
-
-function recoverFailedPackageSessionSave(
-	ctx: ActionCtx,
-	args: PackageSessionArgs,
-	_now: number,
-	calendar: { googleCalendarId?: string; googleEventId?: string },
-	details: PackageSessionRequestDetails,
-
-	saveError: CreatePackageSessionError
-) {
-	if (!calendar.googleEventId || !calendar.googleCalendarId) {
-		return err(saveError);
-	}
-
-	return compensateOrphanCalendarAndFail(ctx, args, details, calendar, saveError);
+		.andThen(() => errAsync(saveError));
 }
 
 export function saveCreatedPackageSessionAfterCalendar(
@@ -154,18 +123,10 @@ export function saveCreatedPackageSessionAfterCalendar(
 	calendar: { googleCalendarId?: string; googleEventId?: string },
 	details: PackageSessionRequestDetails
 ): ResultAsync<{ bookingId: Id<"bookings"> }, CreatePackageSessionError> {
-	const saveArgs: SaveCreatedPackageSessionArgs = { ...args, now };
-
-	if (calendar.googleCalendarId) {
-		saveArgs.googleCalendarId = calendar.googleCalendarId;
-	}
-
-	if (calendar.googleEventId) {
-		saveArgs.googleEventId = calendar.googleEventId;
-	}
+	const saveArgs = createdPackageSessionSaveArgs(args, now, calendar);
 
 	return saveCreatedPackageSession(ctx, saveArgs).orElse((saveError: CreatePackageSessionError) =>
-		recoverFailedPackageSessionSave(ctx, args, now, calendar, details, saveError)
+		compensateOrphanCalendarAndFail(ctx, args, details, calendar, saveError)
 	);
 }
 
@@ -183,16 +144,6 @@ export function loadPackageRescheduleTarget(
 	});
 }
 
-function reservationFromPackageSessionSlot(
-	reservationResult:
-		| { outcome: "unavailable" }
-		| { outcome: "reserved"; reservation: SessionReservation }
-) {
-	return reservationResult.outcome === "unavailable"
-		? err({ reason: "BOOKING_TIME_UNAVAILABLE" as const })
-		: ok(reservationResult.reservation);
-}
-
 export function reservePackageRescheduleSlot(
 	ctx: ActionCtx,
 	args: ReschedulePackageSessionArgs,
@@ -206,15 +157,6 @@ export function reservePackageRescheduleSlot(
 	}).andThen(reservationFromPackageSessionSlot);
 }
 
-function attachRescheduleCalendarContext(
-	details: PackageRescheduleRequestDetails,
-	reservation: SessionReservation,
-
-	calendar: { googleCalendarId?: string; googleEventId?: string }
-) {
-	return { calendar, details, reservation };
-}
-
 function releaseReservationAfterCalendarFailure(
 	ctx: ActionCtx,
 	args: ReschedulePackageSessionArgs,
@@ -223,7 +165,7 @@ function releaseReservationAfterCalendarFailure(
 	calendarError: ReschedulePackageSessionError
 ) {
 	return clearPackageSessionReservation(ctx, { bookingId: args.bookingId, reservation }).andThen(
-		() => err(calendarError)
+		() => errAsync(calendarError)
 	);
 }
 
@@ -244,16 +186,14 @@ export function syncPackageRescheduleCalendar(
 		session: toPackageCalendarSession(details.session),
 		details: toPackageCalendarDetails(args, details.packageRecord, details.eventBufferMinutes)
 	})
-		.map((calendar: { googleCalendarId?: string; googleEventId?: string }) =>
-			attachRescheduleCalendarContext(details, reservation, calendar)
-		)
+		.map((calendar: { googleCalendarId?: string; googleEventId?: string }) => ({
+			calendar,
+			details,
+			reservation
+		}))
 		.orElse((calendarError: ReschedulePackageSessionError) =>
 			releaseReservationAfterCalendarFailure(ctx, args, reservation, calendarError)
 		);
-}
-
-function toRescheduleBookingId(bookingId: Id<"bookings">) {
-	return { bookingId };
 }
 
 function releaseReservationAfterRescheduleSaveFailure(
@@ -264,7 +204,7 @@ function releaseReservationAfterRescheduleSaveFailure(
 	saveError: ReschedulePackageSessionError
 ) {
 	return clearPackageSessionReservation(ctx, { bookingId: args.bookingId, reservation }).andThen(
-		() => err(saveError)
+		() => errAsync(saveError)
 	);
 }
 
@@ -288,7 +228,7 @@ export function savePackageSessionRescheduleAfterCalendar(
 		packageId: details.packageRecord._id,
 		reservation
 	})
-		.map(() => toRescheduleBookingId(args.bookingId))
+		.map(() => ({ bookingId: args.bookingId }))
 		.orElse((saveError: ReschedulePackageSessionError) =>
 			releaseReservationAfterRescheduleSaveFailure(ctx, args, reservation, saveError)
 		);
@@ -320,15 +260,9 @@ export function markPackageSessionCancelled(
 	return cancelPackageSessionBooking(ctx, { ...args, now });
 }
 
-function keepCancelledPackageSession(cancelled: { cancelled: true; bookingId: Id<"bookings"> }) {
-	return cancelled;
-}
-
 export function cleanupCancelledPackageDrive(
 	ctx: ActionCtx,
 	cancelled: { cancelled: true; bookingId: Id<"bookings"> }
 ): ResultAsync<{ cancelled: true; bookingId: Id<"bookings"> }, UnschedulePackageSessionError> {
-	return cleanupCancelledPackageSessionDrive(ctx, cancelled.bookingId).map(() =>
-		keepCancelledPackageSession(cancelled)
-	);
+	return cleanupCancelledPackageSessionDrive(ctx, cancelled.bookingId).map(() => cancelled);
 }

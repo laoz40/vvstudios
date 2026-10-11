@@ -1,17 +1,19 @@
 "use node";
 
-import { err, errAsync, ok, okAsync, type ResultAsync } from "neverthrow";
-import { internal } from "#convex/_generated/api";
+import { errAsync, okAsync, type ResultAsync } from "neverthrow";
 import type { Id } from "#convex/_generated/dataModel";
 import type { ActionCtx } from "#convex/_generated/server";
 import {
-	areDriveSetupFoldersSaved,
-	shouldRecordDriveSetupFailure,
+	getDriveSetupRow,
+	saveReportableDriveSetupFailure,
+	saveDriveSetupResultRow
+} from "#convex/drive/lib/driveFolderMutations";
+import {
 	validateDriveSetup,
+	validateSavedDriveSetupFolders,
 	type DriveSetupInfo,
 	type SetupError as LibSetupError
 } from "#convex/drive/lib/sessionFolders/driveSetupInfo";
-import { fromConvexTuple } from "#convex/shared/lib/result";
 import { requireClientDrivePermissionsAndSendAssetsEmail } from "#convex/drive/services/driveClientPermissions";
 import { setupEditorAccess } from "#convex/drive/services/editorDrivePermissions";
 
@@ -23,17 +25,9 @@ export function loadValidatedDriveSetup(
 	ctx: ActionCtx,
 	args: DriveSetupLoadArgs
 ): ResultAsync<DriveSetupInfo, SetupError> {
-	return fromConvexTuple(
-		ctx.runQuery(internal.sessions.drive.getDriveSetup, { bookingId: args.bookingId })
-	).andThen((setupInfo: DriveSetupInfo | null) =>
+	return getDriveSetupRow(ctx, args.bookingId).andThen((setupInfo) =>
 		validateDriveSetup(setupInfo, { sessionStartAt: args.sessionStartAt, duration: args.duration })
 	);
-}
-
-function requireSavedDriveFolders(setupInfo: DriveSetupInfo) {
-	return areDriveSetupFoldersSaved(setupInfo)
-		? ok(null)
-		: err({ reason: "DRIVE_FOLDERS_INCOMPLETE" as const });
 }
 
 export function markDriveSetupSuccessful(
@@ -42,12 +36,8 @@ export function markDriveSetupSuccessful(
 ): ResultAsync<null, SetupError> {
 	// Re-read saved folders and timing before marking setup complete.
 	return loadValidatedDriveSetup(ctx, args)
-		.andThen(requireSavedDriveFolders)
-		.andThen(() =>
-			fromConvexTuple(
-				ctx.runMutation(internal.sessions.drive.saveDriveSetupResult, { bookingId: args.bookingId })
-			)
-		);
+		.andThen(validateSavedDriveSetupFolders)
+		.andThen(() => saveDriveSetupResultRow(ctx, { bookingId: args.bookingId }));
 }
 
 export function sendClientAssetsEmailAfterSetup(
@@ -73,12 +63,7 @@ export function recordDriveSetupFailure(
 	bookingId: Id<"bookings">,
 	setupError: SetupError
 ): ResultAsync<null, SetupError> {
-	if (!shouldRecordDriveSetupFailure(setupError)) return errAsync(setupError);
-
-	return fromConvexTuple(
-		ctx.runMutation(internal.sessions.drive.saveDriveSetupResult, {
-			bookingId,
-			failureCode: setupError.reason
-		})
-	).andThen(() => errAsync(setupError));
+	return saveReportableDriveSetupFailure(ctx, bookingId, setupError).andThen(() =>
+		errAsync(setupError)
+	);
 }

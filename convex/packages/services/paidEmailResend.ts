@@ -1,7 +1,9 @@
 "use node";
 
+import { queryBookingAvailabilitySettings } from "#convex/booking/lib/settingsIo";
+
 import { type ResultAsync } from "neverthrow";
-import { api } from "#convex/_generated/api";
+
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { ActionCtx } from "#convex/_generated/server";
 import { env } from "#convex/env";
@@ -12,12 +14,13 @@ import {
 	refreshPackageScheduleToken,
 	validatePaidPackageForEmailResend
 } from "#convex/packages/lib/payment";
+import { checkoutReturnOrigin } from "#convex/packages/lib/checkoutCompletion";
 import {
 	sendAndRecordPackagePaidEmail,
 	type PackagePaidEmailError
 } from "#convex/packages/services/paidEmailSend";
 import { getPackageForAction } from "#convex/packages/services/lookup";
-import { okOrThrow } from "#convex/shared/lib/result";
+
 import type { BookingAvailabilitySettings } from "#studio/lib/bookingAvailabilitySettings";
 
 export type ResendPackageEmailError =
@@ -29,16 +32,12 @@ export type ResendPackageEmailError =
 	| { reason: "PACKAGE_SCHEDULE_LINK_NOT_READY" }
 	| PackagePaidEmailError;
 
-function loadPackageForEmailResend(ctx: ActionCtx, packageId: Id<"packages">) {
-	return getPackageForAction(ctx, packageId);
-}
-
 export function loadPaidPackageForEmailResend(
 	ctx: ActionCtx,
 	args: { packageId: Id<"packages"> }
 ): ResultAsync<{ paidAt: number; packageRecord: Doc<"packages"> }, ResendPackageEmailError> {
 	return requirePermissionActions(ctx, "send:receipt-emails")
-		.andThen(() => loadPackageForEmailResend(ctx, args.packageId))
+		.andThen(() => getPackageForAction(ctx, args.packageId))
 		.andThen(validatePaidPackageForEmailResend);
 }
 
@@ -53,24 +52,16 @@ export function sendPackagePaidScheduleEmail(
 	ctx: ActionCtx,
 	args: { packageId: Id<"packages">; tokenResult: PaidPackageResult }
 ): ResultAsync<null, ResendPackageEmailError> {
-	return okOrThrow<BookingAvailabilitySettings>(ctx.runQuery(api.booking.settings.get, {})).andThen(
+	return queryBookingAvailabilitySettings(ctx).andThen(
 		(bookingSettings: BookingAvailabilitySettings) =>
-			sendPaidScheduleEmailWithSettings(ctx, args, bookingSettings)
-	);
-}
-
-function sendPaidScheduleEmailWithSettings(
-	ctx: ActionCtx,
-	args: { packageId: Id<"packages">; tokenResult: PaidPackageResult },
-	bookingSettings: BookingAvailabilitySettings
-) {
-	return sendAndRecordPackagePaidEmail(
-		ctx,
-		args.packageId,
-		buildPackagePaidEmailContext(
-			args.tokenResult,
-			bookingSettings.leadTimeMinutes,
-			new URL(env.STRIPE_CHECKOUT_RETURN_URL).origin
-		)
+			sendAndRecordPackagePaidEmail(
+				ctx,
+				args.packageId,
+				buildPackagePaidEmailContext(
+					args.tokenResult,
+					bookingSettings.leadTimeMinutes,
+					checkoutReturnOrigin(env.STRIPE_CHECKOUT_RETURN_URL)
+				)
+			)
 	);
 }

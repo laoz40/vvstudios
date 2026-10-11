@@ -1,7 +1,8 @@
 import { err, ok, type Result } from "neverthrow";
+import { internal } from "#convex/_generated/api";
 import type { Doc, Id } from "#convex/_generated/dataModel";
-import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
-import { okOrThrow } from "#convex/shared/lib/result";
+import type { ActionCtx, MutationCtx, QueryCtx } from "#convex/_generated/server";
+import { fromConvexTuple, okOrThrow } from "#convex/shared/lib/result";
 
 export function requireBookingRow(
 	session: Doc<"bookings"> | null
@@ -15,6 +16,10 @@ export function requireBookingRow(
 
 export function getBookingRow(ctx: QueryCtx | MutationCtx, bookingId: Id<"bookings">) {
 	return okOrThrow(ctx.db.get("bookings", bookingId));
+}
+
+export function getBookingRowForAction(ctx: ActionCtx, bookingId: Id<"bookings">) {
+	return fromConvexTuple(ctx.runQuery(internal.sessions.admin.getSessionById, { bookingId }));
 }
 
 export function normalizeBookingId(ctx: QueryCtx | MutationCtx, bookingId: string) {

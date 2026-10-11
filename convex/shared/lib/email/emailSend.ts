@@ -1,4 +1,4 @@
-import { err, ok } from "neverthrow";
+import { err, ok, okAsync, ResultAsync, type Err, type Result } from "neverthrow";
 import { tryPromise } from "#convex/shared/lib/result";
 import { formatEditingAddonLabel } from "#/domain/booking/addon-quantities";
 import { pickBookingAddonQuantities } from "#/domain/booking/addon-quantities";
@@ -71,13 +71,17 @@ type ResendEmailBody = {
 	attachments?: ResendEmailAttachment[];
 };
 
-export function sendEmail(args: {
+export type EmailRequestError = { reason: "EMAIL_REQUEST_FAILED" };
+
+export type EmailResponseError = { reason: "EMAIL_RESPONSE_FAILED" };
+
+export function requestEmail(args: {
 	to: string[];
 	subject: string;
 	html: string;
 	attachments?: EmailAttachment[];
 	idempotencyKey?: string;
-}) {
+}): ResultAsync<Response, EmailRequestError> {
 	const attachments = args.attachments?.map((attachment) => ({
 		filename: attachment.filename,
 		content: Buffer.from(attachment.content).toString("base64"),
@@ -116,27 +120,61 @@ export function sendEmail(args: {
 
 			return { reason: "EMAIL_REQUEST_FAILED" as const };
 		}
-	}).andThen((response) => {
-		if (response.ok) {
-			return ok(null);
-		}
-
-		return tryPromise({
-			try: () => response.text(),
-			catch: (cause) => {
-				console.error("Resend email response body read failed", { status: response.status, cause });
-
-				return { reason: "EMAIL_RESPONSE_FAILED" as const };
-			}
-		}).andThen((responseBody) => {
-			console.error("Resend email response failed", {
-				status: response.status,
-				body: responseBody,
-				recipientCount: args.to.length,
-				attachmentCount: attachments?.length ?? 0
-			});
-
-			return err({ reason: "EMAIL_RESPONSE_FAILED" as const });
-		});
 	});
+}
+
+export function readEmailResponseBody(response: Response): ResultAsync<string, EmailResponseError> {
+	return tryPromise({
+		try: () => response.text(),
+		catch: (cause) => {
+			console.error("Resend email response body read failed", { status: response.status, cause });
+
+			return { reason: "EMAIL_RESPONSE_FAILED" as const };
+		}
+	});
+}
+
+export function rejectEmailResponse(
+	response: Response,
+	responseBody: string,
+	recipientCount: number,
+	attachmentCount: number
+): Err<never, EmailResponseError> {
+	console.error("Resend email response failed", {
+		status: response.status,
+		body: responseBody,
+		recipientCount,
+		attachmentCount
+	});
+
+	return err({ reason: "EMAIL_RESPONSE_FAILED" as const });
+}
+
+// Sending an email is one external operation, including inspecting its HTTP response.
+async function sendEmailRequest(
+	args: Parameters<typeof requestEmail>[0]
+): Promise<Result<null, EmailRequestError | EmailResponseError>> {
+	const request = await requestEmail(args);
+
+	if (request.isErr()) return err(request.error);
+	const response = request.value;
+
+	if (response.ok) return ok(null);
+	const body = await readEmailResponseBody(response);
+
+	if (body.isErr()) return err(body.error);
+
+	return rejectEmailResponse(response, body.value, args.to.length, args.attachments?.length ?? 0);
+}
+
+export function sendEmail(
+	args: Parameters<typeof requestEmail>[0]
+): ResultAsync<null, EmailRequestError | EmailResponseError> {
+	return new ResultAsync(sendEmailRequest(args));
+}
+
+export function sendEmailIfPresent(
+	args: Parameters<typeof requestEmail>[0] | null
+): ResultAsync<null, EmailRequestError | EmailResponseError> {
+	return args === null ? okAsync(null) : sendEmail(args);
 }

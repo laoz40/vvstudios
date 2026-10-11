@@ -1,15 +1,22 @@
+import {
+	loadSignedInEditor,
+	saveSignedInEditorDetails,
+	assignedEditorNameForIdentity,
+	listBookingsForChangedEditorName
+} from "#convex/shared/lib/authProfile";
+import { updateBookingsAssignedEditorDisplayName } from "#convex/editor/services/editorAssignments";
 import type { UserIdentity } from "convex/server";
-import { ok } from "neverthrow";
+
 import type { Doc } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
 import {
 	getEditorByToken as getEditorByTokenLib,
-	isAdminIdentity,
 	requireAdminIdentity as requireAdminIdentityLib,
 	requireEnrollableEditorProfile,
-	requireUser as requireUserLib,
 	saveEditorDetails
 } from "#convex/shared/lib/auth";
+import { requireUser as requireUserLib } from "#convex/shared/services/authIdentity";
+
 import type { Permission } from "#/lib/permissions";
 import {
 	loadUserAccessForIdentity as loadUserAccessForIdentityLib,
@@ -21,7 +28,9 @@ function persistEditorForIdentity(
 	identity: UserIdentity,
 	editor: Doc<"editorProfiles"> | null
 ) {
-	return saveEditorDetails(ctx, identity, editor);
+	return saveEditorDetails(ctx, identity, editor).andThen(() =>
+		updateAssignedEditorName(ctx, identity, editor)
+	);
 }
 
 export function requirePermission(ctx: QueryCtx | MutationCtx, permission: Permission) {
@@ -29,12 +38,8 @@ export function requirePermission(ctx: QueryCtx | MutationCtx, permission: Permi
 }
 
 export function saveSignedInEditorProfile(ctx: MutationCtx, identity: UserIdentity) {
-	if (isAdminIdentity(identity)) {
-		return ok(null);
-	}
-
-	return getEditorByTokenLib(ctx, identity.tokenIdentifier).andThen(
-		(editor: Doc<"editorProfiles"> | null) => persistEditorForIdentity(ctx, identity, editor)
+	return loadSignedInEditor(ctx, identity).andThen((editor) =>
+		persistSignedInEditor(ctx, identity, editor)
 	);
 }
 
@@ -60,4 +65,24 @@ export function requireUser(ctx: QueryCtx | MutationCtx) {
 
 export function loadUserAccessForIdentity(ctx: QueryCtx | MutationCtx, identity: UserIdentity) {
 	return loadUserAccessForIdentityLib(ctx, identity);
+}
+
+function updateAssignedEditorName(
+	ctx: MutationCtx,
+	identity: UserIdentity,
+	editor: Doc<"editorProfiles"> | null
+) {
+	return listBookingsForChangedEditorName(ctx, identity, editor).andThen((bookings) =>
+		updateBookingsAssignedEditorDisplayName(ctx, bookings, assignedEditorNameForIdentity(identity))
+	);
+}
+
+function persistSignedInEditor(
+	ctx: MutationCtx,
+	identity: UserIdentity,
+	editor: Doc<"editorProfiles"> | null
+) {
+	return saveSignedInEditorDetails(ctx, identity, editor).andThen(() =>
+		updateAssignedEditorName(ctx, identity, editor)
+	);
 }

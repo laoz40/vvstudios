@@ -11,11 +11,12 @@
  *    Stale client and editor failures cannot replace newer successful sends or claim another send.
  */
 import { describe, expect, test } from "vitest";
+import type { Result } from "neverthrow";
 import { bookingDocument } from "#convex/tests/insertDocumentDefaults";
 import { internal } from "#convex/_generated/api";
 import type { Id } from "#convex/_generated/dataModel";
 import { getOrCreateDriveClientId } from "#convex/drive/services/setup";
-import { resolveSessionFolderDisplayName } from "#convex/drive/lib/sessionFolders/resolveFolderNames";
+import { resolveSessionFolderDisplayName } from "#convex/drive/services/sessionFolderNames";
 import { createConvexTest } from "#convex/test.setup";
 
 const now = Date.parse("2030-01-01T00:00:00.000Z");
@@ -142,15 +143,20 @@ describe("drive setup guards", () => {
 			email: "preview@example.com"
 		});
 
-		const sessionFolderName = await t.run(async (ctx) => {
+		const results: Result<string, never>[] = [];
+		await t.run(async (ctx) => {
 			const booking = await ctx.db.get("bookings", bookingId);
 
 			if (booking === null) throw new Error("Expected booking");
 
-			return resolveSessionFolderDisplayName(ctx, booking, null);
+			results.push(await resolveSessionFolderDisplayName(ctx, booking, null));
+
+			return null;
 		});
 
-		expect(sessionFolderName).toBe("1 - 10 Jan 2030 (10:00AM)");
+		const result = results[0];
+		expect(result?.isOk()).toBe(true);
+		expect(result?.isOk() ? result.value : undefined).toBe("1 - 10 Jan 2030 (10:00AM)");
 	});
 
 	test("indexes standalone sessions linked by email when driveClientId is missing on the booking", async () => {

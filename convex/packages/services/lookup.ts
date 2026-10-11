@@ -1,8 +1,9 @@
-import type { Doc, Id } from "#convex/_generated/dataModel";
+import type { Id } from "#convex/_generated/dataModel";
 import type { ActionCtx, MutationCtx, QueryCtx } from "#convex/_generated/server";
 import {
 	lookupPackageByIdForAction,
 	lookupPackageRow,
+	lookupPackageRowForQuery,
 	packageFromActionOrNotFound,
 	packageFromDbOrNotFound
 } from "#convex/packages/lib/lookup";
@@ -15,14 +16,6 @@ export function getPackageForAction(ctx: ActionCtx, packageId: Id<"packages">) {
 	return lookupPackageByIdForAction(ctx, packageId).andThen(packageFromActionOrNotFound);
 }
 
-export async function queryPackageByIdOrNull(
-	ctx: QueryCtx,
-	packageId: Id<"packages">
-): Promise<Doc<"packages"> | null> {
-	const packageFromDbResult = await getPackageFromDb(ctx, packageId);
-
-	return packageFromDbResult.match(
-		(packageFromDb) => packageFromDb,
-		() => null
-	);
+export async function queryPackageByIdOrNull(ctx: QueryCtx, packageId: Id<"packages">) {
+	return lookupPackageRowForQuery(ctx, packageId);
 }

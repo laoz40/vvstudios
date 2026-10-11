@@ -1,13 +1,9 @@
 import type { UserIdentity } from "convex/server";
-import { err, ok, okAsync, type Result } from "neverthrow";
+import { err, ok, type Result } from "neverthrow";
 import { z } from "zod";
 import type { Doc } from "#convex/_generated/dataModel";
 import { hasPermission, ROLE_PERMISSIONS, type Permission } from "#/lib/permissions";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
-import {
-	editorProfileDisplayName,
-	writeBookingsAssignedEditorDisplayName
-} from "#convex/editor/lib/editorAssignments";
 import { okOrThrow } from "#convex/shared/lib/result";
 
 export const ADMIN_ROLE = "admin";
@@ -82,7 +78,7 @@ export function requireEnrollableEditorProfile(editor: Doc<"editorProfiles"> | n
 	return ok(editor);
 }
 
-function requireAuthenticatedIdentity(identity: UserIdentity | null) {
+export function requireAuthenticatedIdentity(identity: UserIdentity | null) {
 	if (identity === null) {
 		return err({ reason: "NOT_AUTHENTICATED" as const });
 	}
@@ -90,8 +86,8 @@ function requireAuthenticatedIdentity(identity: UserIdentity | null) {
 	return ok(identity);
 }
 
-export function requireUser(ctx: Pick<QueryCtx, "auth">) {
-	return okOrThrow(ctx.auth.getUserIdentity()).andThen(requireAuthenticatedIdentity);
+export function getUserIdentity(ctx: Pick<QueryCtx, "auth">) {
+	return okOrThrow(ctx.auth.getUserIdentity());
 }
 
 export function getEditorByToken(
@@ -106,31 +102,19 @@ export function getEditorByToken(
 	);
 }
 
+export function getEditorDetailsForIdentity(identity: UserIdentity) {
+	return { displayName: identity.name ?? "", email: identity.email ?? "" };
+}
+
 export function saveEditorDetails(
 	ctx: MutationCtx,
 	identity: UserIdentity,
 	editor: Doc<"editorProfiles"> | null
 ) {
-	const details = { displayName: identity.name ?? "", email: identity.email ?? "" };
+	const details = getEditorDetailsForIdentity(identity);
 
-	if (editor !== null) {
-		const nextAssignedEditorDisplayName = editorProfileDisplayName(details);
-		const previousAssignedEditorDisplayName = editorProfileDisplayName(editor);
-
-		return okOrThrow(ctx.db.patch("editorProfiles", editor._id, details).then(() => null)).andThen(
-			() => {
-				if (nextAssignedEditorDisplayName === previousAssignedEditorDisplayName) {
-					return okAsync(null);
-				}
-
-				return writeBookingsAssignedEditorDisplayName(
-					ctx,
-					editor.tokenIdentifier,
-					nextAssignedEditorDisplayName
-				);
-			}
-		);
-	}
+	if (editor !== null)
+		return okOrThrow(ctx.db.patch("editorProfiles", editor._id, details).then(() => null));
 
 	return okOrThrow(
 		ctx.db

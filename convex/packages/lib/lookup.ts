@@ -1,9 +1,8 @@
-import { err, ok } from "neverthrow";
+import { err, ok, type Result, type ResultAsync } from "neverthrow";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import { internal } from "#convex/_generated/api";
 import type { ActionCtx, MutationCtx, QueryCtx } from "#convex/_generated/server";
 import { okOrThrow } from "#convex/shared/lib/result";
-import { hashRescheduleTokenAsync } from "#convex/sessions/lib/rescheduleLinks";
 
 export type PackageLookupError = { reason: "PACKAGE_NOT_FOUND" };
 
@@ -57,41 +56,45 @@ export function lookupPackageRow(ctx: QueryCtx | MutationCtx, packageId: Id<"pac
 	return okOrThrow(ctx.db.get("packages", packageId));
 }
 
+export function lookupPackageRowForQuery(ctx: QueryCtx, packageId: Id<"packages">) {
+	return ctx.db.get("packages", packageId);
+}
+
 export function lookupPackageByIdForAction(ctx: ActionCtx, packageId: Id<"packages">) {
-	return okOrThrow<Doc<"packages"> | null>(
-		ctx.runQuery(internal.packages.admin.getPackageById, { packageId: packageId })
+	return okOrThrow(ctx.runQuery(internal.packages.admin.getPackageById, { packageId: packageId }));
+}
+
+export function lookupPackageByScheduleTokenHash(
+	ctx: QueryCtx | MutationCtx,
+	scheduleTokenHash: string
+): ResultAsync<Doc<"packages"> | null, never> {
+	return okOrThrow(
+		ctx.db
+			.query("packages")
+			.withIndex("by_scheduleTokenHash", (query) =>
+				query.eq("scheduleTokenHash", scheduleTokenHash)
+			)
+			.unique()
 	);
 }
 
-export function getValidPackageByToken(ctx: QueryCtx | MutationCtx, token: string, now: number) {
-	return hashRescheduleTokenAsync(token)
-		.andThen((scheduleTokenHash) =>
-			okOrThrow(
-				ctx.db
-					.query("packages")
-					.withIndex("by_scheduleTokenHash", (query) =>
-						query.eq("scheduleTokenHash", scheduleTokenHash)
-					)
-					.unique()
-			)
-		)
-		.andThen((packageFromDb) => {
-			if (!packageFromDb) {
-				return err({ reason: "PACKAGE_LINK_INVALID" as const });
-			}
+export function validPackageByToken(
+	packageFromDb: Doc<"packages"> | null,
+	now: number
+): Result<ValidPackage, ValidPackageByTokenError> {
+	if (!packageFromDb) return err({ reason: "PACKAGE_LINK_INVALID" });
 
-			if (packageFromDb.status !== "paid" && packageFromDb.status !== "schedule_email_failed") {
-				return err({ reason: "PACKAGE_NOT_PAID" as const });
-			}
+	if (packageFromDb.status !== "paid" && packageFromDb.status !== "schedule_email_failed") {
+		return err({ reason: "PACKAGE_NOT_PAID" });
+	}
 
-			if (packageFromDb.scheduleLinkStatus !== "active") {
-				return err({ reason: "PACKAGE_LINK_INACTIVE" as const });
-			}
+	if (packageFromDb.scheduleLinkStatus !== "active") {
+		return err({ reason: "PACKAGE_LINK_INACTIVE" });
+	}
 
-			if (packageFromDb.expiresAt === undefined || now >= packageFromDb.expiresAt) {
-				return err({ reason: "PACKAGE_LINK_EXPIRED" as const });
-			}
+	if (packageFromDb.expiresAt === undefined || now >= packageFromDb.expiresAt) {
+		return err({ reason: "PACKAGE_LINK_EXPIRED" });
+	}
 
-			return ok({ ...packageFromDb, expiresAt: packageFromDb.expiresAt });
-		});
+	return ok({ ...packageFromDb, expiresAt: packageFromDb.expiresAt });
 }

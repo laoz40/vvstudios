@@ -3,15 +3,11 @@ import type { Doc } from "#convex/_generated/dataModel";
 import { getBookingTotal } from "#/domain/booking/pricing";
 import { bookingSchema } from "#studio/features/booking-form/lib/booking-form-model";
 import { buildAdminSessionUpdatePatch } from "#convex/sessions/lib/adminEdit";
-import {
-	type ParsedPackageRequest,
-	buildPackageUpdatePatch,
-	parsePackageUpdate,
-	validatePackageUpdate
-} from "#convex/packages/lib/updates";
+import { buildPackageUpdatePatch } from "#convex/packages/lib/updates";
+import type { ParsedPackageRequest } from "#convex/packages/lib/updates";
 import { calculatePaidAmount } from "#convex/stripe/lib/invoices";
 import type { EditInvoiceTarget } from "#convex/stripe/lib/editInvoiceDb";
-import type { EditInvoiceDraft } from "#convex/stripe/services/editInvoiceValidators";
+import type { EditInvoiceDraft } from "#convex/stripe/editInvoiceValidators";
 import {
 	buildEditInvoiceAdditions,
 	buildEditInvoiceLineItems
@@ -113,31 +109,53 @@ type AppliedDraft = {
 
 type SessionDraft = Extract<EditInvoiceDraft, { kind: "booking" }>;
 
-type PackageDraft = Extract<EditInvoiceDraft, { kind: "package" }>;
+export function requirePackageDraftMatchesRecord(
+	record: Doc<"packages"> | null,
+	draft: Extract<EditInvoiceDraft, { kind: "package" }> | null
+): Result<null, { reason: "BILLING_RECORD_NOT_FOUND" }> {
+	if (record === null && draft === null) return ok(null);
 
-function applyPackageDraft(
-	record: Doc<"packages">,
-	bookings: Doc<"bookings">[],
-	draft: PackageDraft
-) {
+	if (record === null || draft === null) return err({ reason: "BILLING_RECORD_NOT_FOUND" });
+
 	if (record._id !== draft.values.packageId) return err({ reason: "BILLING_RECORD_NOT_FOUND" });
 
-	const parsedResult: Result<ParsedPackageRequest, { reason: "INVALID_BOOKING_DATA" }> =
-		parsePackageUpdate(draft.values);
+	return ok(null);
+}
 
-	return parsedResult
-		.andThen((parsed) => validatePackageUpdate(draft.values, parsed, bookings.length))
-		.map((parsed) => ({
-			record: { ...record, ...buildPackageUpdatePatch(draft.values, parsed) },
-			bookings,
-			additions: buildEditInvoiceAdditions({
-				current: record,
-				next: parsed,
-				currentSessionCount: record.packageSize,
-				nextSessionCount: parsed.packageSize,
-				excludeRemote: false
-			})
-		}));
+export function buildPackageEditInvoiceDraft(
+	record: Doc<"packages">,
+	bookings: Doc<"bookings">[],
+	draft: Extract<EditInvoiceDraft, { kind: "package" }>,
+	parsed: ParsedPackageRequest
+): Result<AppliedDraft, { reason: string }> {
+	return ok({
+		record: { ...record, ...buildPackageUpdatePatch(draft.values, parsed) },
+		bookings,
+		additions: buildEditInvoiceAdditions({
+			current: record,
+			next: parsed,
+			currentSessionCount: record.packageSize,
+			nextSessionCount: parsed.packageSize,
+			excludeRemote: false
+		})
+	});
+}
+
+export function buildOptionalPackageEditInvoiceDraft(
+	record: BillingRecord["record"],
+	bookings: Doc<"bookings">[],
+	draft: Extract<EditInvoiceDraft, { kind: "package" }> | null,
+	parsed: ParsedPackageRequest | null
+): Result<AppliedDraft, { reason: string }> {
+	if (draft === null && parsed === null) {
+		return ok({ record, bookings, additions: [] });
+	}
+
+	if (draft === null || parsed === null || !("packageSize" in record)) {
+		return err({ reason: "BILLING_RECORD_NOT_FOUND" });
+	}
+
+	return buildPackageEditInvoiceDraft(record, bookings, draft, parsed);
 }
 
 function applyStandaloneSessionDraft(
@@ -186,16 +204,10 @@ function applyLinkedSessionDraft(
 export function applyEditInvoiceDraft(
 	record: BillingRecord["record"],
 	bookings: Doc<"bookings">[],
-	draft: EditInvoiceDraft | undefined,
+	draft: Exclude<EditInvoiceDraft, { kind: "package" }> | undefined,
 	timeZone: string
 ): Result<AppliedDraft, { reason: string }> {
 	if (!draft) return ok({ record, bookings, additions: [] });
-
-	if (draft.kind === "package") {
-		if (!("packageSize" in record)) return err({ reason: "BILLING_RECORD_NOT_FOUND" });
-
-		return applyPackageDraft(record, bookings, draft);
-	}
 
 	if ("packageSize" in record) return applyLinkedSessionDraft(record, bookings, draft, timeZone);
 
@@ -287,4 +299,28 @@ export function getInvoiceTimingDraft(
 	if (draft.kind === "package") return null;
 
 	return draft;
+}
+
+export function selectInvoiceTimingDrafts(
+	draft: EditInvoiceDraft | undefined,
+	quote: EditInvoiceQuote
+) {
+	const timingDraft = getInvoiceTimingDraft(draft, quote);
+
+	return timingDraft === null ? [] : [timingDraft];
+}
+
+export function splitEditDraftsByKind(draft: EditInvoiceDraft) {
+	return {
+		bookingDrafts: draft.kind === "booking" ? [draft] : [],
+		packageDrafts: draft.kind === "package" ? [draft] : []
+	};
+}
+
+export function selectDraftsRequiringInvoice(
+	draft: EditInvoiceDraft,
+	currentTotal: number,
+	nextTotal: number
+) {
+	return nextTotal <= currentTotal ? [] : [draft];
 }

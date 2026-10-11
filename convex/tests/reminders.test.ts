@@ -55,13 +55,14 @@ describe("daily reminder dispatch", () => {
 		});
 		const unsentBookingId = await seedBooking(t, { sessionStartAt: tomorrowSessionStartAt + 2 });
 
-		const bookings = await t.query(internal.sessions.reminders.listSessionsDueForReminderEmail, {
-			dayStart: tomorrowSessionStartAt,
-			dayEnd: tomorrowSessionStartAt + 100,
-			limit: 2
-		});
+		const [error, bookings] = await t.query(
+			internal.sessions.reminders.listSessionsDueForReminderEmail,
+			{ dayStart: tomorrowSessionStartAt, dayEnd: tomorrowSessionStartAt + 100, limit: 2 }
+		);
 
-		expect(bookings.map((booking) => booking._id)).toEqual([unsentBookingId]);
+		expect(error).toBeNull();
+
+		expect(bookings?.map((booking) => booking._id)).toEqual([unsentBookingId]);
 	});
 
 	test("skips ineligible, out-of-range, already-sent, and fully-used records", async () => {

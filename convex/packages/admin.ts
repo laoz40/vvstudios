@@ -60,13 +60,13 @@ export const listPackages = query({
 		includeStale: v.optional(v.boolean()),
 		searchQuery: v.optional(v.string())
 	},
-	handler: (ctx, args) =>
-		listAdminPackagesPage(ctx, args).match(
-			(page) => page,
-			(error) => {
-				throw new ConvexError(error);
-			}
-		)
+	handler: async (ctx, args) => {
+		const page = await listAdminPackagesPage(ctx, args);
+
+		if (page.isErr()) throw new ConvexError(page.error);
+
+		return page.value;
+	}
 });
 
 export const updatePackageFromAdmin = mutation({

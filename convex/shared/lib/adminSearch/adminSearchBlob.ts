@@ -1,5 +1,5 @@
-import { okAsync, ResultAsync } from "neverthrow";
 import type { Doc, Id } from "#convex/_generated/dataModel";
+import { okAsync } from "neverthrow";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
 import { normalizeAbn, normalizePhone } from "#convex/shared/lib/contactNormalization";
 import { okOrThrow } from "#convex/shared/lib/result";
@@ -133,62 +133,25 @@ export type PackageContactSearchFields = Pick<
 	"name" | "phone" | "accountName" | "abn" | "email" | "instagramHandle"
 >;
 
-function patchPackageSessionBookingContactSearch(
-	ctx: MutationCtx,
+export type PackageSessionBookingContactSearchPatch = PackageContactSearchFields &
+	Pick<Doc<"bookings">, "phone" | "searchBlob" | "assignedEditorDisplayName">;
+
+export function buildPackageSessionBookingContactSearchPatch(
+	ctx: QueryCtx,
 	booking: Doc<"bookings">,
 	contactFields: PackageContactSearchFields
 ) {
 	const phone = normalizePhone(contactFields.phone);
 
-	return searchBlobPatchForBookingAsync(ctx, booking, { ...contactFields, phone }).andThen(
-		(searchBlobPatch) =>
-			okOrThrow(
-				ctx.db
-					.patch("bookings", booking._id, { ...contactFields, phone, ...searchBlobPatch })
-					.then(() => null)
-			)
+	return searchBlobPatchForBookingAsync(ctx, booking, { ...contactFields, phone }).map(
+		(searchBlobPatch) => ({ ...contactFields, phone, ...searchBlobPatch })
 	);
 }
 
-function patchPackageSessionBookingsContactSearchChain(
+export function patchPackageSessionBookingContactSearch(
 	ctx: MutationCtx,
-	packageId: Id<"packages">,
-	contactFields: PackageContactSearchFields
+	bookingId: Id<"bookings">,
+	patch: PackageSessionBookingContactSearchPatch
 ) {
-	return okOrThrow(
-		ctx.db
-			.query("bookings")
-			.withIndex("by_packageId_and_status_and_sessionStartAt", (indexQuery) =>
-				indexQuery.eq("packageId", packageId)
-			)
-			.collect()
-	).andThen((bookings) =>
-		bookings.length === 0
-			? okAsync(null)
-			: ResultAsync.combine(
-					bookings.map((booking) =>
-						patchPackageSessionBookingContactSearch(ctx, booking, contactFields)
-					)
-				).map(() => null)
-	);
-}
-
-export function patchPackageSessionBookingsContactSearchStep(
-	ctx: MutationCtx,
-	packageId: Id<"packages">,
-	contactFields: PackageContactSearchFields
-) {
-	return patchPackageSessionBookingsContactSearchChain(ctx, packageId, contactFields);
-}
-
-export async function patchPackageSessionBookingsContactSearch(
-	ctx: MutationCtx,
-	packageId: Id<"packages">,
-	contactFields: PackageContactSearchFields
-) {
-	const result = await patchPackageSessionBookingsContactSearchStep(ctx, packageId, contactFields);
-
-	if (result.isErr()) {
-		throw new Error("patchPackageSessionBookingsContactSearch failed");
-	}
+	return okOrThrow(ctx.db.patch("bookings", bookingId, patch).then(() => null));
 }

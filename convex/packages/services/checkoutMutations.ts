@@ -1,9 +1,8 @@
-import { okAsync } from "neverthrow";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
 import {
 	abandonPackageAfterValidate,
-	buildPublicPackageStatusResponse,
+	buildPublicPackageStatusResponseIfPresent,
 	expirePackageAfterValidate,
 	mapPackageNotFoundToAbandonOutcome,
 	validatePackageExpiry,
@@ -11,15 +10,12 @@ import {
 } from "#convex/packages/lib/checkout";
 import {
 	getPackageCheckoutClaimStatus,
-	type PackageCheckoutClaimStatus,
+	writePackageCheckoutClaimIfPending,
 	validatePackageClaimStripeSession
 } from "#convex/packages/lib/checkoutClaim";
 import { lookupPackageByStripeSessionId, normalizePackageId } from "#convex/packages/lib/lookup";
 import { getPackageFromDb } from "#convex/packages/services/lookup";
-import {
-	patchPackageCheckoutClaimed,
-	patchPackageStripeCheckoutIds
-} from "#convex/packages/lib/updates";
+import { patchPackageStripeCheckoutIds } from "#convex/packages/lib/updates";
 
 type ClaimPackageCheckoutPaymentArgs = {
 	packageId: string;
@@ -27,47 +23,6 @@ type ClaimPackageCheckoutPaymentArgs = {
 	stripePaymentIntentId?: string;
 	originalPaidAmount?: number;
 };
-
-function attachCheckoutClaimStatus(
-	packageFromDb: Doc<"packages">,
-	claimStatus: PackageCheckoutClaimStatus<Doc<"packages">>
-) {
-	return { claimStatus, packageFromDb };
-}
-
-function attachClaimStatusToPackage(packageFromDb: Doc<"packages">) {
-	return getPackageCheckoutClaimStatus(packageFromDb).map(
-		(claimStatus: PackageCheckoutClaimStatus<Doc<"packages">>) =>
-			attachCheckoutClaimStatus(packageFromDb, claimStatus)
-	);
-}
-
-function finalizePackageCheckoutClaim(
-	ctx: MutationCtx,
-	args: ClaimPackageCheckoutPaymentArgs,
-	{
-		claimStatus,
-		packageFromDb
-	}: { claimStatus: PackageCheckoutClaimStatus<Doc<"packages">>; packageFromDb: Doc<"packages"> }
-) {
-	const packageId = packageFromDb._id;
-
-	if (claimStatus.kind === "already_completed") {
-		return okAsync({ outcome: "already_completed" as const, packageId });
-	}
-
-	if (claimStatus.kind === "already_claimed") {
-		return okAsync({ outcome: "already_claimed" as const, packageId });
-	}
-
-	const now = Date.now();
-
-	return patchPackageCheckoutClaimed(ctx, packageFromDb._id, {
-		packageCheckoutClaimedAt: now,
-		originalPaidAmount: args.originalPaidAmount,
-		stripePaymentIntentId: args.stripePaymentIntentId
-	}).map(() => ({ outcome: "claimed" as const, packageId }));
-}
 
 export function writePackageStripeCheckoutIds(
 	ctx: MutationCtx,
@@ -87,8 +42,15 @@ export function claimPackageCheckoutPayment(
 		.andThen((packageFromDb: Doc<"packages">) =>
 			validatePackageClaimStripeSession(packageFromDb, args.stripeSessionId)
 		)
-		.andThen(attachClaimStatusToPackage)
-		.andThen((value) => finalizePackageCheckoutClaim(ctx, args, value));
+		.andThen((packageFromDb: Doc<"packages">) =>
+			getPackageCheckoutClaimStatus(packageFromDb).map((claimStatus) => ({
+				claimStatus,
+				packageFromDb
+			}))
+		)
+		.andThen(({ claimStatus, packageFromDb }) =>
+			writePackageCheckoutClaimIfPending(ctx, args, packageFromDb, claimStatus)
+		);
 }
 
 export function abandonPendingPackageCheckout(
@@ -113,12 +75,8 @@ export function loadPackageRowByStripeSessionId(ctx: QueryCtx, stripeSessionId: 
 	return lookupPackageByStripeSessionId(ctx, stripeSessionId);
 }
 
-function buildPublicPackageStatusIfPresent(packageFromDb: Doc<"packages"> | null) {
-	return packageFromDb === null ? null : buildPublicPackageStatusResponse(packageFromDb);
-}
-
 export function loadPublicPackageStatusByStripeSessionId(ctx: QueryCtx, stripeSessionId: string) {
 	return loadPackageRowByStripeSessionId(ctx, stripeSessionId).map(
-		buildPublicPackageStatusIfPresent
+		buildPublicPackageStatusResponseIfPresent
 	);
 }

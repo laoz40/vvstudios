@@ -1,4 +1,4 @@
-import type { Doc, Id } from "#convex/_generated/dataModel";
+import type { Id } from "#convex/_generated/dataModel";
 import type { MutationCtx } from "#convex/_generated/server";
 import { okOrThrow } from "#convex/shared/lib/result";
 import { clearedSessionReservationPatch } from "#convex/sessions/lib/reservations";
@@ -21,49 +21,44 @@ export function clearBookingReservationFields(ctx: MutationCtx, bookingId: Id<"b
 	);
 }
 
-export async function collectConfirmedBookingsInWindow(
+export function collectConfirmedBookingsInWindow(
 	ctx: MutationCtx,
 	args: { searchStartAt: number; searchEndAt: number }
-): Promise<Doc<"bookings">[]> {
-	const confirmedStatuses = ["confirmed", "email_failed"] as const;
-
-	const confirmedBookingsByStatus = await Promise.all(
-		confirmedStatuses.map(async (status) => {
-			const bookingsForStatus: Doc<"bookings">[] = [];
-
-			const nearbyBookings = ctx.db
+) {
+	return okOrThrow(
+		Promise.all([
+			ctx.db
 				.query("bookings")
 				.withIndex("by_status_and_sessionStartAt", (query) =>
 					query
-						.eq("status", status)
+						.eq("status", "confirmed")
 						.gte("sessionStartAt", args.searchStartAt)
 						.lte("sessionStartAt", args.searchEndAt)
-				);
-
-			for await (const confirmedBooking of nearbyBookings) {
-				bookingsForStatus.push(confirmedBooking);
-			}
-
-			return bookingsForStatus;
-		})
-	);
-
-	return confirmedBookingsByStatus.flat();
+				)
+				.collect(),
+			ctx.db
+				.query("bookings")
+				.withIndex("by_status_and_sessionStartAt", (query) =>
+					query
+						.eq("status", "email_failed")
+						.gte("sessionStartAt", args.searchStartAt)
+						.lte("sessionStartAt", args.searchEndAt)
+				)
+				.collect()
+		])
+	).map((rows) => rows.flat());
 }
 
-export async function collectActiveReservationBookings(
+export function collectActiveReservationBookings(
 	ctx: MutationCtx,
 	reservationCreatedAfter: number
-): Promise<Doc<"bookings">[]> {
-	const activeReservations: Doc<"bookings">[] = [];
-
-	for await (const candidate of ctx.db
-		.query("bookings")
-		.withIndex("by_reservationCreatedAt", (query) =>
-			query.gt("reservationCreatedAt", reservationCreatedAfter)
-		)) {
-		activeReservations.push(candidate);
-	}
-
-	return activeReservations;
+) {
+	return okOrThrow(
+		ctx.db
+			.query("bookings")
+			.withIndex("by_reservationCreatedAt", (query) =>
+				query.gt("reservationCreatedAt", reservationCreatedAfter)
+			)
+			.collect()
+	);
 }

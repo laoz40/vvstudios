@@ -1,49 +1,31 @@
 import type { ResultAsync as NeverthrowResultAsync } from "neverthrow";
-import { formatDriveClientFolderName } from "#studio/lib/bookingdatetime";
 import { getOrCreateDriveClientId } from "#convex/drive/services/setup";
 import type { Id } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
+import {
+	abandonBookingAfterValidate,
+	buildCheckoutDriveClientInput,
+	expireBookingAfterValidate,
+	insertPendingCheckoutBookingFields,
+	validatePendingSessionDeletionWithBooking,
+	validateSessionExpiryWithBooking
+} from "#convex/booking/lib/checkout";
 import { patchBookingStripeCheckoutIds } from "#convex/booking/lib/confirmationSessionPatches";
 import { env } from "#convex/env";
 import { getSessionStartAt } from "#convex/sessions/lib/adminEdit";
-import {
-	abandonBookingAfterValidate,
-	expireBookingAfterValidate,
-	type DeletePendingSessionSuccess,
-	type ExpireSessionError,
-	validatePendingSessionDeletion,
-	validateSessionExpiry
+import type {
+	DeletePendingSessionSuccess,
+	ExpireSessionError
 } from "#convex/sessions/lib/checkout";
 import { getBookingRow, lookupBookingByStripeSessionId } from "#convex/sessions/lib/lookup";
 import {
 	type CreatePendingCheckoutSessionArgs,
-	buildPendingPaymentBookingFields,
 	findPendingPaymentBookingAtStartTime,
-	insertPendingPaymentBooking,
-	rejectPendingPaymentSlotConflict,
-	validateCheckoutSessionAvailability
+	rejectPendingPaymentSlotConflict
 } from "#convex/sessions/lib/pendingCheckoutSession";
 import { getBookingAvailabilitySettings } from "#convex/booking/lib/settings";
-import { checkBookingSubmitRateLimit } from "#convex/shared/lib/rateLimits";
-import type { BookingAvailabilitySettings } from "#studio/lib/bookingAvailabilitySettings";
-
-function validateCheckoutAvailabilityForSettings(
-	settings: BookingAvailabilitySettings,
-	args: Pick<CreatePendingCheckoutSessionArgs, "date" | "duration" | "time">
-) {
-	return validateCheckoutSessionAvailability(settings, args);
-}
-
-function insertPendingCheckoutBookingFields(
-	ctx: MutationCtx,
-	args: CreatePendingCheckoutSessionArgs,
-	sessionStartAt: number,
-	driveClientId: Id<"driveClients">
-) {
-	const bookingFields = buildPendingPaymentBookingFields(args, sessionStartAt, driveClientId);
-
-	return insertPendingPaymentBooking(ctx, bookingFields);
-}
+import { checkBookingSubmitRateLimit } from "#convex/shared/services/rateLimits";
+import { checkSessionMeetsAvailabilitySettings } from "#convex/sessions/services/calendarTime";
 
 export function enforceBookingSubmitRateLimit(ctx: MutationCtx, submitRateLimitKey: string) {
 	return checkBookingSubmitRateLimit(ctx, submitRateLimitKey);
@@ -54,7 +36,11 @@ export function rejectCheckoutSlotUnavailable(
 	args: Pick<CreatePendingCheckoutSessionArgs, "date" | "duration" | "time">
 ) {
 	return getBookingAvailabilitySettings(ctx).andThen((settings) =>
-		validateCheckoutAvailabilityForSettings(settings, args)
+		checkSessionMeetsAvailabilitySettings({
+			...args,
+			settings,
+			timeZone: env.GOOGLE_CALENDAR_TIMEZONE
+		})
 	);
 }
 
@@ -71,15 +57,7 @@ export function createPendingCheckoutBooking(
 ) {
 	return findPendingPaymentBookingAtStartTime(ctx, sessionStartAt)
 		.andThen(rejectPendingPaymentSlotConflict)
-		.andThen(() =>
-			getOrCreateDriveClientId(ctx, {
-				email: args.email,
-				displayName: formatDriveClientFolderName({
-					accountName: args.accountName,
-					contactName: args.name
-				})
-			})
-		)
+		.andThen(() => getOrCreateDriveClientId(ctx, buildCheckoutDriveClientInput(args)))
 		.andThen((driveClientId) =>
 			insertPendingCheckoutBookingFields(ctx, args, sessionStartAt, driveClientId)
 		);
@@ -101,8 +79,8 @@ export function expirePendingCheckoutByStripeSessionId(
 	stripeSessionId: string
 ): NeverthrowResultAsync<{ alreadyExpired: boolean }, ExpireSessionError> {
 	return lookupBookingByStripeSessionId(ctx, stripeSessionId)
-		.andThen(validateSessionExpiry)
-		.andThen((decision) => expireBookingAfterValidate(ctx, decision));
+		.andThen(validateSessionExpiryWithBooking)
+		.andThen((step) => expireBookingAfterValidate(ctx, step));
 }
 
 export function abandonPendingCheckoutBooking(
@@ -110,6 +88,6 @@ export function abandonPendingCheckoutBooking(
 	args: { bookingId: Id<"bookings">; stripeSessionId: string }
 ): NeverthrowResultAsync<DeletePendingSessionSuccess, { reason: "STRIPE_SESSION_MISMATCH" }> {
 	return getBookingRow(ctx, args.bookingId)
-		.andThen((booking) => validatePendingSessionDeletion(booking, args.stripeSessionId))
-		.andThen((decision) => abandonBookingAfterValidate(ctx, args.bookingId, decision));
+		.andThen((booking) => validatePendingSessionDeletionWithBooking(booking, args.stripeSessionId))
+		.andThen((step) => abandonBookingAfterValidate(ctx, args.bookingId, step));
 }

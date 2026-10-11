@@ -1,60 +1,29 @@
-import { okAsync } from "neverthrow";
-import {
-	renderPackageHostDetailsEmailHtml,
-	renderSessionHostDetailsEmailHtml,
-	packageHostDetailsEmailSubject,
-	sessionHostDetailsEmailSubject,
-	type SendPackageHostDetailsEmailArgs,
-	type SendSessionHostDetailsEmailArgs
+"use node";
+
+import type {
+	SendPackageHostDetailsEmailArgs,
+	SendSessionHostDetailsEmailArgs
 } from "#convex/shared/lib/email/emailRenders";
-import { getHostEmails, sendEmail } from "#convex/shared/lib/email/emailSend";
+import { getHostEmails } from "#convex/shared/lib/email/emailSend";
+import {
+	renderSessionHostEmailWhenNeeded,
+	renderPackageHostEmailWhenNeeded,
+	sendSessionHostDetailsEmailWithHtml,
+	sendPackageHostDetailsEmailWithHtml
+} from "#convex/email/lib/hostBookingEmailsSteps";
 
-function returnNull(): null {
-	return null;
-}
-
-function sendSessionHostDetailsEmailWithHtml(
-	hostEmails: string[],
-	args: SendSessionHostDetailsEmailArgs,
-
-	html: string
-) {
-	return sendEmail({ to: hostEmails, subject: sessionHostDetailsEmailSubject(args), html }).map(
-		returnNull
-	);
-}
-
-export function sendSessionHostDetailsEmail(args: SendSessionHostDetailsEmailArgs) {
+export function sendSessionHostDetailsEmail(args: SendSessionHostDetailsEmailArgs | null) {
 	const hostEmails = getHostEmails();
 
-	if (hostEmails.length === 0) {
-		return okAsync(null);
-	}
-
-	return renderSessionHostDetailsEmailHtml(args).andThen((html: string) =>
+	return renderSessionHostEmailWhenNeeded(args, hostEmails).andThen((html) =>
 		sendSessionHostDetailsEmailWithHtml(hostEmails, args, html)
 	);
 }
 
-function sendPackageHostDetailsEmailWithHtml(
-	hostEmails: string[],
-	args: SendPackageHostDetailsEmailArgs,
-
-	html: string
-) {
-	return sendEmail({ to: hostEmails, subject: packageHostDetailsEmailSubject(args), html }).map(
-		returnNull
-	);
-}
-
-export function sendPackageHostDetailsEmail(args: SendPackageHostDetailsEmailArgs) {
+export function sendPackageHostDetailsEmail(args: SendPackageHostDetailsEmailArgs | null) {
 	const hostEmails = getHostEmails();
 
-	if (hostEmails.length === 0) {
-		return okAsync(null);
-	}
-
-	return renderPackageHostDetailsEmailHtml(args).andThen((html: string) =>
+	return renderPackageHostEmailWhenNeeded(args, hostEmails).andThen((html) =>
 		sendPackageHostDetailsEmailWithHtml(hostEmails, args, html)
 	);
 }

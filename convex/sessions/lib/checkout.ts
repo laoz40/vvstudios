@@ -1,8 +1,5 @@
-import { err, ok, okAsync, type Result, type ResultAsync } from "neverthrow";
-import type { Doc, Id } from "#convex/_generated/dataModel";
-import type { MutationCtx } from "#convex/_generated/server";
-import { mergeDeadCheckoutBookingUpdates, patchBookingFields } from "#convex/sessions/lib/archive";
-import { getBookingRow } from "#convex/sessions/lib/lookup";
+import { err, ok, type Result } from "neverthrow";
+import type { Doc } from "#convex/_generated/dataModel";
 
 export type ExpireSessionError =
 	| { reason: "BOOKING_NOT_FOUND" }
@@ -52,68 +49,4 @@ export function validatePendingSessionDeletion(
 	}
 
 	return ok({ kind: "abandon" });
-}
-
-function writeDeadCheckoutBookingStatus(
-	ctx: MutationCtx,
-	bookingId: Id<"bookings">,
-	status: "expired" | "abandoned",
-	now = Date.now()
-): ResultAsync<null, never> {
-	return getBookingRow(ctx, bookingId)
-		.andThen((session) => {
-			if (session === null) {
-				return okAsync(null);
-			}
-
-			return patchBookingFields(
-				ctx,
-				bookingId,
-				mergeDeadCheckoutBookingUpdates(session, { status }, now)
-			);
-		})
-		.orElse(() => okAsync(null));
-}
-
-export function writeExpiredCheckoutBooking(
-	ctx: MutationCtx,
-	bookingId: Id<"bookings">,
-	now = Date.now()
-): ResultAsync<{ alreadyExpired: false }, never> {
-	return writeDeadCheckoutBookingStatus(ctx, bookingId, "expired", now).map(() => ({
-		alreadyExpired: false as const
-	}));
-}
-
-export function writeAbandonedCheckoutBooking(
-	ctx: MutationCtx,
-	bookingId: Id<"bookings">,
-	now = Date.now()
-): ResultAsync<Extract<DeletePendingSessionSuccess, { outcome: "abandoned" }>, never> {
-	return writeDeadCheckoutBookingStatus(ctx, bookingId, "abandoned", now).map(() => ({
-		outcome: "abandoned" as const
-	}));
-}
-
-export function expireBookingAfterValidate(
-	ctx: MutationCtx,
-	decision: ExpireSessionDecision
-): ResultAsync<{ alreadyExpired: boolean }, never> {
-	if (decision.kind === "complete") {
-		return okAsync({ alreadyExpired: decision.alreadyExpired });
-	}
-
-	return writeExpiredCheckoutBooking(ctx, decision.bookingId);
-}
-
-export function abandonBookingAfterValidate(
-	ctx: MutationCtx,
-	bookingId: Id<"bookings">,
-	decision: DeletePendingSessionDecision
-): ResultAsync<DeletePendingSessionSuccess, never> {
-	if (decision.kind === "complete") {
-		return okAsync(decision.value);
-	}
-
-	return writeAbandonedCheckoutBooking(ctx, bookingId);
 }

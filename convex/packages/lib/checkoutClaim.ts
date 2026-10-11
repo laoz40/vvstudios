@@ -1,6 +1,8 @@
-import { err, ok, type Result } from "neverthrow";
+import { err, ok, okAsync, type Result } from "neverthrow";
 import { exhaustiveCheck } from "#/lib/result";
 import type { Doc, Id } from "#convex/_generated/dataModel";
+import type { MutationCtx } from "#convex/_generated/server";
+import { patchPackageCheckoutClaimed } from "#convex/packages/lib/updates";
 
 export type PackageCheckoutClaim =
 	| { outcome: "already_completed"; packageId: Id<"packages"> }
@@ -30,6 +32,17 @@ export type PackageCheckoutClaimStatus<
 	| { kind: "already_claimed" }
 	| { kind: "pending"; packageFromDb: T };
 
+export function buildPackageCheckoutClaimPatch(
+	args: { originalPaidAmount?: number; stripePaymentIntentId?: string },
+	now: number
+) {
+	return {
+		packageCheckoutClaimedAt: now,
+		originalPaidAmount: args.originalPaidAmount,
+		stripePaymentIntentId: args.stripePaymentIntentId
+	};
+}
+
 export function getPackageCheckoutClaimStatus<T extends PackageCheckoutClaimPackage>(
 	packageFromDb: T
 ): Result<PackageCheckoutClaimStatus<T>, { reason: "STRIPE_SESSION_MISMATCH" }> {
@@ -47,4 +60,21 @@ export function getPackageCheckoutClaimStatus<T extends PackageCheckoutClaimPack
 		default:
 			return exhaustiveCheck(packageFromDb.status);
 	}
+}
+
+export function writePackageCheckoutClaimIfPending(
+	ctx: MutationCtx,
+	args: { originalPaidAmount?: number; stripePaymentIntentId?: string },
+	packageRecord: Doc<"packages">,
+	claim: PackageCheckoutClaimStatus<Doc<"packages">>
+) {
+	if (claim.kind !== "pending") {
+		return okAsync<PackageCheckoutClaim>({ outcome: claim.kind, packageId: packageRecord._id });
+	}
+
+	return patchPackageCheckoutClaimed(
+		ctx,
+		packageRecord._id,
+		buildPackageCheckoutClaimPatch(args, Date.now())
+	).map(() => ({ outcome: "claimed" as const, packageId: packageRecord._id }));
 }

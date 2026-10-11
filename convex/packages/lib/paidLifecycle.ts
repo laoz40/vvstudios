@@ -115,3 +115,16 @@ export function buildPaidPackageResult(
 		token: packageSchedulingDetails.token
 	};
 }
+
+export function refreshedScheduleTokenResultForPackage(
+	packageFromDb: Doc<"packages">,
+	scheduleTokenHash: string,
+	token: string
+): PaidPackageResult {
+	return {
+		expiresAt: packageFromDb.expiresAt!,
+		paidAt: packageFromDb.paidAt!,
+		packageRecord: { ...packageFromDb, scheduleLinkStatus: "active", scheduleTokenHash },
+		token
+	};
+}

@@ -67,7 +67,10 @@ function functionFromDeclarator(
 		return null;
 	}
 
-	if (declarator.init.type === "ArrowFunctionExpression" || declarator.init.type === "FunctionExpression") {
+	if (
+		declarator.init.type === "ArrowFunctionExpression" ||
+		declarator.init.type === "FunctionExpression"
+	) {
 		return declarator.init;
 	}
 
@@ -86,7 +89,10 @@ function collectLocalFunctions(program: ESTree.Program): Map<string, FunctionLik
 			continue;
 		}
 
-		if (statement.declaration?.type === "FunctionDeclaration" && statement.declaration.id !== null) {
+		if (
+			statement.declaration?.type === "FunctionDeclaration" &&
+			statement.declaration.id !== null
+		) {
 			locals.set(statement.declaration.id.name, statement.declaration);
 		}
 
@@ -168,9 +174,7 @@ function resolveChainStepToLocal(
 }
 
 function paramsIncludeCtx(params: ESTree.Node[]): boolean {
-	return params.some(
-		(parameter) => parameter.type === "Identifier" && parameter.name === "ctx"
-	);
+	return params.some((parameter) => parameter.type === "Identifier" && parameter.name === "ctx");
 }
 
 function usesForbiddenIo(node: ESTree.Node, visited = new WeakSet<ESTree.Node>()): boolean {
@@ -217,7 +221,12 @@ function usesForbiddenIo(node: ESTree.Node, visited = new WeakSet<ESTree.Node>()
 
 		if (Array.isArray(child)) {
 			for (const item of child) {
-				if (item !== null && typeof item === "object" && "type" in item && usesForbiddenIo(item as unknown as ESTree.Node, visited)) {
+				if (
+					item !== null &&
+					typeof item === "object" &&
+					"type" in item &&
+					usesForbiddenIo(item as unknown as ESTree.Node, visited)
+				) {
 					return true;
 				}
 			}
@@ -225,7 +234,11 @@ function usesForbiddenIo(node: ESTree.Node, visited = new WeakSet<ESTree.Node>()
 			continue;
 		}
 
-		if (typeof child === "object" && "type" in child && usesForbiddenIo(child as unknown as ESTree.Node, visited)) {
+		if (
+			typeof child === "object" &&
+			"type" in child &&
+			usesForbiddenIo(child as unknown as ESTree.Node, visited)
+		) {
 			return true;
 		}
 	}
@@ -288,8 +301,25 @@ function hasReturnOutsideOkErr(body: ESTree.BlockStatement | ESTree.Expression):
 	return found;
 }
 
-/** Pure validation steps return domain outcomes via ok/err (sync), not I/O. */
-function hasOkErrReturns(body: ESTree.BlockStatement | ESTree.Expression): boolean {
+/** A Result constructor alone is a mapping, not a domain validation. */
+function hasDomainDecision(node: ESTree.Node): boolean {
+	if (["IfStatement", "SwitchStatement", "ConditionalExpression"].includes(node.type)) return true;
+	return Object.entries(node).some(([key, child]) => {
+		if (key === "parent" || child === null || typeof child !== "object") return false;
+		if (Array.isArray(child))
+			return child.some(
+				(item) =>
+					item !== null &&
+					typeof item === "object" &&
+					"type" in item &&
+					hasDomainDecision(item as ESTree.Node)
+			);
+		return "type" in child && hasDomainDecision(child as ESTree.Node);
+	});
+}
+
+/** Domain validation can reject an input; success-only mappings may remain inline. */
+function hasErrReturns(body: ESTree.BlockStatement | ESTree.Expression): boolean {
 	let found = false;
 	const visited = new WeakSet<ESTree.Node>();
 
@@ -300,7 +330,12 @@ function hasOkErrReturns(body: ESTree.BlockStatement | ESTree.Expression): boole
 
 		visited.add(node);
 
-		if (node.type === "ReturnStatement" && node.argument !== null && isOkErrCall(node.argument)) {
+		if (
+			node.type === "ReturnStatement" &&
+			node.argument?.type === "CallExpression" &&
+			node.argument.callee.type === "Identifier" &&
+			node.argument.callee.name === "err"
+		) {
 			found = true;
 
 			return;
@@ -374,7 +409,9 @@ function unaryValidationFunction(
 	return null;
 }
 
-function validationTarget(fn: FunctionLikeNode): ESTree.ArrowFunctionExpression | ESTree.Function | null {
+function validationTarget(
+	fn: FunctionLikeNode
+): ESTree.ArrowFunctionExpression | ESTree.Function | null {
 	const curriedInner = unaryValidationFunction(fn);
 
 	if (curriedInner !== null) {
@@ -417,7 +454,7 @@ function isPureValidationFunction(fn: FunctionLikeNode): boolean {
 		return false;
 	}
 
-	return hasOkErrReturns(validationBody);
+	return hasDomainDecision(validationBody) && hasErrReturns(validationBody);
 }
 
 function bindingNameForChainArg(node: ESTree.Expression): string | null {

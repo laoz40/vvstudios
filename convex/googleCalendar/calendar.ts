@@ -7,13 +7,13 @@ import { action, internalAction } from "#convex/_generated/server";
 import {
 	type BusyDayWindow,
 	type GetAvailableRescheduleTimesError,
-	enforceGoogleCalendarAvailabilityRateLimit,
 	loadAvailableBookingTimesForDay,
 	loadAvailableRescheduleTimesForDay,
 	loadBookableRangeBusyWindows,
 	loadRescheduleBookableRangeBusyWindows,
 	loadRescheduleSessionAndBookingSettings
 } from "#convex/googleCalendar/services/calendarAvailability";
+import { checkGoogleCalendarAvailabilityRateLimit } from "#convex/shared/services/rateLimits";
 import { getBookingSettingsService } from "#convex/booking/services/settings";
 import {
 	attachAdminUpdateContext,
@@ -30,7 +30,6 @@ import {
 	markBookingSessionCalendarDeleted
 } from "#convex/googleCalendar/services/cancelBookingFromAdmin";
 import {
-	attachCalendarClientToLockState,
 	finishReschedule,
 	loadRescheduleTargetAndValidate,
 	lockAndReserve,
@@ -138,7 +137,7 @@ export const runScheduledDriveSetup = internalAction({
 export const getBookableRangeBusyWindows = action({
 	args: { rateLimitKey: v.string() },
 	handler: async (ctx, args) =>
-		await enforceGoogleCalendarAvailabilityRateLimit(ctx, args.rateLimitKey)
+		await checkGoogleCalendarAvailabilityRateLimit(ctx, args.rateLimitKey)
 			.andThen(() => getBookingSettingsService(ctx))
 			.andThen((settings) => loadBookableRangeBusyWindows(settings))
 			.match(tupleOk, tupleErr)
@@ -163,7 +162,7 @@ export const getRescheduleBookableRangeBusyWindows = action({
 			GetAvailableRescheduleTimesError
 		>
 	> =>
-		await enforceGoogleCalendarAvailabilityRateLimit(ctx, args.rateLimitKey)
+		await checkGoogleCalendarAvailabilityRateLimit(ctx, args.rateLimitKey)
 			.andThen(() => loadRescheduleSessionAndBookingSettings(ctx, args.token))
 			.andThen(({ details, settings }) => loadRescheduleBookableRangeBusyWindows(settings, details))
 			.match(tupleOk, tupleErr)
@@ -187,9 +186,10 @@ export const rescheduleSession = action({
 	handler: (ctx, args) =>
 		loadRescheduleTargetAndValidate(ctx, args)
 			.andThen(({ calendarClient, details, sessionStartAt, settings }) =>
-				lockAndReserve(ctx, details, sessionStartAt, settings).map((state) =>
-					attachCalendarClientToLockState(calendarClient, state)
-				)
+				lockAndReserve(ctx, details, sessionStartAt, settings).map((state) => ({
+					calendarClient,
+					state
+				}))
 			)
 			.andThen(({ calendarClient, state }) => syncCalendar(ctx, args, state, calendarClient))
 			.andThen((state) => saveClientRescheduleAndUnlockLink(ctx, args, state))

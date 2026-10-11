@@ -1,4 +1,4 @@
-import type { ResultAsync } from "neverthrow";
+import { okAsync, type ResultAsync } from "neverthrow";
 import { internal } from "#convex/_generated/api";
 import type { Id } from "#convex/_generated/dataModel";
 import type { MutationCtx } from "#convex/_generated/server";
@@ -34,8 +34,10 @@ export function scheduleCompletedPackageAdjustmentCheck(
 
 export function schedulePackageAdjustmentInvoice(
 	ctx: MutationCtx,
-	adjustmentId: Id<"packageAdjustments">
+	adjustmentId: Id<"packageAdjustments"> | null
 ): ResultAsync<null, never> {
+	if (adjustmentId === null) return okAsync(null);
+
 	return okOrThrow(
 		ctx.scheduler.runAfter(0, internal.packages.adjustmentInvoices.sendPackageAdjustmentInvoice, {
 			adjustmentId,

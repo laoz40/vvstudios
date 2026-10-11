@@ -1,46 +1,23 @@
+import { queryBookingAvailabilitySettings } from "#convex/booking/lib/settingsIo";
 import type { BookingAvailabilitySettings } from "#studio/lib/bookingAvailabilitySettings";
 import type { ResultAsync as NeverthrowResultAsync } from "neverthrow";
-import { api } from "#convex/_generated/api";
+
 import type { ActionCtx, MutationCtx, QueryCtx } from "#convex/_generated/server";
 import {
-	insertBookingAvailabilitySettingsRow,
+	buildBookingAvailabilitySettingsRowValue,
 	lookupBookingAvailabilitySettingsRow,
-	patchBookingAvailabilitySettingsRow,
 	readBookingAvailabilitySettings,
+	upsertBookingAvailabilitySettingsRow,
 	validateBookingSettings
 } from "#convex/booking/lib/settings";
-import { okOrThrow } from "#convex/shared/lib/result";
-import type { Doc } from "#convex/_generated/dataModel";
 
-type BookingSettingsRowValue = BookingAvailabilitySettings & {
-	key: "main";
-	updatedAt: number;
-	updatedBy: string;
-};
-
-function upsertBookingAvailabilitySettingsRow(
+function writeValidatedBookingSettings(
 	ctx: MutationCtx,
-	value: BookingSettingsRowValue,
-	existing: Doc<"bookingSettings"> | null
+	value: ReturnType<typeof buildBookingAvailabilitySettingsRowValue>
 ) {
-	return existing
-		? patchBookingAvailabilitySettingsRow(ctx, existing._id, value)
-		: insertBookingAvailabilitySettingsRow(ctx, value);
-}
-
-function writeValidatedBookingSettings(ctx: MutationCtx, value: BookingSettingsRowValue) {
-	return lookupBookingAvailabilitySettingsRow(ctx).andThen(
-		(existing: Doc<"bookingSettings"> | null) =>
-			upsertBookingAvailabilitySettingsRow(ctx, value, existing)
+	return lookupBookingAvailabilitySettingsRow(ctx).andThen((existing) =>
+		upsertBookingAvailabilitySettingsRow(ctx, value, existing)
 	);
-}
-
-function persistValidatedBookingSettings(
-	ctx: MutationCtx,
-	value: BookingSettingsRowValue,
-	_settings: BookingAvailabilitySettings
-) {
-	return writeValidatedBookingSettings(ctx, value);
 }
 
 export function loadBookingAvailabilitySettings(ctx: QueryCtx) {
@@ -50,7 +27,7 @@ export function loadBookingAvailabilitySettings(ctx: QueryCtx) {
 export function getBookingSettingsService(
 	ctx: ActionCtx
 ): NeverthrowResultAsync<BookingAvailabilitySettings, never> {
-	return okOrThrow(ctx.runQuery(api.booking.settings.get, {}));
+	return queryBookingAvailabilitySettings(ctx);
 }
 
 export function writeBookingAvailabilitySettings(
@@ -58,9 +35,9 @@ export function writeBookingAvailabilitySettings(
 	settings: BookingAvailabilitySettings,
 	updatedBy: string
 ) {
-	const value = { ...settings, key: "main" as const, updatedAt: Date.now(), updatedBy };
+	const value = buildBookingAvailabilitySettingsRowValue(settings, updatedBy);
 
-	return validateBookingSettings(settings).asyncAndThen((_settings: BookingAvailabilitySettings) =>
-		persistValidatedBookingSettings(ctx, value, _settings)
+	return validateBookingSettings(settings).asyncAndThen(() =>
+		writeValidatedBookingSettings(ctx, value)
 	);
 }

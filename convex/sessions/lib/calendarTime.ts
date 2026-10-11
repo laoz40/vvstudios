@@ -49,6 +49,47 @@ export type SessionTimeParseError =
 	| { reason: "BOOKING_INVALID_TIME" }
 	| { reason: "INVALID_ZONED_TIME" };
 
+export type SessionAvailabilityArgs = {
+	date: string;
+	duration: string;
+	latestBookableDate?: Date;
+	now?: number;
+	settings: SessionAvailabilitySettings;
+	time: string;
+	timeZone: string;
+};
+
+export type SessionAvailabilityDayInput = {
+	args: SessionAvailabilityArgs;
+	durationMinutes: number;
+	daySchedule: { endTime: string; startTime: string };
+};
+
+export function availabilityNow(args: SessionAvailabilityArgs) {
+	return args.now ?? Date.now();
+}
+
+export function validateAvailabilityDateRange(args: SessionAvailabilityArgs, bookingDate: Date) {
+	return validateBookingDateRange(
+		bookingDate,
+		args.latestBookableDate,
+		availabilityNow(args),
+		args.settings
+	);
+}
+
+export function validateAvailabilityDay(input: SessionAvailabilityDayInput) {
+	return validateBookingDaySchedule(input.durationMinutes, input.args.time, input.daySchedule);
+}
+
+export function validateAvailabilityLeadTime(args: SessionAvailabilityArgs, bookingStart: Date) {
+	return validateBookingLeadTime(
+		bookingStart,
+		availabilityNow(args),
+		args.settings.leadTimeMinutes
+	);
+}
+
 export function parseDurationMinutes(
 	duration: string
 ): Result<number, { reason: "BOOKING_INVALID_DURATION" }> {
@@ -61,13 +102,13 @@ export function parseDurationMinutes(
 	return err({ reason: "BOOKING_INVALID_DURATION" });
 }
 
-function parseDate(date: string): Result<CalendarDate, { reason: "BOOKING_INVALID_DATE" }> {
+export function parseDate(date: string): Result<CalendarDate, { reason: "BOOKING_INVALID_DATE" }> {
 	const calendarDate = parseCalendarDate(date);
 
 	return calendarDate ? ok(calendarDate) : err({ reason: "BOOKING_INVALID_DATE" });
 }
 
-function parseTime(time: string): Result<TimeOfDay, { reason: "BOOKING_INVALID_TIME" }> {
+export function parseTime(time: string): Result<TimeOfDay, { reason: "BOOKING_INVALID_TIME" }> {
 	const timeOfDay = parseTimeOfDay(time);
 
 	return timeOfDay ? ok(timeOfDay) : err({ reason: "BOOKING_INVALID_TIME" });
@@ -79,18 +120,26 @@ export function getUtcDateForZonedDateTime(
 	time: string,
 	timeZone: string
 ): Result<Date, Exclude<SessionTimeParseError, { reason: "BOOKING_INVALID_DURATION" }>> {
-	return parseDate(date).andThen((calendarDate) =>
-		parseTime(time).andThen((timeOfDay) =>
-			getUtcDateForZonedParts({
-				day: calendarDate.day,
-				hours: timeOfDay.hours,
-				minutes: timeOfDay.minutes,
-				month: calendarDate.month,
-				timeZone,
-				year: calendarDate.year
-			})
-		)
-	);
+	const calendarDate = parseCalendarDate(date);
+
+	if (!calendarDate) {
+		return err({ reason: "BOOKING_INVALID_DATE" });
+	}
+
+	const timeOfDay = parseTimeOfDay(time);
+
+	if (!timeOfDay) {
+		return err({ reason: "BOOKING_INVALID_TIME" });
+	}
+
+	return getUtcDateForZonedParts({
+		day: calendarDate.day,
+		hours: timeOfDay.hours,
+		minutes: timeOfDay.minutes,
+		month: calendarDate.month,
+		timeZone,
+		year: calendarDate.year
+	});
 }
 
 function nextCalendarDate(date: string) {
@@ -132,13 +181,16 @@ export function buildEventWindow(
 	duration: string,
 	timeZone: string
 ): Result<{ startDateTime: string; endDateTime: string }, SessionTimeParseError> {
-	return parseDurationMinutes(duration).andThen((durationMinutes) =>
-		getUtcDateForZonedDateTime(date, time, timeZone).map((startUtc) => {
-			const endUtc = new Date(startUtc.getTime() + durationMinutes * 60 * 1000);
+	const durationResult = parseDurationMinutes(duration);
 
-			return { startDateTime: startUtc.toISOString(), endDateTime: endUtc.toISOString() };
-		})
-	);
+	if (durationResult.isErr()) return err(durationResult.error);
+	const minutes = durationResult.value;
+
+	return getUtcDateForZonedDateTime(date, time, timeZone).map((startUtc) => {
+		const endUtc = new Date(startUtc.getTime() + minutes * 60 * 1000);
+
+		return { startDateTime: startUtc.toISOString(), endDateTime: endUtc.toISOString() };
+	});
 }
 
 // keep only the times that do not overlap with busy calendar events
@@ -227,7 +279,7 @@ export function isTimeSlotAvailable({
 // wider search range for google calendar
 // this helps catch events that start the night before or end the next day
 // and still block time on the selected date
-function parseDateValue(value: string): Result<Date, { reason: "BOOKING_INVALID_DATE" }> {
+export function parseDateValue(value: string): Result<Date, { reason: "BOOKING_INVALID_DATE" }> {
 	const calendarDate = parseCalendarDate(value);
 
 	if (!calendarDate) {
@@ -258,41 +310,7 @@ function addDays(date: Date, days: number) {
 	return result;
 }
 
-export function checkSessionMeetsAvailabilitySettings({
-	date,
-	duration,
-	latestBookableDate,
-	now = Date.now(),
-	settings,
-	time,
-	timeZone
-}: {
-	date: string;
-	duration: string;
-	latestBookableDate?: Date;
-	now?: number;
-	settings: SessionAvailabilitySettings;
-	time: string;
-	timeZone: string;
-}): Result<null, SessionAvailabilityValidationError> {
-	return parseDateValue(date)
-		.andThen((bookingDate) =>
-			validateBookingDateRange(bookingDate, latestBookableDate, now, settings)
-		)
-		.andThen((daySchedule) => validateBookingDaySchedule(duration, time, daySchedule))
-		.andThen(() => getUtcDateForZonedDateTime(date, time, timeZone))
-		.andThen((bookingStart) => {
-			const earliestStartAt = now + settings.leadTimeMinutes * 60 * 1000;
-
-			if (bookingStart.getTime() < earliestStartAt) {
-				return err({ reason: "BOOKING_TOO_SOON" as const });
-			}
-
-			return ok(null);
-		});
-}
-
-function validateBookingDateRange(
+export function validateBookingDateRange(
 	bookingDate: Date,
 	latestBookableDate: Date | undefined,
 	now: number,
@@ -319,28 +337,40 @@ function validateBookingDateRange(
 	return ok(daySchedule);
 }
 
-function validateBookingDaySchedule(
-	duration: string,
+export function validateBookingLeadTime(
+	bookingStart: Date,
+	now: number,
+	leadTimeMinutes: number
+): Result<null, SessionAvailabilityValidationError> {
+	const earliestStartAt = now + leadTimeMinutes * 60 * 1000;
+
+	if (bookingStart.getTime() < earliestStartAt) {
+		return err({ reason: "BOOKING_TOO_SOON" as const });
+	}
+
+	return ok(null);
+}
+
+export function validateBookingDaySchedule(
+	durationMinutes: number,
 	time: string,
 	daySchedule: { endTime: string; startTime: string }
 ): Result<null, SessionAvailabilityValidationError> {
-	return parseDurationMinutes(duration).andThen((durationMinutes) => {
-		const startMinutes = parseTimeToMinutes(time);
-		const dayStartMinutes = parseTimeToMinutes(daySchedule.startTime);
-		const dayEndMinutes = parseTimeToMinutes(daySchedule.endTime);
+	const startMinutes = parseTimeToMinutes(time);
+	const dayStartMinutes = parseTimeToMinutes(daySchedule.startTime);
+	const dayEndMinutes = parseTimeToMinutes(daySchedule.endTime);
 
-		if (startMinutes === null || dayStartMinutes === null || dayEndMinutes === null) {
-			return err({ reason: "BOOKING_INVALID_TIME" as const });
-		}
+	if (startMinutes === null || dayStartMinutes === null || dayEndMinutes === null) {
+		return err({ reason: "BOOKING_INVALID_TIME" as const });
+	}
 
-		const endMinutes = startMinutes + durationMinutes;
+	const endMinutes = startMinutes + durationMinutes;
 
-		if (startMinutes < dayStartMinutes || endMinutes > dayEndMinutes) {
-			return err({ reason: "BOOKING_OUTSIDE_OPENING_HOURS" as const });
-		}
+	if (startMinutes < dayStartMinutes || endMinutes > dayEndMinutes) {
+		return err({ reason: "BOOKING_OUTSIDE_OPENING_HOURS" as const });
+	}
 
-		return ok(null);
-	});
+	return ok(null);
 }
 
 export function getAvailabilityRange(date: string) {

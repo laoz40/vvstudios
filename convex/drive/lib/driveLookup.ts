@@ -37,3 +37,24 @@ export function loadPackageBookings(ctx: Pick<QueryCtx, "db">, packageId: Id<"pa
 			.collect()
 	);
 }
+
+export function loadBookingsByDriveClientId(
+	ctx: Pick<QueryCtx, "db">,
+	driveClientId: Id<"driveClients">
+) {
+	return okOrThrow(
+		ctx.db
+			.query("bookings")
+			.withIndex("by_driveClientId", (query) => query.eq("driveClientId", driveClientId))
+			.collect()
+	);
+}
+
+export function loadBookingsByEmail(ctx: Pick<QueryCtx, "db">, email: string) {
+	return okOrThrow(
+		ctx.db
+			.query("bookings")
+			.withIndex("by_email", (query) => query.eq("email", email))
+			.collect()
+	);
+}

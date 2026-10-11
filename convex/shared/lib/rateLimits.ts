@@ -16,49 +16,38 @@ type RateLimitCtx = ActionCtx | MutationCtx;
 
 export type BookingSubmitRateLimitError = { reason: "BOOKING_RATE_LIMITED"; retryAfter?: number };
 
-export function checkGoogleCalendarAvailabilityRateLimit(ctx: ActionCtx, key: string) {
-	return okOrThrow(rateLimiter.limit(ctx, "googleCalendarAvailabilityGlobal")).andThen(
-		(globalRateLimitStatus) => {
-			if (!globalRateLimitStatus.ok) {
-				return err({ reason: "GOOGLE_CALENDAR_RATE_LIMITED" as const });
-			}
-
-			return okOrThrow(rateLimiter.limit(ctx, "googleCalendarAvailability", { key })).andThen(
-				(rateLimitStatus) =>
-					rateLimitStatus.ok ? ok(null) : err({ reason: "GOOGLE_CALENDAR_RATE_LIMITED" as const })
-			);
-		}
-	);
+export function limitGoogleCalendarGlobal(ctx: ActionCtx) {
+	return okOrThrow(rateLimiter.limit(ctx, "googleCalendarAvailabilityGlobal"));
 }
 
-export function checkFeedbackSubmitRateLimit(ctx: ActionCtx) {
-	return okOrThrow(rateLimiter.limit(ctx, "feedbackSubmitGlobal")).andThen((rateLimitStatus) =>
-		rateLimitStatus.ok ? ok(null) : err({ reason: "FEEDBACK_RATE_LIMITED" as const })
-	);
+export function limitGoogleCalendarKey(ctx: ActionCtx, key: string) {
+	return okOrThrow(rateLimiter.limit(ctx, "googleCalendarAvailability", { key }));
 }
 
-export function checkBookingSubmitRateLimit(ctx: RateLimitCtx, key: string) {
-	return okOrThrow(rateLimiter.limit(ctx, "bookingSubmitGlobal")).andThen(
-		(globalRateLimitStatus) => {
-			if (!globalRateLimitStatus.ok) {
-				return err({
-					reason: "BOOKING_RATE_LIMITED" as const,
-					retryAfter: globalRateLimitStatus.retryAfter
-				});
-			}
+export function limitFeedbackGlobal(ctx: ActionCtx) {
+	return okOrThrow(rateLimiter.limit(ctx, "feedbackSubmitGlobal"));
+}
 
-			return okOrThrow(rateLimiter.limit(ctx, "bookingSubmit", { key })).andThen(
-				(rateLimitStatus) => {
-					if (!rateLimitStatus.ok) {
-						return err({
-							reason: "BOOKING_RATE_LIMITED" as const,
-							retryAfter: rateLimitStatus.retryAfter
-						});
-					}
+export function limitBookingGlobal(ctx: RateLimitCtx) {
+	return okOrThrow(rateLimiter.limit(ctx, "bookingSubmitGlobal"));
+}
 
-					return ok(null);
-				}
-			);
-		}
-	);
+export function limitBookingKey(ctx: RateLimitCtx, key: string) {
+	return okOrThrow(rateLimiter.limit(ctx, "bookingSubmit", { key }));
+}
+
+type RateLimitStatus = { ok: boolean; retryAfter?: number };
+
+export function requireGoogleCalendarLimit(status: RateLimitStatus) {
+	return status.ok ? ok(null) : err({ reason: "GOOGLE_CALENDAR_RATE_LIMITED" as const });
+}
+
+export function requireFeedbackLimit(status: RateLimitStatus) {
+	return status.ok ? ok(null) : err({ reason: "FEEDBACK_RATE_LIMITED" as const });
+}
+
+export function requireBookingLimit(status: RateLimitStatus) {
+	return status.ok
+		? ok(null)
+		: err({ reason: "BOOKING_RATE_LIMITED" as const, retryAfter: status.retryAfter });
 }

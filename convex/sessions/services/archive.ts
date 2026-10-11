@@ -1,26 +1,18 @@
 import { okAsync, type ResultAsync } from "neverthrow";
+import type { PaginationResult } from "convex/server";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { MutationCtx } from "#convex/_generated/server";
-import { isBookingArchived, setBookingArchived } from "#convex/shared/lib/archiveState";
 import {
-	archivePastDeadCheckoutSessionsBatchStep,
-	isSessionEligibleForAutoArchive,
+	archiveLoadedDeadCheckoutPage,
+	archiveSessionIfEligible,
+	loadSessionForAutoArchive,
+	loadSessionInvoiceSummary,
+	getDeadCheckoutArchiveBatchSize,
+	loadDeadCheckoutArchivePage,
 	mergeDeadCheckoutBookingUpdates,
 	patchBookingFields
 } from "#convex/sessions/lib/archive";
-import { listStripeInvoicesForBooking, summarizeStripeInvoices } from "#convex/stripe/lib/invoices";
 import { getSessionFromDb } from "#convex/sessions/services/lookup";
-
-function patchDeadCheckoutBookingStep(
-	ctx: MutationCtx,
-	bookingId: Id<"bookings">,
-	updates: Partial<Doc<"bookings">>,
-	now: number,
-
-	session: Doc<"bookings">
-) {
-	return patchBookingFields(ctx, bookingId, mergeDeadCheckoutBookingUpdates(session, updates, now));
-}
 
 export function archiveDeadCheckoutBooking(
 	ctx: MutationCtx,
@@ -29,64 +21,21 @@ export function archiveDeadCheckoutBooking(
 	now = Date.now()
 ): ResultAsync<null, never> {
 	return getSessionFromDb(ctx, bookingId)
-		.andThen((session: Doc<"bookings">) =>
-			patchDeadCheckoutBookingStep(ctx, bookingId, updates, now, session)
+		.andThen((session) =>
+			patchBookingFields(ctx, bookingId, mergeDeadCheckoutBookingUpdates(session, updates, now))
 		)
-		.orElse(ignoreArchiveFailureStep);
-}
-
-function ignoreArchiveFailureStep() {
-	return okAsync(null);
-}
-
-function sessionStripeSummaryStep(
-	session: Doc<"bookings">,
-	invoices: Parameters<typeof summarizeStripeInvoices>[0]
-) {
-	return { session, stripeSummary: summarizeStripeInvoices(invoices) };
-}
-
-function stripeSummaryForAutoArchiveStep(
-	ctx: MutationCtx,
-	bookingId: Id<"bookings">,
-	session: Doc<"bookings">
-) {
-	return listStripeInvoicesForBooking(ctx, bookingId).map(
-		(invoices: Parameters<typeof summarizeStripeInvoices>[0]) =>
-			sessionStripeSummaryStep(session, invoices)
-	);
-}
-
-function archiveWhenFullyDoneEligibleStep(
-	ctx: MutationCtx,
-	bookingId: Id<"bookings">,
-	now: number,
-
-	{
-		session,
-		stripeSummary
-	}: { session: Doc<"bookings">; stripeSummary: ReturnType<typeof summarizeStripeInvoices> }
-) {
-	if (isBookingArchived(session)) {
-		return okAsync(null);
-	}
-
-	if (!isSessionEligibleForAutoArchive(session, stripeSummary, now)) {
-		return okAsync(null);
-	}
-
-	return setBookingArchived(ctx, bookingId, true);
+		.orElse(() => okAsync(null));
 }
 
 export function archiveSessionWhenFullyDone(
 	ctx: MutationCtx,
-	bookingId: Id<"bookings">,
+	bookingId: Id<"bookings"> | null,
 	now = Date.now()
 ): ResultAsync<null, never> {
-	return getSessionFromDb(ctx, bookingId)
-		.andThen((session: Doc<"bookings">) => stripeSummaryForAutoArchiveStep(ctx, bookingId, session))
-		.andThen((_value) => archiveWhenFullyDoneEligibleStep(ctx, bookingId, now, _value))
-		.orElse(ignoreArchiveFailureStep);
+	return loadSessionForAutoArchive(ctx, bookingId)
+		.andThen((session) => loadSessionInvoiceSummary(ctx, session))
+		.andThen((summary) => archiveSessionIfEligible(ctx, bookingId, now, summary))
+		.orElse(() => okAsync(null));
 }
 
 export function runArchivePastDeadCheckoutBatch(
@@ -94,5 +43,11 @@ export function runArchivePastDeadCheckoutBatch(
 	cursor: string | null,
 	numItems?: number
 ) {
-	return archivePastDeadCheckoutSessionsBatchStep(ctx, cursor, numItems);
+	return loadDeadCheckoutArchivePage(
+		ctx,
+		cursor,
+		getDeadCheckoutArchiveBatchSize(numItems)
+	).andThen((page: PaginationResult<Doc<"bookings">>) =>
+		archiveLoadedDeadCheckoutPage(ctx, page, Date.now())
+	);
 }

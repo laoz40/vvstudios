@@ -1,7 +1,6 @@
 "use node";
 
-import { err, ok, type ResultAsync } from "neverthrow";
-import { internal } from "#convex/_generated/api";
+import type { ResultAsync } from "neverthrow";
 import type { Id } from "#convex/_generated/dataModel";
 import type { ActionCtx } from "#convex/_generated/server";
 import {
@@ -9,43 +8,24 @@ import {
 	type PermissionActionError
 } from "#convex/shared/services/requirePermissionActions";
 import type { StripeInvoiceBillingUrls } from "#convex/stripe/lib/invoiceBillingUrls";
+import type { EditInvoiceTarget } from "#convex/stripe/lib/editInvoiceDb";
 import { getPackageForAction } from "#convex/packages/services/lookup";
 import { fromConvexTuple } from "#convex/shared/lib/result";
 import { getSessionFromQuery } from "#convex/sessions/services/lookup";
 import {
-	createAndSendStripeInvoice,
+	validateStripeInvoiceLineItems,
+	createAndSendBookingStripeInvoice,
+	createAndSendPackageStripeInvoice,
+	createAndSendOptionalEditInvoice,
+	recordBookingStripeInvoiceFromAction,
+	recordPackageStripeInvoiceFromAction,
+	recordOptionalEditInvoiceFromAction,
+	requireStripeInvoiceCustomerId,
 	type StripeInvoiceLineItem,
-	validateStripeInvoiceLineItems
+	type StripeInvoiceSenderIdentity
 } from "#convex/stripe/lib/invoice";
 import { getStripeInvoiceBillingUrls as fetchStripeInvoiceBillingUrls } from "#convex/stripe/lib/invoiceBillingUrls";
 import { getStripeClient } from "#convex/stripe/lib/client";
-
-type StripeInvoiceSenderIdentity = { email?: string };
-
-function requireStripeCustomerId(stripeCustomerId: string | undefined) {
-	if (!stripeCustomerId) {
-		return err({ reason: "STRIPE_CUSTOMER_NOT_FOUND" as const });
-	}
-
-	return ok(stripeCustomerId);
-}
-
-function attachIdentityAndLineItems(
-	identity: StripeInvoiceSenderIdentity,
-	validatedLineItems: StripeInvoiceLineItem[]
-) {
-	return { identity, lineItems: validatedLineItems };
-}
-
-function attachValidatedLineItems(
-	lineItems: StripeInvoiceLineItem[],
-	identity: StripeInvoiceSenderIdentity
-) {
-	return validateStripeInvoiceLineItems(lineItems).map(
-		(validatedLineItems: StripeInvoiceLineItem[]) =>
-			attachIdentityAndLineItems(identity, validatedLineItems)
-	);
-}
 
 export function requireSendReceiptEmailsAndValidateLineItems(
 	ctx: ActionCtx,
@@ -55,34 +35,30 @@ export function requireSendReceiptEmailsAndValidateLineItems(
 	{ reason: string }
 > {
 	return requirePermissionActions(ctx, "send:receipt-emails").andThen(
-		(identity: StripeInvoiceSenderIdentity) => attachValidatedLineItems(lineItems, identity)
+		(identity: StripeInvoiceSenderIdentity) =>
+			validateStripeInvoiceLineItems(lineItems).map((validatedLineItems) => ({
+				identity,
+				lineItems: validatedLineItems
+			}))
 	);
-}
-
-function stripeCustomerIdFromSession(session: { stripeCustomerId?: string }) {
-	return requireStripeCustomerId(session.stripeCustomerId);
-}
-
-function stripeCustomerIdFromPackage(packageRecord: { stripeCustomerId?: string }) {
-	return requireStripeCustomerId(packageRecord.stripeCustomerId);
 }
 
 export function loadBookingStripeCustomerId(
 	ctx: ActionCtx,
 	bookingId: Id<"bookings">
 ): ResultAsync<string, { reason: string }> {
-	return getSessionFromQuery(ctx, bookingId).andThen(stripeCustomerIdFromSession);
+	return getSessionFromQuery(ctx, bookingId).andThen((session) =>
+		requireStripeInvoiceCustomerId(session.stripeCustomerId)
+	);
 }
 
 export function loadPackageStripeCustomerId(
 	ctx: ActionCtx,
 	packageId: Id<"packages">
 ): ResultAsync<string, { reason: string }> {
-	return getPackageForAction(ctx, packageId).andThen(stripeCustomerIdFromPackage);
-}
-
-function fetchStripeInvoiceBillingUrlsForStaff(stripeInvoiceId: string) {
-	return fetchStripeInvoiceBillingUrls(getStripeClient(), stripeInvoiceId);
+	return getPackageForAction(ctx, packageId).andThen((packageRecord) =>
+		requireStripeInvoiceCustomerId(packageRecord.stripeCustomerId)
+	);
 }
 
 export function loadStripeInvoiceBillingUrlsForStaff(
@@ -93,48 +69,30 @@ export function loadStripeInvoiceBillingUrlsForStaff(
 	PermissionActionError | { reason: "STRIPE_INVOICE_LOOKUP_FAILED" }
 > {
 	return requirePermissionActions(ctx, "view:sensitive-booking-data").andThen(() =>
-		fetchStripeInvoiceBillingUrlsForStaff(stripeInvoiceId)
+		fetchStripeInvoiceBillingUrls(getStripeClient(), stripeInvoiceId)
 	);
-}
-
-function toStripeInvoiceIdFromMutation(stripeInvoiceId: string) {
-	return { stripeInvoiceId };
 }
 
 function recordBookingStripeInvoiceAfterSend(
 	ctx: ActionCtx,
 	args: { bookingId: Id<"bookings">; lineItems: StripeInvoiceLineItem[]; requestId: string },
 	identity: StripeInvoiceSenderIdentity,
-
 	{ stripeInvoiceId }: { stripeInvoiceId: string }
 ) {
 	return fromConvexTuple(
-		ctx.runMutation(internal.stripe.invoiceRecords.recordBookingStripeInvoice, {
-			bookingId: args.bookingId,
-			stripeInvoiceId,
-			lineItems: args.lineItems,
-			requestId: args.requestId,
-			createdBy: identity.email
-		})
-	).map(() => toStripeInvoiceIdFromMutation(stripeInvoiceId));
+		recordBookingStripeInvoiceFromAction(ctx, args, identity, stripeInvoiceId)
+	).map(() => ({ stripeInvoiceId }));
 }
 
 function recordPackageStripeInvoiceAfterSend(
 	ctx: ActionCtx,
 	args: { packageId: Id<"packages">; lineItems: StripeInvoiceLineItem[]; requestId: string },
 	identity: StripeInvoiceSenderIdentity,
-
 	{ stripeInvoiceId }: { stripeInvoiceId: string }
 ) {
 	return fromConvexTuple(
-		ctx.runMutation(internal.stripe.invoiceRecords.recordPackageStripeInvoice, {
-			packageId: args.packageId,
-			stripeInvoiceId,
-			lineItems: args.lineItems,
-			requestId: args.requestId,
-			createdBy: identity.email
-		})
-	).map(() => toStripeInvoiceIdFromMutation(stripeInvoiceId));
+		recordPackageStripeInvoiceFromAction(ctx, args, identity, stripeInvoiceId)
+	).map(() => ({ stripeInvoiceId }));
 }
 
 export function createAndRecordBookingStripeInvoice(
@@ -143,13 +101,9 @@ export function createAndRecordBookingStripeInvoice(
 	identity: StripeInvoiceSenderIdentity,
 	stripeCustomerId: string
 ): ResultAsync<{ stripeInvoiceId: string }, { reason: string }> {
-	const stripe = getStripeClient();
-
-	return createAndSendStripeInvoice(stripe, {
-		stripeCustomerId,
-		lineItems: args.lineItems,
-		metadata: { kind: "booking", bookingId: args.bookingId, requestId: args.requestId }
-	}).andThen((_value) => recordBookingStripeInvoiceAfterSend(ctx, args, identity, _value));
+	return createAndSendBookingStripeInvoice(getStripeClient(), args, stripeCustomerId).andThen(
+		(stripeInvoice) => recordBookingStripeInvoiceAfterSend(ctx, args, identity, stripeInvoice)
+	);
 }
 
 export function createAndRecordPackageStripeInvoice(
@@ -158,11 +112,23 @@ export function createAndRecordPackageStripeInvoice(
 	identity: StripeInvoiceSenderIdentity,
 	stripeCustomerId: string
 ): ResultAsync<{ stripeInvoiceId: string }, { reason: string }> {
-	const stripe = getStripeClient();
+	return createAndSendPackageStripeInvoice(getStripeClient(), args, stripeCustomerId).andThen(
+		(stripeInvoice) => recordPackageStripeInvoiceAfterSend(ctx, args, identity, stripeInvoice)
+	);
+}
 
-	return createAndSendStripeInvoice(stripe, {
-		stripeCustomerId,
-		lineItems: args.lineItems,
-		metadata: { kind: "package", packageId: args.packageId, requestId: args.requestId }
-	}).andThen((_value) => recordPackageStripeInvoiceAfterSend(ctx, args, identity, _value));
+export function createAndRecordOptionalEditInvoice(
+	ctx: ActionCtx,
+	args: { target: EditInvoiceTarget | null; lineItems: StripeInvoiceLineItem[]; requestId: string },
+	identity: StripeInvoiceSenderIdentity,
+	stripeCustomerId: string
+): ResultAsync<{ stripeInvoiceId: string } | null, { reason: string }> {
+	return createAndSendOptionalEditInvoice(getStripeClient(), { ...args, stripeCustomerId }).andThen(
+		(stripeInvoice) =>
+			recordOptionalEditInvoiceFromAction(ctx, {
+				...args,
+				createdBy: identity.email,
+				stripeInvoiceId: stripeInvoice?.stripeInvoiceId ?? null
+			}).map(() => stripeInvoice)
+	);
 }

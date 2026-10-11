@@ -33,9 +33,5 @@ export const listCustomInvoicesForBooking = query({
 
 export const getBookingCustomInvoiceInput = internalQuery({
 	args: { bookingId: v.id("bookings"), customInvoiceId: v.id("customInvoices") },
-	handler: async (ctx, args) =>
-		(await loadBookingCustomInvoiceInput(ctx, args)).match(
-			(customInvoice) => customInvoice,
-			() => null
-		)
+	handler: async (ctx, args) => loadBookingCustomInvoiceInput(ctx, args).match(tupleOk, tupleErr)
 });

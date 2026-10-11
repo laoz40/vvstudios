@@ -12,11 +12,11 @@
  */
 import { describe, expect, test } from "vitest";
 import {
-	checkSessionMeetsAvailabilitySettings,
 	getAvailableTimeOptions,
 	isTimeSlotAvailable,
 	type SessionAvailabilitySettings
 } from "#convex/sessions/lib/calendarTime";
+import { checkSessionMeetsAvailabilitySettings } from "#convex/sessions/services/calendarTime";
 
 const timeZone = "Australia/Sydney";
 

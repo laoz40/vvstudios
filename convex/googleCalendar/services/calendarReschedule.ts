@@ -3,11 +3,11 @@
 import { err, errAsync, ok, okAsync, type ResultAsync } from "neverthrow";
 import type { Doc } from "#convex/_generated/dataModel";
 import type { ActionCtx } from "#convex/_generated/server";
-import { loadBookingAvailabilitySettings } from "#convex/booking/lib/confirmationActionBoundaries";
+import { queryBookingAvailabilitySettings } from "#convex/booking/lib/settingsIo";
 import type { getGoogleCalendarClient } from "#convex/googleCalendar/lib/googleCalendarClient";
 import { loadGoogleCalendarClient } from "#convex/googleCalendar/lib/googleCalendarClient";
 import { getBookingSubmitRateLimitKey } from "#convex/booking/lib/submission";
-import { checkBookingSubmitRateLimit } from "#convex/shared/lib/rateLimits";
+import { checkBookingSubmitRateLimit } from "#convex/shared/services/rateLimits";
 import {
 	clearSessionSlotReservation,
 	loadValidRescheduleLinkAndSession,
@@ -17,13 +17,20 @@ import {
 	unlockRescheduleLink,
 	type ValidRescheduleDetails as LibValidRescheduleDetails
 } from "#convex/sessions/lib/calendarActionBoundaries";
+import {
+	buildRescheduleCalendarTimingArgs,
+	buildSaveClientSessionRescheduleArgs,
+	logRescheduleReservationCleanupFailureResult,
+	logRescheduleUnlockFailureResult,
+	resolveRescheduleReservation,
+	updatedRescheduledBooking
+} from "#convex/googleCalendar/lib/calendarReschedule";
 import { updateSessionTimingWithGoogleCalendar } from "#convex/googleCalendar/services/calendarTimingSync";
-import { getSessionStartAt, validateSessionTimingEdit } from "#convex/sessions/lib/adminEdit";
+import { getSessionStartAt } from "#convex/sessions/lib/adminEdit";
+import { validateSessionTimingEdit } from "#convex/sessions/services/adminEdit";
 import type { SessionAvailabilitySettings } from "#convex/sessions/lib/calendarTime";
-import type { SaveClientSessionRescheduleArgs } from "#convex/sessions/lib/schedulingArgs";
-import { getRescheduleUrlForToken } from "#convex/sessions/lib/rescheduleLinks";
 import { sendBookingRescheduledEmailsForBooking } from "#convex/sessions/services/rescheduleEmails";
-import { pickBookingAddonQuantities } from "#/domain/booking/addon-quantities";
+import { getRescheduleUrlForToken } from "#convex/sessions/lib/rescheduleLinks";
 import type { AdminSessionUpdateError } from "#convex/sessions/lib/adminEdit";
 import type { RescheduleLinkLookupError } from "#convex/sessions/lib/rescheduleLinks";
 
@@ -59,23 +66,17 @@ export type ValidatedRescheduleTarget = {
 	settings: SessionAvailabilitySettings;
 };
 
-function retainRescheduleDetailsStep(details: ValidRescheduleDetails) {
-	return details;
-}
-
-function enforceRescheduleSubmitRateLimitStep(
+function enforceRescheduleSubmitRateLimit(
 	ctx: ActionCtx,
 	details: ValidRescheduleDetails,
 	submitRateLimitKey: string
 ) {
-	return checkBookingSubmitRateLimit(ctx, submitRateLimitKey).map(() =>
-		retainRescheduleDetailsStep(details)
-	);
+	return checkBookingSubmitRateLimit(ctx, submitRateLimitKey).map(() => details);
 }
 
-function loadLinkWithRateLimitStep(ctx: ActionCtx, details: ValidRescheduleDetails) {
+function loadLinkWithRateLimit(ctx: ActionCtx, details: ValidRescheduleDetails) {
 	return getBookingSubmitRateLimitKey(details.session.email).andThen((submitRateLimitKey: string) =>
-		enforceRescheduleSubmitRateLimitStep(ctx, details, submitRateLimitKey)
+		enforceRescheduleSubmitRateLimit(ctx, details, submitRateLimitKey)
 	);
 }
 
@@ -83,51 +84,26 @@ function loadLink(
 	ctx: ActionCtx,
 	args: RescheduleSessionArgs
 ): ResultAsync<ValidRescheduleDetails, RescheduleSessionError> {
-	const now = Date.now();
-
-	return loadValidRescheduleLinkAndSession(ctx, { token: args.token, now }).andThen(
-		(details: ValidRescheduleDetails) => loadLinkWithRateLimitStep(ctx, details)
+	return loadValidRescheduleLinkAndSession(ctx, { token: args.token, now: Date.now() }).andThen(
+		(details: ValidRescheduleDetails) => loadLinkWithRateLimit(ctx, details)
 	);
 }
 
-function validatedRescheduleTargetStep(
-	_details: ValidRescheduleDetails,
-	settings: SessionAvailabilitySettings,
-	calendarClient: ReturnType<typeof getGoogleCalendarClient>,
-
-	sessionStartAt: number
-) {
-	return { calendarClient, details: _details, sessionStartAt, settings };
-}
-
-function validateRescheduleTargetForCalendarClientStep(
+function validateRescheduleTargetForCalendarClient(
 	args: RescheduleSessionArgs,
 	details: ValidRescheduleDetails,
 	settings: SessionAvailabilitySettings,
 
 	calendarClient: ReturnType<typeof getGoogleCalendarClient>
 ) {
-	return validateRescheduleTiming(args, details.session, settings, calendarClient).andThen(
-		(_timingValidated: null) =>
-			afterRescheduleTimingValidatedStep(args, details, settings, calendarClient, _timingValidated)
+	return validateRescheduleTiming(args, details.session, settings, calendarClient).andThen(() =>
+		getSessionStartAt(args.date, args.time, calendarClient.timeZone)
+			.map((sessionStartAt) => ({ calendarClient, details, sessionStartAt, settings }))
+			.asyncAndThen((context) => okAsync(context))
 	);
 }
 
-function afterRescheduleTimingValidatedStep(
-	args: RescheduleSessionArgs,
-	details: ValidRescheduleDetails,
-	settings: SessionAvailabilitySettings,
-	calendarClient: ReturnType<typeof getGoogleCalendarClient>,
-	_timingValidated: null
-) {
-	return getSessionStartAt(args.date, args.time, calendarClient.timeZone).match(
-		(sessionStartAt) =>
-			okAsync(validatedRescheduleTargetStep(details, settings, calendarClient, sessionStartAt)),
-		(error) => errAsync(error)
-	);
-}
-
-function validateRescheduleTargetWithSettingsStep(
+function validateRescheduleTargetWithSettings(
 	args: RescheduleSessionArgs,
 	details: ValidRescheduleDetails,
 
@@ -135,7 +111,7 @@ function validateRescheduleTargetWithSettingsStep(
 ) {
 	return loadGoogleCalendarClient("GOOGLE_CALENDAR_AVAILABILITY_FAILED").andThen(
 		(calendarClient: ReturnType<typeof getGoogleCalendarClient>) =>
-			validateRescheduleTargetForCalendarClientStep(args, details, settings, calendarClient)
+			validateRescheduleTargetForCalendarClient(args, details, settings, calendarClient)
 	);
 }
 
@@ -144,22 +120,14 @@ function validateTarget(
 	args: RescheduleSessionArgs,
 	details: ValidRescheduleDetails
 ) {
-	return loadBookingAvailabilitySettings(ctx).andThen((settings: SessionAvailabilitySettings) =>
-		validateRescheduleTargetWithSettingsStep(args, details, settings)
+	return queryBookingAvailabilitySettings(ctx).andThen((settings: SessionAvailabilitySettings) =>
+		validateRescheduleTargetWithSettings(args, details, settings)
 	);
-}
-
-function validateRescheduleTargetForDetailsStep(
-	ctx: ActionCtx,
-	args: RescheduleSessionArgs,
-	details: ValidRescheduleDetails
-) {
-	return validateTarget(ctx, args, details);
 }
 
 export function loadRescheduleTargetAndValidate(ctx: ActionCtx, args: RescheduleSessionArgs) {
 	return loadLink(ctx, args).andThen((details: ValidRescheduleDetails) =>
-		validateRescheduleTargetForDetailsStep(ctx, args, details)
+		validateTarget(ctx, args, details)
 	);
 }
 
@@ -168,7 +136,7 @@ export function validateRescheduleTiming(
 	session: Doc<"bookings">,
 	settings: SessionAvailabilitySettings,
 	calendarClient: ReturnType<typeof getGoogleCalendarClient>
-) {
+): ResultAsync<null, AdminSessionUpdateError> {
 	return validateSessionTimingEdit({
 		calendar: calendarClient.calendar,
 		calendarIds: calendarClient.calendarIds,
@@ -185,25 +153,7 @@ export function validateRescheduleTiming(
 	});
 }
 
-function reservedRescheduleStateStep(
-	details: ValidRescheduleDetails,
-	lockedAt: number,
-	settings: SessionAvailabilitySettings,
-
-	reservationResult: { outcome: "reserved" | "unavailable"; reservation?: RescheduleReservation }
-) {
-	return reservationResult.outcome === "unavailable"
-		? errAsync({ reason: "BOOKING_TIME_UNAVAILABLE" as const })
-		: okAsync({
-				link: details.link,
-				lockedAt,
-				reservation: reservationResult.reservation!,
-				session: details.session,
-				settings
-			});
-}
-
-function reserveSessionSlotAfterLockStep(
+function reserveSessionSlotAfterLock(
 	ctx: ActionCtx,
 	details: ValidRescheduleDetails,
 	lockedAt: number,
@@ -218,19 +168,12 @@ function reserveSessionSlotAfterLockStep(
 		eventBufferMinutes: settings.eventBufferMinutes,
 		sessionStartAt
 	}).andThen(
-		(reservationResult: {
-			outcome: "reserved" | "unavailable";
-			reservation?: RescheduleReservation;
-		}) => reservedRescheduleStateStep(details, lockedAt, settings, reservationResult)
+		(
+			reservationResult:
+				| { outcome: "reserved"; reservation: RescheduleReservation }
+				| { outcome: "unavailable" }
+		) => resolveRescheduleReservation(details, lockedAt, settings, reservationResult)
 	);
-}
-
-export function attachCalendarClientToLockState(
-	calendarClient: ReturnType<typeof getGoogleCalendarClient>,
-
-	state: RescheduleState
-) {
-	return { calendarClient, state };
 }
 
 export function lockAndReserve(
@@ -247,7 +190,7 @@ export function lockAndReserve(
 
 	return lockRescheduleLink(ctx, { linkId: details.link._id, now: lockedAt })
 		.andThen((_linkLocked: null) =>
-			reserveSessionSlotAfterLockStep(ctx, details, lockedAt, settings, sessionStartAt, _linkLocked)
+			reserveSessionSlotAfterLock(ctx, details, lockedAt, settings, sessionStartAt, _linkLocked)
 		)
 		.orElse(unlockAndReturnReservationError);
 }
@@ -258,25 +201,8 @@ function releaseRescheduleLink(
 	lockedAt: number
 ) {
 	return unlockRescheduleLink(ctx, { linkId, lockedAt }).orElse((error: { reason: string }) =>
-		logRescheduleUnlockFailureStep(linkId, error)
+		logRescheduleUnlockFailureResult(linkId, error)
 	);
-}
-
-function logRescheduleUnlockFailureStep(
-	linkId: Doc<"bookingRescheduleLinks">["_id"],
-	error: { reason: string }
-) {
-	console.error("Reschedule link unlock failed", { linkId, error });
-
-	return okAsync(null);
-}
-
-function clearReservationThenUnlockStep(
-	ctx: ActionCtx,
-	state: RescheduleState,
-	_reservationCleared: { cleared: boolean } | null
-) {
-	return releaseRescheduleLink(ctx, state.link._id, state.lockedAt);
 }
 
 function clearReservationThenUnlock(ctx: ActionCtx, state: RescheduleState) {
@@ -284,36 +210,20 @@ function clearReservationThenUnlock(ctx: ActionCtx, state: RescheduleState) {
 		bookingId: state.session._id,
 		reservation: state.reservation
 	})
-		.orElse((error: { reason: string }) =>
-			logRescheduleReservationCleanupFailureStep(state.session._id, error)
+		.orElse((error: AdminSessionUpdateError) =>
+			logRescheduleReservationCleanupFailureResult(state.session._id, error)
 		)
-		.andThen((_reservationCleared: { cleared: boolean } | null) =>
-			clearReservationThenUnlockStep(ctx, state, _reservationCleared)
+		.andThen((_reservationCleared: { cleared: boolean } | null | void) =>
+			releaseRescheduleLink(ctx, state.link._id, state.lockedAt)
 		);
 }
 
-function logRescheduleReservationCleanupFailureStep(
-	bookingId: Doc<"bookings">["_id"],
-	error: { reason: string }
-) {
-	console.error("Reschedule reservation cleanup failed", { bookingId, error });
-
-	return okAsync(null);
-}
-
-function rescheduleStateWithTimingUpdateStep(
-	state: RescheduleState,
-	timingUpdate: RescheduledSessionTimingUpdate
-) {
-	return { ...state, timingUpdate };
-}
-
-function rollbackRescheduleOnCalendarErrorStep(
+function rollbackRescheduleOnCalendarError(
 	ctx: ActionCtx,
 	state: RescheduleState,
 	error: RescheduleSessionError
 ) {
-	return clearReservationThenUnlock(ctx, state).andThen(() => err(error));
+	return clearReservationThenUnlock(ctx, state).andThen(() => errAsync(error));
 }
 
 export function syncCalendar(
@@ -325,44 +235,22 @@ export function syncCalendar(
 	RescheduleState & { timingUpdate: RescheduledSessionTimingUpdate },
 	RescheduleSessionError
 > {
-	return updateSessionTimingWithGoogleCalendar({
-		session: state.session,
-		client: calendarClient,
-		date: args.date,
-		details: {
-			addons: state.session.addons,
-			duration: state.session.duration,
-			email: state.session.email,
-			name: state.session.name,
-			service: state.session.service,
-			...pickBookingAddonQuantities(state.session)
-		},
-		duration: state.session.duration,
-		createMissingEvent: state.session.status === "failed",
-		settings: state.settings,
-		time: args.time
-	})
-		.map((timingUpdate: RescheduledSessionTimingUpdate) =>
-			rescheduleStateWithTimingUpdateStep(state, timingUpdate)
-		)
+	return updateSessionTimingWithGoogleCalendar(
+		buildRescheduleCalendarTimingArgs(state, calendarClient, args, state.settings)
+	)
+		.map((timingUpdate: RescheduledSessionTimingUpdate) => ({ ...state, timingUpdate }))
 		.orElse((error: RescheduleSessionError) =>
-			rollbackRescheduleOnCalendarErrorStep(ctx, state, error)
+			rollbackRescheduleOnCalendarError(ctx, state, error)
 		);
 }
 
-function retainRescheduleStateStep(
-	state: RescheduleState & { timingUpdate: RescheduledSessionTimingUpdate }
-) {
-	return state;
-}
-
-function rollbackRescheduleOnSaveErrorStep(
+function rollbackRescheduleOnSaveError(
 	ctx: ActionCtx,
 	state: RescheduleState & { timingUpdate: RescheduledSessionTimingUpdate },
 
 	error: RescheduleSessionError
 ) {
-	return clearReservationThenUnlock(ctx, state).andThen(() => err(error));
+	return clearReservationThenUnlock(ctx, state).andThen(() => errAsync(error));
 }
 
 function saveReschedule(
@@ -370,31 +258,12 @@ function saveReschedule(
 	args: RescheduleSessionArgs,
 	state: RescheduleState & { timingUpdate: RescheduledSessionTimingUpdate }
 ) {
-	const saveArgs: SaveClientSessionRescheduleArgs = {
-		bookingId: state.session._id,
-		date: args.date,
-		time: args.time,
-		sessionStartAt: state.timingUpdate.sessionStartAt,
-		confirmBooking: state.session.status === "failed",
-		reservation: state.reservation
-	};
-
-	if (state.timingUpdate.googleCalendarId) {
-		saveArgs.googleCalendarId = state.timingUpdate.googleCalendarId;
-	}
-
-	if (state.timingUpdate.googleEventId) {
-		saveArgs.googleEventId = state.timingUpdate.googleEventId;
-	}
-
-	return saveClientSessionReschedule(ctx, saveArgs)
-		.map(() => retainRescheduleStateStep(state))
-		.orElse((error: RescheduleSessionError) =>
-			rollbackRescheduleOnSaveErrorStep(ctx, state, error)
-		);
+	return saveClientSessionReschedule(ctx, buildSaveClientSessionRescheduleArgs(state, args))
+		.map(() => state)
+		.orElse((error: RescheduleSessionError) => rollbackRescheduleOnSaveError(ctx, state, error));
 }
 
-function unlockSavedRescheduleLinkStep(
+function unlockSavedRescheduleLink(
 	ctx: ActionCtx,
 	saved: RescheduleState & { timingUpdate: RescheduledSessionTimingUpdate }
 ) {
@@ -402,11 +271,7 @@ function unlockSavedRescheduleLinkStep(
 		linkId: saved.link._id,
 		lockedAt: saved.lockedAt,
 		expiresAt: saved.timingUpdate.sessionStartAt
-	}).map(() => retainValueStep(saved));
-}
-
-function retainValueStep<T>(value: T) {
-	return value;
+	}).map(() => saved);
 }
 
 export function saveClientRescheduleAndUnlockLink(
@@ -419,16 +284,8 @@ export function saveClientRescheduleAndUnlockLink(
 > {
 	return saveReschedule(ctx, args, state).andThen(
 		(saved: RescheduleState & { timingUpdate: RescheduledSessionTimingUpdate }) =>
-			unlockSavedRescheduleLinkStep(ctx, saved)
+			unlockSavedRescheduleLink(ctx, saved)
 	);
-}
-
-function rescheduleBookingIdStep(session: Doc<"bookings">) {
-	return { bookingId: session._id };
-}
-
-function rescheduleBookingIdWithEmailWarningStep(session: Doc<"bookings">) {
-	return ok({ bookingId: session._id, warning: "RESCHEDULE_EMAIL_SEND_FAILED" as const });
 }
 
 export function finishReschedule(
@@ -437,21 +294,15 @@ export function finishReschedule(
 	timingUpdate: RescheduledSessionTimingUpdate,
 	settings: SessionAvailabilitySettings
 ) {
-	const updatedBooking = {
-		...session,
-		date: args.date,
-		time: args.time,
-		sessionStartAt: timingUpdate.sessionStartAt,
-		googleCalendarId: timingUpdate.googleCalendarId ?? session.googleCalendarId,
-		googleEventId: timingUpdate.googleEventId ?? session.googleEventId
-	};
-
-	return sendBookingRescheduledEmailsForBooking(updatedBooking, {
-		leadTimeMinutes: settings.leadTimeMinutes,
-		originalDate: session.date,
-		originalTime: session.time,
-		rescheduleUrl: getRescheduleUrlForToken(args.token)
-	})
-		.map(() => rescheduleBookingIdStep(session))
-		.orElse(() => rescheduleBookingIdWithEmailWarningStep(session));
+	return sendBookingRescheduledEmailsForBooking(
+		updatedRescheduledBooking(session, args, timingUpdate),
+		{
+			leadTimeMinutes: settings.leadTimeMinutes,
+			originalDate: session.date,
+			originalTime: session.time,
+			rescheduleUrl: getRescheduleUrlForToken(args.token)
+		}
+	)
+		.map(() => ({ bookingId: session._id }))
+		.orElse(() => ok({ bookingId: session._id, warning: "RESCHEDULE_EMAIL_SEND_FAILED" as const }));
 }
