@@ -13,7 +13,7 @@ export function formatStripeInvoiceKindLabel(kind: Doc<"stripeInvoices">["kind"]
 	return stripeInvoiceKindLabels[kind];
 }
 
-export function formatStripeInvoiceAmount(invoice: Doc<"stripeInvoices">) {
+export function formatStripeInvoiceAmount(invoice: Pick<Doc<"stripeInvoices">, "totalAmount">) {
 	return formatCustomInvoiceCurrency(invoice.totalAmount);
 }
 
