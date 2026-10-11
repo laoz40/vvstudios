@@ -327,7 +327,7 @@
 		{
 			"files": ["convex/lib/**", "convex/*/lib/**", "convex/shared/lib/**"],
 			"rules": {
-				"convex-layers/no-lib-loader-orchestration": "error",
+				"convex-layers/no-lib-result-composition": "error",
 				"neverthrow/no-export-okorthrow-on-call": "error"
 			}
 		},
@@ -341,15 +341,18 @@
 			],
 			"rules": {
 				"convex-layers/no-db-in-services": "error",
+				"convex-layers/no-service-implementation": "error",
 				"convex-layers/no-lib-reexport": "error",
 				"convex-layers/no-handler-lib-import": "error",
-				"convex-layers/no-inline-callback-in-service-chains": "error",
 				"convex-layers/pure-validation-in-lib-only": "error"
 			}
 		},
 		{
 			"files": ["convex/**/*.ts"],
 			"rules": {
+				"convex-layers/no-result-match-outside-handler": "error",
+				"convex-layers/no-trivial-result-wrapper": "error",
+				"convex-layers/no-synthetic-skip-error": "error",
 				"convex-layers/no-drive-state-write-outside-owner": "error",
 				"convex-layers/no-billing-recovery-state-write-outside-owner": "error"
 			}

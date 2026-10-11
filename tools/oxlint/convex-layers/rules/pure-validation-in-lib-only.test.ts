@@ -7,6 +7,18 @@ const tester = new RuleTester({ languageOptions: { parserOptions: { lang: "ts" }
 tester.run("convex-layers/pure-validation-in-lib-only", pureValidationInLibOnlyRule, {
 	valid: [
 		{
+			filename: "/project/convex/booking/services/confirmation.ts",
+			code: `import { ok } from "neverthrow";
+function mapSession(session) { return ok({ status: session.paid ? "paid" : "unpaid" }); }
+export function load(ctx, id) { return getRow(ctx, id).andThen(mapSession); }`
+		},
+		{
+			filename: "/project/convex/booking/services/confirmation.ts",
+			code: `import { ok } from "neverthrow";
+function mapSession(session) { return ok({ ...session }); }
+export function load(ctx, id) { return getRow(ctx, id).andThen(mapSession).andThen(row => { return ok(row); }); }`
+		},
+		{
 			filename: "/project/convex/services/packages/good-import.ts",
 			code: `import { validatePackageExpiry } from "#convex/packages/lib/checkout";
 export function expire(ctx, id) {
@@ -38,7 +50,7 @@ export function expire(ctx, id) {
 export function load(ctx, id) {
   return getRow(ctx, id).andThen(validateLoadedSession);
 }`
-		},
+		}
 	],
 	invalid: [
 		{
@@ -109,16 +121,6 @@ export function load(ctx, id) {
 }
 export function load(ctx, id) {
   return getAccess(ctx, id).andThen(verifyPermission);
-}`,
-			errors: [{ messageId: "pureValidationInService" }]
-		},
-		{
-			filename: "/project/convex/services/packages/no-branch-result-helper.ts",
-			code: `function mapSession(session) {
-  return ok({ ...session });
-}
-export function load(ctx, id) {
-  return getRow(ctx, id).andThen(mapSession);
 }`,
 			errors: [{ messageId: "pureValidationInService" }]
 		}
