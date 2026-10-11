@@ -1,3 +1,4 @@
+// Services may load data through lib functions; direct DB access stays forbidden inside generators.
 import { RuleTester } from "oxlint/plugins-dev";
 
 import { noDbInServicesRule } from "./no-db-in-services.ts";
@@ -17,6 +18,11 @@ export function loadBooking(ctx, id) { return getBookingRow(ctx, id); }`
 		}
 	],
 	invalid: [
+		{
+			filename: "convex/booking/services/checkout.ts",
+			code: `export function run(ctx, id) { return safeTry(async function* () { const row = yield* okOrThrow(ctx.db.get("bookings", id)); return ok(row); }); }`,
+			errors: [{ messageId: "dbInService" }]
+		},
 		{
 			filename: "convex/services/sessions/bad.ts",
 			code: `export function bad(ctx) { return ctx.db.get("bookings", id); }`,

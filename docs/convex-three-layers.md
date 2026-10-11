@@ -36,14 +36,14 @@ Examples: `convex/packages/scheduling.ts`, `convex/booking/settings.ts`, `convex
 - Composed from **lib** functions (and other services when needed).
 - One service **file** groups related abstractions for one domain concept.
 - **File layout:** name modules for what they do (`checkoutMutations.ts`, `queries.ts`, `invoiceSend.ts`). No `Workflow`, `MutationWorkflow`, or layer jargon in filenames; the parent folder is the feature (`packages/services/`). Do not repeat the feature name in the basename when the path already provides it. Internal Convex entrypoints live in the feature folder (e.g. `sessions/drive.ts`), not under a generic `convex/internal/` folder.
-- Handlers chain several service functions together.
-- Function bodies compose meaningful operations with `.andThen` and `.map`. Keep simple mappings, literals, Result constructors, conditional value mappings, argument objects, and projections inline. Do not extract these into tiny wrappers or assign bound callbacks just to pass them into a chain. Domain validation, operation selection (including ternaries, short-circuit calls, optional calls, and selected function references), collection eligibility, loops, and I/O live in lib, including implementation used by private helpers and callbacks. Authorization services load the caller's identity and access and compose lib checks.
+- Handlers compose several service functions together, using neverthrow chains or `safeTry` generators.
+- Function bodies compose meaningful operations with `.andThen` / `.map` or `safeTry` and delegated `yield*`. Keep simple mappings, literals, Result constructors, conditional value mappings, argument objects, and projections inline. Do not extract these into tiny wrappers or assign bound callbacks just to pass them into a chain. Domain validation, operation selection (including ternaries, short-circuit calls, optional calls, and selected function references), collection eligibility, loops, and I/O live in lib, including implementation used by private helpers and callbacks. Authorization services load the caller's identity and access and compose lib checks. `safeTry` belongs in handlers and services, never lib; service generators may use delegated `yield*` only, not plain `yield`.
 - Name functions for the domain action they perform. Do not add `Step` just because a function appears in a chain.
-- Lib validation returns a `Result` directly; services compose it with `.andThen`. Do not replace a validation with a callback selector and a returned thunk. Do not select operations from callback tables and immediately invoke them. Skip-capable I/O functions can accept an optional input and return success without I/O when there is nothing to do.
+- Lib validation returns a `Result` directly; services compose it with `.andThen` or `yield*` inside `safeTry`. Do not replace a validation with a callback selector and a returned thunk. Do not select operations from callback tables and immediately invoke them. Skip-capable I/O functions can accept an optional input and return success without I/O when there is nothing to do.
 - `.match` is only used as the terminal `.match(tupleOk, tupleErr)` conversion in a registered handler. Services and lib return Results for callers to compose. Do not invent error reasons to represent successful skips.
 - Mutation/query services do not use `ctx.runQuery` / `ctx.runMutation`.
 
-For example, a service can wire arguments and shape its final response directly:
+For example, a service can wire arguments and shape its final response directly with a chain:
 
 ```ts
 return loadBooking(ctx, id)
@@ -80,6 +80,23 @@ return queryOptionalEditorSetup(ctx, args)
 
 The selector returns a genuine not-found error for a missing booking, an empty list for an unassigned booking, or its ID when assigned. An empty list runs no setup operations. Select domain data, never functions or callbacks.
 
+The same sequential composition can use `safeTry` when keeping intermediate values in scope makes the workflow easier to read. Keep the outer service function non-`async`; the async generator lets `safeTry` return a `ResultAsync`:
+
+```ts
+function confirmBooking(ctx: MutationCtx, id: Id<"bookings">) {
+	return safeTry(async function* () {
+		const booking = yield* loadBooking(ctx, id);
+		const validated = yield* validateBookingForConfirmation(booking);
+		const saved = yield* saveBookingConfirmation(ctx, validated);
+		yield* sendBookingReceipt(saved);
+
+		return ok({ confirmed: true });
+	});
+}
+```
+
+Service generators retain the same restrictions on domain branching, loops, `await`, throws, mutation, and raw I/O. The registered handler owns the terminal `.match(tupleOk, tupleErr)` conversion.
+
 ## Lib (`convex/<feature>/lib/**`, `convex/shared/lib/**`)
 
 - Small, single-purpose building blocks: DB operations, external API operations, pure logic, branch decisions, and payload builders.
@@ -113,7 +130,7 @@ The `convex-layers` oxlint plugin (`tools/oxlint/convex-layers/`) runs on featur
 | Rule                                                          | What it blocks                                                                                                                                                                                                                                                                                                                                                                                        |
 | ------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `convex-layers/no-handler-lib-import`                         | Handler modules importing `#convex/**/lib/**` directly. Handlers call services only. Allowlisted entrypoints include `http.ts`, `devSeed.ts`, `schema.ts`, `convex/sessions/drive.ts`.                                                                                                                                                                                                                |
-| `convex-layers/no-service-implementation`                     | Statement-based branching, conditional operation calls, optional calls, selected-function aliases, callback-table dispatch, `.filter`, `.bind`, loops, `await`, throws, mutation, and raw Convex I/O in service functions, private helpers, and callbacks. Conditional value mappings, defaults, optional value access, argument objects, Result constructors, and direct composition remain allowed. |
+| `convex-layers/no-service-implementation`                     | Statement-based branching, conditional operation calls, optional calls, selected-function aliases, callback-table dispatch, `.filter`, `.bind`, loops, `await`, plain `yield`, throws, mutation, and raw Convex I/O in service functions, private helpers, and callbacks. Delegated `yield*` for neverthrow `safeTry` composition is allowed. Conditional value mappings, defaults, optional value access, argument objects, Result constructors, and direct composition remain allowed. |
 | `convex-layers/no-result-match-outside-handler`               | Result `.match` access outside handlers, including literal computed access and destructuring. Registered handlers may only return a terminal `.match(tupleOk, tupleErr)` conversion.                                                                                                                                                                                                                  |
 | `convex-layers/no-trivial-result-wrapper`                     | Named helpers returning only a literal, an argument, a tiny static object, or a Result wrapping those values. Inline callbacks and meaningful payload builders remain allowed.                                                                                                                                                                                                                        |
 | `convex-layers/no-synthetic-skip-error`                       | Explicit `SKIP`/`SKIPPED` sentinel errors from neverthrow in service/lib code. Arbitrary domain codes cannot be classified by semantic intent.                                                                                                                                                                                                                                                        |

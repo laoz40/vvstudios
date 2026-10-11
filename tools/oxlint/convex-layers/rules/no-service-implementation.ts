@@ -194,7 +194,9 @@ export const noServiceImplementationRule = defineRule({
 			TryStatement: report,
 			ThrowStatement: report,
 			AwaitExpression: report,
-			YieldExpression: report,
+			YieldExpression(node: ESTree.YieldExpression) {
+				if (!node.delegate) report(node);
+			},
 			NewExpression: report,
 			AssignmentExpression: report,
 			UpdateExpression: report

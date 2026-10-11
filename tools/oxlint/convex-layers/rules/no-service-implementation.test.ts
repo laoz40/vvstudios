@@ -1,4 +1,4 @@
-// Services allow value mappings, direct composition, and eligible-item iteration. Tests reject
+// Services allow value mappings, chain/generator composition, and eligible-item iteration. Tests reject
 // conditional calls, selected callbacks, table aliases, optional calls, filters, binds, and hidden branches.
 import { describe, it } from "node:test";
 import { RuleTester } from "oxlint/plugins-dev";
@@ -11,6 +11,14 @@ const filename = "convex/booking/services/checkout.ts";
 
 tester.run("convex-layers/no-service-implementation", noServiceImplementationRule, {
 	valid: [
+		{
+			filename,
+			code: `import { safeTry, ok } from "neverthrow"; export function run(ctx, id) { return safeTry(function* () { const row = yield* load(ctx, id); const validated = yield* validate(row); return ok({ id: validated.id, label: row.name ?? "Guest" }); }); }`
+		},
+		{
+			filename,
+			code: `import { safeTry, ok, ResultAsync } from "neverthrow"; export function run(ctx, id) { return safeTry(async function* () { const row = yield* load(ctx, id).orElse(recover); const [first, second] = yield* ResultAsync.combine([loadFirst(ctx, row), loadSecond(ctx, row)]); yield* save(ctx, { first, second, status: row.paid ? "paid" : "unpaid" }); return ok(null); }); }`
+		},
 		{
 			filename,
 			code: `export function run(row) { return save({ status: row.paid ? "paid" : "unpaid", name: row.name ?? "Guest" }).map(value => ({ customer: value.customer?.name })); }`
@@ -66,6 +74,42 @@ tester.run("convex-layers/no-service-implementation", noServiceImplementationRul
 		}
 	],
 	invalid: [
+		{
+			filename,
+			name: "plain yield does not propagate Result errors",
+			code: `export function run(ctx) { return safeTry(function* () { yield load(ctx); return ok(null); }); }`,
+			errors: [{ messageId: "implementation" }]
+		},
+		{
+			filename,
+			name: "generators cannot branch on domain values",
+			code: `export function run(ctx) { return safeTry(async function* () { const row = yield* load(ctx); if (row.paid) return yield* save(ctx, row); return ok(null); }); }`,
+			errors: [{ messageId: "implementation" }]
+		},
+		{
+			filename,
+			name: "generators cannot select conditional operations",
+			code: `export function run(ctx) { return safeTry(async function* () { const row = yield* load(ctx); return yield* (row.paid ? save(ctx, row) : okAsync(null)); }); }`,
+			errors: [{ messageId: "callbackDispatch" }]
+		},
+		{
+			filename,
+			name: "generators cannot loop over domain records",
+			code: `export function run(rows) { return safeTry(async function* () { for (const row of rows) { yield* save(row); } return ok(null); }); }`,
+			errors: [{ messageId: "implementation" }]
+		},
+		{
+			filename,
+			name: "generators compose ResultAsync without await",
+			code: `export function run(ctx) { return safeTry(async function* () { const row = yield* (await load(ctx)); return ok(row); }); }`,
+			errors: [{ messageId: "implementation" }]
+		},
+		{
+			filename,
+			name: "generators cannot perform raw scheduler I/O",
+			code: `export function run(ctx) { return safeTry(async function* () { yield* okOrThrow(ctx.scheduler.runAfter(0, ref, {})); return ok(null); }); }`,
+			errors: [{ messageId: "implementation" }]
+		},
 		{
 			filename,
 			name: "returned thunks are not service composition",

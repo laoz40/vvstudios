@@ -57,7 +57,7 @@ Quick map:
 
 Feature folders (`booking`, `packages`, `sessions`, `stripe`, `drive`, …) hold handlers, services, and lib for that area. Cross-cutting code (auth, `result`, email send, admin search validators) lives under `convex/shared/`. Convex API paths follow folders: e.g. `convex/packages/scheduling.ts` → `api.packages.scheduling.*`.
 
-Handlers: neverthrow chain of service steps, no domain `if`s, `.match(tupleOk, tupleErr)` on tuple endpoints. Crons and internal mutations reuse the same service steps.
+Handlers compose service steps with no domain `if`s and finish with `.match(tupleOk, tupleErr)` on tuple endpoints. Use neverthrow chains or `safeTry` generator composition in handlers and services; in services, only delegated `yield*` is allowed (plain `yield` is not). Crons and internal mutations reuse the same service steps.
 
 When you touch code that breaks the guide, fix it only if in scope; do not repo-wide sweep.
 
@@ -71,7 +71,7 @@ When you touch code that breaks the guide, fix it only if in scope; do not repo-
 ### Neverthrow
 
 - Return real domain `reason` codes from lib, email senders, and rate limiters. Do not `mapErr` into synthetic codes. Fire-and-forget success returns `null`.
-- Service and lib steps return `Result` / `ResultAsync`; chain with `.andThen` / `.map`. Do not wrap a whole function in `okOrThrow`.
+- Service and lib steps return `Result` / `ResultAsync`; compose service steps with `.andThen` / `.map` or `safeTry` and delegated `yield*`. Do not use `safeTry` in lib or wrap a whole function in `okOrThrow`.
 - Helpers in `convex/shared/lib/result.ts` only — do not call `fromSafePromise` / `fromPromise` directly.
   - `okOrThrow` — single Convex I/O at that step: `ctx.db.*`, `ctx.scheduler.*`, `ctx.auth.getUserIdentity()`, or raw `runQuery` / `runMutation`. Infra throws; domain outcomes use `err(...)` in `.andThen`.
   - `fromConvexTuple` — `runQuery` / `runMutation` whose handler uses `.match(tupleOk, tupleErr)`.
