@@ -1,6 +1,7 @@
 import type { UserIdentity } from "convex/server";
 import type { Doc } from "#convex/_generated/dataModel";
 import type { MutationCtx } from "#convex/_generated/server";
+import { ok, safeTry } from "neverthrow";
 import {
 	loadDeliverablesReviewHostEmailArgs,
 	scheduleDeliverablesReviewHostEmail
@@ -17,8 +18,19 @@ export function writeSessionEditStatusWithHostNotification(
 ) {
 	const { identity, session } = access;
 
-	return saveSessionEditStatus(ctx, session, editStatus)
-		.andThen(() => loadDeliverablesReviewHostEmailArgs(ctx, session, identity, editStatus))
-		.andThen((args) => scheduleDeliverablesReviewHostEmail(ctx, args))
-		.andThen(() => archiveSessionWhenFullyDone(ctx, session._id));
+	return safeTry(async function* () {
+		yield* saveSessionEditStatus(ctx, session, editStatus);
+
+		const emailArgs = yield* loadDeliverablesReviewHostEmailArgs(
+			ctx,
+			session,
+			identity,
+			editStatus
+		);
+
+		yield* scheduleDeliverablesReviewHostEmail(ctx, emailArgs);
+		const archivedSession = yield* archiveSessionWhenFullyDone(ctx, session._id);
+
+		return ok(archivedSession);
+	});
 }

@@ -1,6 +1,6 @@
 "use node";
 
-import { errAsync, type ResultAsync } from "neverthrow";
+import { err, type ResultAsync, ok, safeTry } from "neverthrow";
 import type { Id } from "#convex/_generated/dataModel";
 import type { ActionCtx } from "#convex/_generated/server";
 import {
@@ -19,32 +19,39 @@ import {
 
 export type PackagePaidEmailError = { reason: "PACKAGE_NOT_FOUND" } | PackageReceiptEmailError;
 
-type PackageScheduleEmailResult = ResultAsync<null, PackagePaidEmailError>;
-
 function recordFailedPackagePaidEmailAndFail(
 	ctx: ActionCtx,
 	packageId: Id<"packages">,
 	error: PackagePaidEmailError
-) {
-	return recordPackagePaidEmailAttempt(ctx, packageId, "failed", error.reason).andThen(() =>
-		errAsync(error)
-	);
+): ResultAsync<never, PackagePaidEmailError> {
+	return safeTry(async function* () {
+		yield* recordPackagePaidEmailAttempt(ctx, packageId, "failed", error.reason);
+
+		return err(error);
+	});
 }
 
 export function sendAndRecordPackagePaidEmail(
 	ctx: ActionCtx,
 	packageId: Id<"packages">,
 	context: PackagePaidEmailContext
-): PackageScheduleEmailResult {
-	return sendPackageReceiptEmailsForPackage(context.packageRecord, context.paidAt, {
-		expiresAt: context.expiresAt,
-		leadTimeMinutes: context.leadTimeMinutes,
-		scheduleUrl: context.scheduleUrl
-	})
-		.andThen(({ receiptNumber }) =>
-			recordPackagePaidEmailAttempt(ctx, packageId, "sent", receiptNumber)
-		)
-		.orElse((error) => recordFailedPackagePaidEmailAndFail(ctx, packageId, error));
+): ResultAsync<null, PackagePaidEmailError> {
+	return safeTry(async function* () {
+		const receipt = yield* sendPackageReceiptEmailsForPackage(
+			context.packageRecord,
+			context.paidAt,
+			{
+				expiresAt: context.expiresAt,
+				leadTimeMinutes: context.leadTimeMinutes,
+				scheduleUrl: context.scheduleUrl
+			}
+		);
+
+		const { receiptNumber } = receipt;
+		const update = yield* recordPackagePaidEmailAttempt(ctx, packageId, "sent", receiptNumber);
+
+		return ok(update);
+	}).orElse((error) => recordFailedPackagePaidEmailAndFail(ctx, packageId, error));
 }
 
 export function sendPackageCheckoutPaidEmails(
@@ -53,7 +60,7 @@ export function sendPackageCheckoutPaidEmails(
 	paymentResult: PaidPackageResult,
 	leadTimeMinutes: number,
 	checkoutReturnOrigin: string
-): PackageScheduleEmailResult {
+) {
 	return sendAndRecordPackagePaidEmail(
 		ctx,
 		packageId,
@@ -67,10 +74,10 @@ function recordPackagePaidEmailAttempt(
 	status: "sent" | "failed",
 	receiptNumberOrFailureCode?: string
 ): ResultAsync<null, { reason: "PACKAGE_NOT_FOUND" }> {
-	return recordPackageReceiptEmailAttempt(
-		ctx,
-		packageId,
-		status,
-		receiptNumberOrFailureCode
-	).andThen(() => recordPackageScheduleEmailAttempt(ctx, packageId, status));
+	return safeTry(async function* () {
+		yield* recordPackageReceiptEmailAttempt(ctx, packageId, status, receiptNumberOrFailureCode);
+		const update = yield* recordPackageScheduleEmailAttempt(ctx, packageId, status);
+
+		return ok(update);
+	});
 }

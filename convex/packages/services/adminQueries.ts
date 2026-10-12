@@ -1,3 +1,4 @@
+import { ok, safeTry } from "neverthrow";
 import type { PaginationOptions } from "convex/server";
 import type { QueryCtx } from "#convex/_generated/server";
 import { listAdminPackages } from "#convex/shared/services/listAdminPackages";
@@ -12,5 +13,10 @@ type ListAdminPackagesArgs = {
 };
 
 export function listAdminPackagesPage(ctx: QueryCtx, args: ListAdminPackagesArgs) {
-	return requirePermission(ctx, "view:packages").andThen(() => listAdminPackages(ctx, args));
+	return safeTry(async function* () {
+		yield* requirePermission(ctx, "view:packages");
+		const packagesPage = yield* listAdminPackages(ctx, args);
+
+		return ok(packagesPage);
+	});
 }

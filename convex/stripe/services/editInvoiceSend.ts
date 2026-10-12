@@ -11,7 +11,7 @@ import {
 	type SessionEditContext
 } from "#convex/stripe/lib/editInvoiceSendSteps";
 
-import { okAsync, ResultAsync } from "neverthrow";
+import { okAsync, ResultAsync, ok, safeTry } from "neverthrow";
 
 import type { Doc } from "#convex/_generated/dataModel";
 import type { ActionCtx } from "#convex/_generated/server";
@@ -50,40 +50,55 @@ import {
 	syncAdminBookingGoogleCalendarAndDb,
 	notifyHostIfNeeded
 } from "#convex/googleCalendar/services/adminUpdate";
-import { type AdminSessionUpdateResult } from "#convex/sessions/lib/adminEdit";
+import type { AdminSessionUpdateResult } from "#convex/sessions/lib/adminEdit";
 import { validateSessionTimingEdit } from "#convex/sessions/services/adminEdit";
 
-function readCheckoutPaidAmount(
-	stripeSessionId: string | null
-): ResultAsync<number | null, { reason: string }> {
-	return retrieveCheckoutSession(stripeSessionId).andThen(requirePaidCheckoutAmount);
+function readCheckoutPaidAmount(stripeSessionId: string | null) {
+	return safeTry(async function* () {
+		const checkoutSession = yield* retrieveCheckoutSession(stripeSessionId);
+		const paidAmount = yield* requirePaidCheckoutAmount(checkoutSession);
+
+		return ok(paidAmount);
+	});
 }
 
 function loadCheckoutPayment(
 	record: Doc<"bookings"> | Doc<"packages">,
 	shouldLoadCheckoutPayment: boolean
-): ResultAsync<number | null, { reason: string }> {
+) {
 	const stripeSessionId =
 		shouldLoadCheckoutPayment && record.originalPaidAmount === undefined
 			? (record.stripeSessionId ?? null)
 			: null;
 
-	return readCheckoutPaidAmount(stripeSessionId).map(
-		(checkoutPaidAmount) => record.originalPaidAmount ?? checkoutPaidAmount
-	);
+	return safeTry(async function* () {
+		const paidAmount = yield* readCheckoutPaidAmount(stripeSessionId);
+
+		return ok(record.originalPaidAmount ?? paidAmount);
+	});
 }
 
 function loadQuoteRecipient(
 	draft: EditInvoiceDraft | undefined,
 	context: EditInvoiceContext,
 	quote: EditInvoiceQuote
-): ResultAsync<EditInvoiceQuote, { reason: string }> {
+) {
 	const needsCustomerEmail = Boolean(draft) && quote.amount > 0;
 
-	return quoteRecipientCustomerId(needsCustomerEmail, context.record.stripeCustomerId)
-		.asyncAndThen(retrieveStripeCustomer)
-		.andThen(requireStripeCustomerEmail)
-		.map((customerEmail) => (customerEmail === null ? quote : { ...quote, customerEmail }));
+	return safeTry(async function* () {
+		const customerId = yield* quoteRecipientCustomerId(
+			needsCustomerEmail,
+			context.record.stripeCustomerId
+		);
+
+		const customer = yield* retrieveStripeCustomer(customerId);
+		const customerEmail = yield* requireStripeCustomerEmail(customer);
+
+		const recipientQuote =
+			customerEmail === null ? quote : { ...quote, customerEmail: customerEmail };
+
+		return ok(recipientQuote);
+	});
 }
 
 function cacheCheckoutPayment(ctx: ActionCtx, record: Doc<"bookings"> | Doc<"packages">) {
@@ -97,24 +112,28 @@ export function backfillCheckoutPayments(
 	{ continueCursor: string; isDone: boolean; results: { id: string; reason: string | null }[] },
 	{ reason: string }
 > {
-	return backfillCheckoutPaymentsOperation(ctx, args).andThen((page) =>
-		cacheCheckoutPaymentPage(ctx, page)
-	);
+	return safeTry(async function* () {
+		const page = yield* backfillCheckoutPaymentsOperation(ctx, args);
+		const result = yield* cacheCheckoutPaymentPage(ctx, page);
+
+		return ok(result);
+	});
 }
 
 function cacheCheckoutPaymentPage(
 	ctx: ActionCtx,
 	page: { page: (Doc<"bookings"> | Doc<"packages">)[]; continueCursor: string; isDone: boolean }
 ) {
-	return ResultAsync.combine(page.page.map((record) => cacheCheckoutPayment(ctx, record))).map(
-		(results) => ({ continueCursor: page.continueCursor, isDone: page.isDone, results })
-	);
+	return safeTry(async function* () {
+		const results = yield* ResultAsync.combine(
+			page.page.map((record) => cacheCheckoutPayment(ctx, record))
+		);
+
+		return ok({ continueCursor: page.continueCursor, isDone: page.isDone, results: results });
+	});
 }
 
-function loadQuotePayment(
-	args: { draft?: EditInvoiceDraft },
-	context: EditInvoiceContext
-): ResultAsync<EditInvoiceQuote, { reason: string }> {
+function loadQuotePayment(args: { draft?: EditInvoiceDraft }, context: EditInvoiceContext) {
 	const shouldLoadCheckoutPayment = !(args.draft && context.total <= context.currentTotal);
 
 	return loadQuoteFromPayment(args, context, shouldLoadCheckoutPayment);
@@ -125,38 +144,53 @@ function validateInvoiceTimingFromAction(
 	draft: EditInvoiceDraft | undefined,
 	quote: EditInvoiceQuote
 ) {
-	return ResultAsync.combine(
-		selectInvoiceTimingDrafts(draft, quote).map((timing) =>
-			validateInvoiceTimingQuote(ctx, timing, quote)
-		)
-	).map(() => quote);
+	return safeTry(async function* () {
+		yield* ResultAsync.combine(
+			selectInvoiceTimingDrafts(draft, quote).map((timing) =>
+				validateInvoiceTimingQuote(ctx, timing, quote)
+			)
+		);
+
+		return ok(quote);
+	});
 }
 
 export function loadEditInvoicePreviewFromAction(
 	ctx: ActionCtx,
 	args: { target: EditInvoiceTarget; draft?: EditInvoiceDraft }
 ): ResultAsync<EditInvoiceQuote, { reason: string }> {
-	return requirePermissionActions(ctx, "view:sensitive-booking-data")
-		.andThen(() => loadInvoiceContext(ctx, args))
-		.andThen((context) => loadQuotePayment(args, context))
-		.andThen((quote) => validateInvoiceTimingFromAction(ctx, args.draft, quote))
-		.map((quote) => ({
-			...quote,
-			requestId: buildInvoiceRequestId(args.draft, quote, Date.now())
-		}));
+	return safeTry(async function* () {
+		yield* requirePermissionActions(ctx, "view:sensitive-booking-data");
+		const context = yield* loadInvoiceContext(ctx, args);
+		const quote = yield* loadQuotePayment(args, context);
+		const validatedQuote = yield* validateInvoiceTimingFromAction(ctx, args.draft, quote);
+
+		return ok({
+			...validatedQuote,
+			requestId: buildInvoiceRequestId(args.draft, validatedQuote, Date.now())
+		});
+	});
 }
 
 function validateInvoiceDraftTiming(
 	ctx: ActionCtx,
 	draft: Extract<EditInvoiceDraft, { kind: "booking" }>
 ) {
-	return requireEditSessionsPermissionAndLoadBooking(ctx, draft.values.bookingId)
-		.andThen((session) => loadSessionEditContext(ctx, session))
-		.andThen((context) => validateSessionTimingEdit(invoiceDraftTimingArgs(draft, context)));
+	return safeTry(async function* () {
+		const session = yield* requireEditSessionsPermissionAndLoadBooking(ctx, draft.values.bookingId);
+		const context = yield* loadSessionEditContext(ctx, session);
+		const timing = yield* validateSessionTimingEdit(invoiceDraftTimingArgs(draft, context));
+
+		return ok(timing);
+	});
 }
 
 function loadSessionEditContext(ctx: ActionCtx, session: Doc<"bookings">) {
-	return loadAdminSessionEditDeps(ctx).map((dependencies) => ({ ...dependencies, session }));
+	return safeTry(async function* () {
+		const dependencies = yield* loadAdminSessionEditDeps(ctx);
+
+		return ok({ ...dependencies, session });
+	});
 }
 
 function saveSessionEditAndNotifyHost(
@@ -164,31 +198,46 @@ function saveSessionEditAndNotifyHost(
 	args: Extract<EditInvoiceDraft, { kind: "booking" }>["values"],
 	context: SessionEditContext
 ) {
-	return syncAdminBookingGoogleCalendarAndDb({ ctx, args, ...context }).andThen((result) =>
-		notifyHostIfNeeded(ctx, args, context.session, context.settings, result)
-	);
+	return safeTry(async function* () {
+		const result = yield* syncAdminBookingGoogleCalendarAndDb({ ctx, args, ...context });
+
+		const notifiedResult = yield* notifyHostIfNeeded(
+			ctx,
+			args,
+			context.session,
+			context.settings,
+			result
+		);
+
+		return ok(notifiedResult);
+	});
 }
 
-function saveBookingOrPackageChanges(
-	ctx: ActionCtx,
-	draft: EditInvoiceDraft
-): ResultAsync<AdminSessionUpdateResult, { reason: string }> {
+function saveBookingOrPackageChanges(ctx: ActionCtx, draft: EditInvoiceDraft) {
 	const { bookingDrafts, packageDrafts } = splitEditDraftsByKind(draft);
 
-	return ResultAsync.combine([
-		...bookingDrafts.map((bookingDraft) => saveBookingDraft(ctx, bookingDraft)),
-		...packageDrafts.map((packageDraft) => savePackageEditDraft(ctx, packageDraft))
-	]).map((results) => results[0] ?? {});
+	return safeTry(async function* () {
+		const results = yield* ResultAsync.combine([
+			...bookingDrafts.map((bookingDraft) => saveBookingDraft(ctx, bookingDraft)),
+			...packageDrafts.map((packageDraft) => savePackageEditDraft(ctx, packageDraft))
+		]);
+
+		return ok(results[0] ?? {});
+	});
 }
 
 export function saveNonbillableChanges(
 	ctx: ActionCtx,
 	draft: EditInvoiceDraft
 ): ResultAsync<AdminSessionUpdateResult, { reason: string }> {
-	return requirePermissionActions(ctx, "edit:sessions")
-		.andThen(() => loadInvoiceContext(ctx, { target: getDraftTarget(draft), draft }))
-		.andThen((context) => checkEditNeedsNoInvoice(ctx, draft, context))
-		.andThen(() => saveBookingOrPackageChanges(ctx, draft));
+	return safeTry(async function* () {
+		yield* requirePermissionActions(ctx, "edit:sessions");
+		const context = yield* loadInvoiceContext(ctx, { target: getDraftTarget(draft), draft });
+		yield* checkEditNeedsNoInvoice(ctx, draft, context);
+		const result = yield* saveBookingOrPackageChanges(ctx, draft);
+
+		return ok(result);
+	});
 }
 
 function checkEditNeedsNoInvoice(
@@ -196,11 +245,15 @@ function checkEditNeedsNoInvoice(
 	draft: EditInvoiceDraft,
 	context: EditInvoiceContext
 ) {
-	return ResultAsync.combine(
-		selectDraftsRequiringInvoice(draft, context.currentTotal, context.total).map((eligibleDraft) =>
-			checkEditInvoiceRequirement(ctx, eligibleDraft)
-		)
-	).map(() => null);
+	return safeTry(async function* () {
+		yield* ResultAsync.combine(
+			selectDraftsRequiringInvoice(draft, context.currentTotal, context.total).map(
+				(eligibleDraft) => checkEditInvoiceRequirement(ctx, eligibleDraft)
+			)
+		);
+
+		return ok(null);
+	});
 }
 
 function sendQuotedInvoice(
@@ -209,10 +262,13 @@ function sendQuotedInvoice(
 	identity: { email?: string },
 	context: EditInvoiceContext,
 	quote: EditInvoiceQuote
-): ResultAsync<{ stripeInvoiceId: string } | null, { reason: string }> {
-	return validateConfirmedQuote(args, quote).asyncAndThen(() =>
-		sendInvoiceToBillingTarget(ctx, args, identity, context, quote)
-	);
+) {
+	return safeTry(async function* () {
+		yield* validateConfirmedQuote(args, quote);
+		const invoice = yield* sendInvoiceToBillingTarget(ctx, args, identity, context, quote);
+
+		return ok(invoice);
+	});
 }
 
 function sendInvoiceToBillingTarget(
@@ -222,15 +278,18 @@ function sendInvoiceToBillingTarget(
 	context: EditInvoiceContext,
 	quote: EditInvoiceQuote
 ) {
-	return quoteRecipientCustomerId(true, context.record.stripeCustomerId).asyncAndThen(
-		(customerId) =>
-			createAndRecordOptionalEditInvoice(
-				ctx,
-				{ lineItems: quote.lineItems, requestId: args.requestId, target: quote.target },
-				identity,
-				customerId
-			)
-	);
+	return safeTry(async function* () {
+		const customerId = yield* quoteRecipientCustomerId(true, context.record.stripeCustomerId);
+
+		const invoice = yield* createAndRecordOptionalEditInvoice(
+			ctx,
+			{ lineItems: quote.lineItems, requestId: args.requestId, target: quote.target },
+			identity,
+			customerId
+		);
+
+		return ok(invoice);
+	});
 }
 
 function saveChangesAfterInvoice(ctx: ActionCtx, draft: EditInvoiceDraft) {
@@ -246,25 +305,32 @@ export function finishConfirmedEdit(
 	identity: { email?: string },
 	context: EditInvoiceContext
 ): ResultAsync<AdminSessionUpdateResult, { reason: string; invoiceSent?: boolean }> {
-	return getConfirmedEditAction(args, context, Date.now()).asyncAndThen((action) =>
-		ResultAsync.combine(
+	return safeTry(async function* () {
+		const action = yield* getConfirmedEditAction(args, context, Date.now());
+
+		const saved = yield* ResultAsync.combine(
 			selectConfirmedEditSaveDrafts(action, args.draft).map((draft) =>
 				saveChangesAfterInvoice(ctx, draft)
 			)
-		).andThen((saved) =>
-			ResultAsync.combine(
-				selectConfirmedEditSendRequests(action, args).map((request) =>
-					sendConfirmedEditInvoice(ctx, request, identity, context)
-				)
-			).map((sent) => sent[0] ?? saved[0] ?? {})
-		)
-	);
+		);
+
+		const sent = yield* ResultAsync.combine(
+			selectConfirmedEditSendRequests(action, args).map((request) =>
+				sendConfirmedEditInvoice(ctx, request, identity, context)
+			)
+		);
+
+		return ok(sent[0] ?? saved[0] ?? {});
+	});
 }
 
 export function requireEditInvoicePermissions(ctx: ActionCtx) {
-	return requirePermissionActions(ctx, "edit:sessions").andThen(() =>
-		requirePermissionActions(ctx, "send:receipt-emails")
-	);
+	return safeTry(async function* () {
+		yield* requirePermissionActions(ctx, "edit:sessions");
+		const identity = yield* requirePermissionActions(ctx, "send:receipt-emails");
+
+		return ok(identity);
+	});
 }
 
 export function loadConfirmedEditContext(
@@ -272,9 +338,14 @@ export function loadConfirmedEditContext(
 	args: ConfirmEditInvoiceArgs,
 	identity: { email?: string }
 ): ResultAsync<{ context: EditInvoiceContext; identity: { email?: string } }, { reason: string }> {
-	return loadInvoiceContext(ctx, { target: getDraftTarget(args.draft), draft: args.draft }).map(
-		(context) => ({ identity, context })
-	);
+	return safeTry(async function* () {
+		const context = yield* loadInvoiceContext(ctx, {
+			target: getDraftTarget(args.draft),
+			draft: args.draft
+		});
+
+		return ok({ identity, context });
+	});
 }
 
 function cacheCheckoutPaymentForSession(
@@ -282,10 +353,12 @@ function cacheCheckoutPaymentForSession(
 	record: Doc<"bookings"> | Doc<"packages">,
 	stripeSessionId: string | null
 ) {
-	return readCheckoutPaidAmount(stripeSessionId)
-		.andThen((amount) => cacheOriginalPaymentMutation(ctx, record, stripeSessionId, amount))
-		.map(() => ({ id: record._id, reason: stripeSessionId === null ? "NO_STRIPE_SESSION" : null }))
-		.orElse((error) => okAsync({ id: record._id, reason: error.reason }));
+	return safeTry(async function* () {
+		const paidAmount = yield* readCheckoutPaidAmount(stripeSessionId);
+		yield* cacheOriginalPaymentMutation(ctx, record, stripeSessionId, paidAmount);
+
+		return ok({ id: record._id, reason: stripeSessionId === null ? "NO_STRIPE_SESSION" : null });
+	}).orElse((error) => okAsync({ id: record._id, reason: error.reason }));
 }
 
 function loadQuoteFromPayment(
@@ -293,9 +366,13 @@ function loadQuoteFromPayment(
 	context: EditInvoiceContext,
 	shouldLoadCheckoutPayment: boolean
 ) {
-	return loadCheckoutPayment(context.record, shouldLoadCheckoutPayment)
-		.map((paid) => buildEditInvoiceQuote(context, paid, ""))
-		.andThen((quote) => loadQuoteRecipient(args.draft, context, quote));
+	return safeTry(async function* () {
+		const paidAmount = yield* loadCheckoutPayment(context.record, shouldLoadCheckoutPayment);
+		const quote = buildEditInvoiceQuote(context, paidAmount, "");
+		const recipientQuote = yield* loadQuoteRecipient(args.draft, context, quote);
+
+		return ok(recipientQuote);
+	});
 }
 
 function validateInvoiceTimingQuote(
@@ -303,19 +380,34 @@ function validateInvoiceTimingQuote(
 	draft: Extract<EditInvoiceDraft, { kind: "booking" }>,
 	quote: EditInvoiceQuote
 ) {
-	return validateInvoiceDraftTiming(ctx, draft).map(() => quote);
+	return safeTry(async function* () {
+		yield* validateInvoiceDraftTiming(ctx, draft);
+
+		return ok(quote);
+	});
 }
 
 function saveBookingDraft(ctx: ActionCtx, draft: Extract<EditInvoiceDraft, { kind: "booking" }>) {
-	return requireEditSessionsPermissionAndLoadBooking(ctx, draft.values.bookingId)
-		.andThen((session) => loadSessionEditContext(ctx, session))
-		.andThen((context) => saveSessionEditAndNotifyHost(ctx, draft.values, context));
+	return safeTry(async function* () {
+		const session = yield* requireEditSessionsPermissionAndLoadBooking(ctx, draft.values.bookingId);
+		const context = yield* loadSessionEditContext(ctx, session);
+		const result = yield* saveSessionEditAndNotifyHost(ctx, draft.values, context);
+
+		return ok(result);
+	});
 }
 
 function checkEditInvoiceRequirement(ctx: ActionCtx, draft: EditInvoiceDraft) {
-	return loadEditInvoicePreviewFromAction(ctx, { target: getDraftTarget(draft), draft }).andThen(
-		validateNoInvoiceRequired
-	);
+	return safeTry(async function* () {
+		const quote = yield* loadEditInvoicePreviewFromAction(ctx, {
+			target: getDraftTarget(draft),
+			draft
+		});
+
+		const requirement = yield* validateNoInvoiceRequired(quote);
+
+		return ok(requirement);
+	});
 }
 
 function sendConfirmedEditInvoice(
@@ -324,10 +416,15 @@ function sendConfirmedEditInvoice(
 	identity: { email?: string },
 	context: EditInvoiceContext
 ) {
-	return loadEditInvoicePreviewFromAction(ctx, {
-		target: getDraftTarget(args.draft),
-		draft: args.draft
-	})
-		.andThen((quote) => sendQuotedInvoice(ctx, args, identity, context, quote))
-		.andThen(() => saveChangesAfterInvoice(ctx, args.draft));
+	return safeTry(async function* () {
+		const quote = yield* loadEditInvoicePreviewFromAction(ctx, {
+			target: getDraftTarget(args.draft),
+			draft: args.draft
+		});
+
+		yield* sendQuotedInvoice(ctx, args, identity, context, quote);
+		const result = yield* saveChangesAfterInvoice(ctx, args.draft);
+
+		return ok(result);
+	});
 }

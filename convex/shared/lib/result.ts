@@ -3,13 +3,13 @@ import type { Result as ConvexResult } from "#/lib/result";
 
 /** Wraps a promise as a ResultAsync while allowing unexpected rejections to escape. */
 export function okOrThrow<T>(promise: Promise<T>) {
-	return ResultAsync.fromSafePromise<T>(promise);
+	return ResultAsync.fromSafePromise(promise);
 }
 
 type TryPromiseOptions<T, E> = { try: () => Promise<T>; catch: (cause: unknown) => E };
 
 /** Maps expected promise failures into domain errors. Sync throws in `try` are caught too. */
-export function tryPromise<T, E>(options: TryPromiseOptions<T, E>): ResultAsync<T, E> {
+export function tryPromise<T, E>(options: TryPromiseOptions<T, E>) {
 	return ResultAsync.fromPromise(Promise.resolve().then(options.try), options.catch);
 }
 

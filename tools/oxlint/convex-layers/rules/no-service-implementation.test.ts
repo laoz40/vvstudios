@@ -1,5 +1,5 @@
-// Services allow value mappings, direct composition, and eligible-item iteration. Tests reject
-// conditional calls, selected callbacks, table aliases, optional calls, filters, binds, and hidden branches.
+// Services allow value mappings, Result chains, delegated yields, and for...of in neverthrow safeTry.
+// Tests reject loops outside safeTry, for await, unrelated generators, raw awaits, branching, I/O, and operation dispatch.
 import { describe, it } from "node:test";
 import { RuleTester } from "oxlint/plugins-dev";
 import { noServiceImplementationRule } from "./no-service-implementation.ts";
@@ -11,6 +11,33 @@ const filename = "convex/booking/services/checkout.ts";
 
 tester.run("convex-layers/no-service-implementation", noServiceImplementationRule, {
 	valid: [
+		{
+			filename,
+			name: "sequential Result operations use a for...of loop in safeTry",
+			code: `import { ok, safeTry } from "neverthrow"; export function run(ctx, rows) { return safeTry(async function* () { for (const row of rows) { yield* save(ctx, row); } return ok(null); }); }`
+		},
+		{
+			filename,
+			name: "aliased safeTry supports sequential iteration",
+			code: `import { ok, safeTry as tryResult } from "neverthrow"; export function run(rows) { return tryResult(function* () { for (const row of rows) { yield* validate(row); } return ok(rows); }); }`
+		},
+		{
+			filename,
+			name: "namespace safeTry supports sequential iteration",
+			code: `import * as results from "neverthrow"; export function run(rows) { return results.safeTry(function* () { for (const row of rows) { yield* validate(row); } return results.ok(rows); }); }`
+		},
+		{
+			filename,
+			code: `import { ok, safeTry } from "neverthrow"; export function run(ctx) { return safeTry(async function* () { const row = yield* load(ctx); yield* save(ctx, row); return ok(row); }); }`
+		},
+		{
+			filename,
+			code: `import { ok, safeTry as tryResult } from "neverthrow"; export function run(row) { return tryResult(function* () { const value = yield* validate(row); return ok(value); }); }`
+		},
+		{
+			filename,
+			code: `import * as results from "neverthrow"; export function run(ctx) { return results.safeTry(async function* () { const row = yield* load(ctx); return results.ok(row); }); }`
+		},
 		{
 			filename,
 			code: `export function run(row) { return save({ status: row.paid ? "paid" : "unpaid", name: row.name ?? "Guest" }).map(value => ({ customer: value.customer?.name })); }`
@@ -66,6 +93,108 @@ tester.run("convex-layers/no-service-implementation", noServiceImplementationRul
 		}
 	],
 	invalid: [
+		{
+			filename,
+			name: "sequential loops do not assign into an existing variable",
+			code: `import { ok, safeTry } from "neverthrow"; export function run(rows, row) { return safeTry(async function* () { for (row of rows) { yield* save(row); } return ok(null); }); }`,
+			errors: [{ messageId: "implementation" }]
+		},
+		{
+			filename,
+			name: "loop bindings stay immutable",
+			code: `import { ok, safeTry } from "neverthrow"; export function run(rows) { return safeTry(async function* () { for (let row of rows) { yield* save(row); } return ok(null); }); }`,
+			errors: [{ messageId: "implementation" }]
+		},
+		{
+			filename,
+			name: "for await consumes raw async iterables instead of Result steps",
+			code: `import { ok, safeTry } from "neverthrow"; export function run(rows) { return safeTry(async function* () { for await (const row of rows) { yield* save(row); } return ok(null); }); }`,
+			errors: [{ messageId: "implementation" }]
+		},
+		{
+			filename,
+			name: "unrelated safeTry imports do not permit loops",
+			code: `import { safeTry } from "./helpers"; export function run(rows) { return safeTry(function* () { for (const row of rows) { save(row); } }); }`,
+			errors: [{ messageId: "implementation" }]
+		},
+		{
+			filename,
+			name: "shadowed safeTry imports do not permit loops",
+			code: `import { safeTry } from "neverthrow"; export function run(rows, safeTry) { return safeTry(function* () { for (const row of rows) { save(row); } }); }`,
+			errors: [{ messageId: "implementation" }]
+		},
+		{
+			filename,
+			name: "nested unrelated functions do not inherit the loop exception",
+			code: `import { ok, safeTry } from "neverthrow"; export function run(rows) { return safeTry(function* () { const nested = () => { for (const row of rows) { save(row); } }; return ok(nested); }); }`,
+			errors: [{ messageId: "implementation" }]
+		},
+		{
+			filename,
+			name: "sequential loops do not permit domain branching",
+			code: `import { ok, safeTry } from "neverthrow"; export function run(rows) { return safeTry(async function* () { for (const row of rows) { if (row.paid) yield* save(row); } return ok(null); }); }`,
+			errors: [{ messageId: "implementation" }]
+		},
+		{
+			filename,
+			name: "sequential loops do not permit raw awaits",
+			code: `import { ok, safeTry } from "neverthrow"; export function run(rows) { return safeTry(async function* () { for (const row of rows) { await save(row); } return ok(null); }); }`,
+			errors: [{ messageId: "implementation" }]
+		},
+		{
+			filename,
+			name: "sequential loops do not permit raw Convex calls",
+			code: `import { ok, safeTry } from "neverthrow"; export function run(ctx, rows) { return safeTry(async function* () { for (const row of rows) { yield* ctx.runMutation(ref, row); } return ok(null); }); }`,
+			errors: [{ messageId: "implementation" }]
+		},
+		{
+			filename,
+			name: "plain yields do not propagate Result errors",
+			code: `import { safeTry } from "neverthrow"; export function run(ctx) { return safeTry(async function* () { yield load(ctx); }); }`,
+			errors: [{ messageId: "implementation" }]
+		},
+		{
+			filename,
+			name: "unrelated generators are not service composition",
+			code: `export function* run(ctx) { yield* load(ctx); }`,
+			errors: [{ messageId: "implementation" }]
+		},
+		{
+			filename,
+			name: "unrelated safeTry helpers do not permit yields",
+			code: `import { safeTry } from "./helpers"; export function run(ctx) { return safeTry(async function* () { yield* load(ctx); }); }`,
+			errors: [{ messageId: "implementation" }]
+		},
+		{
+			filename,
+			name: "shadowed neverthrow imports do not permit yields",
+			code: `import { safeTry } from "neverthrow"; export function run(ctx, safeTry) { return safeTry(async function* () { yield* load(ctx); }); }`,
+			errors: [{ messageId: "implementation" }]
+		},
+		{
+			filename,
+			name: "safeTry does not permit nested unrelated generators",
+			code: `import { ok, safeTry } from "neverthrow"; export function run(ctx) { return safeTry(async function* () { const nested = function* () { yield* load(ctx); }; return ok(nested); }); }`,
+			errors: [{ messageId: "implementation" }]
+		},
+		{
+			filename,
+			name: "safeTry does not permit raw awaits",
+			code: `import { ok, safeTry } from "neverthrow"; export function run(ctx) { return safeTry(async function* () { const row = await load(ctx); return ok(row); }); }`,
+			errors: [{ messageId: "implementation" }]
+		},
+		{
+			filename,
+			name: "safeTry does not move domain branches into services",
+			code: `import { ok, safeTry } from "neverthrow"; export function run(ctx) { return safeTry(async function* () { const row = yield* load(ctx); if (row) yield* save(ctx, row); return ok(null); }); }`,
+			errors: [{ messageId: "implementation" }]
+		},
+		{
+			filename,
+			name: "safeTry does not permit raw Convex calls",
+			code: `import { ok, safeTry } from "neverthrow"; export function run(ctx) { return safeTry(async function* () { const row = yield* ctx.runQuery(ref, {}); return ok(row); }); }`,
+			errors: [{ messageId: "implementation" }]
+		},
 		{
 			filename,
 			name: "returned thunks are not service composition",

@@ -1,4 +1,4 @@
-import { err, ok, okAsync, ResultAsync, type Err, type Result } from "neverthrow";
+import { err, ok, okAsync, ResultAsync, type Result } from "neverthrow";
 import { tryPromise } from "#convex/shared/lib/result";
 import { formatEditingAddonLabel } from "#/domain/booking/addon-quantities";
 import { pickBookingAddonQuantities } from "#/domain/booking/addon-quantities";
@@ -81,7 +81,7 @@ export function requestEmail(args: {
 	html: string;
 	attachments?: EmailAttachment[];
 	idempotencyKey?: string;
-}): ResultAsync<Response, EmailRequestError> {
+}) {
 	const attachments = args.attachments?.map((attachment) => ({
 		filename: attachment.filename,
 		content: Buffer.from(attachment.content).toString("base64"),
@@ -123,7 +123,7 @@ export function requestEmail(args: {
 	});
 }
 
-export function readEmailResponseBody(response: Response): ResultAsync<string, EmailResponseError> {
+export function readEmailResponseBody(response: Response) {
 	return tryPromise({
 		try: () => response.text(),
 		catch: (cause) => {
@@ -139,7 +139,7 @@ export function rejectEmailResponse(
 	responseBody: string,
 	recipientCount: number,
 	attachmentCount: number
-): Err<never, EmailResponseError> {
+) {
 	console.error("Resend email response failed", {
 		status: response.status,
 		body: responseBody,
@@ -167,14 +167,10 @@ async function sendEmailRequest(
 	return rejectEmailResponse(response, body.value, args.to.length, args.attachments?.length ?? 0);
 }
 
-export function sendEmail(
-	args: Parameters<typeof requestEmail>[0]
-): ResultAsync<null, EmailRequestError | EmailResponseError> {
+export function sendEmail(args: Parameters<typeof requestEmail>[0]) {
 	return new ResultAsync(sendEmailRequest(args));
 }
 
-export function sendEmailIfPresent(
-	args: Parameters<typeof requestEmail>[0] | null
-): ResultAsync<null, EmailRequestError | EmailResponseError> {
+export function sendEmailIfPresent(args: Parameters<typeof requestEmail>[0] | null) {
 	return args === null ? okAsync(null) : sendEmail(args);
 }

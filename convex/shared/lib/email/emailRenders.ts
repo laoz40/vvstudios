@@ -26,7 +26,7 @@ import {
 	formatTimestampDateLong,
 	formatTimestampDateShort
 } from "#convex/shared/lib/email/emailSend";
-import { okAsync, type ResultAsync } from "neverthrow";
+import { okAsync } from "neverthrow";
 import { tryPromise } from "#convex/shared/lib/result";
 
 type SendBookingReminderEmailForBookingArgs = {
@@ -200,14 +200,14 @@ export function renderPackageHostDetailsEmailHtml(args: SendPackageHostDetailsEm
 export function renderDeliverablesReviewReadyHostEmailHtml(
 	args: SendDeliverablesReviewReadyHostEmailArgs,
 	recipients: string[]
-): ResultAsync<{ html: string; recipients: string[] } | null, { reason: "EMAIL_RENDER_FAILED" }> {
+) {
 	if (recipients.length === 0) {
 		return okAsync(null);
 	}
 
 	const sessionDateLabel = formatSessionDateLong(args.sessionDate);
 
-	return tryPromise<{ html: string; recipients: string[] }, { reason: "EMAIL_RENDER_FAILED" }>({
+	return tryPromise({
 		try: () =>
 			render(
 				createElement(DeliverablesReviewReadyEmail, {

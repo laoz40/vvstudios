@@ -1,6 +1,6 @@
 "use node";
 
-import { errAsync, okAsync, type ResultAsync } from "neverthrow";
+import { err, ok, okAsync, safeTry } from "neverthrow";
 import type { Id } from "#convex/_generated/dataModel";
 import type { ActionCtx } from "#convex/_generated/server";
 import {
@@ -11,7 +11,6 @@ import {
 import {
 	validateDriveSetup,
 	validateSavedDriveSetupFolders,
-	type DriveSetupInfo,
 	type SetupError as LibSetupError
 } from "#convex/drive/lib/sessionFolders/driveSetupInfo";
 import { requireClientDrivePermissionsAndSendAssetsEmail } from "#convex/drive/services/driveClientPermissions";
@@ -21,29 +20,31 @@ export type SetupError = LibSetupError;
 
 type DriveSetupLoadArgs = { bookingId: Id<"bookings">; sessionStartAt?: number; duration?: string };
 
-export function loadValidatedDriveSetup(
-	ctx: ActionCtx,
-	args: DriveSetupLoadArgs
-): ResultAsync<DriveSetupInfo, SetupError> {
-	return getDriveSetupRow(ctx, args.bookingId).andThen((setupInfo) =>
-		validateDriveSetup(setupInfo, { sessionStartAt: args.sessionStartAt, duration: args.duration })
-	);
+export function loadValidatedDriveSetup(ctx: ActionCtx, args: DriveSetupLoadArgs) {
+	return safeTry(async function* () {
+		const setupInfo = yield* getDriveSetupRow(ctx, args.bookingId);
+
+		const validatedSetup = yield* validateDriveSetup(setupInfo, {
+			sessionStartAt: args.sessionStartAt,
+			duration: args.duration
+		});
+
+		return ok(validatedSetup);
+	});
 }
 
-export function markDriveSetupSuccessful(
-	ctx: ActionCtx,
-	args: DriveSetupLoadArgs
-): ResultAsync<null, SetupError> {
+export function markDriveSetupSuccessful(ctx: ActionCtx, args: DriveSetupLoadArgs) {
 	// Re-read saved folders and timing before marking setup complete.
-	return loadValidatedDriveSetup(ctx, args)
-		.andThen(validateSavedDriveSetupFolders)
-		.andThen(() => saveDriveSetupResultRow(ctx, { bookingId: args.bookingId }));
+	return safeTry(async function* () {
+		const setupInfo = yield* loadValidatedDriveSetup(ctx, args);
+		yield* validateSavedDriveSetupFolders(setupInfo);
+		const saved = yield* saveDriveSetupResultRow(ctx, { bookingId: args.bookingId });
+
+		return ok(saved);
+	});
 }
 
-export function sendClientAssetsEmailAfterSetup(
-	ctx: ActionCtx,
-	bookingId: Id<"bookings">
-): ResultAsync<null, never> {
+export function sendClientAssetsEmailAfterSetup(ctx: ActionCtx, bookingId: Id<"bookings">) {
 	// Access/email failures have their own statuses and must not fail folder setup.
 	return requireClientDrivePermissionsAndSendAssetsEmail(ctx, {
 		bookingId,
@@ -51,10 +52,7 @@ export function sendClientAssetsEmailAfterSetup(
 	}).orElse(() => okAsync(null));
 }
 
-export function setupEditorAccessAfterSetup(
-	ctx: ActionCtx,
-	bookingId: Id<"bookings">
-): ResultAsync<null, never> {
+export function setupEditorAccessAfterSetup(ctx: ActionCtx, bookingId: Id<"bookings">) {
 	return setupEditorAccess(ctx, { bookingId }).orElse(() => okAsync(null));
 }
 
@@ -62,8 +60,10 @@ export function recordDriveSetupFailure(
 	ctx: ActionCtx,
 	bookingId: Id<"bookings">,
 	setupError: SetupError
-): ResultAsync<null, SetupError> {
-	return saveReportableDriveSetupFailure(ctx, bookingId, setupError).andThen(() =>
-		errAsync(setupError)
-	);
+) {
+	return safeTry(async function* () {
+		yield* saveReportableDriveSetupFailure(ctx, bookingId, setupError);
+
+		return err(setupError);
+	});
 }

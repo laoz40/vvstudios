@@ -1,6 +1,6 @@
 "use node";
 
-import { errAsync, ResultAsync } from "neverthrow";
+import { err, ok, ResultAsync, safeTry } from "neverthrow";
 import type { Id } from "#convex/_generated/dataModel";
 import type { ActionCtx } from "#convex/_generated/server";
 import { validateDriveSetup } from "#convex/drive/lib/sessionFolders/driveSetupInfo";
@@ -44,7 +44,12 @@ export function loadReadyBookingDriveFolders(
 	ctx: ActionCtx,
 	bookingId: Id<"bookings">
 ): ResultAsync<ReadyBookingDriveFolders, DriveClientPermissionsError> {
-	return loadDriveSetup(ctx, bookingId).andThen(validateDriveSetup).andThen(requireReadyFolders);
+	return safeTry(async function* () {
+		const setup = yield* loadDriveSetup(ctx, bookingId);
+		const validatedSetup = yield* validateDriveSetup(setup);
+
+		return ok(yield* requireReadyFolders(validatedSetup));
+	});
 }
 
 function requireClientDrivePermission(
@@ -52,24 +57,26 @@ function requireClientDrivePermission(
 	setup: ReadyBookingDriveFolders,
 	requirement: ClientDrivePermissionRequirement
 ): ResultAsync<SavedDrivePermission, DriveClientPermissionsError> {
-	return findDrivePermission(drive, {
-		email: setup.driveClient.normalizedEmail,
-		fileId: requirement.fileId,
-		role: requirement.role
-	})
-		.andThen((existingPermission: SavedDrivePermission | null) =>
-			createDrivePermissionIfMissingRequest(
-				drive,
-				{
-					email: setup.driveClient.normalizedEmail,
-					fileId: requirement.fileId,
-					role: requirement.role,
-					sendNotificationEmail: false
-				},
-				existingPermission
-			)
-		)
-		.andThen(parseDrivePermissionResponse);
+	return safeTry(async function* () {
+		const existingPermission = yield* findDrivePermission(drive, {
+			email: setup.driveClient.normalizedEmail,
+			fileId: requirement.fileId,
+			role: requirement.role
+		});
+
+		const response = yield* createDrivePermissionIfMissingRequest(
+			drive,
+			{
+				email: setup.driveClient.normalizedEmail,
+				fileId: requirement.fileId,
+				role: requirement.role,
+				sendNotificationEmail: false
+			},
+			existingPermission
+		);
+
+		return ok(yield* parseDrivePermissionResponse(response));
+	});
 }
 
 function applySkippedClientDrivePermissions(
@@ -77,25 +84,30 @@ function applySkippedClientDrivePermissions(
 	setup: ReadyBookingDriveFolders,
 	drive: DriveClient
 ): ResultAsync<ReadyBookingDriveFolders, DriveClientPermissionsError> {
-	return ensureAnyonePermission(drive, setup.driveClient.assetsFolder.id, "writer")
-		.andThen((permission: SavedDrivePermission) =>
-			writeClientDrivePermission(ctx, {
-				bookingId: setup.booking._id,
-				name: "Assets",
-				permission: { id: permission.id, role: permission.role }
-			})
-		)
-		.andThen(() =>
-			writeClientDrivePermission(ctx, {
-				bookingId: setup.booking._id,
-				name: "Client folder",
-				permission: dismissedClientFolderPermission
-			})
-		)
-		.andThen(() =>
-			writeClientDrivePermissionsStatus(ctx, { bookingId: setup.booking._id, status: "skipped" })
-		)
-		.map(() => setup);
+	return safeTry(async function* () {
+		const permission = yield* ensureAnyonePermission(
+			drive,
+			setup.driveClient.assetsFolder.id,
+			"writer"
+		);
+
+		yield* writeClientDrivePermission(ctx, {
+			bookingId: setup.booking._id,
+			name: "Assets",
+			permission: { id: permission.id, role: permission.role }
+		});
+		yield* writeClientDrivePermission(ctx, {
+			bookingId: setup.booking._id,
+			name: "Client folder",
+			permission: dismissedClientFolderPermission
+		});
+		yield* writeClientDrivePermissionsStatus(ctx, {
+			bookingId: setup.booking._id,
+			status: "skipped"
+		});
+
+		return ok(setup);
+	});
 }
 
 export function recordClientDrivePermissionsFailure(
@@ -103,10 +115,13 @@ export function recordClientDrivePermissionsFailure(
 	setup: ReadyBookingDriveFolders,
 	error: DriveClientPermissionsError
 ): ResultAsync<ReadyBookingDriveFolders, DriveClientPermissionsError> {
-	return writeClientDriveFailureStatus(ctx, setup, error)
-		.andThen(() => requireMissingClientShareTarget(error))
-		.andThen(() => loadDriveClient())
-		.andThen((drive) => applySkippedClientDrivePermissions(ctx, setup, drive));
+	return safeTry(async function* () {
+		yield* writeClientDriveFailureStatus(ctx, setup, error);
+		yield* requireMissingClientShareTarget(error);
+		const drive = yield* loadDriveClient();
+
+		return ok(yield* applySkippedClientDrivePermissions(ctx, setup, drive));
+	});
 }
 
 function applyShareTargetMissingFallback(
@@ -116,9 +131,11 @@ function applyShareTargetMissingFallback(
 
 	error: DriveClientPermissionsError
 ) {
-	return requireMissingClientShareTarget(error).asyncAndThen(() =>
-		applySkippedClientDrivePermissions(ctx, setup, drive)
-	);
+	return safeTry(async function* () {
+		yield* requireMissingClientShareTarget(error);
+
+		return ok(yield* applySkippedClientDrivePermissions(ctx, setup, drive));
+	});
 }
 
 function applyActiveClientDrivePermissions(
@@ -126,35 +143,41 @@ function applyActiveClientDrivePermissions(
 	setup: ReadyBookingDriveFolders,
 	drive: DriveClient
 ): ResultAsync<ReadyBookingDriveFolders, DriveClientPermissionsError> {
-	return ensureAnyonePermission(drive, setup.driveClient.assetsFolder.id, "writer")
-		.andThen((permission: SavedDrivePermission) =>
-			writeClientDrivePermission(ctx, {
-				bookingId: setup.booking._id,
-				name: "Assets",
-				permission: { id: permission.id, role: permission.role }
-			})
-		)
-		.andThen(() =>
-			requireClientDrivePermission(drive, setup, {
-				fileId: setup.driveClient.folderId,
-				name: "Client folder",
-				role: "reader"
-			})
-		)
-		.andThen((permission: SavedDrivePermission) =>
-			writeClientDrivePermission(ctx, {
-				bookingId: setup.booking._id,
-				name: "Client folder",
-				permission
-			})
-		)
-		.andThen(() =>
-			writeClientDrivePermissionsStatus(ctx, { bookingId: setup.booking._id, status: "ready" })
-		)
-		.map(() => setup)
-		.orElse((error: DriveClientPermissionsError) =>
-			applyShareTargetMissingFallback(ctx, setup, drive, error)
+	const grantPermissions = safeTry(async function* () {
+		const assetsPermission = yield* ensureAnyonePermission(
+			drive,
+			setup.driveClient.assetsFolder.id,
+			"writer"
 		);
+
+		yield* writeClientDrivePermission(ctx, {
+			bookingId: setup.booking._id,
+			name: "Assets",
+			permission: { id: assetsPermission.id, role: assetsPermission.role }
+		});
+
+		const folderPermission = yield* requireClientDrivePermission(drive, setup, {
+			fileId: setup.driveClient.folderId,
+			name: "Client folder",
+			role: "reader"
+		});
+
+		yield* writeClientDrivePermission(ctx, {
+			bookingId: setup.booking._id,
+			name: "Client folder",
+			permission: folderPermission
+		});
+		yield* writeClientDrivePermissionsStatus(ctx, {
+			bookingId: setup.booking._id,
+			status: "ready"
+		});
+
+		return ok(setup);
+	});
+
+	return grantPermissions.orElse((error) =>
+		applyShareTargetMissingFallback(ctx, setup, drive, error)
+	);
 }
 
 function applyClientDrivePermissionsForDrive(
@@ -176,29 +199,33 @@ export function requireClientDrivePermissions(
 	ctx: ActionCtx,
 	setup: ReadyBookingDriveFolders
 ): ResultAsync<ReadyBookingDriveFolders, DriveClientPermissionsError> {
-	return loadDriveClient().andThen((drive: DriveClient) =>
-		applyClientDrivePermissionsForDrive(ctx, setup, drive)
-	);
+	return safeTry(async function* () {
+		const drive = yield* loadDriveClient();
+
+		return ok(yield* applyClientDrivePermissionsForDrive(ctx, setup, drive));
+	});
 }
 
 function sendClaimedClientAssetsEmail(ctx: ActionCtx, claim: ClientAssetsEmailClaim) {
-	return sendClientAssetsEmail({
-		assetsUrl: claim.assetsUrl,
-		bookingId: claim.bookingId,
-		email: claim.email,
-		name: claim.name
-	})
-		.andThen(() =>
-			writeClientAssetsEmailResult(ctx, {
+	const sendAndSave = safeTry(async function* () {
+		yield* sendClientAssetsEmail({
+			assetsUrl: claim.assetsUrl,
+			bookingId: claim.bookingId,
+			email: claim.email,
+			name: claim.name
+		});
+
+		return ok(
+			yield* writeClientAssetsEmailResult(ctx, {
 				assetsFolderId: claim.assetsFolderId,
 				bookingId: claim.bookingId,
 				claimedAt: claim.claimedAt,
 				status: "sent"
 			})
-		)
-		.orElse((emailError: DriveClientPermissionsError) =>
-			recordFailedClientAssetsEmail(ctx, claim, emailError)
 		);
+	});
+
+	return sendAndSave.orElse((emailError) => recordFailedClientAssetsEmail(ctx, claim, emailError));
 }
 
 function recordFailedClientAssetsEmail(
@@ -206,12 +233,16 @@ function recordFailedClientAssetsEmail(
 	claim: ClientAssetsEmailClaim,
 	emailError: DriveClientPermissionsError
 ) {
-	return writeClientAssetsEmailResult(ctx, {
-		assetsFolderId: claim.assetsFolderId,
-		bookingId: claim.bookingId,
-		claimedAt: claim.claimedAt,
-		status: "failed"
-	}).andThen(() => errAsync(emailError));
+	return safeTry(async function* () {
+		yield* writeClientAssetsEmailResult(ctx, {
+			assetsFolderId: claim.assetsFolderId,
+			bookingId: claim.bookingId,
+			claimedAt: claim.claimedAt,
+			status: "failed"
+		});
+
+		return err(emailError);
+	});
 }
 
 export function sendClientAssetsFolderEmail(
@@ -219,9 +250,13 @@ export function sendClientAssetsFolderEmail(
 	bookingId: Id<"bookings">,
 	attempt: "automatic" | "retry"
 ): ResultAsync<null, DriveClientPermissionsError> {
-	return claimClientAssetsEmailAttempt(ctx, { bookingId, attempt, now: Date.now() })
-		.andThen((claim: ClientAssetsEmailClaim) => sendClaimedClientAssetsEmail(ctx, claim))
-		.orElse((error: DriveClientPermissionsError) =>
-			recoverNonSendableClientAssetsEmail(attempt, error)
-		);
+	return safeTry(async function* () {
+		const claim = yield* claimClientAssetsEmailAttempt(ctx, {
+			bookingId,
+			attempt,
+			now: Date.now()
+		});
+
+		return ok(yield* sendClaimedClientAssetsEmail(ctx, claim));
+	}).orElse((error) => recoverNonSendableClientAssetsEmail(attempt, error));
 }

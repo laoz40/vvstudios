@@ -1,6 +1,6 @@
 "use node";
 
-import type { ResultAsync } from "neverthrow";
+import { ok, safeTry, type ResultAsync } from "neverthrow";
 import type { Doc } from "#convex/_generated/dataModel";
 import type { PackageInvoiceInput } from "#studio/features/booking-invoice/lib/booking-artifacts";
 import {
@@ -47,9 +47,13 @@ function sendBookingReceiptHostEmail(
 	options: BookingReceiptEmailOptions,
 	receipt: SentBookingReceipt
 ) {
-	return sendSessionHostDetailsEmail(buildBookingReceiptHostEmailArgs(options, receipt))
-		.orElse((error: { reason: string }) => logBookingReceiptHostEmailFailure(booking._id, error))
-		.map(() => ({ receiptNumber: receipt.artifacts.data.receipt.number }));
+	return safeTry(async function* () {
+		yield* sendSessionHostDetailsEmail(buildBookingReceiptHostEmailArgs(options, receipt)).orElse(
+			(error: { reason: string }) => logBookingReceiptHostEmailFailure(booking._id, error)
+		);
+
+		return ok({ receiptNumber: receipt.artifacts.data.receipt.number });
+	});
 }
 
 function sendPackageReceiptHostEmail(
@@ -58,23 +62,29 @@ function sendPackageReceiptHostEmail(
 	options: PackageReceiptEmailOptions,
 	receipt: PackageReceiptArtifacts
 ) {
-	return sendPackageHostDetailsEmail(
-		buildPackageReceiptHostEmailArgs(packageRecord, paidAt, options, receipt)
-	)
-		.orElse((error: { reason: string }) =>
+	return safeTry(async function* () {
+		yield* sendPackageHostDetailsEmail(
+			buildPackageReceiptHostEmailArgs(packageRecord, paidAt, options, receipt)
+		).orElse((error: { reason: string }) =>
 			logPackageReceiptHostEmailFailure(packageRecord._id, error)
-		)
-		.map(() => ({ receiptNumber: receipt.artifacts.data.receipt.number }));
+		);
+
+		return ok({ receiptNumber: receipt.artifacts.data.receipt.number });
+	});
 }
 
 export function sendBookingReceiptEmailsForBooking(
 	booking: Doc<"bookings">,
 	options: BookingReceiptEmailOptions
 ): ResultAsync<{ receiptNumber: string }, BookingReceiptEmailError> {
-	return createBookingReceiptArtifacts(booking, options)
-		.andThen(attachPdfToBookingReceiptArtifacts)
-		.andThen((receipt) => sendBookingReceiptCustomerEmail(booking, receipt))
-		.andThen((receipt) => sendBookingReceiptHostEmail(booking, options, receipt));
+	return safeTry(async function* () {
+		const receipt = yield* createBookingReceiptArtifacts(booking, options);
+		const receiptWithPdf = yield* attachPdfToBookingReceiptArtifacts(receipt);
+		const sentReceipt = yield* sendBookingReceiptCustomerEmail(booking, receiptWithPdf);
+		const result = yield* sendBookingReceiptHostEmail(booking, options, sentReceipt);
+
+		return ok(result);
+	});
 }
 
 export function sendPackageReceiptEmailsForPackage(
@@ -82,8 +92,18 @@ export function sendPackageReceiptEmailsForPackage(
 	paidAt: number,
 	options: PackageReceiptEmailOptions
 ): ResultAsync<{ receiptNumber: string }, PackageReceiptEmailError> {
-	return createPackageReceiptArtifacts(packageRecord, paidAt, options)
-		.andThen(attachPdfToPackageReceiptArtifacts)
-		.andThen((receipt) => sendPackageReceiptCustomerEmail(packageRecord, paidAt, receipt))
-		.andThen((receipt) => sendPackageReceiptHostEmail(packageRecord, paidAt, options, receipt));
+	return safeTry(async function* () {
+		const receipt = yield* createPackageReceiptArtifacts(packageRecord, paidAt, options);
+		const receiptWithPdf = yield* attachPdfToPackageReceiptArtifacts(receipt);
+
+		const sentReceipt = yield* sendPackageReceiptCustomerEmail(
+			packageRecord,
+			paidAt,
+			receiptWithPdf
+		);
+
+		const result = yield* sendPackageReceiptHostEmail(packageRecord, paidAt, options, sentReceipt);
+
+		return ok(result);
+	});
 }

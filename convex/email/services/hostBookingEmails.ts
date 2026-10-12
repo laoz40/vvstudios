@@ -1,5 +1,7 @@
 "use node";
 
+import { ok, safeTry } from "neverthrow";
+
 import type {
 	SendPackageHostDetailsEmailArgs,
 	SendSessionHostDetailsEmailArgs
@@ -15,15 +17,21 @@ import {
 export function sendSessionHostDetailsEmail(args: SendSessionHostDetailsEmailArgs | null) {
 	const hostEmails = getHostEmails();
 
-	return renderSessionHostEmailWhenNeeded(args, hostEmails).andThen((html) =>
-		sendSessionHostDetailsEmailWithHtml(hostEmails, args, html)
-	);
+	return safeTry(async function* () {
+		const html = yield* renderSessionHostEmailWhenNeeded(args, hostEmails);
+		const result = yield* sendSessionHostDetailsEmailWithHtml(hostEmails, args, html);
+
+		return ok(result);
+	});
 }
 
 export function sendPackageHostDetailsEmail(args: SendPackageHostDetailsEmailArgs | null) {
 	const hostEmails = getHostEmails();
 
-	return renderPackageHostEmailWhenNeeded(args, hostEmails).andThen((html) =>
-		sendPackageHostDetailsEmailWithHtml(hostEmails, args, html)
-	);
+	return safeTry(async function* () {
+		const html = yield* renderPackageHostEmailWhenNeeded(args, hostEmails);
+		const result = yield* sendPackageHostDetailsEmailWithHtml(hostEmails, args, html);
+
+		return ok(result);
+	});
 }

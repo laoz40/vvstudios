@@ -1,5 +1,7 @@
 "use node";
 
+import { ok, safeTry } from "neverthrow";
+
 import type { Id, Doc } from "#convex/_generated/dataModel";
 import type { ActionCtx } from "#convex/_generated/server";
 import { requirePermissionActions } from "#convex/shared/services/requirePermissionActions";
@@ -16,13 +18,20 @@ export function requireCancelSessionsPermission(ctx: ActionCtx) {
 }
 
 function adminCancelCalendarClientWithSession(session: Doc<"bookings">) {
-	return loadGoogleCalendarClient("GOOGLE_CALENDAR_DELETE_FAILED").map(
-		(client: Parameters<typeof deleteSessionCalendarEvent>[0]["client"]) => ({ client, session })
-	);
+	return safeTry(async function* () {
+		const client = yield* loadGoogleCalendarClient("GOOGLE_CALENDAR_DELETE_FAILED");
+
+		return ok({ client, session });
+	});
 }
 
 export function loadAdminCancelSession(ctx: ActionCtx, bookingId: Id<"bookings">) {
-	return getSessionFromQuery(ctx, bookingId).andThen(adminCancelCalendarClientWithSession);
+	return safeTry(async function* () {
+		const session = yield* getSessionFromQuery(ctx, bookingId);
+		const clientAndSession = yield* adminCancelCalendarClientWithSession(session);
+
+		return ok(clientAndSession);
+	});
 }
 
 export function deleteAdminBookingCalendarEvent({
@@ -40,9 +49,11 @@ export function markBookingSessionCalendarDeleted(ctx: ActionCtx, bookingId: Id<
 }
 
 export function cleanupAdminCancelledBookingDrive(ctx: ActionCtx, bookingId: Id<"bookings">) {
-	return clearCancelledSessionDriveFields(ctx, { bookingId }).map(() => ({
-		cancelled: true as const
-	}));
+	return safeTry(async function* () {
+		yield* clearCancelledSessionDriveFields(ctx, { bookingId });
+
+		return ok({ cancelled: true as const });
+	});
 }
 
 export type { CancelBookingFromAdminError };

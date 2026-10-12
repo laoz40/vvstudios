@@ -1,6 +1,6 @@
 "use node";
 
-import { err, ok, okAsync, ResultAsync } from "neverthrow";
+import { err, ok, okAsync, ResultAsync, safeTry } from "neverthrow";
 import type { Doc } from "#convex/_generated/dataModel";
 import type { ActionCtx } from "#convex/_generated/server";
 import { type DriveClient, type DriveError } from "#convex/drive/lib/googleDrive";
@@ -34,21 +34,34 @@ function removeRetiredAssetPermission(
 	editorTokenIdentifier: string,
 	drive: DriveClient | null
 ): ResultAsync<null, EditorRetirementError> {
-	return requireRetiredAssetPermissionRemoval(asset, drive)
-		.asyncAndThen((request) =>
-			deleteDrivePermission(request.drive, {
-				fileId: request.fileId,
-				permissionId: request.permissionId
-			})
-		)
-		.andThen(() =>
-			writeRetiredAssetPermissionRemoval(ctx, asset.permission._id, editorTokenIdentifier)
-		)
-		.orElse((error) =>
-			recordRetiredAssetRemovalFailure(ctx, asset.bookingId, editorTokenIdentifier).andThen(() =>
-				err(error)
-			)
+	const removal = safeTry<null, EditorRetirementError>(async function* () {
+		const request = yield* requireRetiredAssetPermissionRemoval(asset, drive);
+		yield* deleteDrivePermission(request.drive, {
+			fileId: request.fileId,
+			permissionId: request.permissionId
+		});
+
+		return ok(
+			yield* writeRetiredAssetPermissionRemoval(ctx, asset.permission._id, editorTokenIdentifier)
 		);
+	});
+
+	return removal.orElse((error) =>
+		recordRetiredAssetRemovalError(ctx, asset, editorTokenIdentifier, error)
+	);
+}
+
+function recordRetiredAssetRemovalError(
+	ctx: ActionCtx,
+	asset: RetiredAssetPermission,
+	editorTokenIdentifier: string,
+	error: EditorRetirementError
+) {
+	return safeTry(async function* () {
+		yield* recordRetiredAssetRemovalFailure(ctx, asset.bookingId, editorTokenIdentifier);
+
+		return err(error);
+	});
 }
 
 function removeRetirementAssetRows(
@@ -56,27 +69,29 @@ function removeRetirementAssetRows(
 	editorTokenIdentifier: string,
 	assets: RetiredAssetPermission[]
 ): ResultAsync<null, EditorRetirementError> {
-	return loadDriveClientForRetirementAssets(assets)
-		.orElse((error) =>
-			ResultAsync.combine(
-				retiredAssetBookingIds(assets).map((bookingId) =>
-					markPreviousEditorRemovalFailed(ctx, { bookingId, editorTokenIdentifier })
-				)
-			).andThen(() => err(error))
-		)
-		.andThen((drive) =>
-			assets
-				.reduce(
-					(previous, asset) =>
-						previous.andThen((firstError) =>
-							removeRetiredAssetPermission(ctx, asset, editorTokenIdentifier, drive)
-								.map(() => firstError)
-								.orElse((error) => ok(firstError ?? error))
-						),
-					okAsync<EditorRetirementError | undefined>(undefined)
-				)
-				.andThen(finishRetirementAssetRemoval)
+	const removal = safeTry<null, EditorRetirementError>(async function* () {
+		const drive = yield* loadDriveClientForRetirementAssets(assets).orElse((error) =>
+			recordRetirementAssetsDriveFailure(ctx, assets, editorTokenIdentifier, error)
 		);
+
+		const firstError = yield* assets.reduce(
+			(previousError, asset) =>
+				safeTry(async function* () {
+					const first = yield* previousError;
+
+					return ok(
+						yield* removeRetiredAssetPermission(ctx, asset, editorTokenIdentifier, drive)
+							.map(() => first)
+							.orElse((error) => ok(first ?? error))
+					);
+				}),
+			okAsync<EditorRetirementError | undefined>(undefined)
+		);
+
+		return ok(yield* finishRetirementAssetRemoval(firstError));
+	});
+
+	return removal;
 }
 
 function removeRetiredSessionAndRecordFailure(
@@ -84,18 +99,37 @@ function removeRetiredSessionAndRecordFailure(
 	request: { bookingId: Doc<"bookings">["_id"]; editorTokenIdentifier: string } | null,
 	editorTokenIdentifier: string
 ) {
-	return loadEditorDriveAccessToRemove(ctx, request)
-		.andThen((access) =>
-			removePreviousEditorDriveAccess(ctx, {
+	const remove = safeTry<null, EditorRetirementError>(async function* () {
+		const access = yield* loadEditorDriveAccessToRemove(ctx, request);
+
+		return ok(
+			yield* removePreviousEditorDriveAccess(ctx, {
 				access,
 				previousEditorTokenIdentifier: editorTokenIdentifier
 			})
-		)
-		.orElse(() =>
-			recordRetiredAssetRemovalFailure(ctx, request?.bookingId ?? null, editorTokenIdentifier).map(
-				() => null
+		);
+	});
+
+	return remove.orElse(() =>
+		recordRetiredAssetRemovalFailure(ctx, request?.bookingId ?? null, editorTokenIdentifier)
+	);
+}
+
+function recordRetirementAssetsDriveFailure(
+	ctx: ActionCtx,
+	assets: RetiredAssetPermission[],
+	editorTokenIdentifier: string,
+	error: DriveError
+) {
+	return safeTry(async function* () {
+		yield* ResultAsync.combine(
+			retiredAssetBookingIds(assets).map((bookingId) =>
+				markPreviousEditorRemovalFailed(ctx, { bookingId, editorTokenIdentifier })
 			)
 		);
+
+		return err(error);
+	});
 }
 
 function removeRetiredSession(
@@ -105,23 +139,32 @@ function removeRetiredSession(
 ) {
 	const plan = planEditorRetirementSession(session, editorTokenIdentifier);
 
-	return removeRetiredSessionAndRecordFailure(ctx, plan.removalRequest, editorTokenIdentifier)
-		.andThen(() => retryFailedPreviousEditorRemoval(ctx, plan.retryRequest).orElse(() => ok(null)))
-		.andThen(() => writeEditorDriveAccessRevoked(ctx, plan.revokeSessionId, editorTokenIdentifier));
+	return safeTry(async function* () {
+		yield* removeRetiredSessionAndRecordFailure(ctx, plan.removalRequest, editorTokenIdentifier);
+		yield* retryFailedPreviousEditorRemoval(ctx, plan.retryRequest).orElse(() => ok(null));
+
+		return ok(
+			yield* writeEditorDriveAccessRevoked(ctx, plan.revokeSessionId, editorTokenIdentifier)
+		);
+	});
 }
 
 export function retireEditorDriveAccess(
 	ctx: ActionCtx,
 	args: { editorTokenIdentifier: string }
 ): ResultAsync<null, EditorRetirementError> {
-	return queryEditorRetirementSessions(ctx, args.editorTokenIdentifier)
-		.andThen((sessions) =>
-			sessions.reduce(
-				(previous, session) =>
-					previous.andThen(() => removeRetiredSession(ctx, session, args.editorTokenIdentifier)),
-				okAsync<null, EditorRetirementError>(null)
-			)
-		)
-		.andThen(() => queryEditorRetirementAssets(ctx, args.editorTokenIdentifier))
-		.andThen((assets) => removeRetirementAssetRows(ctx, args.editorTokenIdentifier, assets));
+	return safeTry(async function* () {
+		const sessions: Doc<"driveSessions">[] = yield* queryEditorRetirementSessions(
+			ctx,
+			args.editorTokenIdentifier
+		);
+
+		for (const session of sessions) {
+			yield* removeRetiredSession(ctx, session, args.editorTokenIdentifier);
+		}
+
+		const assets = yield* queryEditorRetirementAssets(ctx, args.editorTokenIdentifier);
+
+		return ok(yield* removeRetirementAssetRows(ctx, args.editorTokenIdentifier, assets));
+	});
 }

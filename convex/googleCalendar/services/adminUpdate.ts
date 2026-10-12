@@ -1,6 +1,6 @@
 "use node";
 
-import { err, ResultAsync } from "neverthrow";
+import { err, ok, ResultAsync, safeTry } from "neverthrow";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { ActionCtx } from "#convex/_generated/server";
 import { queryBookingAvailabilitySettings } from "#convex/booking/lib/settingsIo";
@@ -58,30 +58,46 @@ export function requireEditSessionsPermissionAndLoadBooking(
 	ctx: ActionCtx,
 	bookingId: Id<"bookings">
 ) {
-	return requirePermissionActions(ctx, "edit:sessions").andThen(() =>
-		getSessionFromQuery(ctx, bookingId)
-	);
+	return safeTry(async function* () {
+		yield* requirePermissionActions(ctx, "edit:sessions");
+
+		return ok(yield* getSessionFromQuery(ctx, bookingId));
+	});
 }
 
 export function loadAdminSessionEditDeps(ctx: ActionCtx) {
-	return queryBookingAvailabilitySettings(ctx).andThen(loadAdminEditGoogleClient);
+	return safeTry(async function* () {
+		const settings = yield* queryBookingAvailabilitySettings(ctx);
+
+		return ok(yield* loadAdminEditGoogleClient(settings));
+	});
 }
 
 function verifyFailedSessionNewSlot(context: AdminUpdateContext) {
-	return verifySessionCanBeScheduled(failedSessionAvailabilityArgs(context)).andThen(
-		requireSchedulableFailedSession
-	);
+	return safeTry(async function* () {
+		const availability = yield* verifySessionCanBeScheduled(failedSessionAvailabilityArgs(context));
+
+		return ok(yield* requireSchedulableFailedSession(availability));
+	});
 }
 
 function buildFailedSessionGoogleEventPayload(context: AdminUpdateContext) {
-	return requestFailedSessionEventPayload(context).andThen(mapFailedSessionPayloadResult);
+	return safeTry(async function* () {
+		const payloadResult = yield* requestFailedSessionEventPayload(context);
+
+		return ok(yield* mapFailedSessionPayloadResult(payloadResult));
+	});
 }
 
 function compensatePromotedSaveFailure(
 	context: PromotedAdminUpdateContext,
 	error: AdminSessionUpdateError
 ) {
-	return cleanupPromotedEventAfterSaveFailure(context, error).andThen(() => err(error));
+	return safeTry(async function* () {
+		yield* cleanupPromotedEventAfterSaveFailure(context, error);
+
+		return err(error);
+	});
 }
 
 function savePromotedFailedSession(context: PromotedAdminUpdateContext) {
@@ -94,53 +110,70 @@ function insertAndSaveFailedSession(
 	context: AdminUpdateContext,
 	requestBody: Parameters<typeof insertFailedSessionGoogleEvent>[0]["requestBody"]
 ) {
-	return insertFailedSessionGoogleEvent({ client: context.client, requestBody }).andThen((event) =>
-		savePromotedFailedSession({ ...context, googleEventId: event.data.id ?? undefined })
-	);
+	return safeTry(async function* () {
+		const event = yield* insertFailedSessionGoogleEvent({ client: context.client, requestBody });
+
+		return ok(
+			yield* savePromotedFailedSession({ ...context, googleEventId: event.data.id ?? undefined })
+		);
+	});
 }
 
 function promoteFailedSession(context: AdminUpdateContext) {
-	return verifyFailedSessionNewSlot(context)
-		.andThen(() => buildFailedSessionGoogleEventPayload(context))
-		.andThen((requestBody) => insertAndSaveFailedSession(context, requestBody))
-		.map(() => ({ googleOutcome: "createdFromFailed" as const }));
+	return safeTry(async function* () {
+		yield* verifyFailedSessionNewSlot(context);
+		const requestBody = yield* buildFailedSessionGoogleEventPayload(context);
+		yield* insertAndSaveFailedSession(context, requestBody);
+
+		return ok({ googleOutcome: "createdFromFailed" as const });
+	});
 }
 
 function updateConfirmedGoogleEvent(context: AdminUpdateContext) {
-	return updateSessionTimingWithGoogleCalendar({
-		bypassAvailabilitySettings: true,
-		session: context.session,
-		client: context.client,
-		date: context.args.date,
-		details: eventDetails(context.args),
-		duration: context.args.duration,
-		settings: context.settings,
-		time: context.args.time
-	}).andThen((timingUpdate) => saveConfirmedTimingUpdate(context, timingUpdate));
+	return safeTry(async function* () {
+		const timingUpdate = yield* updateSessionTimingWithGoogleCalendar({
+			bypassAvailabilitySettings: true,
+			session: context.session,
+			client: context.client,
+			date: context.args.date,
+			details: eventDetails(context.args),
+			duration: context.args.duration,
+			settings: context.settings,
+			time: context.args.time
+		});
+
+		return ok(yield* saveConfirmedTimingUpdate(context, timingUpdate));
+	});
 }
 
 function validateAndSaveDraft(context: AdminUpdateContext) {
-	return validateSessionTimingEdit({
-		bypassAvailabilitySettings: true,
-		calendar: context.client.calendar,
-		calendarIds: context.client.calendarIds,
-		existing: {
-			date: context.session.date,
-			duration: context.session.duration,
-			googleCalendarId: context.session.googleCalendarId,
-			googleEventId: context.session.googleEventId,
-			time: context.session.time
-		},
-		next: { date: context.args.date, duration: context.args.duration, time: context.args.time },
-		settings: context.settings,
-		timeZone: context.client.timeZone
-	}).andThen(() => saveAdminFieldsOnly(context));
+	return safeTry(async function* () {
+		yield* validateSessionTimingEdit({
+			bypassAvailabilitySettings: true,
+			calendar: context.client.calendar,
+			calendarIds: context.client.calendarIds,
+			existing: {
+				date: context.session.date,
+				duration: context.session.duration,
+				googleCalendarId: context.session.googleCalendarId,
+				googleEventId: context.session.googleEventId,
+				time: context.session.time
+			},
+			next: { date: context.args.date, duration: context.args.duration, time: context.args.time },
+			settings: context.settings,
+			timeZone: context.client.timeZone
+		});
+
+		return ok(yield* saveAdminFieldsOnly(context));
+	});
 }
 
 function updateAndSaveConfirmed(context: AdminUpdateContext) {
-	return updateConfirmedGoogleEvent(context).andThen((outcome) =>
-		resolveConfirmedGoogleSyncOutcome(context, outcome)
-	);
+	return safeTry(async function* () {
+		const outcome = yield* updateConfirmedGoogleEvent(context);
+
+		return ok(yield* resolveConfirmedGoogleSyncOutcome(context, outcome));
+	});
 }
 
 function syncAdminSessionGoogleAndSave(context: AdminUpdateContext) {
@@ -165,20 +198,28 @@ function syncConfirmedAdminSession(context: AdminUpdateContext) {
 }
 
 function reserveAdminSlot(context: AdminUpdateContext, sessionStartAt: number) {
-	return reserveSessionSlot(context.ctx, {
-		bookingId: context.session._id,
-		duration: context.args.duration,
-		eventBufferMinutes: context.settings.eventBufferMinutes,
-		sessionStartAt
-	}).andThen(requireAvailableAdminReservation);
+	return safeTry(async function* () {
+		const reservation = yield* reserveSessionSlot(context.ctx, {
+			bookingId: context.session._id,
+			duration: context.args.duration,
+			eventBufferMinutes: context.settings.eventBufferMinutes,
+			sessionStartAt
+		});
+
+		return ok(yield* requireAvailableAdminReservation(reservation));
+	});
 }
 
 function reserveSlotForAdminTimingChange(context: AdminUpdateContext) {
-	return getSessionStartAt(
-		context.args.date,
-		context.args.time,
-		context.client.timeZone
-	).asyncAndThen((sessionStartAt) => reserveAdminSlot(context, sessionStartAt));
+	return safeTry(async function* () {
+		const sessionStartAt = yield* getSessionStartAt(
+			context.args.date,
+			context.args.time,
+			context.client.timeZone
+		);
+
+		return ok(yield* reserveAdminSlot(context, sessionStartAt));
+	});
 }
 
 function compensateFailedAdminUpdate(
@@ -186,10 +227,14 @@ function compensateFailedAdminUpdate(
 	reservation: SessionReservation,
 	error: AdminSessionUpdateError
 ) {
-	return clearSessionSlotReservation(context.ctx, {
-		bookingId: context.session._id,
-		reservation
-	}).andThen(() => err(error));
+	return safeTry(async function* () {
+		yield* clearSessionSlotReservation(context.ctx, {
+			bookingId: context.session._id,
+			reservation
+		});
+
+		return err(error);
+	});
 }
 
 function syncWithAdminReservation(context: AdminUpdateContext, reservation: SessionReservation) {
@@ -199,9 +244,11 @@ function syncWithAdminReservation(context: AdminUpdateContext, reservation: Sess
 }
 
 function reserveAndSyncAdminSession(context: AdminUpdateContext) {
-	return reserveSlotForAdminTimingChange(context).andThen((reservation) =>
-		syncWithAdminReservation(context, reservation)
-	);
+	return safeTry(async function* () {
+		const reservation = yield* reserveSlotForAdminTimingChange(context);
+
+		return ok(yield* syncWithAdminReservation(context, reservation));
+	});
 }
 
 export function attachAdminUpdateContext(

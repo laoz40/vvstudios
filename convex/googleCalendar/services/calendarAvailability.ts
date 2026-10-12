@@ -1,5 +1,7 @@
 "use node";
 
+import { ok, safeTry } from "neverthrow";
+
 import type { ActionCtx } from "#convex/_generated/server";
 import { availableRescheduleTimesForDay } from "#convex/googleCalendar/lib/calendarAvailability";
 import {
@@ -40,16 +42,21 @@ export function loadAvailableBookingTimesForDay(
 }
 
 function loadRescheduleBookingSettings(ctx: ActionCtx, details: ValidRescheduleDetails) {
-	return getBookingSettingsService(ctx).map((settings: BookingAvailabilitySettings) => ({
-		details,
-		settings
-	}));
+	return safeTry(async function* () {
+		const settings = yield* getBookingSettingsService(ctx);
+
+		return ok({ details, settings });
+	});
 }
 
 export function loadRescheduleSessionAndBookingSettings(ctx: ActionCtx, token: string) {
-	return loadValidRescheduleLinkAndSession(ctx, { now: Date.now(), token }).andThen(
-		(details: ValidRescheduleDetails) => loadRescheduleBookingSettings(ctx, details)
-	);
+	return safeTry(async function* () {
+		const details = yield* loadValidRescheduleLinkAndSession(ctx, { now: Date.now(), token });
+
+		const result = yield* loadRescheduleBookingSettings(ctx, details);
+
+		return ok(result);
+	});
 }
 
 export function loadRescheduleBookableRangeBusyWindows(
@@ -70,19 +77,23 @@ export function loadAvailableRescheduleTimesForDay(
 	details: { session: { duration: string; googleCalendarId?: string; googleEventId?: string } },
 	settings: BookingAvailabilitySettings
 ) {
-	return loadDayBusyWindows({
-		date: args.date,
-		ignoredEvent: {
-			calendarId: details.session.googleCalendarId,
-			eventId: details.session.googleEventId
-		}
-	}).map((busyWindowsAndZone) =>
-		availableRescheduleTimesForDay(
-			args,
-			details,
-			settings,
-			busyWindowsAndZone,
-			checkSessionMeetsAvailabilitySettings
-		)
-	);
+	return safeTry(async function* () {
+		const busyWindowsAndZone = yield* loadDayBusyWindows({
+			date: args.date,
+			ignoredEvent: {
+				calendarId: details.session.googleCalendarId,
+				eventId: details.session.googleEventId
+			}
+		});
+
+		return ok(
+			availableRescheduleTimesForDay(
+				args,
+				details,
+				settings,
+				busyWindowsAndZone,
+				checkSessionMeetsAvailabilitySettings
+			)
+		);
+	});
 }

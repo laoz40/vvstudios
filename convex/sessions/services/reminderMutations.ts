@@ -1,3 +1,4 @@
+import { ok, safeTry } from "neverthrow";
 import type { Id } from "#convex/_generated/dataModel";
 import type { Doc } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
@@ -22,7 +23,11 @@ function claimReminderAfterSessionStep(
 
 	session: Doc<"bookings">
 ) {
-	return patchSessionReminderEmailClaimed(ctx, args).map(() => ({ session }));
+	return safeTry(async function* () {
+		yield* patchSessionReminderEmailClaimed(ctx, args);
+
+		return ok({ session });
+	});
 }
 
 export function getTomorrowSessionReminderWindow(nowDate: Date) {
@@ -40,25 +45,35 @@ export function claimSessionReminderEmail(
 	ctx: MutationCtx,
 	args: ReminderBookingArgs & { now: number }
 ) {
-	return getSessionFromDb(ctx, args.bookingId)
-		.andThen(validateSendableUnclaimedReminder)
-		.andThen((session: Doc<"bookings">) => claimReminderAfterSessionStep(ctx, args, session));
+	return safeTry(async function* () {
+		const session = yield* getSessionFromDb(ctx, args.bookingId);
+		const sendableSession = yield* validateSendableUnclaimedReminder(session);
+		const claim = yield* claimReminderAfterSessionStep(ctx, args, sendableSession);
+
+		return ok(claim);
+	});
 }
 
 export function writeSessionReminderEmailSent(
 	ctx: MutationCtx,
 	args: ReminderBookingArgs & { now: number }
 ) {
-	return getSessionFromDb(ctx, args.bookingId).andThen(() =>
-		patchSessionReminderEmailSent(ctx, args)
-	);
+	return safeTry(async function* () {
+		yield* getSessionFromDb(ctx, args.bookingId);
+		const updatedSession = yield* patchSessionReminderEmailSent(ctx, args);
+
+		return ok(updatedSession);
+	});
 }
 
 export function writeSessionReminderEmailFailed(
 	ctx: MutationCtx,
 	args: ReminderBookingArgs & { failureCode: string }
 ) {
-	return getSessionFromDb(ctx, args.bookingId).andThen(() =>
-		patchSessionReminderEmailFailed(ctx, args)
-	);
+	return safeTry(async function* () {
+		yield* getSessionFromDb(ctx, args.bookingId);
+		const updatedSession = yield* patchSessionReminderEmailFailed(ctx, args);
+
+		return ok(updatedSession);
+	});
 }

@@ -1,4 +1,4 @@
-import { ResultAsync } from "neverthrow";
+import { ok, ResultAsync, safeTry } from "neverthrow";
 import type { MutationCtx } from "#convex/_generated/server";
 import { loadPackageBookingsForReceiptSync } from "#convex/packages/lib/bookingsReceiptSync";
 import {
@@ -12,9 +12,12 @@ export function patchPackageSessionBookingsContactSearch(
 	packageId: Parameters<typeof loadPackageBookingsForReceiptSync>[1],
 	contactFields: PackageContactSearchFields
 ) {
-	return loadPackageBookingsForReceiptSync(ctx, packageId).andThen((bookings) =>
-		updatePackageSessionBookingsContactSearch(ctx, bookings, contactFields)
-	);
+	return safeTry(async function* () {
+		const bookings = yield* loadPackageBookingsForReceiptSync(ctx, packageId);
+		const updated = yield* updatePackageSessionBookingsContactSearch(ctx, bookings, contactFields);
+
+		return ok(updated);
+	});
 }
 
 function updatePackageSessionBookingsContactSearch(
@@ -22,11 +25,23 @@ function updatePackageSessionBookingsContactSearch(
 	bookings: Parameters<typeof buildPackageSessionBookingContactSearchPatch>[1][],
 	contactFields: PackageContactSearchFields
 ) {
-	return ResultAsync.combine(
-		bookings.map((booking) =>
-			buildPackageSessionBookingContactSearchPatch(ctx, booking, contactFields).andThen((patch) =>
-				patchPackageSessionBookingContactSearch(ctx, booking._id, patch)
+	return safeTry(async function* () {
+		yield* ResultAsync.combine(
+			bookings.map((booking) =>
+				safeTry(async function* () {
+					const patch = yield* buildPackageSessionBookingContactSearchPatch(
+						ctx,
+						booking,
+						contactFields
+					);
+
+					const updated = yield* patchPackageSessionBookingContactSearch(ctx, booking._id, patch);
+
+					return ok(updated);
+				})
 			)
-		)
-	).map(() => null);
+		);
+
+		return ok(null);
+	});
 }

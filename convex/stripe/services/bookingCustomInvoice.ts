@@ -1,5 +1,5 @@
+import { ok, safeTry } from "neverthrow";
 import type { Id } from "#convex/_generated/dataModel";
-import type { Doc } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
 import type { BookingAddonQuantitiesArgs } from "#convex/booking/lib/addonQuantities";
 import type { BookingAddon } from "#/domain/booking/catalog";
@@ -28,44 +28,44 @@ export type CreateBookingCustomInvoiceArgs = CustomInvoiceDetails & {
 	service?: string;
 };
 
-type StaffIdentity = { email?: string };
-
 export function listCustomInvoicesForBooking(ctx: QueryCtx, args: { bookingId: Id<"bookings"> }) {
-	return requirePermission(ctx, "view:sensitive-booking-data").andThen(() =>
-		listCustomInvoicesByBookingId(ctx, args.bookingId)
-	);
+	return safeTry(async function* () {
+		yield* requirePermission(ctx, "view:sensitive-booking-data");
+		const invoices = yield* listCustomInvoicesByBookingId(ctx, args.bookingId);
+
+		return ok(invoices);
+	});
 }
 
 export function loadBookingCustomInvoiceInput(
 	ctx: QueryCtx,
 	args: { bookingId: Id<"bookings">; customInvoiceId: Id<"customInvoices"> }
 ) {
-	return getCustomInvoiceRow(ctx, args.customInvoiceId).map(
-		(customInvoice: Doc<"customInvoices"> | null) =>
-			customInvoiceForBooking(args.bookingId, customInvoice)
-	);
+	return safeTry(async function* () {
+		const invoice = yield* getCustomInvoiceRow(ctx, args.customInvoiceId);
+		const bookingInvoice = customInvoiceForBooking(args.bookingId, invoice);
+
+		return ok(bookingInvoice);
+	});
 }
 
 export function createBookingCustomInvoiceFromAdmin(
 	ctx: MutationCtx,
 	args: CreateBookingCustomInvoiceArgs
 ) {
-	return requirePermission(ctx, "create:invoices")
-		.andThen((identity: StaffIdentity) =>
-			validateCustomTotalDueAmount(args.customTotalDueAmount).map(() => identity)
-		)
-		.andThen((identity: StaffIdentity) => getSessionFromDb(ctx, args.bookingId).map(() => identity))
-		.andThen((identity: StaffIdentity) =>
-			insertPendingCustomInvoice(ctx, { ...args, createdBy: identity.email }).andThen(
-				({ customInvoiceId, createdAt }) => {
-					const invoiceNumber = formatBookingInvoiceNumber(customInvoiceId, createdAt);
+	return safeTry(async function* () {
+		const identity = yield* requirePermission(ctx, "create:invoices");
+		yield* validateCustomTotalDueAmount(args.customTotalDueAmount);
+		yield* getSessionFromDb(ctx, args.bookingId);
 
-					return patchCustomInvoiceNumber(ctx, customInvoiceId, invoiceNumber).map(() => ({
-						customInvoiceId,
-						invoiceNumber,
-						createdAt
-					}));
-				}
-			)
-		);
+		const { customInvoiceId, createdAt } = yield* insertPendingCustomInvoice(ctx, {
+			...args,
+			createdBy: identity.email
+		});
+
+		const invoiceNumber = formatBookingInvoiceNumber(customInvoiceId, createdAt);
+		yield* patchCustomInvoiceNumber(ctx, customInvoiceId, invoiceNumber);
+
+		return ok({ customInvoiceId, invoiceNumber, createdAt });
+	});
 }

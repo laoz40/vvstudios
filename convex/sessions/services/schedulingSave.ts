@@ -1,3 +1,4 @@
+import { ok, safeTry } from "neverthrow";
 import type { Doc } from "#convex/_generated/dataModel";
 import type { MutationCtx } from "#convex/_generated/server";
 import type { BookingSearchPatchOverrides } from "#convex/shared/lib/adminSearch/adminSearchBlob";
@@ -48,20 +49,29 @@ function writeSessionBookingPatchWithDriveSetup(args: {
 	searchOverrides?: BookingSearchPatchOverrides;
 	driveSetup: SessionDriveSetupArgs;
 }) {
-	return searchBlobPatchForBookingAsync(args.ctx, args.booking, args.searchOverrides)
-		.andThen((searchBlobPatch) =>
-			patchSessionBooking(args.ctx, args.bookingId, { ...args.patch, ...searchBlobPatch })
-		)
-		.andThen(() => scheduleDriveSetupWhenConfirmed(args.ctx, args.driveSetup));
+	return safeTry(async function* () {
+		const searchBlobPatch = yield* searchBlobPatchForBookingAsync(
+			args.ctx,
+			args.booking,
+			args.searchOverrides
+		);
+
+		yield* patchSessionBooking(args.ctx, args.bookingId, { ...args.patch, ...searchBlobPatch });
+
+		return ok(yield* scheduleDriveSetupWhenConfirmed(args.ctx, args.driveSetup));
+	});
 }
 
 export function resolveAdminSessionUpdate(ctx: MutationCtx, args: SaveAdminSessionUpdateArgs) {
 	const now = Date.now();
 
-	return getSessionFromDb(ctx, args.bookingId)
-		.andThen((session: Doc<"bookings">) => adminUpdatePatchForSession(args, session))
-		.andThen((_value) => requireAdminReservation(args, now, _value))
-		.map((_value) => resolvedAdminSessionUpdate(args, _value));
+	return safeTry(async function* () {
+		const session = yield* getSessionFromDb(ctx, args.bookingId);
+		const updatePatch = yield* adminUpdatePatchForSession(args, session);
+		const reservedSession = yield* requireAdminReservation(args, now, updatePatch);
+
+		return ok(resolvedAdminSessionUpdate(args, reservedSession));
+	});
 }
 
 export function writeAdminSessionUpdateWithDriveSetup(
@@ -78,12 +88,13 @@ export function validateClientSessionReschedule(
 ) {
 	const now = Date.now();
 
-	return getSessionFromDb(ctx, args.bookingId)
-		.andThen((session: Doc<"bookings">) =>
-			requirePackageSessionForReschedule(session, args.packageId)
-		)
-		.andThen((session: Doc<"bookings">) => requireClientRescheduleReservation(args, now, session))
-		.map((session: Doc<"bookings">) => validatedClientRescheduleSearchOverrides(args, session));
+	return safeTry(async function* () {
+		const session = yield* getSessionFromDb(ctx, args.bookingId);
+		const packageSession = yield* requirePackageSessionForReschedule(session, args.packageId);
+		const reservedSession = yield* requireClientRescheduleReservation(args, now, packageSession);
+
+		return ok(validatedClientRescheduleSearchOverrides(args, reservedSession));
+	});
 }
 
 export function patchClientSessionReschedule(

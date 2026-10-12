@@ -1,4 +1,5 @@
 import type { Id } from "#convex/_generated/dataModel";
+import { ok, safeTry } from "neverthrow";
 import {
 	renderClientAssetsEmailHtml,
 	renderEditorAssignmentEmailHtml,
@@ -18,9 +19,12 @@ import {
 export function sendClientAssetsEmail(
 	args: SendClientAssetsEmailArgs & { bookingId: Id<"bookings">; email: string }
 ) {
-	return renderClientAssetsEmailHtml(args).andThen((html: string) =>
-		sendClientAssetsEmailWithHtml(args, html)
-	);
+	return safeTry(async function* () {
+		const html = yield* renderClientAssetsEmailHtml(args);
+		const result = yield* sendClientAssetsEmailWithHtml(args, html);
+
+		return ok(result);
+	});
 }
 
 export function sendEditorAssignmentEmail(
@@ -28,15 +32,21 @@ export function sendEditorAssignmentEmail(
 ) {
 	const sessionDate = formatTimestampDateLong(args.sessionStartAt);
 
-	return renderEditorAssignmentEmailHtml(args).andThen((html: string) =>
-		sendEditorAssignmentEmailWithHtml(args, sessionDate, html)
-	);
+	return safeTry(async function* () {
+		const html = yield* renderEditorAssignmentEmailHtml(args);
+		const result = yield* sendEditorAssignmentEmailWithHtml(args, sessionDate, html);
+
+		return ok(result);
+	});
 }
 
 export function sendSessionDeliverablesEmail(
 	args: SendSessionDeliverablesEmailArgs & { email: string }
 ) {
-	return renderSessionDeliverablesEmailHtml(args).andThen((html: string) =>
-		sendSessionDeliverablesEmailWithHtml(args, html)
-	);
+	return safeTry(async function* () {
+		const html = yield* renderSessionDeliverablesEmailHtml(args);
+		const result = yield* sendSessionDeliverablesEmailWithHtml(args, html);
+
+		return ok(result);
+	});
 }

@@ -1,6 +1,8 @@
 "use node";
 
-import type { AnyonePermission, DriveClient } from "#convex/drive/lib/googleDrive";
+import { ok, safeTry } from "neverthrow";
+
+import type { DriveClient } from "#convex/drive/lib/googleDrive";
 import {
 	createAnyonePermission,
 	findAnyonePermission
@@ -12,13 +14,21 @@ export function ensureAnyonePermission(
 	fileId: string,
 	role: "reader" | "writer"
 ) {
-	return findAnyonePermission(drive, fileId, role).andThen((permission: AnyonePermission | null) =>
-		useExistingOrCreateDrivePermission(permission, () =>
+	return safeTry(async function* () {
+		const permission = yield* findAnyonePermission(drive, fileId, role);
+
+		const resolvedPermission = yield* useExistingOrCreateDrivePermission(permission, () =>
 			createAnyonePermission(drive, fileId, role)
-		)
-	);
+		);
+
+		return ok(resolvedPermission);
+	});
 }
 
 export function ensureAnyoneReaderPermission(drive: DriveClient, fileId: string) {
-	return ensureAnyonePermission(drive, fileId, "reader").map(() => null);
+	return safeTry(async function* () {
+		yield* ensureAnyonePermission(drive, fileId, "reader");
+
+		return ok(null);
+	});
 }

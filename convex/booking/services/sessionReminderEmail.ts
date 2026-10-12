@@ -1,6 +1,6 @@
 "use node";
 
-import { okAsync, ResultAsync } from "neverthrow";
+import { ok, okAsync, ResultAsync, safeTry } from "neverthrow";
 
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { ActionCtx } from "#convex/_generated/server";
@@ -28,11 +28,14 @@ export function deliverClaimedSessionReminderEmail(
 	bookingId: Id<"bookings">,
 	claim: ReminderClaim
 ): ResultAsync<null, never> {
-	return sendBookingReminderEmailForSession(ctx, claim.session)
-		.andThen((_value: null) => markReminderSentAfterEmail(ctx, bookingId, _value))
-		.orElse((reminderError: { reason: string }) =>
-			markReminderFailedAfterEmailError(ctx, bookingId, reminderError)
-		);
+	return safeTry(async function* () {
+		yield* sendBookingReminderEmailForSession(ctx, claim.session);
+		const result = yield* markReminderSentAfterEmail(ctx, bookingId, null);
+
+		return ok(result);
+	}).orElse((reminderError: { reason: string }) =>
+		markReminderFailedAfterEmailError(ctx, bookingId, reminderError)
+	);
 }
 
 export function sendSessionReminderWhenClaimed(
@@ -40,9 +43,13 @@ export function sendSessionReminderWhenClaimed(
 	bookingId: Id<"bookings">,
 	claim: ReminderClaim | null
 ): ResultAsync<null, never> {
-	return ResultAsync.combine(
-		selectClaimedReminderSessions(claim).map((session) =>
-			deliverClaimedSessionReminderEmail(ctx, bookingId, { session })
-		)
-	).map(() => null);
+	return safeTry(async function* () {
+		yield* ResultAsync.combine(
+			selectClaimedReminderSessions(claim).map((session) =>
+				deliverClaimedSessionReminderEmail(ctx, bookingId, { session })
+			)
+		);
+
+		return ok(null);
+	});
 }

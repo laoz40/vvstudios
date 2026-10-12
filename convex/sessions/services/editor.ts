@@ -1,5 +1,4 @@
-import { ResultAsync } from "neverthrow";
-import type { UserIdentity } from "convex/server";
+import { ok, ResultAsync, safeTry } from "neverthrow";
 import type { PaginationOptions, PaginationResult } from "convex/server";
 import type { Doc } from "#convex/_generated/dataModel";
 import type { QueryCtx } from "#convex/_generated/server";
@@ -22,9 +21,12 @@ function projectActiveEditorsStep(ctx: QueryCtx, editors: Doc<"editorProfiles">[
 }
 
 export function listActiveEditorsForAdmin(ctx: QueryCtx) {
-	return requirePermission(ctx, "assign:session-editor")
-		.andThen(() => listActiveEditorProfiles(ctx))
-		.andThen((editors: Doc<"editorProfiles">[]) => projectActiveEditorsStep(ctx, editors));
+	return safeTry(async function* () {
+		yield* requirePermission(ctx, "assign:session-editor");
+		const editors = yield* listActiveEditorProfiles(ctx);
+
+		return ok(yield* projectActiveEditorsStep(ctx, editors));
+	});
 }
 
 function buildEditorSessionRowStep(ctx: QueryCtx, session: Doc<"bookings">) {
@@ -45,11 +47,15 @@ function buildEditorSessionsPageStep(
 }
 
 export function listEditorSessionsForAssignee(ctx: QueryCtx, paginationOpts: PaginationOptions) {
-	return requirePermission(ctx, "view:sessions")
-		.andThen((identity: UserIdentity) =>
-			paginateBookingsForAssigneeEditor(ctx, identity.tokenIdentifier, paginationOpts)
-		)
-		.andThen((bookingsPage: PaginationResult<Doc<"bookings">>) =>
-			buildEditorSessionsPageStep(ctx, bookingsPage)
+	return safeTry(async function* () {
+		const identity = yield* requirePermission(ctx, "view:sessions");
+
+		const bookingsPage = yield* paginateBookingsForAssigneeEditor(
+			ctx,
+			identity.tokenIdentifier,
+			paginationOpts
 		);
+
+		return ok(yield* buildEditorSessionsPageStep(ctx, bookingsPage));
+	});
 }

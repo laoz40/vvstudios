@@ -1,4 +1,5 @@
 import type { ActionCtx, MutationCtx } from "#convex/_generated/server";
+import { ok, safeTry } from "neverthrow";
 import {
 	limitGoogleCalendarGlobal,
 	limitGoogleCalendarKey,
@@ -11,25 +12,48 @@ import {
 } from "#convex/shared/lib/rateLimits";
 
 function checkGoogleCalendarKey(ctx: ActionCtx, key: string) {
-	return limitGoogleCalendarKey(ctx, key).andThen(requireGoogleCalendarLimit);
+	return safeTry(async function* () {
+		const limit = yield* limitGoogleCalendarKey(ctx, key);
+		yield* requireGoogleCalendarLimit(limit);
+
+		return ok(null);
+	});
 }
 
 export function checkGoogleCalendarAvailabilityRateLimit(ctx: ActionCtx, key: string) {
-	return limitGoogleCalendarGlobal(ctx)
-		.andThen(requireGoogleCalendarLimit)
-		.andThen(() => checkGoogleCalendarKey(ctx, key));
+	return safeTry(async function* () {
+		const limit = yield* limitGoogleCalendarGlobal(ctx);
+		yield* requireGoogleCalendarLimit(limit);
+		yield* checkGoogleCalendarKey(ctx, key);
+
+		return ok(null);
+	});
 }
 
 export function checkFeedbackSubmitRateLimit(ctx: ActionCtx) {
-	return limitFeedbackGlobal(ctx).andThen(requireFeedbackLimit);
+	return safeTry(async function* () {
+		const limit = yield* limitFeedbackGlobal(ctx);
+		yield* requireFeedbackLimit(limit);
+
+		return ok(null);
+	});
 }
 
 function checkBookingKey(ctx: ActionCtx | MutationCtx, key: string) {
-	return limitBookingKey(ctx, key).andThen(requireBookingLimit);
+	return safeTry(async function* () {
+		const limit = yield* limitBookingKey(ctx, key);
+		yield* requireBookingLimit(limit);
+
+		return ok(null);
+	});
 }
 
 export function checkBookingSubmitRateLimit(ctx: ActionCtx | MutationCtx, key: string) {
-	return limitBookingGlobal(ctx)
-		.andThen(requireBookingLimit)
-		.andThen(() => checkBookingKey(ctx, key));
+	return safeTry(async function* () {
+		const limit = yield* limitBookingGlobal(ctx);
+		yield* requireBookingLimit(limit);
+		yield* checkBookingKey(ctx, key);
+
+		return ok(null);
+	});
 }
