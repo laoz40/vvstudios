@@ -93,6 +93,7 @@ export type SendPackageHostDetailsEmailArgs = {
 
 export type SendDeliverablesReviewReadyHostEmailArgs = {
 	clientName: string;
+	deliverablesFolderUrl?: string;
 	editorName: string;
 	sessionDate: string;
 };
@@ -212,6 +213,7 @@ export function renderDeliverablesReviewReadyHostEmailHtml(
 			render(
 				createElement(DeliverablesReviewReadyEmail, {
 					clientName: args.clientName,
+					deliverablesFolderUrl: args.deliverablesFolderUrl,
 					editorName: args.editorName,
 					sessionDateLabel
 				})

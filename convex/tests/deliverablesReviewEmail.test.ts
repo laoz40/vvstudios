@@ -2,7 +2,8 @@
  * Deliverables review email tests:
  *
  * 1. Editor marks session ready for review
- *    Schedules a host notification email job when an editor transitions into review.
+ *    Schedules a host notification when an editor transitions into review, including the session's
+ *    saved Drive deliverables link when available.
  */
 import type { UserIdentity } from "convex/server";
 import { makeFunctionReference } from "convex/server";
@@ -91,23 +92,59 @@ async function readScheduledJobs(t: TestClient) {
 }
 
 describe("deliverables review host email", () => {
-	test("schedules host notification when editor marks session ready for review", async () => {
-		const t = createConvexTest();
-		await seedEditorProfile(t);
-		const bookingId = await seedPastSession(t);
+	test.each([false, true])(
+		"schedules host notification with the saved deliverables link when present: %s",
+		async (hasDeliverablesFolder) => {
+			const t = createConvexTest();
+			await seedEditorProfile(t);
+			const bookingId = await seedPastSession(t);
 
-		const [error] = await t
-			.withIdentity(editorIdentity)
-			.mutation(updateSessionEditStatus, { bookingId, editStatus: "review" });
+			if (hasDeliverablesFolder) {
+				await t.run(async (ctx) => {
+					const driveClientId = await ctx.db.insert("driveClients", {
+						normalizedEmail: "review.ready@example.com",
+						displayName: "Review Ready Customer",
+						createdAt: now
+					});
 
-		expect(error).toBeNull();
+					await ctx.db.insert("driveSessions", {
+						bookingId,
+						driveClientId,
+						deliverablesFolder: {
+							id: "review-deliverables",
+							url: "https://drive.google.com/drive/folders/review-deliverables"
+						},
+						createdAt: now,
+						updatedAt: now
+					});
+				});
+			}
 
-		const scheduledJobs = await readScheduledJobs(t);
+			const [error] = await t
+				.withIdentity(editorIdentity)
+				.mutation(updateSessionEditStatus, { bookingId, editStatus: "review" });
 
-		expect(scheduledJobs).toHaveLength(1);
-		expect(scheduledJobs[0]).toMatchObject({
-			name: "editor/deliverablesReviewEmail:sendDeliverablesReviewReadyEmail",
-			state: { kind: "pending" }
-		});
-	});
+			expect(error).toBeNull();
+
+			const scheduledJobs = await readScheduledJobs(t);
+
+			expect(scheduledJobs).toHaveLength(1);
+			expect(scheduledJobs[0]).toMatchObject({
+				name: "editor/deliverablesReviewEmail:sendDeliverablesReviewReadyEmail",
+				state: { kind: "pending" }
+			});
+			expect(scheduledJobs[0]?.args).toEqual([
+				{
+					bookingId,
+					clientName: "Review Ready Customer",
+					editorName: "Alex Editor",
+					sessionDate: "2030-02-03",
+					idempotencyKey: `deliverables-review:${bookingId}:1894233600000`,
+					deliverablesFolderUrl: hasDeliverablesFolder
+						? "https://drive.google.com/drive/folders/review-deliverables"
+						: undefined
+				}
+			]);
+		}
+	);
 });

@@ -6,6 +6,7 @@ import {
 	loadDeliverablesReviewHostEmailArgs,
 	scheduleDeliverablesReviewHostEmail
 } from "#convex/editor/lib/deliverablesReviewNotification";
+import { loadDriveSessionRowByBookingId } from "#convex/drive/lib/driveBookingDriveClient";
 import { saveSessionEditStatus } from "#convex/editor/services/sessionEditStatus";
 import { archiveSessionWhenFullyDone } from "#convex/sessions/services/archive";
 
@@ -28,7 +29,14 @@ export function writeSessionEditStatusWithHostNotification(
 			editStatus
 		);
 
-		yield* scheduleDeliverablesReviewHostEmail(ctx, emailArgs);
+		const driveSession = yield* loadDriveSessionRowByBookingId(ctx, emailArgs?.bookingId ?? null);
+
+		yield* scheduleDeliverablesReviewHostEmail(
+			ctx,
+			emailArgs === null
+				? null
+				: { ...emailArgs, deliverablesFolderUrl: driveSession?.deliverablesFolder?.url }
+		);
 		const archivedSession = yield* archiveSessionWhenFullyDone(ctx, session._id);
 
 		return ok(archivedSession);

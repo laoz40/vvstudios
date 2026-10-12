@@ -17,12 +17,14 @@ import { hostBookingQuotes } from "#studio/features/host-booking-details-email/H
 
 export type DeliverablesReviewReadyEmailProps = {
 	clientName: string;
+	deliverablesFolderUrl?: string;
 	editorName: string;
 	sessionDateLabel: string;
 };
 
 export function DeliverablesReviewReadyEmail({
 	clientName,
+	deliverablesFolderUrl,
 	editorName,
 	sessionDateLabel
 }: DeliverablesReviewReadyEmailProps) {
@@ -54,11 +56,22 @@ export function DeliverablesReviewReadyEmail({
 						<strong>{sessionDateLabel}</strong> session as ready to review.
 					</Text>
 					<Section style={buttonWrapper}>
-						<Button
-							href={`${BOOKING_INVOICE_BUSINESS.websiteUrl}${studioSite.routes.dashboard}`}
-							style={button}>
-							Open admin dashboard
-						</Button>
+						<Section style={dashboardButtonSection}>
+							<Button
+								href={`${BOOKING_INVOICE_BUSINESS.websiteUrl}${studioSite.routes.dashboard}`}
+								style={button}>
+								Open admin dashboard
+							</Button>
+						</Section>
+						{deliverablesFolderUrl ? (
+							<Section style={driveButtonSection}>
+								<Button
+									href={deliverablesFolderUrl}
+									style={button}>
+									Open Drive deliverables
+								</Button>
+							</Section>
+						) : null}
 					</Section>
 					<Section style={quoteSection}>
 						<Text style={quote}>“{selectedQuote.text}”</Text>
@@ -99,6 +112,10 @@ const heading = {
 const paragraph = { color: "#fafafa", fontSize: "15px", lineHeight: "24px", margin: "0 0 12px" };
 
 const buttonWrapper = { margin: "24px 0", textAlign: "center" as const };
+
+const dashboardButtonSection = { margin: "0 0 12px" };
+
+const driveButtonSection = { margin: "0" };
 
 const button = {
 	backgroundColor: "#f5c400",

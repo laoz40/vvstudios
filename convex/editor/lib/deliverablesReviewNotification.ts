@@ -63,6 +63,7 @@ export function scheduleDeliverablesReviewHostEmail(
 	ctx: MutationCtx,
 	args: {
 		bookingId: Id<"bookings">;
+		deliverablesFolderUrl?: string;
 		clientName: string;
 		editorName: string;
 		idempotencyKey: string;

@@ -8,6 +8,7 @@ import { buildDeliverablesReviewReadyEmailRequest } from "#convex/editor/lib/del
 
 export function sendDeliverablesReviewReadyEmail(args: {
 	clientName: string;
+	deliverablesFolderUrl?: string;
 	editorName: string;
 	sessionDate: string;
 	idempotencyKey: string;

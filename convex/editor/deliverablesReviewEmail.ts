@@ -9,6 +9,7 @@ export const sendDeliverablesReviewReadyEmail = internalAction({
 	args: {
 		bookingId: v.id("bookings"),
 		clientName: v.string(),
+		deliverablesFolderUrl: v.optional(v.string()),
 		editorName: v.string(),
 		idempotencyKey: v.string(),
 		sessionDate: v.string()
@@ -16,6 +17,7 @@ export const sendDeliverablesReviewReadyEmail = internalAction({
 	handler: (_ctx, args) =>
 		sendDeliverablesReviewReadyEmailStep({
 			clientName: args.clientName,
+			deliverablesFolderUrl: args.deliverablesFolderUrl,
 			editorName: args.editorName,
 			sessionDate: args.sessionDate,
 			idempotencyKey: args.idempotencyKey
