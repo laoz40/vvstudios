@@ -24,6 +24,7 @@ export type ManagedEditor = {
 	lastAssignedAt: number | null;
 	notes?: string;
 	totalEdits: number;
+	activeJobs: number;
 	workStatus: EditorWorkStatus;
 };
 

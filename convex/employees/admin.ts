@@ -1,8 +1,10 @@
+import { ok, safeTry } from "neverthrow";
 import { v } from "convex/values";
 import { tupleErr, tupleOk } from "#/lib/result";
 import { mutation, query } from "#convex/_generated/server";
 import { requirePermission } from "#convex/shared/services/auth";
 import {
+	loadEditorActiveJobs,
 	loadEmployeeRoster,
 	saveEmployeeAccess,
 	saveEmployeeNotes
@@ -14,6 +16,17 @@ export const listEmployees = query({
 		requirePermission(ctx, "update:editor-access")
 			.andThen(() => loadEmployeeRoster(ctx))
 			.match(tupleOk, tupleErr)
+});
+
+export const listActiveJobs = query({
+	args: { tokenIdentifier: v.string() },
+	handler: (ctx, args) =>
+		safeTry(async function* () {
+			yield* requirePermission(ctx, "update:editor-access");
+			const activeJobs = yield* loadEditorActiveJobs(ctx, args.tokenIdentifier);
+
+			return ok(activeJobs);
+		}).match(tupleOk, tupleErr)
 });
 
 export const updateEmployeeNotes = mutation({
