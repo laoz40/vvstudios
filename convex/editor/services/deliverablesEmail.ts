@@ -7,20 +7,14 @@ import {
 	queryDeliverablesCustomerType
 } from "#convex/editor/lib/deliverablesEmailSteps";
 
-import { okAsync, type ResultAsync } from "neverthrow";
+import { ok, okAsync, safeTry } from "neverthrow";
 
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { ActionCtx } from "#convex/_generated/server";
 import { sendSessionDeliverablesEmail as sendDeliverablesEmail } from "#convex/email/services/templateEmails";
-import {
-	loadDriveClient,
-	type DriveClient,
-	type ListedDriveChild
-} from "#convex/drive/lib/googleDrive";
+import { loadDriveClient } from "#convex/drive/lib/googleDrive";
 import { listDriveFolderChildren } from "#convex/drive/services/googleDriveOperations";
 import { ensureAnyoneReaderPermission } from "#convex/drive/services/googleDrivePermissions";
-
-import type { DeliverablesCustomerType } from "#convex/editor/lib/editorSessions";
 
 import {
 	parseSavedDeliverablesFolderFromSetup,
@@ -35,34 +29,44 @@ export type SendDeliverablesError = LibSendDeliverablesError;
 type DeliverablesFolder = { id: string; url: string };
 
 function grantGuestViewerLink(folder: DeliverablesFolder) {
-	return loadDriveClient()
-		.andThen((drive: DriveClient) => ensureAnyoneReaderPermission(drive, folder.id))
-		.map(() => folder);
+	return safeTry(async function* () {
+		const drive = yield* loadDriveClient();
+		yield* ensureAnyoneReaderPermission(drive, folder.id);
+
+		return ok(folder);
+	});
 }
 
 function requireSavedDeliverablesFolder(bookingId: Id<"bookings">, ctx: ActionCtx) {
-	return queryDeliverablesSetup(ctx, bookingId).andThen(parseSavedDeliverablesFolderFromSetup);
+	return safeTry(async function* () {
+		const setup = yield* queryDeliverablesSetup(ctx, bookingId);
+		const folder = yield* parseSavedDeliverablesFolderFromSetup(setup);
+
+		return ok(folder);
+	});
 }
 
 function requireDeliverablesFolderContents(folder: DeliverablesFolder) {
-	return loadDriveClient()
-		.andThen((drive: DriveClient) => listDriveFolderChildren(drive, folder.id))
-		.andThen((children: ListedDriveChild[]) => requireNonEmptyDeliverablesFolder(folder, children));
+	return safeTry(async function* () {
+		const drive = yield* loadDriveClient();
+		const children = yield* listDriveFolderChildren(drive, folder.id);
+		const populatedFolder = yield* requireNonEmptyDeliverablesFolder(folder, children);
+
+		return ok(populatedFolder);
+	});
 }
 
-export function skipWhenDeliverablesEditAlreadyCompleted(
-	session: Doc<"bookings">
-): ResultAsync<Doc<"bookings"> | null, never> {
+export function skipWhenDeliverablesEditAlreadyCompleted(session: Doc<"bookings">) {
 	return okAsync(session.editStatus === "completed" ? null : session);
 }
 
-export function loadDeliverablesFolderGuestReadLink(
-	ctx: ActionCtx,
-	bookingId: Id<"bookings">
-): ResultAsync<DeliverablesFolder, SendDeliverablesError> {
-	return requireSavedDeliverablesFolder(bookingId, ctx)
-		.andThen(requireDeliverablesFolderContents)
-		.andThen(grantGuestViewerLink);
+export function loadDeliverablesFolderGuestReadLink(ctx: ActionCtx, bookingId: Id<"bookings">) {
+	return safeTry(async function* () {
+		const folder = yield* requireSavedDeliverablesFolder(bookingId, ctx);
+		const populatedFolder = yield* requireDeliverablesFolderContents(folder);
+
+		return ok(yield* grantGuestViewerLink(populatedFolder));
+	});
 }
 
 export function sendDeliverablesEmailForSession(
@@ -70,18 +74,18 @@ export function sendDeliverablesEmailForSession(
 	session: Doc<"bookings">,
 	folderUrl: string,
 	editorNotes: string | undefined
-): ResultAsync<null, SendDeliverablesError> {
-	return queryDeliverablesCustomerType(ctx, session)
-		.andThen((emailVariant: DeliverablesCustomerType) =>
-			sendDeliverablesEmail({
-				date: session.date,
-				driveLink: folderUrl,
-				editorNotes,
-				email: session.email,
-				emailVariant,
-				name: session.name
-			})
-		)
-		.map(() => null)
-		.mapErr((emailError) => logDeliverablesEmailFailure(session._id, emailError));
+) {
+	return safeTry(async function* () {
+		const emailVariant = yield* queryDeliverablesCustomerType(ctx, session);
+		yield* sendDeliverablesEmail({
+			date: session.date,
+			driveLink: folderUrl,
+			editorNotes,
+			email: session.email,
+			emailVariant,
+			name: session.name
+		});
+
+		return ok(null);
+	}).mapErr((emailError) => logDeliverablesEmailFailure(session._id, emailError));
 }

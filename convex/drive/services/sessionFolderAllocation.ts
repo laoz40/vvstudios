@@ -1,4 +1,4 @@
-import { type ResultAsync } from "neverthrow";
+import { ok, safeTry, type ResultAsync } from "neverthrow";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { MutationCtx } from "#convex/_generated/server";
 import {
@@ -24,25 +24,32 @@ export function clientSessionNumberFromExistingSession(
 	existingSession: Doc<"driveSessions"> | null,
 	standaloneBooking: StandaloneBooking
 ): ResultAsync<ClientSessionNumberAllocation, ClientSessionNumberError> {
-	return computeSessionFolderNumber(
-		ctx,
-		standaloneSessionFolderNumberPlan(
-			standaloneBooking.booking,
-			standaloneBooking.driveClientId,
-			existingSession
-		)
-	)
-		.andThen(requireSessionFolderNumber)
-		.map((number) => clientSessionNumberAllocation(standaloneBooking, existingSession, number));
+	return safeTry(async function* () {
+		const number = yield* computeSessionFolderNumber(
+			ctx,
+			standaloneSessionFolderNumberPlan(
+				standaloneBooking.booking,
+				standaloneBooking.driveClientId,
+				existingSession
+			)
+		);
+
+		const sessionNumber = yield* requireSessionFolderNumber(number);
+
+		return ok(clientSessionNumberAllocation(standaloneBooking, existingSession, sessionNumber));
+	});
 }
 
 export function saveClientSessionNumber(
 	ctx: MutationCtx,
 	allocation: ClientSessionNumberAllocation
 ) {
-	return saveClientSessionNumberLib(ctx, allocation)
-		.andThen((_number) => linkBookingDriveClientForNewClientSession(ctx, allocation))
-		.map(() => allocation.number);
+	return safeTry(async function* () {
+		yield* saveClientSessionNumberLib(ctx, allocation);
+		yield* linkBookingDriveClientForNewClientSession(ctx, allocation);
+
+		return ok(allocation.number);
+	});
 }
 
 export type PackageBooking = { booking: Doc<"bookings">; packageId: Id<"packages"> };
@@ -52,14 +59,18 @@ export function packageSessionNumberFromExistingSession(
 	existingSession: Doc<"driveSessions"> | null,
 	packageBooking: PackageBooking
 ): ResultAsync<PackageSessionNumberAllocation, PackageSessionNumberError> {
-	return computeSessionFolderNumber(
-		ctx,
-		packageSessionFolderNumberPlan(
-			packageBooking.booking,
-			packageBooking.packageId,
-			existingSession
-		)
-	)
-		.andThen(requireSessionFolderNumber)
-		.map((number) => packageSessionNumberAllocation(packageBooking, existingSession, number));
+	return safeTry(async function* () {
+		const number = yield* computeSessionFolderNumber(
+			ctx,
+			packageSessionFolderNumberPlan(
+				packageBooking.booking,
+				packageBooking.packageId,
+				existingSession
+			)
+		);
+
+		const sessionNumber = yield* requireSessionFolderNumber(number);
+
+		return ok(packageSessionNumberAllocation(packageBooking, existingSession, sessionNumber));
+	});
 }

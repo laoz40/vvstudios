@@ -1,3 +1,4 @@
+import { ok, safeTry } from "neverthrow";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { MutationCtx } from "#convex/_generated/server";
 import {
@@ -24,10 +25,12 @@ export function saveClientDrivePermission(
 		permission: Parameters<typeof writeClientDrivePermission>[2]["permission"];
 	}
 ) {
-	return loadDriveSessionRowByBookingId(ctx, args.bookingId).andThen(
-		(driveSession: Doc<"driveSessions"> | null) =>
-			writeClientDrivePermissionForSession(ctx, args, driveSession)
-	);
+	return safeTry(async function* () {
+		const driveSession = yield* loadDriveSessionRowByBookingId(ctx, args.bookingId);
+		const permission = yield* writeClientDrivePermissionForSession(ctx, args, driveSession);
+
+		return ok(permission);
+	});
 }
 
 function writeClientDrivePermissionForSession(
@@ -35,20 +38,26 @@ function writeClientDrivePermissionForSession(
 	args: Parameters<typeof saveClientDrivePermission>[1],
 	driveSession: Doc<"driveSessions"> | null
 ) {
-	return requireDriveSession(driveSession)
-		.andThen((session) => loadDriveClientRow(ctx, session.driveClientId))
-		.andThen((driveClient) => requireDriveClient(driveClient))
-		.andThen((client) => writeClientDrivePermission(ctx, client, args));
+	return safeTry(async function* () {
+		const session = yield* requireDriveSession(driveSession);
+		const driveClient = yield* loadDriveClientRow(ctx, session.driveClientId);
+		const client = yield* requireDriveClient(driveClient);
+		const permission = yield* writeClientDrivePermission(ctx, client, args);
+
+		return ok(permission);
+	});
 }
 
 export function saveClientDrivePermissionsStatus(
 	ctx: MutationCtx,
 	args: { bookingId: Id<"bookings">; status: "failed" | "ready" | "skipped" }
 ) {
-	return loadDriveSessionRowByBookingId(ctx, args.bookingId).andThen(
-		(driveSession: Doc<"driveSessions"> | null) =>
-			saveClientDrivePermissionsStatusForLoadedSession(ctx, args, driveSession)
-	);
+	return safeTry(async function* () {
+		const driveSession = yield* loadDriveSessionRowByBookingId(ctx, args.bookingId);
+		const status = yield* saveClientDrivePermissionsStatusForLoadedSession(ctx, args, driveSession);
+
+		return ok(status);
+	});
 }
 
 function saveClientDrivePermissionsStatusForLoadedSession(
@@ -56,18 +65,24 @@ function saveClientDrivePermissionsStatusForLoadedSession(
 	args: Parameters<typeof saveClientDrivePermissionsStatus>[1],
 	driveSession: Doc<"driveSessions"> | null
 ) {
-	return requireDriveSession(driveSession).andThen((session) =>
-		writeClientDrivePermissionsStatusForSession(ctx, session, args.status)
-	);
+	return safeTry(async function* () {
+		const session = yield* requireDriveSession(driveSession);
+		const status = yield* writeClientDrivePermissionsStatusForSession(ctx, session, args.status);
+
+		return ok(status);
+	});
 }
 
 export function claimClientAssetsEmail(
 	ctx: MutationCtx,
 	args: { bookingId: Id<"bookings">; attempt: "automatic" | "retry"; now: number }
 ) {
-	return loadBookingRow(ctx, args.bookingId).andThen((booking: Doc<"bookings"> | null) =>
-		claimClientAssetsEmailForLoadedBooking(ctx, args, booking)
-	);
+	return safeTry(async function* () {
+		const booking = yield* loadBookingRow(ctx, args.bookingId);
+		const claim = yield* claimClientAssetsEmailForLoadedBooking(ctx, args, booking);
+
+		return ok(claim);
+	});
 }
 
 function claimClientAssetsEmailForLoadedBooking(
@@ -75,16 +90,18 @@ function claimClientAssetsEmailForLoadedBooking(
 	args: Parameters<typeof claimClientAssetsEmail>[1],
 	booking: Doc<"bookings"> | null
 ) {
-	return requireClientAssetsEmailBooking(booking)
-		.andThen((validBooking) =>
-			loadClientAssetsEmailRows(ctx, {
-				bookingId: args.bookingId,
-				driveClientId: validBooking.driveClientId
-			}).map((rows) => ({ booking: validBooking.booking, rows }))
-		)
-		.andThen(({ booking: validBookingRow, rows }) =>
-			claimClientAssetsEmailFromRows(ctx, args, validBookingRow, rows)
-		);
+	return safeTry(async function* () {
+		const validBooking = yield* requireClientAssetsEmailBooking(booking);
+
+		const rows = yield* loadClientAssetsEmailRows(ctx, {
+			bookingId: args.bookingId,
+			driveClientId: validBooking.driveClientId
+		});
+
+		const claim = yield* claimClientAssetsEmailFromRows(ctx, args, validBooking.booking, rows);
+
+		return ok(claim);
+	});
 }
 
 export function saveClientAssetsEmailResult(
@@ -96,8 +113,10 @@ export function saveClientAssetsEmailResult(
 		status: "sent" | "failed";
 	}
 ) {
-	return loadDriveSessionRowByBookingId(ctx, args.bookingId).andThen(
-		(driveSession: Doc<"driveSessions"> | null) =>
-			saveClientAssetsEmailResultForSession(ctx, driveSession, args)
-	);
+	return safeTry(async function* () {
+		const driveSession = yield* loadDriveSessionRowByBookingId(ctx, args.bookingId);
+		const result = yield* saveClientAssetsEmailResultForSession(ctx, driveSession, args);
+
+		return ok(result);
+	});
 }

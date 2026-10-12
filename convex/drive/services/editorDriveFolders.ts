@@ -1,4 +1,4 @@
-import { ResultAsync } from "neverthrow";
+import { ok, ResultAsync, safeTry } from "neverthrow";
 import type { Doc } from "#convex/_generated/dataModel";
 import type { QueryCtx } from "#convex/_generated/server";
 import { loadDriveClientRow } from "#convex/drive/lib/driveBookingDriveClient";
@@ -13,15 +13,20 @@ export function loadEditorSessionDriveFolders(
 	ctx: QueryCtx,
 	booking: Doc<"bookings">
 ): ResultAsync<EditorSessionDriveFolders | null, never> {
-	return loadAssignedEditorDriveSession(ctx, booking).andThen((session) =>
-		loadDriveClientRow(ctx, session?.driveClientId ?? null).andThen((client) =>
-			ResultAsync.combine(
-				selectEditorDriveFolderDetails(session, client).map((details) =>
-					resolveSessionFolderDisplayName(ctx, booking, details.session).map(
-						(sessionFolderName) => ({ ...details.folders, sessionFolderName })
-					)
-				)
-			).map((folders) => folders[0] ?? null)
-		)
-	);
+	return safeTry(async function* () {
+		const session = yield* loadAssignedEditorDriveSession(ctx, booking);
+		const client = yield* loadDriveClientRow(ctx, session?.driveClientId ?? null);
+		const details = selectEditorDriveFolderDetails(session, client);
+
+		const folders = yield* ResultAsync.combine(
+			details.map((detail) =>
+				resolveSessionFolderDisplayName(ctx, booking, detail.session).map((sessionFolderName) => ({
+					...detail.folders,
+					sessionFolderName
+				}))
+			)
+		);
+
+		return ok(folders[0] ?? null);
+	});
 }

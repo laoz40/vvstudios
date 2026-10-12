@@ -1,6 +1,6 @@
 "use node";
 
-import type { ResultAsync } from "neverthrow";
+import { ok, safeTry } from "neverthrow";
 import type { ActionCtx } from "#convex/_generated/server";
 import { env } from "#convex/env";
 import type { DriveSetupInfo, SetupError } from "#convex/drive/lib/sessionFolders/driveSetupInfo";
@@ -24,8 +24,7 @@ import type { DriveClient } from "#convex/drive/lib/googleDrive";
 import { verifyDriveFolderIfPresent } from "#convex/drive/services/googleDriveOperations";
 import {
 	createFolderOrFindCreatedFolder,
-	type ClientFolderSetup,
-	type SavedFolder
+	type ClientFolderSetup
 } from "#convex/drive/services/ensureSessionDriveFolderHelpers";
 
 export function getOrCreateClientFolder(
@@ -33,7 +32,7 @@ export function getOrCreateClientFolder(
 	setupInfo: DriveSetupInfo,
 	drive: DriveClient,
 	replaceMissingFolders: boolean
-): ResultAsync<ClientFolderSetup, SetupError> {
+) {
 	const savedClient = setupInfo.driveClient;
 	const savedClientFolderId = savedClient?.folderId ?? null;
 	const identity = getClientIdentity(setupInfo);
@@ -44,32 +43,27 @@ export function getOrCreateClientFolder(
 		marker: `client:${identity.normalizedEmail}`
 	};
 
-	return verifyDriveFolderIfPresent(drive, savedClientFolderId)
-		.orElse((error) =>
-			shouldReplaceMissingFolder(error, replaceMissingFolders).asyncAndThen(() =>
-				clearDriveClientFolderRow(
-					ctx,
-					savedClient === null ? null : { driveClientId: savedClient._id }
-				).map(() => {
-					clearMissingClientFolder(setupInfo);
-
-					return null;
-				})
-			)
-		)
-		.andThen((verifiedFolder) =>
-			createFolderOrFindCreatedFolder(drive, verifiedFolder === null ? createArgs : null).andThen(
-				(createdFolder) =>
-					requireSavedDriveFolder(verifiedFolder ?? createdFolder).asyncAndThen((folder) =>
-						saveDriveClientFolderRowIfRequested(
-							ctx,
-							setupInfo.driveClient?.folderId === undefined ? { ...identity, folder } : null
-						).andThen((createdClient) =>
-							clientFolderSetupFromSavedRow(drive, folder, setupInfo.driveClient, createdClient)
-						)
-					)
-			)
+	return safeTry(async function* () {
+		const verifiedFolder = yield* verifyDriveFolderIfPresent(drive, savedClientFolderId).orElse(
+			(error) => resetMissingClientFolder(ctx, setupInfo, replaceMissingFolders, error)
 		);
+
+		const createdFolder = yield* createFolderOrFindCreatedFolder(
+			drive,
+			verifiedFolder === null ? createArgs : null
+		);
+
+		const folder = yield* requireSavedDriveFolder(verifiedFolder ?? createdFolder);
+
+		const createdClient = yield* saveDriveClientFolderRowIfRequested(
+			ctx,
+			setupInfo.driveClient?.folderId === undefined ? { ...identity, folder } : null
+		);
+
+		return ok(
+			yield* clientFolderSetupFromSavedRow(drive, folder, setupInfo.driveClient, createdClient)
+		);
+	});
 }
 
 export function getOrCreateClientAssetsFolder(
@@ -77,7 +71,7 @@ export function getOrCreateClientAssetsFolder(
 	setupInfo: DriveSetupInfo,
 	client: ClientFolderSetup,
 	replaceMissingFolders: boolean
-): ResultAsync<ClientFolderSetup & { assetsFolder: SavedFolder }, SetupError> {
+) {
 	const savedAssetsFolder = client.assetsFolder;
 	const identity = getClientIdentity(setupInfo);
 
@@ -87,33 +81,64 @@ export function getOrCreateClientAssetsFolder(
 		marker: `client:${identity.normalizedEmail}:assets`
 	};
 
-	return verifyDriveFolderIfPresent(client.drive, savedAssetsFolder?.id ?? null)
-		.orElse((error) =>
-			shouldReplaceMissingFolder(error, replaceMissingFolders).asyncAndThen(() =>
-				clearDriveClientAssetsFolderRow(ctx, { driveClientId: client.driveClientId }).map(() => {
-					clearMissingClientAssetsFolder(setupInfo, client);
-
-					return null;
-				})
-			)
-		)
-		.andThen((verifiedFolder) =>
-			createFolderOrFindCreatedFolder(
-				client.drive,
-				verifiedFolder === null ? createArgs : null
-			).andThen((createdFolder) =>
-				requireSavedDriveFolder(verifiedFolder ?? createdFolder).asyncAndThen((folder) =>
-					saveDriveClientAssetsFolderRowIfRequested(
-						ctx,
-						client.assetsFolder === undefined
-							? { driveClientId: client.driveClientId, folder }
-							: null
-					).map((assetsFolder) => ({
-						...client,
-						assetsFolder: assetsFolder ??
-							client.assetsFolder ?? { id: folder.id, url: folder.webViewLink }
-					}))
-				)
-			)
+	return safeTry(async function* () {
+		const verifiedFolder = yield* verifyDriveFolderIfPresent(
+			client.drive,
+			savedAssetsFolder?.id ?? null
+		).orElse((error) =>
+			resetMissingClientAssetsFolder(ctx, setupInfo, client, replaceMissingFolders, error)
 		);
+
+		const createdFolder = yield* createFolderOrFindCreatedFolder(
+			client.drive,
+			verifiedFolder === null ? createArgs : null
+		);
+
+		const folder = yield* requireSavedDriveFolder(verifiedFolder ?? createdFolder);
+
+		const assetsFolder = yield* saveDriveClientAssetsFolderRowIfRequested(
+			ctx,
+			client.assetsFolder === undefined ? { driveClientId: client.driveClientId, folder } : null
+		);
+
+		return ok({
+			...client,
+			assetsFolder: assetsFolder ??
+				client.assetsFolder ?? { id: folder.id, url: folder.webViewLink }
+		});
+	});
+}
+
+function resetMissingClientFolder(
+	ctx: ActionCtx,
+	setupInfo: DriveSetupInfo,
+	replaceMissingFolders: boolean,
+	error: SetupError
+) {
+	return safeTry(async function* () {
+		yield* shouldReplaceMissingFolder(error, replaceMissingFolders);
+		yield* clearDriveClientFolderRow(
+			ctx,
+			setupInfo.driveClient === null ? null : { driveClientId: setupInfo.driveClient._id }
+		);
+		clearMissingClientFolder(setupInfo);
+
+		return ok(null);
+	});
+}
+
+function resetMissingClientAssetsFolder(
+	ctx: ActionCtx,
+	setupInfo: DriveSetupInfo,
+	client: ClientFolderSetup,
+	replaceMissingFolders: boolean,
+	error: SetupError
+) {
+	return safeTry(async function* () {
+		yield* shouldReplaceMissingFolder(error, replaceMissingFolders);
+		yield* clearDriveClientAssetsFolderRow(ctx, { driveClientId: client.driveClientId });
+		clearMissingClientAssetsFolder(setupInfo, client);
+
+		return ok(null);
+	});
 }

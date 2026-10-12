@@ -3,6 +3,7 @@
 import type { ActionCtx } from "#convex/_generated/server";
 import type { DriveSetupInfo, SetupError } from "#convex/drive/lib/sessionFolders/driveSetupInfo";
 import type { ResultAsync } from "neverthrow";
+import { ok, safeTry } from "neverthrow";
 import { linkBookingDriveClientRow } from "#convex/drive/lib/driveFolderMutations";
 import { getOrCreateClientAssetsFolder as createClientAssetsFolder } from "#convex/drive/services/ensureSessionDriveFolderClientSteps";
 import {
@@ -21,10 +22,14 @@ export function linkBookingDriveClient(
 	setupInfo: DriveSetupInfo,
 	client: ClientFolderSetup
 ): ResultAsync<ClientFolderSetup, SetupError> {
-	return linkBookingDriveClientRow(ctx, {
-		bookingId: setupInfo.booking._id,
-		driveClientId: client.driveClientId
-	}).map(() => client);
+	return safeTry(async function* () {
+		yield* linkBookingDriveClientRow(ctx, {
+			bookingId: setupInfo.booking._id,
+			driveClientId: client.driveClientId
+		});
+
+		return ok(client);
+	});
 }
 
 export function allocateSessionFolderNumber(
@@ -32,10 +37,11 @@ export function allocateSessionFolderNumber(
 	setupInfo: DriveSetupInfo,
 	client: ClientFolderSetup
 ): ResultAsync<{ client: ClientFolderSetup; sessionFolderNumber: number }, SetupError> {
-	return allocateSessionFolderNumberIfNeeded(ctx, setupInfo).map((sessionFolderNumber) => ({
-		client,
-		sessionFolderNumber
-	}));
+	return safeTry(async function* () {
+		const sessionFolderNumber = yield* allocateSessionFolderNumberIfNeeded(ctx, setupInfo);
+
+		return ok({ client, sessionFolderNumber });
+	});
 }
 
 export function getOrCreateNumberedClientAssetsFolder(
@@ -48,9 +54,16 @@ export function getOrCreateNumberedClientAssetsFolder(
 	{ client: ClientFolderSetup & { assetsFolder: SavedFolder }; sessionFolderNumber: number },
 	SetupError
 > {
-	return createClientAssetsFolder(ctx, setupInfo, client, replaceMissingFolders).map(
-		(assignedClient) => ({ client: assignedClient, sessionFolderNumber })
-	);
+	return safeTry(async function* () {
+		const assignedClient = yield* createClientAssetsFolder(
+			ctx,
+			setupInfo,
+			client,
+			replaceMissingFolders
+		);
+
+		return ok({ client: assignedClient, sessionFolderNumber });
+	});
 }
 
 export function getOrCreateNumberedSessionParentFolder(
@@ -66,10 +79,11 @@ export function getOrCreateNumberedSessionParentFolder(
 	{ parent: ClientFolderSetup & { sessionParentId: string }; sessionFolderNumber: number },
 	SetupError
 > {
-	return createSessionParentFolder(ctx, setupInfo, client, replaceMissingFolders).map((parent) => ({
-		parent,
-		sessionFolderNumber
-	}));
+	return safeTry(async function* () {
+		const parent = yield* createSessionParentFolder(ctx, setupInfo, client, replaceMissingFolders);
+
+		return ok({ parent, sessionFolderNumber });
+	});
 }
 
 export function getOrCreateNumberedSessionFolder(

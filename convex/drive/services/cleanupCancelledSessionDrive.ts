@@ -1,6 +1,6 @@
 "use node";
 
-import { okAsync, type ResultAsync } from "neverthrow";
+import { ok, okAsync, safeTry, type ResultAsync } from "neverthrow";
 import type { Id } from "#convex/_generated/dataModel";
 import type { ActionCtx } from "#convex/_generated/server";
 import {
@@ -17,18 +17,14 @@ export function clearCancelledSessionDriveFields(
 	ctx: ActionCtx,
 	args: { bookingId: Id<"bookings"> }
 ): ResultAsync<null, never> {
-	return (
-		clearCancelledSessionDriveFieldsOperation(ctx, args)
-			.andThen((setupInfo) => {
-				const folderId = cancelledSessionFolderId(setupInfo);
+	// Cleanup is best-effort. Keep records on external failure so admins can retry.
+	return safeTry(async function* () {
+		const setupInfo = yield* clearCancelledSessionDriveFieldsOperation(ctx, args);
+		const folderId = cancelledSessionFolderId(setupInfo);
+		const drive = yield* loadDriveClientForCancelledFolder(folderId);
+		const shouldClear = yield* cleanDriveFolderTreeIfEmpty(drive, folderId);
+		const cleared = yield* clearSessionDriveDbIfRequested(ctx, args.bookingId, shouldClear);
 
-				return loadDriveClientForCancelledFolder(folderId).andThen((drive) =>
-					cleanDriveFolderTreeIfEmpty(drive, folderId).andThen((shouldClear) =>
-						clearSessionDriveDbIfRequested(ctx, args.bookingId, shouldClear)
-					)
-				);
-			})
-			// Cleanup is best-effort. Keep records on external failure so admins can retry.
-			.orElse(() => okAsync(null))
-	);
+		return ok(cleared);
+	}).orElse(() => okAsync(null));
 }

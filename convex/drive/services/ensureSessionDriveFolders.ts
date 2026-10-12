@@ -1,6 +1,6 @@
 "use node";
 
-import type { ResultAsync } from "neverthrow";
+import { ok, safeTry, type ResultAsync } from "neverthrow";
 import type { ActionCtx } from "#convex/_generated/server";
 import type { DriveSetupInfo, SetupError } from "#convex/drive/lib/sessionFolders/driveSetupInfo";
 import { loadDriveClient } from "#convex/drive/lib/googleDrive";
@@ -19,21 +19,41 @@ export function ensureSessionDriveFolders(
 	setupInfo: DriveSetupInfo,
 	replaceMissingFolders = false
 ): ResultAsync<null, SetupError> {
-	return loadDriveClient()
-		.andThen((drive) => getOrCreateClientFolder(ctx, setupInfo, drive, replaceMissingFolders))
-		.andThen((client) => linkBookingDriveClient(ctx, setupInfo, client))
-		.andThen((client) => allocateSessionFolderNumber(ctx, setupInfo, client))
-		.andThen((numbered) =>
-			getOrCreateNumberedClientAssetsFolder(ctx, setupInfo, replaceMissingFolders, numbered)
-		)
-		.andThen((withAssets) =>
-			getOrCreateNumberedSessionParentFolder(ctx, setupInfo, replaceMissingFolders, withAssets)
-		)
-		.andThen((withParent) =>
-			getOrCreateNumberedSessionFolder(ctx, setupInfo, replaceMissingFolders, withParent)
-		)
-		.andThen(({ drive, sessionFolderId }) =>
-			getOrCreateChildFolders(ctx, drive, setupInfo, sessionFolderId, replaceMissingFolders)
-		)
-		.map(() => null);
+	return safeTry(async function* () {
+		const drive = yield* loadDriveClient();
+		const client = yield* getOrCreateClientFolder(ctx, setupInfo, drive, replaceMissingFolders);
+		const linkedClient = yield* linkBookingDriveClient(ctx, setupInfo, client);
+		const numbered = yield* allocateSessionFolderNumber(ctx, setupInfo, linkedClient);
+
+		const withAssets = yield* getOrCreateNumberedClientAssetsFolder(
+			ctx,
+			setupInfo,
+			replaceMissingFolders,
+			numbered
+		);
+
+		const withParent = yield* getOrCreateNumberedSessionParentFolder(
+			ctx,
+			setupInfo,
+			replaceMissingFolders,
+			withAssets
+		);
+
+		const session = yield* getOrCreateNumberedSessionFolder(
+			ctx,
+			setupInfo,
+			replaceMissingFolders,
+			withParent
+		);
+
+		yield* getOrCreateChildFolders(
+			ctx,
+			session.drive,
+			setupInfo,
+			session.sessionFolderId,
+			replaceMissingFolders
+		);
+
+		return ok(null);
+	});
 }

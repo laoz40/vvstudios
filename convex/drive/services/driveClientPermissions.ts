@@ -3,6 +3,7 @@
 import { syncBookingDriveClientIdForRetryOperation } from "#convex/drive/lib/driveClientPermissionsIo";
 
 import type { ResultAsync } from "neverthrow";
+import { ok, safeTry } from "neverthrow";
 
 import type { Id } from "#convex/_generated/dataModel";
 import type { ActionCtx } from "#convex/_generated/server";
@@ -19,9 +20,13 @@ export function requireClientDrivePermissionsAndSendAssetsEmail(
 	ctx: ActionCtx,
 	args: { bookingId: Id<"bookings">; attempt: "automatic" | "retry" }
 ): ResultAsync<null, DriveClientPermissionsError> {
-	return loadReadyBookingDriveFolders(ctx, args.bookingId)
-		.andThen((setup) => checkAndRecordClientDrivePermissions(ctx, setup))
-		.andThen(() => sendClientAssetsFolderEmail(ctx, args.bookingId, args.attempt));
+	return safeTry(async function* () {
+		const setup = yield* loadReadyBookingDriveFolders(ctx, args.bookingId);
+		yield* checkAndRecordClientDrivePermissions(ctx, setup);
+		const email = yield* sendClientAssetsFolderEmail(ctx, args.bookingId, args.attempt);
+
+		return ok(email);
+	});
 }
 
 function checkAndRecordClientDrivePermissions(

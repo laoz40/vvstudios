@@ -20,7 +20,7 @@ import {
 	loadEditorDriveSetup
 } from "#convex/drive/lib/editorDrivePermissionsSteps";
 
-import { errAsync, ResultAsync } from "neverthrow";
+import { err, ok, ResultAsync, safeTry } from "neverthrow";
 
 import type { Id } from "#convex/_generated/dataModel";
 import type { ActionCtx } from "#convex/_generated/server";
@@ -96,21 +96,23 @@ function requireEditorPermission(
 		role: requirement.role
 	};
 
-	return findDrivePermissionRequest(drive, input)
-		.andThen((response) => parseDrivePermissionListForRemoval(response, input))
-		.andThen((existing) =>
-			createDrivePermissionIfMissingRequest(
-				drive,
-				{
-					email: normalizeDriveEmail(editorEmail),
-					fileId: requirement.fileId,
-					role: requirement.role,
-					sendNotificationEmail: false
-				},
-				existing
-			)
-		)
-		.andThen(parseDrivePermissionResponse);
+	return safeTry(async function* () {
+		const response = yield* findDrivePermissionRequest(drive, input);
+		const existing = yield* parseDrivePermissionListForRemoval(response, input);
+
+		const permissionResponse = yield* createDrivePermissionIfMissingRequest(
+			drive,
+			{
+				email: normalizeDriveEmail(editorEmail),
+				fileId: requirement.fileId,
+				role: requirement.role,
+				sendNotificationEmail: false
+			},
+			existing
+		);
+
+		return ok(yield* parseDrivePermissionResponse(permissionResponse));
+	});
 }
 
 function saveEditorPermission(
@@ -145,26 +147,51 @@ function applyEditorDrivePermissionsForDrive(
 	setup: EditorDriveSetupRecord,
 	drive: DriveClient
 ) {
-	return requireEditorFolder(setup, "Session")
-		.asyncAndThen((requirement) => requireEditorPermission(drive, setup.editor.email, requirement))
-		.andThen((permission) => saveEditorPermission(ctx, setup, "Session", permission))
-		.andThen(() => requireEditorFolder(setup, "Assets"))
-		.andThen((requirement) => requireEditorPermission(drive, setup.editor.email, requirement))
-		.andThen((permission) => saveEditorPermission(ctx, setup, "Assets", permission))
-		.andThen(() => requireEditorFolder(setup, "Deliverables"))
-		.andThen((requirement) => requireEditorPermission(drive, setup.editor.email, requirement))
-		.andThen((permission) => saveEditorPermission(ctx, setup, "Deliverables", permission));
+	return safeTry(async function* () {
+		const sessionRequirement = yield* requireEditorFolder(setup, "Session");
+
+		const sessionPermission = yield* requireEditorPermission(
+			drive,
+			setup.editor.email,
+			sessionRequirement
+		);
+
+		yield* saveEditorPermission(ctx, setup, "Session", sessionPermission);
+
+		const assetsRequirement = yield* requireEditorFolder(setup, "Assets");
+
+		const assetsPermission = yield* requireEditorPermission(
+			drive,
+			setup.editor.email,
+			assetsRequirement
+		);
+
+		yield* saveEditorPermission(ctx, setup, "Assets", assetsPermission);
+
+		const deliverablesRequirement = yield* requireEditorFolder(setup, "Deliverables");
+
+		const deliverablesPermission = yield* requireEditorPermission(
+			drive,
+			setup.editor.email,
+			deliverablesRequirement
+		);
+
+		return ok(yield* saveEditorPermission(ctx, setup, "Deliverables", deliverablesPermission));
+	});
 }
 
 function ensureEditorDrivePermissions(
 	ctx: ActionCtx,
 	setup: EditorDriveSetupRecord
 ): ResultAsync<null, DriveEditorPermissionsError> {
-	return requireEditorFolders(setup)
-		.asyncAndThen(loadDriveClient)
-		.andThen((drive) => applyEditorDrivePermissionsForDrive(ctx, setup, drive))
-		.andThen(() => writeEditorPermissionsReady(ctx, setup))
-		.map(() => null);
+	return safeTry(async function* () {
+		yield* requireEditorFolders(setup);
+		const drive = yield* loadDriveClient();
+		yield* applyEditorDrivePermissionsForDrive(ctx, setup, drive);
+		yield* writeEditorPermissionsReady(ctx, setup);
+
+		return ok(null);
+	});
 }
 
 type EditorAssignmentEmailClaim = {
@@ -178,14 +205,18 @@ type EditorAssignmentEmailClaim = {
 };
 
 function sendClaimedEditorAssignmentEmail(ctx: ActionCtx, claim: EditorAssignmentEmailClaim) {
-	return sendEditorAssignmentEmail({
-		editorEmail: claim.editorEmail,
-		editorName: claim.editorName,
-		sessionName: claim.sessionName,
-		sessionStartAt: claim.sessionStartAt
-	})
-		.andThen(() => saveSentEditorAssignmentEmailAfterSend(ctx, claim))
-		.orElse((error) => recordFailedEditorAssignmentEmail(ctx, claim, error));
+	const sendAndSave = safeTry(async function* () {
+		yield* sendEditorAssignmentEmail({
+			editorEmail: claim.editorEmail,
+			editorName: claim.editorName,
+			sessionName: claim.sessionName,
+			sessionStartAt: claim.sessionStartAt
+		});
+
+		return ok(yield* saveSentEditorAssignmentEmailAfterSend(ctx, claim));
+	});
+
+	return sendAndSave.orElse((error) => recordFailedEditorAssignmentEmail(ctx, claim, error));
 }
 
 function recordFailedEditorAssignmentEmail(
@@ -193,18 +224,23 @@ function recordFailedEditorAssignmentEmail(
 	claim: EditorAssignmentEmailClaim,
 	emailError: DriveEditorPermissionsError
 ) {
-	return saveFailedEditorAssignmentEmailResult(ctx, claim).andThen(() => errAsync(emailError));
+	return safeTry(async function* () {
+		yield* saveFailedEditorAssignmentEmailResult(ctx, claim);
+
+		return err(emailError);
+	});
 }
 
 export function sendEditorAssignmentEmailForReadyAccess(
 	ctx: ActionCtx,
 	args: { bookingId: Id<"bookings"> }
 ): ResultAsync<null, DriveEditorPermissionsError> {
-	return loadEditorDriveSetup(ctx, args.bookingId)
-		.andThen((setup: EditorDriveSetupRecord) =>
-			claimEditorEmail(ctx, setup).andThen((claim) => sendClaimedEditorAssignmentEmail(ctx, claim))
-		)
-		.orElse(ignoreNonSendableEditorAssignmentEmail);
+	return safeTry(async function* () {
+		const setup = yield* loadEditorDriveSetup(ctx, args.bookingId);
+		const claim = yield* claimEditorEmail(ctx, setup);
+
+		return ok(yield* sendClaimedEditorAssignmentEmail(ctx, claim));
+	}).orElse(ignoreNonSendableEditorAssignmentEmail);
 }
 
 function recordEditorPermissionFailure(
@@ -212,14 +248,16 @@ function recordEditorPermissionFailure(
 	setup: EditorDriveSetupRecord,
 	error: DriveEditorPermissionsError
 ) {
-	return saveEditorPermissionsStatus(ctx, setup, "failed").andThen(() => errAsync(error));
+	return safeTry(async function* () {
+		yield* saveEditorPermissionsStatus(ctx, setup, "failed");
+
+		return err(error);
+	});
 }
 
 function ensureEditorDrivePermissionsForSetup(ctx: ActionCtx, setup: EditorDriveSetupRecord) {
 	return ensureEditorDrivePermissions(ctx, setup)
-		.orElse((error: DriveEditorPermissionsError) =>
-			recordEditorPermissionFailure(ctx, setup, error)
-		)
+		.orElse((error) => recordEditorPermissionFailure(ctx, setup, error))
 		.map(() => setup);
 }
 
@@ -227,24 +265,28 @@ export function setupEditorAccess(
 	ctx: ActionCtx,
 	args: { bookingId: Id<"bookings"> }
 ): ResultAsync<null, DriveEditorPermissionsError> {
-	return loadEditorDriveSetup(ctx, args.bookingId)
-		.andThen((setup: EditorDriveSetupRecord) => ensureEditorDrivePermissionsForSetup(ctx, setup))
-		.andThen((setup: EditorDriveSetupRecord) =>
-			claimEditorEmail(ctx, setup).andThen((claim) => sendClaimedEditorAssignmentEmail(ctx, claim))
-		);
+	return safeTry(async function* () {
+		const setup = yield* loadEditorDriveSetup(ctx, args.bookingId);
+		const readySetup = yield* ensureEditorDrivePermissionsForSetup(ctx, setup);
+		const claim = yield* claimEditorEmail(ctx, readySetup);
+
+		return ok(yield* sendClaimedEditorAssignmentEmail(ctx, claim));
+	});
 }
 
 export function setupEditorAccessIfAssigned(
 	ctx: ActionCtx,
 	args: { bookingId: Id<"bookings"> }
 ): ResultAsync<null, DriveEditorPermissionsError> {
-	return queryOptionalEditorSetup(ctx, args)
-		.andThen(selectBookingsForEditorAccessSetup)
-		.andThen((bookingIds) =>
-			ResultAsync.combine(bookingIds.map((bookingId) => setupEditorAccess(ctx, { bookingId }))).map(
-				() => null
-			)
+	return safeTry(async function* () {
+		const setup = yield* queryOptionalEditorSetup(ctx, args);
+		const bookingIds = yield* selectBookingsForEditorAccessSetup(setup);
+		yield* ResultAsync.combine(
+			bookingIds.map((bookingId) => setupEditorAccess(ctx, { bookingId }))
 		);
+
+		return ok(null);
+	});
 }
 
 function removeSavedPermission(
@@ -262,69 +304,85 @@ function revokePreviousEditorDrivePermissions(
 	drive: DriveClient | null,
 	access: EditorDriveAccessToRemove | null
 ) {
-	return removeSavedPermission(
-		drive,
-		access?.sessionFolderId ?? null,
-		access?.sessionPermission ?? null
-	)
-		.andThen(() =>
-			removeSavedPermission(
-				drive,
-				access?.deliverablesFolderId ?? null,
-				access?.deliverablesPermission ?? null
-			)
-		)
-		.andThen(() =>
-			removeSavedPermission(drive, access?.assetsFolderId ?? null, access?.assetsPermission ?? null)
+	return safeTry(async function* () {
+		yield* removeSavedPermission(
+			drive,
+			access?.sessionFolderId ?? null,
+			access?.sessionPermission ?? null
 		);
+		yield* removeSavedPermission(
+			drive,
+			access?.deliverablesFolderId ?? null,
+			access?.deliverablesPermission ?? null
+		);
+
+		return ok(
+			yield* removeSavedPermission(
+				drive,
+				access?.assetsFolderId ?? null,
+				access?.assetsPermission ?? null
+			)
+		);
+	});
 }
 
 export function removePreviousEditorDriveAccess(
 	ctx: ActionCtx,
 	args: { access: EditorDriveAccessToRemove | null; previousEditorTokenIdentifier: string }
 ): ResultAsync<null, DriveEditorPermissionsError> {
-	return loadEditorDriveClientForRemoval(args.access)
-		.andThen((drive) => revokePreviousEditorDrivePermissions(drive, args.access))
-		.andThen(() =>
-			writePreviousEditorDriveAccessCleared(ctx, args.access, args.previousEditorTokenIdentifier)
+	return safeTry(async function* () {
+		const drive = yield* loadEditorDriveClientForRemoval(args.access);
+		yield* revokePreviousEditorDrivePermissions(drive, args.access);
+
+		return ok(
+			yield* writePreviousEditorDriveAccessCleared(
+				ctx,
+				args.access,
+				args.previousEditorTokenIdentifier
+			)
 		);
+	});
 }
 
 function revokeFailedEditorDrivePermissions(
 	drive: DriveClient | null,
 	removal: FailedEditorRemoval | null
 ) {
-	return findAndDeleteEditorPermission(
-		drive,
-		removal?.sessionFolderId ?? null,
-		removal?.editorEmail ?? "",
-		"reader"
-	)
-		.andThen(() =>
-			findAndDeleteEditorPermission(
-				drive,
-				removal?.deliverablesFolderId ?? null,
-				removal?.editorEmail ?? "",
-				"writer"
-			)
-		)
-		.andThen(() =>
-			findAndDeleteEditorPermission(
+	return safeTry(async function* () {
+		yield* findAndDeleteEditorPermission(
+			drive,
+			removal?.sessionFolderId ?? null,
+			removal?.editorEmail ?? "",
+			"reader"
+		);
+		yield* findAndDeleteEditorPermission(
+			drive,
+			removal?.deliverablesFolderId ?? null,
+			removal?.editorEmail ?? "",
+			"writer"
+		);
+
+		return ok(
+			yield* findAndDeleteEditorPermission(
 				drive,
 				removal?.assetsFolderId ?? null,
 				removal?.editorEmail ?? "",
 				"reader"
 			)
 		);
+	});
 }
 
 export function removeFailedEditorDriveAccess(
 	ctx: ActionCtx,
 	removal: FailedEditorRemoval | null
 ): ResultAsync<null, DriveEditorPermissionsError> {
-	return loadEditorDriveClientForRemoval(removal)
-		.andThen((drive) => revokeFailedEditorDrivePermissions(drive, removal))
-		.andThen(() => clearFailedEditorDriveAccess(ctx, removal));
+	return safeTry(async function* () {
+		const drive = yield* loadEditorDriveClientForRemoval(removal);
+		yield* revokeFailedEditorDrivePermissions(drive, removal);
+
+		return ok(yield* clearFailedEditorDriveAccess(ctx, removal));
+	});
 }
 
 function findAndDeleteEditorPermission(
@@ -333,24 +391,26 @@ function findAndDeleteEditorPermission(
 	editorEmail: string,
 	role: "reader" | "writer"
 ) {
-	return findDrivePermissionRequest(drive, {
-		email: normalizeDriveEmail(editorEmail),
-		fileId,
-		role
-	})
-		.andThen((response) =>
-			parseDrivePermissionListForRemoval(response, {
-				email: normalizeDriveEmail(editorEmail),
-				fileId,
-				role
-			})
-		)
-		.andThen((permission) =>
-			deleteDrivePermissionRequest(
+	return safeTry(async function* () {
+		const response = yield* findDrivePermissionRequest(drive, {
+			email: normalizeDriveEmail(editorEmail),
+			fileId,
+			role
+		});
+
+		const permission = yield* parseDrivePermissionListForRemoval(response, {
+			email: normalizeDriveEmail(editorEmail),
+			fileId,
+			role
+		});
+
+		return ok(
+			yield* deleteDrivePermissionRequest(
 				drive,
 				fileId === null || permission === null ? null : { fileId, permissionId: permission.id }
 			).orElse(ignoreMissingDrivePermission)
 		);
+	});
 }
 
 // Retirement may happen while Google creates the permission; remove that access before returning the save error.
@@ -361,18 +421,39 @@ function cleanupUnsavedEditorPermission(
 	permission: SavedDrivePermission,
 	error: DriveEditorPermissionsError
 ) {
-	return loadEditorDriveClientForUnsavedPermission(fileId)
-		.andThen((drive) =>
-			deleteDrivePermissionRequest(
+	return safeTry(async function* () {
+		yield* deleteUnsavedEditorPermission(fileId, permission).orElse((removalError) =>
+			recordUnsavedEditorPermissionRemovalFailure(ctx, setup, removalError)
+		);
+
+		return err(error);
+	});
+}
+
+function deleteUnsavedEditorPermission(fileId: string | null, permission: SavedDrivePermission) {
+	return safeTry(async function* () {
+		const drive = yield* loadEditorDriveClientForUnsavedPermission(fileId);
+
+		return ok(
+			yield* deleteDrivePermissionRequest(
 				drive,
 				fileId === null ? null : { fileId, permissionId: permission.id }
 			).orElse(ignoreMissingDrivePermission)
-		)
-		.orElse((removalError) =>
-			markPreviousEditorRemovalFailed(ctx, {
-				bookingId: setup.booking._id,
-				editorTokenIdentifier: setup.editor.tokenIdentifier
-			}).andThen(() => errAsync(removalError))
-		)
-		.andThen(() => errAsync(error));
+		);
+	});
+}
+
+function recordUnsavedEditorPermissionRemovalFailure(
+	ctx: ActionCtx,
+	setup: EditorDriveSetupRecord,
+	removalError: DriveEditorPermissionsError
+) {
+	return safeTry(async function* () {
+		yield* markPreviousEditorRemovalFailed(ctx, {
+			bookingId: setup.booking._id,
+			editorTokenIdentifier: setup.editor.tokenIdentifier
+		});
+
+		return err(removalError);
+	});
 }

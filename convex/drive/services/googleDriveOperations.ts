@@ -1,5 +1,7 @@
 "use node";
 
+import { ok, safeTry } from "neverthrow";
+
 import {
 	createDriveAnyonePermissionRequest,
 	createDriveFolderRequest,
@@ -32,28 +34,42 @@ export function createDriveFolder(
 	drive: DriveClient,
 	input: { name: string; parentId: string; marker: string }
 ) {
-	return createDriveFolderRequest(drive, input)
-		.map((response) => response.data)
-		.andThen(parseDriveFolderResponse);
+	return safeTry(async function* () {
+		const response = yield* createDriveFolderRequest(drive, input);
+		const folder = yield* parseDriveFolderResponse(response.data);
+
+		return ok(folder);
+	});
 }
 
 export function findDriveFolderByMarker(
 	drive: DriveClient,
 	input: { marker: string; parentId: string } | null
 ) {
-	return findDriveFolderByMarkerIfRequested(drive, input).andThen(parseDriveFolderListIfAvailable);
+	return safeTry(async function* () {
+		const response = yield* findDriveFolderByMarkerIfRequested(drive, input);
+		const folder = yield* parseDriveFolderListIfAvailable(response);
+
+		return ok(folder);
+	});
 }
 
 export function verifyDriveFolderIfPresent(drive: DriveClient, folderId: string | null) {
-	return verifyDriveFolderRequestIfPresent(drive, folderId).andThen(
-		parseDriveFolderResponseIfAvailable
-	);
+	return safeTry(async function* () {
+		const response = yield* verifyDriveFolderRequestIfPresent(drive, folderId);
+		const folder = yield* parseDriveFolderResponseIfAvailable(response);
+
+		return ok(folder);
+	});
 }
 
 export function listDriveFolderChildren(drive: DriveClient, folderId: string) {
-	return listDriveFolderChildrenRequest(drive, folderId)
-		.map((response) => response.data.files)
-		.andThen(parseDriveFolderChildrenResponse);
+	return safeTry(async function* () {
+		const response = yield* listDriveFolderChildrenRequest(drive, folderId);
+		const children = yield* parseDriveFolderChildrenResponse(response.data.files);
+
+		return ok(children);
+	});
 }
 
 export function deleteDriveItem(drive: DriveClient, fileId: string) {
@@ -61,24 +77,33 @@ export function deleteDriveItem(drive: DriveClient, fileId: string) {
 }
 
 export function verifyDriveFolder(drive: DriveClient, folderId: string) {
-	return verifyDriveFolderRequest(drive, folderId)
-		.map((response) => response.data)
-		.andThen(parseDriveFolderResponse);
+	return safeTry(async function* () {
+		const response = yield* verifyDriveFolderRequest(drive, folderId);
+		const folder = yield* parseDriveFolderResponse(response.data);
+
+		return ok(folder);
+	});
 }
 
 export function renameDriveFolder(drive: DriveClient, input: { folderId: string; name: string }) {
-	return renameDriveFolderRequest(drive, input)
-		.map((response) => response.data)
-		.andThen(parseDriveFolderResponse);
+	return safeTry(async function* () {
+		const response = yield* renameDriveFolderRequest(drive, input);
+		const folder = yield* parseDriveFolderResponse(response.data);
+
+		return ok(folder);
+	});
 }
 
 export function findDrivePermission(
 	drive: DriveClient,
 	input: { email: string; fileId: string; role: SavedDrivePermission["role"] }
 ) {
-	return findDrivePermissionRequest(drive, input).andThen((response) =>
-		parseDrivePermissionListForRemoval(response, input)
-	);
+	return safeTry(async function* () {
+		const response = yield* findDrivePermissionRequest(drive, input);
+		const permission = yield* parseDrivePermissionListForRemoval(response, input);
+
+		return ok(permission);
+	});
 }
 
 export function createDrivePermission(
@@ -90,9 +115,12 @@ export function createDrivePermission(
 		sendNotificationEmail: boolean;
 	}
 ) {
-	return createDrivePermissionRequest(drive, input)
-		.map((response) => response.data)
-		.andThen(parseDrivePermissionResponse);
+	return safeTry(async function* () {
+		const response = yield* createDrivePermissionRequest(drive, input);
+		const permission = yield* parseDrivePermissionResponse(response.data);
+
+		return ok(permission);
+	});
 }
 
 export function findAnyonePermission(
@@ -100,10 +128,12 @@ export function findAnyonePermission(
 	fileId: string,
 	role: "reader" | "writer"
 ) {
-	return listDrivePermissionsRequest(drive, fileId)
-		.map((response) => response.data.permissions)
-		.andThen(parseDrivePermissionListResponse)
-		.map((permissions) => findAnyoneDrivePermission(permissions, role));
+	return safeTry(async function* () {
+		const response = yield* listDrivePermissionsRequest(drive, fileId);
+		const permissions = yield* parseDrivePermissionListResponse(response.data.permissions);
+
+		return ok(findAnyoneDrivePermission(permissions, role));
+	});
 }
 
 export function createAnyonePermission(
@@ -111,9 +141,12 @@ export function createAnyonePermission(
 	fileId: string,
 	role: "reader" | "writer"
 ) {
-	return createDriveAnyonePermissionRequest(drive, fileId, role)
-		.map((response) => response.data)
-		.andThen(parseAnyonePermissionResponse);
+	return safeTry(async function* () {
+		const response = yield* createDriveAnyonePermissionRequest(drive, fileId, role);
+		const permission = yield* parseAnyonePermissionResponse(response.data);
+
+		return ok(permission);
+	});
 }
 
 export function deleteDrivePermission(
