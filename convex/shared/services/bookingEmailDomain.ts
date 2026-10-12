@@ -1,11 +1,14 @@
 "use node";
 
-import { type ResultAsync } from "neverthrow";
+import { ok, safeTry } from "neverthrow";
 import { emailDomainCanReceiveMailAsync } from "#convex/shared/lib/email/emailDomain";
 import { validateBookingEmailDomain } from "#convex/shared/lib/bookingEmailDomainSteps";
 
-export function requireBookingEmailDomain(
-	email: string
-): ResultAsync<null, { reason: "BOOKING_EMAIL_DOMAIN_INVALID" }> {
-	return emailDomainCanReceiveMailAsync(email).andThen(validateBookingEmailDomain);
+export function requireBookingEmailDomain(email: string) {
+	return safeTry(async function* () {
+		const canReceiveMail = yield* emailDomainCanReceiveMailAsync(email);
+		yield* validateBookingEmailDomain(canReceiveMail);
+
+		return ok(null);
+	});
 }

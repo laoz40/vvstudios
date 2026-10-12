@@ -1,10 +1,10 @@
 "use node";
 
-import { errAsync, okAsync, type ResultAsync } from "neverthrow";
+import { errAsync, okAsync } from "neverthrow";
 import { resolveMx } from "node:dns/promises";
 import { tryPromise } from "#convex/shared/lib/result";
 
-export function emailDomainCanReceiveMailAsync(email: string): ResultAsync<boolean, never> {
+export function emailDomainCanReceiveMailAsync(email: string) {
 	const domain = email.trim().toLowerCase().split("@").at(-1);
 
 	if (!domain) {

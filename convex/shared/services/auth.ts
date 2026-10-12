@@ -6,6 +6,7 @@ import {
 } from "#convex/shared/lib/authProfile";
 import { updateBookingsAssignedEditorDisplayName } from "#convex/editor/services/editorAssignments";
 import type { UserIdentity } from "convex/server";
+import { ok, safeTry } from "neverthrow";
 
 import type { Doc } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
@@ -28,9 +29,12 @@ function persistEditorForIdentity(
 	identity: UserIdentity,
 	editor: Doc<"editorProfiles"> | null
 ) {
-	return saveEditorDetails(ctx, identity, editor).andThen(() =>
-		updateAssignedEditorName(ctx, identity, editor)
-	);
+	return safeTry(async function* () {
+		yield* saveEditorDetails(ctx, identity, editor);
+		const updated = yield* updateAssignedEditorName(ctx, identity, editor);
+
+		return ok(updated);
+	});
 }
 
 export function requirePermission(ctx: QueryCtx | MutationCtx, permission: Permission) {
@@ -38,17 +42,22 @@ export function requirePermission(ctx: QueryCtx | MutationCtx, permission: Permi
 }
 
 export function saveSignedInEditorProfile(ctx: MutationCtx, identity: UserIdentity) {
-	return loadSignedInEditor(ctx, identity).andThen((editor) =>
-		persistSignedInEditor(ctx, identity, editor)
-	);
+	return safeTry(async function* () {
+		const editor = yield* loadSignedInEditor(ctx, identity);
+		const saved = yield* persistSignedInEditor(ctx, identity, editor);
+
+		return ok(saved);
+	});
 }
 
 export function saveAdminEditorEnrollment(ctx: MutationCtx, identity: UserIdentity) {
-	return getEditorByTokenLib(ctx, identity.tokenIdentifier)
-		.andThen(requireEnrollableEditorProfile)
-		.andThen((editor: Doc<"editorProfiles"> | null) =>
-			persistEditorForIdentity(ctx, identity, editor)
-		);
+	return safeTry(async function* () {
+		const editor = yield* getEditorByTokenLib(ctx, identity.tokenIdentifier);
+		const enrollableEditor = yield* requireEnrollableEditorProfile(editor);
+		const saved = yield* persistEditorForIdentity(ctx, identity, enrollableEditor);
+
+		return ok(saved);
+	});
 }
 
 export function getEditorByToken(ctx: QueryCtx | MutationCtx, token: string) {
@@ -72,9 +81,17 @@ function updateAssignedEditorName(
 	identity: UserIdentity,
 	editor: Doc<"editorProfiles"> | null
 ) {
-	return listBookingsForChangedEditorName(ctx, identity, editor).andThen((bookings) =>
-		updateBookingsAssignedEditorDisplayName(ctx, bookings, assignedEditorNameForIdentity(identity))
-	);
+	return safeTry(async function* () {
+		const bookings = yield* listBookingsForChangedEditorName(ctx, identity, editor);
+
+		const updated = yield* updateBookingsAssignedEditorDisplayName(
+			ctx,
+			bookings,
+			assignedEditorNameForIdentity(identity)
+		);
+
+		return ok(updated);
+	});
 }
 
 function persistSignedInEditor(
@@ -82,7 +99,10 @@ function persistSignedInEditor(
 	identity: UserIdentity,
 	editor: Doc<"editorProfiles"> | null
 ) {
-	return saveSignedInEditorDetails(ctx, identity, editor).andThen(() =>
-		updateAssignedEditorName(ctx, identity, editor)
-	);
+	return safeTry(async function* () {
+		yield* saveSignedInEditorDetails(ctx, identity, editor);
+		const updated = yield* updateAssignedEditorName(ctx, identity, editor);
+
+		return ok(updated);
+	});
 }
