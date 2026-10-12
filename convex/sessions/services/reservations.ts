@@ -1,3 +1,4 @@
+import { ok, safeTry } from "neverthrow";
 import type { Id } from "#convex/_generated/dataModel";
 import type { MutationCtx } from "#convex/_generated/server";
 import { getBookingRow } from "#convex/sessions/lib/lookup";
@@ -12,11 +13,14 @@ import {
 import { getSessionFromDb } from "#convex/sessions/services/lookup";
 
 export function reserveSessionTime(ctx: MutationCtx, args: ReserveSessionArgs) {
-	return getSessionFromDb(ctx, args.bookingId)
-		.map((session) => ({ ctx, args, session }))
-		.andThen(loadConfirmedReservationBookings)
-		.andThen(loadActiveReservationBookings)
-		.andThen(writeAvailableReservation);
+	return safeTry(async function* () {
+		const session = yield* getSessionFromDb(ctx, args.bookingId);
+		const reservationInput = { ctx, args, session };
+		const confirmedBookings = yield* loadConfirmedReservationBookings(reservationInput);
+		const activeBookings = yield* loadActiveReservationBookings(confirmedBookings);
+
+		return ok(yield* writeAvailableReservation(activeBookings));
+	});
 }
 
 export function unreserveSessionTime(
@@ -24,7 +28,9 @@ export function unreserveSessionTime(
 	bookingId: Id<"bookings">,
 	expected: SessionReservation
 ) {
-	return getBookingRow(ctx, bookingId).andThen((session) =>
-		clearMatchingReservation(ctx, bookingId, expected, session)
-	);
+	return safeTry(async function* () {
+		const session = yield* getBookingRow(ctx, bookingId);
+
+		return ok(yield* clearMatchingReservation(ctx, bookingId, expected, session));
+	});
 }

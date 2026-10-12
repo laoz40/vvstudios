@@ -1,6 +1,6 @@
 "use node";
 
-import { ResultAsync } from "neverthrow";
+import { ok, ResultAsync, safeTry } from "neverthrow";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { ActionCtx } from "#convex/_generated/server";
 import { queryBookingAvailabilitySettings } from "#convex/booking/lib/settingsIo";
@@ -47,9 +47,13 @@ export function loadClaimedSession(
 	ctx: ActionCtx,
 	bookingId: Id<"bookings">
 ): ResultAsync<LoadedClaimedSession, CompleteClaimedSessionError> {
-	return getSessionFromQuery(ctx, bookingId)
-		.andThen(requireClaimed)
-		.andThen(loadedClaimedSessionFromPending);
+	return safeTry(async function* () {
+		const session = yield* getSessionFromQuery(ctx, bookingId);
+		const claimed = yield* requireClaimed(session);
+		const loaded = yield* loadedClaimedSessionFromPending(claimed);
+
+		return ok(loaded);
+	});
 }
 
 export function verifyClaimedBookingSchedule(
@@ -58,13 +62,19 @@ export function verifyClaimedBookingSchedule(
 	settings: SessionAvailabilitySettings,
 	calendarClient: GoogleCalendarClient
 ): ResultAsync<VerifyClaimedBookingScheduleResult, CompleteClaimedSessionError> {
-	return verifySessionCanBeScheduled({
-		session,
-		calendar: calendarClient.calendar,
-		calendarIds: calendarClient.calendarIds,
-		settings,
-		timeZone: calendarClient.timeZone
-	}).andThen((available) => finishVerifyClaimedBookingSchedule(ctx, session._id, available));
+	return safeTry(async function* () {
+		const availability = yield* verifySessionCanBeScheduled({
+			session,
+			calendar: calendarClient.calendar,
+			calendarIds: calendarClient.calendarIds,
+			settings,
+			timeZone: calendarClient.timeZone
+		});
+
+		const result = yield* finishVerifyClaimedBookingSchedule(ctx, session._id, availability);
+
+		return ok(result);
+	});
 }
 
 export function reserveClaimedBookingSlot(
@@ -72,12 +82,18 @@ export function reserveClaimedBookingSlot(
 	session: Doc<"bookings">,
 	settings: SessionAvailabilitySettings
 ): ResultAsync<ReserveClaimedBookingSlotResult, CompleteClaimedSessionError> {
-	return reserveClaimedBookingSession(ctx, {
-		bookingId: session._id,
-		duration: session.duration,
-		eventBufferMinutes: settings.eventBufferMinutes,
-		sessionStartAt: session.sessionStartAt
-	}).andThen((reservation) => finishReserveClaimedBookingSlot(ctx, session._id, reservation));
+	return safeTry(async function* () {
+		const reservation = yield* reserveClaimedBookingSession(ctx, {
+			bookingId: session._id,
+			duration: session.duration,
+			eventBufferMinutes: settings.eventBufferMinutes,
+			sessionStartAt: session.sessionStartAt
+		});
+
+		const result = yield* finishReserveClaimedBookingSlot(ctx, session._id, reservation);
+
+		return ok(result);
+	});
 }
 
 function insertAndHandleClaimedCalendarEvent(
@@ -87,12 +103,11 @@ function insertAndHandleClaimedCalendarEvent(
 	reservation: SessionReservation,
 	body: Parameters<typeof insertClaimedCalendarEvent>[1]
 ): ResultAsync<InsertClaimedBookingCalendarEventResult, CompleteClaimedSessionError> {
-	return insertClaimedCalendarEvent(client, body)
-		.map((createdEvent) => ({
-			kind: "created" as const,
-			googleEventId: createdEvent.data.id ?? undefined
-		}))
-		.orElse((error) => failCalendarCreateForClaimedBooking(ctx, session, reservation, error));
+	return safeTry(async function* () {
+		const createdEvent = yield* insertClaimedCalendarEvent(client, body);
+
+		return ok({ kind: "created" as const, googleEventId: createdEvent.data.id ?? undefined });
+	}).orElse((error) => failCalendarCreateForClaimedBooking(ctx, session, reservation, error));
 }
 
 export function createClaimedBookingCalendarEvent(
@@ -101,13 +116,17 @@ export function createClaimedBookingCalendarEvent(
 	client: GoogleCalendarClient,
 	reservation: SessionReservation
 ): ResultAsync<InsertClaimedBookingCalendarEventResult, CompleteClaimedSessionError> {
-	return prepareClaimedCalendarEvent(ctx, session, client, reservation).andThen((prepared) =>
-		ResultAsync.combine(
+	return safeTry(async function* () {
+		const prepared = yield* prepareClaimedCalendarEvent(ctx, session, client, reservation);
+
+		const creations = yield* ResultAsync.combine(
 			selectReadyClaimedCalendarPayloads(prepared).map((body) =>
 				insertAndHandleClaimedCalendarEvent(ctx, session, client, reservation, body)
 			)
-		).map((creations) => resolveClaimedCalendarCreation(prepared, creations))
-	);
+		);
+
+		return ok(resolveClaimedCalendarCreation(prepared, creations));
+	});
 }
 
 export function saveConfirmedClaimedBookingAndSendInvoice(
@@ -118,13 +137,16 @@ export function saveConfirmedClaimedBookingAndSendInvoice(
 	reservation: SessionReservation,
 	eventId: string | undefined
 ): ResultAsync<CompleteClaimedSessionSuccess, CompleteClaimedSessionError> {
-	return saveConfirmedBooking(ctx, session, client, reservation, eventId).andThen((saved) =>
-		ResultAsync.combine(
+	return safeTry(async function* () {
+		const saved = yield* saveConfirmedBooking(ctx, session, client, reservation, eventId);
+		yield* ResultAsync.combine(
 			selectConfirmedClaimedBookings(saved, session).map((confirmed) =>
 				sendConfirmedBookingInvoice(ctx, confirmed, settings)
 			)
-		).map(() => ({ outcome: saved ? ("completed" as const) : ("reservation_lost" as const) }))
-	);
+		);
+
+		return ok({ outcome: saved ? ("completed" as const) : ("reservation_lost" as const) });
+	});
 }
 
 function finishClaimedSessionAfterCalendarEvent(
@@ -135,18 +157,22 @@ function finishClaimedSessionAfterCalendarEvent(
 	reservation: SessionReservation,
 	calendar: InsertClaimedBookingCalendarEventResult
 ) {
-	return ResultAsync.combine(
-		selectCreatedClaimedCalendarEvents(calendar).map((created) =>
-			saveConfirmedClaimedBookingAndSendInvoice(
-				ctx,
-				session,
-				settings,
-				client,
-				reservation,
-				created.googleEventId
+	return safeTry(async function* () {
+		const completions = yield* ResultAsync.combine(
+			selectCreatedClaimedCalendarEvents(calendar).map((created) =>
+				saveConfirmedClaimedBookingAndSendInvoice(
+					ctx,
+					session,
+					settings,
+					client,
+					reservation,
+					created.googleEventId
+				)
 			)
-		)
-	).map((completions) => resolveClaimedSessionCompletion(calendar, completions));
+		);
+
+		return ok(resolveClaimedSessionCompletion(calendar, completions));
+	});
 }
 
 function createAndContinueClaimedSession(
@@ -156,9 +182,20 @@ function createAndContinueClaimedSession(
 	client: GoogleCalendarClient,
 	reservation: SessionReservation
 ) {
-	return createClaimedBookingCalendarEvent(ctx, session, client, reservation).andThen((calendar) =>
-		finishClaimedSessionAfterCalendarEvent(ctx, session, settings, client, reservation, calendar)
-	);
+	return safeTry(async function* () {
+		const calendar = yield* createClaimedBookingCalendarEvent(ctx, session, client, reservation);
+
+		const result = yield* finishClaimedSessionAfterCalendarEvent(
+			ctx,
+			session,
+			settings,
+			client,
+			reservation,
+			calendar
+		);
+
+		return ok(result);
+	});
 }
 
 function continueClaimedSessionAfterReservation(
@@ -168,11 +205,15 @@ function continueClaimedSessionAfterReservation(
 	client: GoogleCalendarClient,
 	hold: ReserveClaimedBookingSlotResult
 ) {
-	return ResultAsync.combine(
-		selectClaimedBookingReservations(hold).map((reservation) =>
-			createAndContinueClaimedSession(ctx, session, settings, client, reservation)
-		)
-	).map((completions) => resolveClaimedSessionCompletion(hold, completions));
+	return safeTry(async function* () {
+		const completions = yield* ResultAsync.combine(
+			selectClaimedBookingReservations(hold).map((reservation) =>
+				createAndContinueClaimedSession(ctx, session, settings, client, reservation)
+			)
+		);
+
+		return ok(resolveClaimedSessionCompletion(hold, completions));
+	});
 }
 
 function reserveAndContinueClaimedSession(
@@ -181,9 +222,19 @@ function reserveAndContinueClaimedSession(
 	settings: SessionAvailabilitySettings,
 	client: GoogleCalendarClient
 ) {
-	return reserveClaimedBookingSlot(ctx, session, settings).andThen((hold) =>
-		continueClaimedSessionAfterReservation(ctx, session, settings, client, hold)
-	);
+	return safeTry(async function* () {
+		const hold = yield* reserveClaimedBookingSlot(ctx, session, settings);
+
+		const result = yield* continueClaimedSessionAfterReservation(
+			ctx,
+			session,
+			settings,
+			client,
+			hold
+		);
+
+		return ok(result);
+	});
 }
 
 function continueClaimedSessionAfterScheduleCheck(
@@ -193,11 +244,15 @@ function continueClaimedSessionAfterScheduleCheck(
 	client: GoogleCalendarClient,
 	schedule: VerifyClaimedBookingScheduleResult
 ) {
-	return ResultAsync.combine(
-		selectSchedulableClaimedSessions(schedule, session).map((schedulable) =>
-			reserveAndContinueClaimedSession(ctx, schedulable, settings, client)
-		)
-	).map((completions) => resolveClaimedSessionCompletion(schedule, completions));
+	return safeTry(async function* () {
+		const completions = yield* ResultAsync.combine(
+			selectSchedulableClaimedSessions(schedule, session).map((schedulable) =>
+				reserveAndContinueClaimedSession(ctx, schedulable, settings, client)
+			)
+		);
+
+		return ok(resolveClaimedSessionCompletion(schedule, completions));
+	});
 }
 
 function runClaimedSessionWithSettings(
@@ -206,32 +261,52 @@ function runClaimedSessionWithSettings(
 	client: GoogleCalendarClient,
 	settings: SessionAvailabilitySettings
 ) {
-	return verifyClaimedBookingSchedule(ctx, session, settings, client).andThen((schedule) =>
-		continueClaimedSessionAfterScheduleCheck(ctx, session, settings, client, schedule)
-	);
+	return safeTry(async function* () {
+		const schedule = yield* verifyClaimedBookingSchedule(ctx, session, settings, client);
+
+		const result = yield* continueClaimedSessionAfterScheduleCheck(
+			ctx,
+			session,
+			settings,
+			client,
+			schedule
+		);
+
+		return ok(result);
+	});
 }
 
 function runCompleteClaimedSessionWhenPending(ctx: ActionCtx, session: Doc<"bookings">) {
 	const calendarClient = getGoogleCalendarClient();
 
-	return queryBookingAvailabilitySettings(ctx).andThen((settings: SessionAvailabilitySettings) =>
-		runClaimedSessionWithSettings(ctx, session, calendarClient, settings)
-	);
+	return safeTry(async function* () {
+		const settings: SessionAvailabilitySettings = yield* queryBookingAvailabilitySettings(ctx);
+		const result = yield* runClaimedSessionWithSettings(ctx, session, calendarClient, settings);
+
+		return ok(result);
+	});
 }
 
 function completeClaimedSessionFromLoaded(ctx: ActionCtx, loaded: LoadedClaimedSession) {
-	return ResultAsync.combine(
-		selectPendingClaimedSessions(loaded).map((session) =>
-			runCompleteClaimedSessionWhenPending(ctx, session)
-		)
-	).map((completions) => resolveClaimedSessionCompletion(loaded, completions));
+	return safeTry(async function* () {
+		const completions = yield* ResultAsync.combine(
+			selectPendingClaimedSessions(loaded).map((session) =>
+				runCompleteClaimedSessionWhenPending(ctx, session)
+			)
+		);
+
+		return ok(resolveClaimedSessionCompletion(loaded, completions));
+	});
 }
 
 export function runCompleteClaimedSession(
 	ctx: ActionCtx,
 	bookingId: Id<"bookings">
 ): ResultAsync<CompleteClaimedSessionSuccess, CompleteClaimedSessionError> {
-	return loadClaimedSession(ctx, bookingId).andThen((loaded) =>
-		completeClaimedSessionFromLoaded(ctx, loaded)
-	);
+	return safeTry(async function* () {
+		const loaded = yield* loadClaimedSession(ctx, bookingId);
+		const result = yield* completeClaimedSessionFromLoaded(ctx, loaded);
+
+		return ok(result);
+	});
 }

@@ -1,3 +1,4 @@
+import { ok, safeTry } from "neverthrow";
 import type { Doc } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
 import { requirePermission } from "#convex/shared/services/auth";
@@ -37,7 +38,9 @@ export function writeSessionInstagramHandle(
 	session: Doc<"bookings">,
 	instagramHandle: string
 ) {
-	return buildInstagramSearchBlobPatch(ctx, session, instagramHandle).andThen((searchBlobPatch) =>
-		patchSessionInstagramHandle(ctx, session, instagramHandle, searchBlobPatch)
-	);
+	return safeTry(async function* () {
+		const searchBlobPatch = yield* buildInstagramSearchBlobPatch(ctx, session, instagramHandle);
+
+		return ok(yield* patchSessionInstagramHandle(ctx, session, instagramHandle, searchBlobPatch));
+	});
 }

@@ -1,6 +1,6 @@
 "use node";
 
-import { err, errAsync, ok, okAsync, type ResultAsync } from "neverthrow";
+import { err, ok, safeTry, type ResultAsync } from "neverthrow";
 import type { Doc } from "#convex/_generated/dataModel";
 import type { ActionCtx } from "#convex/_generated/server";
 import { queryBookingAvailabilitySettings } from "#convex/booking/lib/settingsIo";
@@ -71,22 +71,36 @@ function enforceRescheduleSubmitRateLimit(
 	details: ValidRescheduleDetails,
 	submitRateLimitKey: string
 ) {
-	return checkBookingSubmitRateLimit(ctx, submitRateLimitKey).map(() => details);
+	return safeTry(async function* () {
+		yield* checkBookingSubmitRateLimit(ctx, submitRateLimitKey);
+
+		return ok(details);
+	});
 }
 
 function loadLinkWithRateLimit(ctx: ActionCtx, details: ValidRescheduleDetails) {
-	return getBookingSubmitRateLimitKey(details.session.email).andThen((submitRateLimitKey: string) =>
-		enforceRescheduleSubmitRateLimit(ctx, details, submitRateLimitKey)
-	);
+	return safeTry(async function* () {
+		const submitRateLimitKey = yield* getBookingSubmitRateLimitKey(details.session.email);
+		const result = yield* enforceRescheduleSubmitRateLimit(ctx, details, submitRateLimitKey);
+
+		return ok(result);
+	});
 }
 
 function loadLink(
 	ctx: ActionCtx,
 	args: RescheduleSessionArgs
 ): ResultAsync<ValidRescheduleDetails, RescheduleSessionError> {
-	return loadValidRescheduleLinkAndSession(ctx, { token: args.token, now: Date.now() }).andThen(
-		(details: ValidRescheduleDetails) => loadLinkWithRateLimit(ctx, details)
-	);
+	return safeTry(async function* () {
+		const details = yield* loadValidRescheduleLinkAndSession(ctx, {
+			token: args.token,
+			now: Date.now()
+		});
+
+		const result = yield* loadLinkWithRateLimit(ctx, details);
+
+		return ok(result);
+	});
 }
 
 function validateRescheduleTargetForCalendarClient(
@@ -96,11 +110,12 @@ function validateRescheduleTargetForCalendarClient(
 
 	calendarClient: ReturnType<typeof getGoogleCalendarClient>
 ) {
-	return validateRescheduleTiming(args, details.session, settings, calendarClient).andThen(() =>
-		getSessionStartAt(args.date, args.time, calendarClient.timeZone)
-			.map((sessionStartAt) => ({ calendarClient, details, sessionStartAt, settings }))
-			.asyncAndThen((context) => okAsync(context))
-	);
+	return safeTry(async function* () {
+		yield* validateRescheduleTiming(args, details.session, settings, calendarClient);
+		const sessionStartAt = yield* getSessionStartAt(args.date, args.time, calendarClient.timeZone);
+
+		return ok({ calendarClient, details, sessionStartAt, settings });
+	});
 }
 
 function validateRescheduleTargetWithSettings(
@@ -109,10 +124,18 @@ function validateRescheduleTargetWithSettings(
 
 	settings: SessionAvailabilitySettings
 ) {
-	return loadGoogleCalendarClient("GOOGLE_CALENDAR_AVAILABILITY_FAILED").andThen(
-		(calendarClient: ReturnType<typeof getGoogleCalendarClient>) =>
-			validateRescheduleTargetForCalendarClient(args, details, settings, calendarClient)
-	);
+	return safeTry(async function* () {
+		const calendarClient = yield* loadGoogleCalendarClient("GOOGLE_CALENDAR_AVAILABILITY_FAILED");
+
+		const result = yield* validateRescheduleTargetForCalendarClient(
+			args,
+			details,
+			settings,
+			calendarClient
+		);
+
+		return ok(result);
+	});
 }
 
 function validateTarget(
@@ -120,15 +143,21 @@ function validateTarget(
 	args: RescheduleSessionArgs,
 	details: ValidRescheduleDetails
 ) {
-	return queryBookingAvailabilitySettings(ctx).andThen((settings: SessionAvailabilitySettings) =>
-		validateRescheduleTargetWithSettings(args, details, settings)
-	);
+	return safeTry(async function* () {
+		const settings = yield* queryBookingAvailabilitySettings(ctx);
+		const result = yield* validateRescheduleTargetWithSettings(args, details, settings);
+
+		return ok(result);
+	});
 }
 
 export function loadRescheduleTargetAndValidate(ctx: ActionCtx, args: RescheduleSessionArgs) {
-	return loadLink(ctx, args).andThen((details: ValidRescheduleDetails) =>
-		validateTarget(ctx, args, details)
-	);
+	return safeTry(async function* () {
+		const details = yield* loadLink(ctx, args);
+		const result = yield* validateTarget(ctx, args, details);
+
+		return ok(result);
+	});
 }
 
 export function validateRescheduleTiming(
@@ -158,22 +187,18 @@ function reserveSessionSlotAfterLock(
 	details: ValidRescheduleDetails,
 	lockedAt: number,
 	settings: SessionAvailabilitySettings,
-	sessionStartAt: number,
-
-	_linkLocked: null
+	sessionStartAt: number
 ) {
-	return reserveSessionSlot(ctx, {
-		bookingId: details.session._id,
-		duration: details.session.duration,
-		eventBufferMinutes: settings.eventBufferMinutes,
-		sessionStartAt
-	}).andThen(
-		(
-			reservationResult:
-				| { outcome: "reserved"; reservation: RescheduleReservation }
-				| { outcome: "unavailable" }
-		) => resolveRescheduleReservation(details, lockedAt, settings, reservationResult)
-	);
+	return safeTry(async function* () {
+		const reservationResult = yield* reserveSessionSlot(ctx, {
+			bookingId: details.session._id,
+			duration: details.session.duration,
+			eventBufferMinutes: settings.eventBufferMinutes,
+			sessionStartAt
+		});
+
+		return ok(yield* resolveRescheduleReservation(details, lockedAt, settings, reservationResult));
+	});
 }
 
 export function lockAndReserve(
@@ -186,13 +211,26 @@ export function lockAndReserve(
 
 	const unlockAndReturnReservationError = <Error extends { reason: string }>(
 		reservationError: Error
-	) => releaseRescheduleLink(ctx, details.link._id, lockedAt).andThen(() => err(reservationError));
+	) =>
+		safeTry(async function* () {
+			yield* releaseRescheduleLink(ctx, details.link._id, lockedAt);
 
-	return lockRescheduleLink(ctx, { linkId: details.link._id, now: lockedAt })
-		.andThen((_linkLocked: null) =>
-			reserveSessionSlotAfterLock(ctx, details, lockedAt, settings, sessionStartAt, _linkLocked)
-		)
-		.orElse(unlockAndReturnReservationError);
+			return err(reservationError);
+		});
+
+	return safeTry(async function* () {
+		yield* lockRescheduleLink(ctx, { linkId: details.link._id, now: lockedAt });
+
+		const state = yield* reserveSessionSlotAfterLock(
+			ctx,
+			details,
+			lockedAt,
+			settings,
+			sessionStartAt
+		);
+
+		return ok(state);
+	}).orElse(unlockAndReturnReservationError);
 }
 
 function releaseRescheduleLink(
@@ -206,16 +244,16 @@ function releaseRescheduleLink(
 }
 
 function clearReservationThenUnlock(ctx: ActionCtx, state: RescheduleState) {
-	return clearSessionSlotReservation(ctx, {
-		bookingId: state.session._id,
-		reservation: state.reservation
-	})
-		.orElse((error: AdminSessionUpdateError) =>
+	return safeTry(async function* () {
+		yield* clearSessionSlotReservation(ctx, {
+			bookingId: state.session._id,
+			reservation: state.reservation
+		}).orElse((error: AdminSessionUpdateError) =>
 			logRescheduleReservationCleanupFailureResult(state.session._id, error)
-		)
-		.andThen((_reservationCleared: { cleared: boolean } | null | void) =>
-			releaseRescheduleLink(ctx, state.link._id, state.lockedAt)
 		);
+
+		return ok(yield* releaseRescheduleLink(ctx, state.link._id, state.lockedAt));
+	});
 }
 
 function rollbackRescheduleOnCalendarError(
@@ -223,7 +261,11 @@ function rollbackRescheduleOnCalendarError(
 	state: RescheduleState,
 	error: RescheduleSessionError
 ) {
-	return clearReservationThenUnlock(ctx, state).andThen(() => errAsync(error));
+	return safeTry(async function* () {
+		yield* clearReservationThenUnlock(ctx, state);
+
+		return err(error);
+	});
 }
 
 export function syncCalendar(
@@ -250,7 +292,11 @@ function rollbackRescheduleOnSaveError(
 
 	error: RescheduleSessionError
 ) {
-	return clearReservationThenUnlock(ctx, state).andThen(() => errAsync(error));
+	return safeTry(async function* () {
+		yield* clearReservationThenUnlock(ctx, state);
+
+		return err(error);
+	});
 }
 
 function saveReschedule(
@@ -282,10 +328,11 @@ export function saveClientRescheduleAndUnlockLink(
 	RescheduleState & { timingUpdate: RescheduledSessionTimingUpdate },
 	RescheduleSessionError
 > {
-	return saveReschedule(ctx, args, state).andThen(
-		(saved: RescheduleState & { timingUpdate: RescheduledSessionTimingUpdate }) =>
-			unlockSavedRescheduleLink(ctx, saved)
-	);
+	return safeTry(async function* () {
+		const saved = yield* saveReschedule(ctx, args, state);
+
+		return ok(yield* unlockSavedRescheduleLink(ctx, saved));
+	});
 }
 
 export function finishReschedule(

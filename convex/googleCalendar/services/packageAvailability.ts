@@ -1,6 +1,6 @@
 "use node";
 
-import { ResultAsync } from "neverthrow";
+import { ok, ResultAsync, safeTry } from "neverthrow";
 import type { ActionCtx } from "#convex/_generated/server";
 import { loadPackageByToken } from "#convex/googleCalendar/lib/packageAvailability";
 import {
@@ -35,26 +35,15 @@ export function loadValidPackageForCalendarAvailability(
 	ctx: ActionCtx,
 	args: { rateLimitKey: string; token: string }
 ): ResultAsync<PackageAvailabilityContext, PackageAvailabilityError> {
-	return loadPackageByToken(ctx, args.token)
-		.andThen((packageFromDb: PackageAvailabilityContext["packageFromDb"]) =>
-			checkGoogleCalendarAvailabilityRateLimit(ctx, args.rateLimitKey).map(() => packageFromDb)
-		)
-		.andThen((packageFromDb) =>
-			loadGoogleCalendarClient("GOOGLE_CALENDAR_AVAILABILITY_FAILED").map(
-				(client: PackageAvailabilityContext["client"]) => ({ client, packageFromDb })
-			)
-		)
-		.andThen(({ client, packageFromDb }) => {
-			const { startDate, endDate } = packageAvailabilityDates(packageFromDb);
+	return safeTry(async function* () {
+		const packageFromDb = yield* loadPackageByToken(ctx, args.token);
+		yield* checkGoogleCalendarAvailabilityRateLimit(ctx, args.rateLimitKey);
+		const client = yield* loadGoogleCalendarClient("GOOGLE_CALENDAR_AVAILABILITY_FAILED");
+		const { startDate, endDate } = packageAvailabilityDates(packageFromDb);
+		const availabilityRange = yield* getDateAvailabilityRange(startDate, endDate, client.timeZone);
 
-			return getDateAvailabilityRange(startDate, endDate, client.timeZone).map(
-				(availabilityRange: PackageAvailabilityContext["availabilityRange"]) => ({
-					availabilityRange,
-					client,
-					packageFromDb
-				})
-			);
-		});
+		return ok({ availabilityRange, client, packageFromDb });
+	});
 }
 
 export function loadPackageBookableRangeBusyWindows(
@@ -63,18 +52,19 @@ export function loadPackageBookableRangeBusyWindows(
 	PackageAvailabilityContext & { busyWindows: Awaited<ReturnType<typeof getBusyWindowsInRange>> },
 	PackageAvailabilityError
 > {
-	return tryGoogleCalendarAvailability(() =>
-		getBusyWindowsInRange({
-			calendar: context.client.calendar,
-			calendarIds: context.client.calendarIds,
-			timeMax: context.availabilityRange.timeMax,
-			timeMin: context.availabilityRange.timeMin,
-			timeZone: context.client.timeZone
-		})
-	).map((busyWindows: Awaited<ReturnType<typeof getBusyWindowsInRange>>) => ({
-		...context,
-		busyWindows
-	}));
+	return safeTry(async function* () {
+		const busyWindows = yield* tryGoogleCalendarAvailability(() =>
+			getBusyWindowsInRange({
+				calendar: context.client.calendar,
+				calendarIds: context.client.calendarIds,
+				timeMax: context.availabilityRange.timeMax,
+				timeMin: context.availabilityRange.timeMin,
+				timeZone: context.client.timeZone
+			})
+		);
+
+		return ok({ ...context, busyWindows });
+	});
 }
 
 export function groupPackageBusyWindowsByMonth(context: {
@@ -82,7 +72,9 @@ export function groupPackageBusyWindowsByMonth(context: {
 	client: { timeZone: string };
 	packageFromDb: { expiresAt: number };
 }) {
-	return groupBusyWindowsByDay(context.busyWindows, context.client.timeZone).map(
-		(busyDays: BusyDayWindow[]) => groupedPackageBusyWindows(context, busyDays)
-	);
+	return safeTry(function* () {
+		const busyDays = yield* groupBusyWindowsByDay(context.busyWindows, context.client.timeZone);
+
+		return ok(groupedPackageBusyWindows(context, busyDays));
+	});
 }

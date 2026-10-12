@@ -1,6 +1,6 @@
 "use node";
 
-import type { ResultAsync } from "neverthrow";
+import { ok, safeTry, type ResultAsync } from "neverthrow";
 import {
 	type GoogleCalendarDeleteError,
 	type GoogleCalendarEventMissing,
@@ -35,16 +35,25 @@ export function deleteSessionCalendarEvent(args: {
 	const calendarId = args.session.googleCalendarId ?? args.client.calendarId;
 	const savedEventId = args.session.googleEventId ?? null;
 
-	return deleteSavedCalendarEventIfFound(args.client, calendarId, savedEventId).andThen(
-		(wasDeleted) =>
-			findDeclinedSessionCalendarEvent({
-				session: args.session,
-				calendar: args.client.calendar,
-				calendarId,
-				timeZone: args.client.timeZone,
-				skipLookup: wasDeleted
-			}).andThen((foundEvent) => deleteFoundEvent(args.client, calendarId, foundEvent, wasDeleted))
-	);
+	return safeTry(async function* () {
+		const wasDeleted = yield* deleteSavedCalendarEventIfFound(
+			args.client,
+			calendarId,
+			savedEventId
+		);
+
+		const foundEvent = yield* findDeclinedSessionCalendarEvent({
+			session: args.session,
+			calendar: args.client.calendar,
+			calendarId,
+			timeZone: args.client.timeZone,
+			skipLookup: wasDeleted
+		});
+
+		const result = yield* deleteFoundEvent(args.client, calendarId, foundEvent, wasDeleted);
+
+		return ok(result);
+	});
 }
 
 export function createSessionCalendarEvent(args: {
@@ -65,13 +74,19 @@ function updateSavedCalendarEvent(args: {
 	googleEventId?: string;
 	createMissingEvent?: boolean;
 }) {
-	return loadSavedCalendarEventForUpdate(args)
-		.andThen((savedEvent) =>
-			updateCalendarEventForExisting(args, savedEvent, args.createMissingEvent ?? false)
-		)
-		.orElse((error: GoogleCalendarEventMissing | SessionCalendarTimingUpdateError) =>
-			insertCalendarEventWhenMissing(args, error)
+	return safeTry(async function* () {
+		const savedEvent = yield* loadSavedCalendarEventForUpdate(args);
+
+		const result = yield* updateCalendarEventForExisting(
+			args,
+			savedEvent,
+			args.createMissingEvent ?? false
 		);
+
+		return ok(result);
+	}).orElse((error: GoogleCalendarEventMissing | SessionCalendarTimingUpdateError) =>
+		insertCalendarEventWhenMissing(args, error)
+	);
 }
 
 export function updateSessionCalendarEventTiming(args: {

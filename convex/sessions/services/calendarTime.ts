@@ -1,3 +1,4 @@
+import { ok, safeTry } from "neverthrow";
 import {
 	getUtcDateForZonedDateTime,
 	parseDateValue,
@@ -20,10 +21,13 @@ function parseAvailabilityDuration(
 }
 
 export function checkSessionMeetsAvailabilitySettings(args: SessionAvailabilityArgs) {
-	return parseDateValue(args.date)
-		.andThen((bookingDate) => validateAvailabilityDateRange(args, bookingDate))
-		.andThen((daySchedule) => parseAvailabilityDuration(args, daySchedule))
-		.andThen(validateAvailabilityDay)
-		.andThen(() => getUtcDateForZonedDateTime(args.date, args.time, args.timeZone))
-		.andThen((bookingStart) => validateAvailabilityLeadTime(args, bookingStart));
+	return safeTry(function* () {
+		const bookingDate = yield* parseDateValue(args.date);
+		const daySchedule = yield* validateAvailabilityDateRange(args, bookingDate);
+		const availability = yield* parseAvailabilityDuration(args, daySchedule);
+		yield* validateAvailabilityDay(availability);
+		const bookingStart = yield* getUtcDateForZonedDateTime(args.date, args.time, args.timeZone);
+
+		return ok(yield* validateAvailabilityLeadTime(args, bookingStart));
+	});
 }

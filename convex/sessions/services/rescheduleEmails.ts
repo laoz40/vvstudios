@@ -1,6 +1,6 @@
 "use node";
 
-import type { ResultAsync } from "neverthrow";
+import { ok, safeTry } from "neverthrow";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { ActionCtx } from "#convex/_generated/server";
 import { createBookingInvoiceArtifactsForBooking } from "#studio/features/booking-invoice/lib/booking-artifacts";
@@ -17,12 +17,6 @@ import {
 	logSessionHostRescheduleEmailFailure,
 	type HostRescheduleBooking
 } from "#convex/sessions/lib/rescheduleEmails";
-
-type BookingRescheduleEmailError =
-	| { reason: "EMAIL_RENDER_FAILED" }
-	| { reason: "EMAIL_REQUEST_FAILED" }
-	| { reason: "EMAIL_RESPONSE_FAILED" }
-	| { reason: "INVALID_BOOKING_DATA" };
 
 function afterCustomerRescheduleEmailStep(
 	booking: Doc<"bookings">,
@@ -45,21 +39,29 @@ export function sendBookingRescheduledEmailsForBooking(
 		originalTime: string;
 		rescheduleUrl?: string;
 	}
-): ResultAsync<null, BookingRescheduleEmailError> {
-	return sendBookingRescheduledCustomerEmail(
-		bookingRescheduledCustomerEmailArgs(booking, options)
-	).andThen(() => afterCustomerRescheduleEmailStep(booking, options));
+) {
+	return safeTry(async function* () {
+		yield* sendBookingRescheduledCustomerEmail(
+			bookingRescheduledCustomerEmailArgs(booking, options)
+		);
+
+		return ok(yield* afterCustomerRescheduleEmailStep(booking, options));
+	});
 }
 
 export function sendSessionHostRescheduleEmailForBooking(
 	booking: Doc<"bookings">,
 	options: { leadTimeMinutes: number; originalDate: string; originalTime: string }
-): ResultAsync<null, { reason: "INVALID_BOOKING_DATA" | "HOST_EMAIL_SEND_FAILED" }> {
-	return createBookingInvoiceArtifactsForBooking(
-		booking,
-		bookingInvoiceArtifactCreatedAt(booking),
-		{ leadTimeMinutes: options.leadTimeMinutes }
-	).asyncAndThen((value) => sendSessionHostEmailFromArtifacts(booking, options, value));
+) {
+	return safeTry(async function* () {
+		const artifacts = yield* createBookingInvoiceArtifactsForBooking(
+			booking,
+			bookingInvoiceArtifactCreatedAt(booking),
+			{ leadTimeMinutes: options.leadTimeMinutes }
+		);
+
+		return ok(yield* sendSessionHostEmailFromArtifacts(booking, options, artifacts));
+	});
 }
 
 function sendSessionHostEmailFromArtifacts(
@@ -101,8 +103,10 @@ export function notifyHostOfAdminSessionReschedule(
 		originalTime: string;
 		result: AdminSessionUpdateResult;
 	}
-): ResultAsync<AdminSessionUpdateResult, { reason: "BOOKING_NOT_FOUND" }> {
-	return getSessionFromQuery(ctx, args.bookingId).andThen((updatedSession: Doc<"bookings">) =>
-		notifyHostAfterAdminRescheduleStep(args, updatedSession)
-	);
+) {
+	return safeTry(async function* () {
+		const updatedSession = yield* getSessionFromQuery(ctx, args.bookingId);
+
+		return ok(yield* notifyHostAfterAdminRescheduleStep(args, updatedSession));
+	});
 }

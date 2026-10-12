@@ -1,6 +1,6 @@
 "use node";
 
-import { type ResultAsync } from "neverthrow";
+import { ok, safeTry, type ResultAsync } from "neverthrow";
 import { createRescheduleUrlForSession } from "#convex/sessions/lib/rescheduleLinks";
 
 import type { Doc } from "#convex/_generated/dataModel";
@@ -44,17 +44,35 @@ function sendReminderAfterEventWindow(
 	timeZone: string,
 	startDateTime: string
 ) {
-	return reminderRescheduleUrl(ctx, session).andThen((rescheduleUrl: string | undefined) =>
-		sendReminderEmailForSessionWindow(session, timeZone, startDateTime, rescheduleUrl)
-	);
+	return safeTry(async function* () {
+		const rescheduleUrl = yield* reminderRescheduleUrl(ctx, session);
+
+		const result = yield* sendReminderEmailForSessionWindow(
+			session,
+			timeZone,
+			startDateTime,
+			rescheduleUrl
+		);
+
+		return ok(result);
+	});
 }
 
 export function sendBookingReminderEmailForSession(ctx: ActionCtx, session: Doc<"bookings">) {
 	const { timeZone } = getGoogleCalendarClient();
 
-	return buildEventWindow(session.date, session.time, session.duration, timeZone).asyncAndThen(
-		({ startDateTime }) => sendReminderAfterEventWindow(ctx, session, timeZone, startDateTime)
-	);
+	return safeTry(async function* () {
+		const { startDateTime } = yield* buildEventWindow(
+			session.date,
+			session.time,
+			session.duration,
+			timeZone
+		);
+
+		const result = yield* sendReminderAfterEventWindow(ctx, session, timeZone, startDateTime);
+
+		return ok(result);
+	});
 }
 
 export function saveConfirmedBooking(
@@ -64,16 +82,13 @@ export function saveConfirmedBooking(
 	reservation: SessionReservation,
 	googleEventId: string | undefined
 ): ResultAsync<boolean, never> {
-	return markBookingConfirmedMutation(ctx, session, calendarClient, reservation, googleEventId)
-		.map(() => true)
-		.orElse(
-			(
-				error:
-					| { reason: "BOOKING_NOT_FOUND" }
-					| { reason: "BOOKING_RESERVATION_MISMATCH" }
-					| { reason: "BOOKING_INVALID_DURATION" }
-			) => handleSaveConfirmedBookingFailure(ctx, session, googleEventId, calendarClient, error)
-		);
+	return safeTry(async function* () {
+		yield* markBookingConfirmedMutation(ctx, session, calendarClient, reservation, googleEventId);
+
+		return ok(true);
+	}).orElse((error) =>
+		handleSaveConfirmedBookingFailure(ctx, session, googleEventId, calendarClient, error)
+	);
 }
 
 function sendInvoiceEmailsWithRescheduleUrl(
@@ -83,12 +98,16 @@ function sendInvoiceEmailsWithRescheduleUrl(
 
 	rescheduleUrl: string
 ) {
-	return sendBookingReceiptEmailsForBooking(session, {
-		leadTimeMinutes: settings.leadTimeMinutes,
-		rescheduleUrl
-	})
-		.andThen((_value) => recordReceiptNumberAfterEmail(ctx, session._id, _value))
-		.orElse((error: { reason: string }) => sendInvoiceEmailFailure(ctx, session, error));
+	return safeTry(async function* () {
+		const receipt = yield* sendBookingReceiptEmailsForBooking(session, {
+			leadTimeMinutes: settings.leadTimeMinutes,
+			rescheduleUrl
+		});
+
+		const result = yield* recordReceiptNumberAfterEmail(ctx, session._id, receipt);
+
+		return ok(result);
+	}).orElse((error: { reason: string }) => sendInvoiceEmailFailure(ctx, session, error));
 }
 
 export function sendConfirmedBookingInvoice(
@@ -96,11 +115,12 @@ export function sendConfirmedBookingInvoice(
 	session: Doc<"bookings">,
 	settings: SessionAvailabilitySettings
 ): ResultAsync<null, never> {
-	return createRescheduleUrlForSession(ctx, session)
-		.andThen((rescheduleUrl: string) =>
-			sendInvoiceEmailsWithRescheduleUrl(ctx, session, settings, rescheduleUrl)
-		)
-		.orElse((error: { reason: string }) =>
-			sendInvoiceWithRescheduleLinkFailure(ctx, session, error)
-		);
+	return safeTry(async function* () {
+		const rescheduleUrl = yield* createRescheduleUrlForSession(ctx, session);
+		const result = yield* sendInvoiceEmailsWithRescheduleUrl(ctx, session, settings, rescheduleUrl);
+
+		return ok(result);
+	}).orElse((error: { reason: string }) =>
+		sendInvoiceWithRescheduleLinkFailure(ctx, session, error)
+	);
 }

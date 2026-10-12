@@ -1,6 +1,6 @@
 import { queryBookingAvailabilitySettings } from "#convex/booking/lib/settingsIo";
 import type { BookingAvailabilitySettings } from "#studio/lib/bookingAvailabilitySettings";
-import type { ResultAsync as NeverthrowResultAsync } from "neverthrow";
+import { ok, safeTry, type ResultAsync as NeverthrowResultAsync } from "neverthrow";
 
 import type { ActionCtx, MutationCtx, QueryCtx } from "#convex/_generated/server";
 import {
@@ -15,9 +15,12 @@ function writeValidatedBookingSettings(
 	ctx: MutationCtx,
 	value: ReturnType<typeof buildBookingAvailabilitySettingsRowValue>
 ) {
-	return lookupBookingAvailabilitySettingsRow(ctx).andThen((existing) =>
-		upsertBookingAvailabilitySettingsRow(ctx, value, existing)
-	);
+	return safeTry(async function* () {
+		const existing = yield* lookupBookingAvailabilitySettingsRow(ctx);
+		const result = yield* upsertBookingAvailabilitySettingsRow(ctx, value, existing);
+
+		return ok(result);
+	});
 }
 
 export function loadBookingAvailabilitySettings(ctx: QueryCtx) {
@@ -37,7 +40,10 @@ export function writeBookingAvailabilitySettings(
 ) {
 	const value = buildBookingAvailabilitySettingsRowValue(settings, updatedBy);
 
-	return validateBookingSettings(settings).asyncAndThen(() =>
-		writeValidatedBookingSettings(ctx, value)
-	);
+	return safeTry(async function* () {
+		yield* validateBookingSettings(settings);
+		const result = yield* writeValidatedBookingSettings(ctx, value);
+
+		return ok(result);
+	});
 }

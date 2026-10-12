@@ -1,4 +1,4 @@
-import { ResultAsync } from "neverthrow";
+import { ok, ResultAsync, safeTry } from "neverthrow";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
 import { getBookingRow } from "#convex/sessions/lib/lookup";
@@ -16,9 +16,7 @@ import {
 	validateAdminSessionForReschedule,
 	validatePublicFailedSessionForReschedule,
 	validateRescheduleLinkSession,
-	selectNextRescheduleLinkInvalidationBatches,
-	type RescheduleLinkLookupError,
-	type ValidRescheduleLinkAndSession
+	selectNextRescheduleLinkInvalidationBatches
 } from "#convex/sessions/lib/rescheduleLinks";
 import { getSessionByStripeSessionId, getSessionFromDb } from "#convex/sessions/services/lookup";
 import { requirePermission } from "#convex/shared/services/auth";
@@ -30,9 +28,11 @@ function createActiveRescheduleLinkForSession(
 	expiresAt: number,
 	now: number
 ) {
-	return writeRescheduleLinksUsedForBooking(ctx, { bookingId: session._id, now }).andThen(() =>
-		createNewRescheduleLink(ctx, session, expiresAt, now)
-	);
+	return safeTry(async function* () {
+		yield* writeRescheduleLinksUsedForBooking(ctx, { bookingId: session._id, now });
+
+		return ok(yield* createNewRescheduleLink(ctx, session, expiresAt, now));
+	});
 }
 
 function createNewRescheduleLink(
@@ -43,27 +43,34 @@ function createNewRescheduleLink(
 ) {
 	const token = generateRescheduleToken();
 
-	return hashRescheduleTokenAsync(token)
-		.andThen((tokenHash) =>
-			insertActiveRescheduleLink(ctx, { bookingId: session._id, tokenHash, expiresAt, now })
-		)
-		.map((linkId) => ({ linkId, token }));
+	return safeTry(async function* () {
+		const tokenHash = yield* hashRescheduleTokenAsync(token);
+
+		const linkId = yield* insertActiveRescheduleLink(ctx, {
+			bookingId: session._id,
+			tokenHash,
+			expiresAt,
+			now
+		});
+
+		return ok({ linkId, token });
+	});
 }
 
 function invalidateNextRescheduleLinksBatch(
 	ctx: MutationCtx,
 	args: { bookingId: Id<"bookings">; now: number }
 ): ResultAsync<null, never> {
-	return listActiveRescheduleLinks(ctx, args.bookingId).andThen((activeLinks) =>
-		markRescheduleLinksUsed(ctx, activeLinks, args.now).andThen(() => {
-			const nextBatches: ResultAsync<null, never>[] = selectNextRescheduleLinkInvalidationBatches(
-				activeLinks,
-				args
-			).map((nextArgs) => invalidateNextRescheduleLinksBatch(ctx, nextArgs));
+	return safeTry(async function* () {
+		const activeLinks = yield* listActiveRescheduleLinks(ctx, args.bookingId);
+		yield* markRescheduleLinksUsed(ctx, activeLinks, args.now);
 
-			return ResultAsync.combine(nextBatches).map(() => null);
-		})
-	);
+		const nextBatches = selectNextRescheduleLinkInvalidationBatches(activeLinks, args).map(
+			(nextArgs) => invalidateNextRescheduleLinksBatch(ctx, nextArgs)
+		);
+
+		return ok(yield* ResultAsync.combine(nextBatches).map(() => null));
+	});
 }
 
 export function writeRescheduleLinksUsedForBooking(
@@ -73,49 +80,53 @@ export function writeRescheduleLinksUsedForBooking(
 	return invalidateNextRescheduleLinksBatch(ctx, args);
 }
 
-export function issueRescheduleLink(
-	ctx: MutationCtx,
-	session: Doc<"bookings">
-): ResultAsync<{ rescheduleUrl: string }, never> {
+export function issueRescheduleLink(ctx: MutationCtx, session: Doc<"bookings">) {
 	return createActiveRescheduleLinkForSession(ctx, session, session.sessionStartAt, Date.now()).map(
 		rescheduleUrlFromLinkRow
 	);
 }
 
 export function loadPublicFailedSessionByStripeId(ctx: MutationCtx, stripeSessionId: string) {
-	return getSessionByStripeSessionId(ctx, stripeSessionId).andThen(
-		validatePublicFailedSessionForReschedule
-	);
+	return safeTry(async function* () {
+		const session = yield* getSessionByStripeSessionId(ctx, stripeSessionId);
+
+		return ok(yield* validatePublicFailedSessionForReschedule(session));
+	});
 }
 
 export function writeActiveRescheduleLinkForBooking(
 	ctx: MutationCtx,
 	args: { bookingId: Id<"bookings">; expiresAt: number; now: number }
 ) {
-	return getSessionFromDb(ctx, args.bookingId).andThen((session: Doc<"bookings">) =>
-		createActiveRescheduleLinkForSession(ctx, session, args.expiresAt, args.now)
-	);
+	return safeTry(async function* () {
+		const session = yield* getSessionFromDb(ctx, args.bookingId);
+
+		return ok(yield* createActiveRescheduleLinkForSession(ctx, session, args.expiresAt, args.now));
+	});
 }
 
 export function markActiveRescheduleLinksUsedForBooking(
 	ctx: MutationCtx,
 	args: { bookingId: Id<"bookings">; now: number }
 ) {
-	return getSessionFromDb(ctx, args.bookingId).andThen(() =>
-		writeRescheduleLinksUsedForBooking(ctx, args)
-	);
+	return safeTry(async function* () {
+		yield* getSessionFromDb(ctx, args.bookingId);
+
+		return ok(yield* writeRescheduleLinksUsedForBooking(ctx, args));
+	});
 }
 
 export function loadValidRescheduleLinkAndSession(
 	ctx: QueryCtx,
 	args: { now: number; token: string }
-): ResultAsync<ValidRescheduleLinkAndSession, RescheduleLinkLookupError> {
-	return hashRescheduleTokenAsync(args.token)
-		.andThen((tokenHash: string) => lookupRescheduleLinkByTokenHash(ctx, tokenHash))
-		.andThen(validateActiveRescheduleLink)
-		.andThen((link: Doc<"bookingRescheduleLinks">) =>
-			validateLoadedRescheduleLinkSession(ctx, args, link)
-		);
+) {
+	return safeTry(async function* () {
+		const tokenHash = yield* hashRescheduleTokenAsync(args.token);
+		const link = yield* lookupRescheduleLinkByTokenHash(ctx, tokenHash);
+		const activeLink = yield* validateActiveRescheduleLink(link);
+
+		return ok(yield* validateLoadedRescheduleLinkSession(ctx, args, activeLink));
+	});
 }
 
 function validateLoadedRescheduleLinkSession(
@@ -123,32 +134,44 @@ function validateLoadedRescheduleLinkSession(
 	args: { now: number; token: string },
 	link: Doc<"bookingRescheduleLinks">
 ) {
-	return getBookingRow(ctx, link.bookingId).andThen((session) =>
-		validateRescheduleLinkSession(args, { link, session })
-	);
+	return safeTry(async function* () {
+		const session = yield* getBookingRow(ctx, link.bookingId);
+
+		return ok(yield* validateRescheduleLinkSession(args, { link, session }));
+	});
 }
 
 export function writeAdminRescheduleLink(ctx: MutationCtx, args: { bookingId: Id<"bookings"> }) {
-	return requirePermission(ctx, "create:reschedule-links")
-		.andThen(() => getSessionFromDb(ctx, args.bookingId))
-		.andThen(validateAdminSessionForReschedule)
-		.andThen((session: Doc<"bookings">) => issueRescheduleLink(ctx, session));
+	return safeTry(async function* () {
+		yield* requirePermission(ctx, "create:reschedule-links");
+		const session = yield* getSessionFromDb(ctx, args.bookingId);
+		const validatedSession = yield* validateAdminSessionForReschedule(session);
+
+		return ok(yield* issueRescheduleLink(ctx, validatedSession));
+	});
 }
 
 export function lockRescheduleLinkAt(
 	ctx: MutationCtx,
 	args: { linkId: Doc<"bookingRescheduleLinks">["_id"]; now: number }
 ) {
-	return getRescheduleLinkRow(ctx, args.linkId)
-		.andThen(validateActiveRescheduleLink)
-		.andThen(() => patchRescheduleLinkRow(ctx, args.linkId, { status: "used", usedAt: args.now }));
+	return safeTry(async function* () {
+		const link = yield* getRescheduleLinkRow(ctx, args.linkId);
+		yield* validateActiveRescheduleLink(link);
+
+		return ok(
+			yield* patchRescheduleLinkRow(ctx, args.linkId, { status: "used", usedAt: args.now })
+		);
+	});
 }
 
 export function reopenRescheduleLink(
 	ctx: MutationCtx,
 	args: { linkId: Doc<"bookingRescheduleLinks">["_id"]; lockedAt: number; expiresAt?: number }
 ) {
-	return getRescheduleLinkRow(ctx, args.linkId).andThen((link) =>
-		unlockRescheduleLinkIfLocked(ctx, args, link)
-	);
+	return safeTry(async function* () {
+		const link = yield* getRescheduleLinkRow(ctx, args.linkId);
+
+		return ok(yield* unlockRescheduleLinkIfLocked(ctx, args, link));
+	});
 }

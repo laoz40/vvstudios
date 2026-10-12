@@ -1,4 +1,4 @@
-import type { Result } from "neverthrow";
+import { ok, safeTry, type Result } from "neverthrow";
 import {
 	getDateAvailabilityEndDateTime,
 	mapDateAvailabilityRangeFromStartStep,
@@ -13,7 +13,10 @@ export function getDateAvailabilityRange(
 	{ timeMax: string; timeMin: string },
 	Exclude<SessionTimeParseError, { reason: "BOOKING_INVALID_DURATION" }>
 > {
-	return getDateAvailabilityEndDateTime(endDate, timeZone).andThen((timeMaxDate) =>
-		mapDateAvailabilityRangeFromStartStep(startDate, timeZone, timeMaxDate)
-	);
+	return safeTry(function* () {
+		const timeMaxDate = yield* getDateAvailabilityEndDateTime(endDate, timeZone);
+		const range = yield* mapDateAvailabilityRangeFromStartStep(startDate, timeZone, timeMaxDate);
+
+		return ok(range);
+	});
 }

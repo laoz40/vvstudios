@@ -1,4 +1,4 @@
-import { type ResultAsync } from "neverthrow";
+import { ok, safeTry, type ResultAsync } from "neverthrow";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { MutationCtx } from "#convex/_generated/server";
 import {
@@ -16,8 +16,6 @@ import {
 	patchBookingInvoiceEmailFailed,
 	patchBookingReceiptNumber
 } from "#convex/booking/lib/confirmationSessionPatches";
-
-import type { ConfirmedBookingDatabasePatch } from "#convex/booking/lib/confirmationSave";
 
 import { normalizeBookingId } from "#convex/sessions/lib/lookup";
 import { getSessionFromDb } from "#convex/sessions/services/lookup";
@@ -59,22 +57,26 @@ function patchConfirmedBookingWithArgs(
 
 	session: Doc<"bookings">
 ) {
-	return buildConfirmedBookingPatch(ctx, session, args, confirmedAt).andThen(
-		(patch: ConfirmedBookingDatabasePatch) =>
-			patchConfirmedBooking(ctx, args.bookingId, session, patch)
-	);
+	return safeTry(async function* () {
+		const patch = yield* buildConfirmedBookingPatch(ctx, session, args, confirmedAt);
+		const confirmedSession = yield* patchConfirmedBooking(ctx, args.bookingId, session, patch);
+
+		return ok(confirmedSession);
+	});
 }
 
 export function loadBookingStripeConfirmationClaimStatus(
 	ctx: MutationCtx,
 	args: ClaimBookingConfirmationArgs
 ) {
-	return normalizeBookingId(ctx, args.bookingId)
-		.asyncAndThen((bookingId: Id<"bookings">) => getSessionFromDb(ctx, bookingId))
-		.andThen((session: Doc<"bookings">) =>
-			validateClaimStripeSession(session, args.stripeSessionId)
-		)
-		.andThen(getBookingClaimStatus);
+	return safeTry(async function* () {
+		const bookingId = yield* normalizeBookingId(ctx, args.bookingId);
+		const session = yield* getSessionFromDb(ctx, bookingId);
+		const claimedSession = yield* validateClaimStripeSession(session, args.stripeSessionId);
+		const status = yield* getBookingClaimStatus(claimedSession);
+
+		return ok(status);
+	});
 }
 
 export function writeBookingStripeConfirmationClaim(
@@ -89,50 +91,66 @@ export function writeStandaloneBookingReceiptNumberIfMissing(
 	ctx: MutationCtx,
 	args: { bookingId: Id<"bookings"> } | null
 ) {
-	return loadRequestedReceiptBooking(ctx, args)
-		.andThen(requireRequestedReceiptBooking)
-		.map(selectMissingStandaloneReceiptRequest)
-		.andThen((request) => writeBookingReceiptNumberOnSession(ctx, request));
+	return safeTry(async function* () {
+		const loaded = yield* loadRequestedReceiptBooking(ctx, args);
+		const booking = yield* requireRequestedReceiptBooking(loaded);
+		const request = selectMissingStandaloneReceiptRequest(booking);
+		const result = yield* writeBookingReceiptNumberOnSession(ctx, request);
+
+		return ok(result);
+	});
 }
 
 export function writeBookingReceiptNumberOnSession(
 	ctx: MutationCtx,
 	args: { bookingId: Id<"bookings">; receiptNumber: string } | null
 ) {
-	return loadRequestedReceiptBooking(ctx, args)
-		.andThen(requireRequestedReceiptBooking)
-		.andThen((loaded) => loadChangedReceiptSearchPatch(ctx, loaded))
-		.andThen((patch) => patchBookingReceiptNumber(ctx, patch));
+	return safeTry(async function* () {
+		const loaded = yield* loadRequestedReceiptBooking(ctx, args);
+		const booking = yield* requireRequestedReceiptBooking(loaded);
+		const patch = yield* loadChangedReceiptSearchPatch(ctx, booking);
+		const result = yield* patchBookingReceiptNumber(ctx, patch);
+
+		return ok(result);
+	});
 }
 
 export function markBookingInvoiceEmailFailedOnSession(
 	ctx: MutationCtx,
 	args: { bookingId: Id<"bookings"> }
 ) {
-	return getSessionFromDb(ctx, args.bookingId)
-		.map(selectConfirmedInvoiceFailureRequest)
-		.andThen((request) =>
-			writeStandaloneBookingReceiptNumberIfMissing(ctx, request).map(() => request)
-		)
-		.andThen((request) => patchBookingInvoiceEmailFailed(ctx, request?.bookingId ?? null));
+	return safeTry(async function* () {
+		const session = yield* getSessionFromDb(ctx, args.bookingId);
+		const request = selectConfirmedInvoiceFailureRequest(session);
+		yield* writeStandaloneBookingReceiptNumberIfMissing(ctx, request);
+		const result = yield* patchBookingInvoiceEmailFailed(ctx, request?.bookingId ?? null);
+
+		return ok(result);
+	});
 }
 
 export function clearBookingInvoiceEmailFailureOnSession(
 	ctx: MutationCtx,
 	args: { bookingId: Id<"bookings"> }
 ) {
-	return getSessionFromDb(ctx, args.bookingId).andThen((session: Doc<"bookings">) =>
-		clearInvoiceEmailFailureIfNeeded(ctx, args, session)
-	);
+	return safeTry(async function* () {
+		const session = yield* getSessionFromDb(ctx, args.bookingId);
+		const result = yield* clearInvoiceEmailFailureIfNeeded(ctx, args, session);
+
+		return ok(result);
+	});
 }
 
 export function markPendingBookingConfirmationFailed(
 	ctx: MutationCtx,
 	args: { bookingId: Id<"bookings">; failureCode: string; reservation?: SessionReservation }
 ) {
-	return getSessionFromDb(ctx, args.bookingId).andThen((session: Doc<"bookings">) =>
-		markPendingConfirmationFailedIfReserved(ctx, args, session)
-	);
+	return safeTry(async function* () {
+		const session = yield* getSessionFromDb(ctx, args.bookingId);
+		const result = yield* markPendingConfirmationFailedIfReserved(ctx, args, session);
+
+		return ok(result);
+	});
 }
 
 export function confirmBookingAfterPaymentClaim(
@@ -146,12 +164,24 @@ export function confirmBookingAfterPaymentClaim(
 ) {
 	const confirmedAt = Date.now();
 
-	return getSessionFromDb(ctx, args.bookingId)
-		.andThen((session: Doc<"bookings">) =>
-			requireBookingConfirmationReservation(session, args.reservation, confirmedAt)
-		)
-		.andThen((session: Doc<"bookings">) =>
-			patchConfirmedBookingWithArgs(ctx, args, confirmedAt, session)
-		)
-		.andThen((session: Doc<"bookings">) => scheduleDriveSetupForConfirmedBooking(ctx, session));
+	return safeTry(async function* () {
+		const session = yield* getSessionFromDb(ctx, args.bookingId);
+
+		const reservedSession = yield* requireBookingConfirmationReservation(
+			session,
+			args.reservation,
+			confirmedAt
+		);
+
+		const confirmedSession = yield* patchConfirmedBookingWithArgs(
+			ctx,
+			args,
+			confirmedAt,
+			reservedSession
+		);
+
+		const result = yield* scheduleDriveSetupForConfirmedBooking(ctx, confirmedSession);
+
+		return ok(result);
+	});
 }

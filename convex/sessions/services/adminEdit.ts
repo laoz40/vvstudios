@@ -1,4 +1,4 @@
-import { ok, Result, ResultAsync } from "neverthrow";
+import { ok, Result, ResultAsync, safeTry } from "neverthrow";
 import { isTimeSlotAvailable } from "#convex/sessions/lib/calendarTime";
 import { checkSessionMeetsAvailabilitySettings } from "#convex/sessions/services/calendarTime";
 import {
@@ -34,7 +34,15 @@ function loadBusyWindowsForSessionTimingEdit(args: ValidateSessionTimingEditArgs
 				timeZone: args.timeZone
 			})
 		)
-	).andThen(sessionTimingAvailabilityResult);
+	);
+}
+
+function loadAvailableBusyWindowsForSessionTimingEdit(args: ValidateSessionTimingEditArgs) {
+	return safeTry(async function* () {
+		const availability = yield* loadBusyWindowsForSessionTimingEdit(args);
+
+		return ok(yield* sessionTimingAvailabilityResult(availability));
+	});
 }
 
 function validateChangedSessionTiming(args: ValidateSessionTimingEditArgs) {
@@ -50,12 +58,14 @@ function validateChangedSessionTiming(args: ValidateSessionTimingEditArgs) {
 		)
 	);
 
-	return settingsValidation.asyncAndThen(() => loadBusyWindowsForSessionTimingEdit(args));
+	return safeTry(async function* () {
+		yield* settingsValidation;
+
+		return ok(yield* loadAvailableBusyWindowsForSessionTimingEdit(args));
+	});
 }
 
-export function validateSessionTimingEdit(
-	args: ValidateSessionTimingEditArgs
-): ResultAsync<null, AdminSessionUpdateError> {
+export function validateSessionTimingEdit(args: ValidateSessionTimingEditArgs) {
 	return ResultAsync.combine(
 		selectChangedSessionTimingEdits(args).map(validateChangedSessionTiming)
 	).map(() => null);
@@ -64,36 +74,39 @@ export function validateSessionTimingEdit(
 export function verifySessionCanBeScheduled(args: SessionSchedulingAvailabilityArgs) {
 	const { session, settings, timeZone } = args;
 
-	return checkSessionMeetsAvailabilitySettings({
-		date: session.date,
-		duration: session.duration,
-		settings,
-		time: session.time,
-		timeZone
-	})
-		.map(() => selectAvailableSessionSchedulingChecks(true, args))
-		.orElse(() => ok([]))
-		.asyncAndThen((eligible) =>
-			ResultAsync.combine(
-				eligible.map((eligibleArgs) =>
-					tryGoogleCalendarAvailability(() =>
-						getBusyWindows({
-							calendar: eligibleArgs.calendar,
-							calendarIds: eligibleArgs.calendarIds,
-							date: eligibleArgs.session.date,
-							timeZone: eligibleArgs.timeZone
-						})
-					).map((busyWindows) =>
-						isTimeSlotAvailable({
-							busyWindows,
-							date: eligibleArgs.session.date,
-							duration: eligibleArgs.session.duration,
-							eventBufferMinutes: eligibleArgs.settings.eventBufferMinutes,
-							time: eligibleArgs.session.time,
-							timeZone: eligibleArgs.timeZone
-						})
-					)
+	return safeTry(async function* () {
+		const available = yield* checkSessionMeetsAvailabilitySettings({
+			date: session.date,
+			duration: session.duration,
+			settings,
+			time: session.time,
+			timeZone
+		})
+			.map(() => selectAvailableSessionSchedulingChecks(true, args))
+			.orElse(() => ok([]));
+
+		const results = yield* ResultAsync.combine(
+			available.map((eligibleArgs) =>
+				tryGoogleCalendarAvailability(() =>
+					getBusyWindows({
+						calendar: eligibleArgs.calendar,
+						calendarIds: eligibleArgs.calendarIds,
+						date: eligibleArgs.session.date,
+						timeZone: eligibleArgs.timeZone
+					})
+				).map((busyWindows) =>
+					isTimeSlotAvailable({
+						busyWindows,
+						date: eligibleArgs.session.date,
+						duration: eligibleArgs.session.duration,
+						eventBufferMinutes: eligibleArgs.settings.eventBufferMinutes,
+						time: eligibleArgs.session.time,
+						timeZone: eligibleArgs.timeZone
+					})
 				)
-			).map((results) => results[0] ?? false)
+			)
 		);
+
+		return ok(results[0] ?? false);
+	});
 }

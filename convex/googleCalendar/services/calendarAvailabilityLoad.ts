@@ -1,5 +1,7 @@
 "use node";
 
+import { ok, safeTry } from "neverthrow";
+
 import {
 	getGoogleCalendarClient,
 	loadGoogleCalendarClient
@@ -33,8 +35,10 @@ function loadBookableRangeBusyWindowsForClient(
 ) {
 	const { startDate, endDate } = bookableRangeDateArgs(args.settings);
 
-	return getDateAvailabilityRange(startDate, endDate, client.timeZone).asyncAndThen((range) =>
-		loadBusyWindowsInRange(
+	return safeTry(async function* () {
+		const range = yield* getDateAvailabilityRange(startDate, endDate, client.timeZone);
+
+		const result = yield* loadBusyWindowsInRange(
 			{
 				calendar: client.calendar,
 				calendarIds: client.calendarIds,
@@ -42,8 +46,10 @@ function loadBookableRangeBusyWindowsForClient(
 				timeZone: client.timeZone
 			},
 			range
-		)
-	);
+		);
+
+		return ok(result);
+	});
 }
 
 function loadBusyWindowsInRange(
@@ -55,18 +61,22 @@ function loadBusyWindowsInRange(
 	},
 	range: { timeMin: string; timeMax: string }
 ) {
-	return tryGoogleCalendarAvailability(() =>
-		getBusyWindowsInRange({
-			calendar: args.calendar,
-			calendarIds: args.calendarIds,
-			ignoredEvent: args.ignoredEvent,
-			timeMax: range.timeMax,
-			timeMin: range.timeMin,
-			timeZone: args.timeZone
-		})
-	).andThen((busyWindows: Awaited<ReturnType<typeof getBusyWindowsInRange>>) =>
-		bookableRangeBusyWindowsForTimeZone(args.timeZone, busyWindows)
-	);
+	return safeTry(async function* () {
+		const busyWindows = yield* tryGoogleCalendarAvailability(() =>
+			getBusyWindowsInRange({
+				calendar: args.calendar,
+				calendarIds: args.calendarIds,
+				ignoredEvent: args.ignoredEvent,
+				timeMax: range.timeMax,
+				timeMin: range.timeMin,
+				timeZone: args.timeZone
+			})
+		);
+
+		const result = yield* bookableRangeBusyWindowsForTimeZone(args.timeZone, busyWindows);
+
+		return ok(result);
+	});
 }
 
 export function loadBookableRangeBusyWindowsFromGoogle({
@@ -76,20 +86,25 @@ export function loadBookableRangeBusyWindowsFromGoogle({
 	ignoredEvent?: IgnoredBusyEvent;
 	settings: SessionAvailabilitySettings;
 }) {
-	return loadGoogleCalendarClient("GOOGLE_CALENDAR_AVAILABILITY_FAILED").andThen((client) =>
-		loadBookableRangeBusyWindowsForClient({ ignoredEvent, settings }, client)
-	);
+	return safeTry(async function* () {
+		const client = yield* loadGoogleCalendarClient("GOOGLE_CALENDAR_AVAILABILITY_FAILED");
+		const result = yield* loadBookableRangeBusyWindowsForClient({ ignoredEvent, settings }, client);
+
+		return ok(result);
+	});
 }
 
 function loadDayAvailableTimesForClient(
 	args: { date: string; duration: string; settings: SessionAvailabilitySettings },
 	{ calendar, calendarIds, timeZone }: LoadedGoogleCalendarClient
 ) {
-	return tryGoogleCalendarAvailability(() =>
-		getBusyWindows({ calendar, calendarIds, date: args.date, timeZone })
-	).map((busyWindows: Awaited<ReturnType<typeof getBusyWindows>>) =>
-		dayAvailableBookingTimes({ ...args, timeZone }, busyWindows)
-	);
+	return safeTry(async function* () {
+		const busyWindows = yield* tryGoogleCalendarAvailability(() =>
+			getBusyWindows({ calendar, calendarIds, date: args.date, timeZone })
+		);
+
+		return ok(dayAvailableBookingTimes({ ...args, timeZone }, busyWindows));
+	});
 }
 
 export function loadDayAvailableBookingTimes({
@@ -101,24 +116,31 @@ export function loadDayAvailableBookingTimes({
 	duration: string;
 	settings: SessionAvailabilitySettings;
 }) {
-	return loadGoogleCalendarClient("GOOGLE_CALENDAR_AVAILABILITY_FAILED").andThen((client) =>
-		loadDayAvailableTimesForClient({ date, duration, settings }, client)
-	);
+	return safeTry(async function* () {
+		const client = yield* loadGoogleCalendarClient("GOOGLE_CALENDAR_AVAILABILITY_FAILED");
+		const result = yield* loadDayAvailableTimesForClient({ date, duration, settings }, client);
+
+		return ok(result);
+	});
 }
 
 function loadDayBusyWindowsForClient(
 	args: { date: string; ignoredEvent?: IgnoredBusyEvent },
 	{ calendar, calendarIds, timeZone }: LoadedGoogleCalendarClient
 ) {
-	return tryGoogleCalendarAvailability(() =>
-		getBusyWindows({
-			calendar,
-			calendarIds,
-			date: args.date,
-			ignoredEvent: args.ignoredEvent,
-			timeZone
-		})
-	).map((busyWindows: Awaited<ReturnType<typeof getBusyWindows>>) => ({ busyWindows, timeZone }));
+	return safeTry(async function* () {
+		const busyWindows = yield* tryGoogleCalendarAvailability(() =>
+			getBusyWindows({
+				calendar,
+				calendarIds,
+				date: args.date,
+				ignoredEvent: args.ignoredEvent,
+				timeZone
+			})
+		);
+
+		return ok({ busyWindows, timeZone });
+	});
 }
 
 export function loadDayBusyWindows({
@@ -128,7 +150,10 @@ export function loadDayBusyWindows({
 	date: string;
 	ignoredEvent?: IgnoredBusyEvent;
 }) {
-	return loadGoogleCalendarClient("GOOGLE_CALENDAR_AVAILABILITY_FAILED").andThen((client) =>
-		loadDayBusyWindowsForClient({ date, ignoredEvent }, client)
-	);
+	return safeTry(async function* () {
+		const client = yield* loadGoogleCalendarClient("GOOGLE_CALENDAR_AVAILABILITY_FAILED");
+		const result = yield* loadDayBusyWindowsForClient({ date, ignoredEvent }, client);
+
+		return ok(result);
+	});
 }

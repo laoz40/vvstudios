@@ -1,11 +1,8 @@
-import { type ResultAsync } from "neverthrow";
+import { ok, safeTry, type ResultAsync } from "neverthrow";
 import type { Doc } from "#convex/_generated/dataModel";
 import type { MutationCtx } from "#convex/_generated/server";
 import { loadDriveSessionRowByBookingId } from "#convex/drive/lib/driveBookingDriveClient";
-import {
-	searchBlobPatchForBookingAsync,
-	type BookingSearchBlobPatch
-} from "#convex/shared/lib/adminSearch/adminSearchBlob";
+import { searchBlobPatchForBookingAsync } from "#convex/shared/lib/adminSearch/adminSearchBlob";
 import {
 	editorAssignmentAccessState,
 	editorAssignmentSearchInput,
@@ -23,9 +20,13 @@ function saveSessionEditorAssignment(
 	editor: Doc<"editorProfiles"> | undefined,
 	adminNotes: string
 ): ResultAsync<null, never> {
-	return loadDriveSessionRowByBookingId(ctx, session._id).andThen((driveSession) =>
-		saveSessionEditorAssignmentWithAccess(ctx, session, editor, adminNotes, driveSession)
-	);
+	return safeTry(async function* () {
+		const driveSession = yield* loadDriveSessionRowByBookingId(ctx, session._id);
+
+		return ok(
+			yield* saveSessionEditorAssignmentWithAccess(ctx, session, editor, adminNotes, driveSession)
+		);
+	});
 }
 
 function saveSessionEditorAssignmentWithAccess(
@@ -42,23 +43,23 @@ function saveSessionEditorAssignmentWithAccess(
 		isFirstAssignment
 	} = editorAssignmentAccessState(session, editor, driveSession);
 
-	return searchBlobPatchForBookingAsync(
-		ctx,
-		editorAssignmentSearchInput(session, editor, assignedEditorDisplayName)
-	)
-		.andThen((searchBlobPatch: BookingSearchBlobPatch) =>
-			patchEditorAssignmentAfterSearch(ctx, session, editor, adminNotes, searchBlobPatch)
-		)
-		.andThen(() => patchLastAssignedIfEditor(ctx, editor))
-		.andThen(() =>
-			scheduleDriveAccessRemovalIfNeeded(
-				ctx,
-				session._id,
-				previousEditorNeedsAccessRemoved,
-				previousEditorTokenIdentifier
-			)
-		)
-		.andThen(() => scheduleFirstAssignmentDriveSetup(ctx, session._id, isFirstAssignment));
+	return safeTry(async function* () {
+		const searchBlobPatch = yield* searchBlobPatchForBookingAsync(
+			ctx,
+			editorAssignmentSearchInput(session, editor, assignedEditorDisplayName)
+		);
+
+		yield* patchEditorAssignmentAfterSearch(ctx, session, editor, adminNotes, searchBlobPatch);
+		yield* patchLastAssignedIfEditor(ctx, editor);
+		yield* scheduleDriveAccessRemovalIfNeeded(
+			ctx,
+			session._id,
+			previousEditorNeedsAccessRemoved,
+			previousEditorTokenIdentifier
+		);
+
+		return ok(yield* scheduleFirstAssignmentDriveSetup(ctx, session._id, isFirstAssignment));
+	});
 }
 
 export function updateSessionEditorAssignment(
@@ -66,8 +67,26 @@ export function updateSessionEditorAssignment(
 	session: Doc<"bookings">,
 	editorTokenIdentifier: string | null,
 	adminNotes: string
-) {
-	return loadEditorForSessionAssignment(ctx, session, editorTokenIdentifier)
-		.andThen(requireSelectedAssignmentEditor)
-		.andThen((editor) => saveSessionEditorAssignment(ctx, session, editor, adminNotes));
+): ResultAsync<
+	null,
+	{
+		reason:
+			| "BOOKING_NOT_FOUND"
+			| "EDITOR_NOT_ACTIVE"
+			| "SESSION_NOT_ASSIGNABLE"
+			| "NOT_AUTHENTICATED"
+			| "NOT_AUTHORIZED";
+	}
+> {
+	return safeTry(async function* () {
+		const selectedEditor = yield* loadEditorForSessionAssignment(
+			ctx,
+			session,
+			editorTokenIdentifier
+		);
+
+		const editor = yield* requireSelectedAssignmentEditor(selectedEditor);
+
+		return ok(yield* saveSessionEditorAssignment(ctx, session, editor, adminNotes));
+	});
 }

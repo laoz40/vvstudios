@@ -1,6 +1,6 @@
 "use node";
 
-import type { ResultAsync } from "neverthrow";
+import { ok, safeTry, type ResultAsync } from "neverthrow";
 import { loadGoogleCalendarClient } from "#convex/googleCalendar/lib/googleCalendarClient";
 import type { GoogleCalendarWriteError } from "#convex/googleCalendar/lib/googleCalendarErrors";
 import type { PackageCalendarDetails } from "#convex/googleCalendar/lib/packageDetails";
@@ -32,56 +32,71 @@ function openPackageCalendarSlot(
 	args: { session: SessionCalendarEventRecord | null; details: PackageCalendarDetails },
 	client: PackageCalendarClient
 ) {
-	return loadPackageBusyWindows(client, args.details, args.session).andThen((busyWindows) =>
-		packageSlotAvailabilityResult(client, args.details, busyWindows)
-	);
+	return safeTry(async function* () {
+		const busyWindows = yield* loadPackageBusyWindows(client, args.details, args.session);
+		const result = yield* packageSlotAvailabilityResult(client, args.details, busyWindows);
+
+		return ok(result);
+	});
 }
 
 export function loadPackageCalendarClientWhenSlotOpen(args: {
 	session: SessionCalendarEventRecord | null;
 	details: PackageCalendarDetails;
 }) {
-	return loadGoogleCalendarClient("GOOGLE_CALENDAR_SYNC_FAILED").andThen(
-		(client: PackageCalendarClient) => openPackageCalendarSlot(args, client)
-	);
+	return safeTry(async function* () {
+		const client = yield* loadGoogleCalendarClient("GOOGLE_CALENDAR_SYNC_FAILED");
+		const result = yield* openPackageCalendarSlot(args, client);
+
+		return ok(result);
+	});
 }
 
 export function writePackageSessionGoogleCalendarEvent(
 	client: PackageCalendarClient,
 	args: { session: SessionCalendarEventRecord | null; details: PackageCalendarDetails }
 ): ResultAsync<{ googleCalendarId?: string; googleEventId?: string }, PackageCalendarWriteError> {
-	return updateSessionCalendarEventTiming({
-		session: args.session,
-		client,
-		createMissingEvent: true,
-		date: args.details.date,
-		details: packageCalendarEventDetails(args.details),
-		time: args.details.time
-	}).map((result: { googleCalendarId?: string; googleEventId?: string }) =>
-		packageCalendarIdPatchFromUpdate(args.session, result)
-	);
+	return safeTry(async function* () {
+		const update = yield* updateSessionCalendarEventTiming({
+			session: args.session,
+			client,
+			createMissingEvent: true,
+			date: args.details.date,
+			details: packageCalendarEventDetails(args.details),
+			time: args.details.time
+		});
+
+		return ok(packageCalendarIdPatchFromUpdate(args.session, update));
+	});
 }
 
 export function syncPackageSessionGoogleCalendarEvent(args: {
 	session: SessionCalendarEventRecord | null;
 	details: PackageCalendarDetails;
 }) {
-	return loadPackageCalendarClientWhenSlotOpen(args).andThen((client: PackageCalendarClient) =>
-		writePackageSessionGoogleCalendarEvent(client, args)
-	);
+	return safeTry(async function* () {
+		const client = yield* loadPackageCalendarClientWhenSlotOpen(args);
+		const result = yield* writePackageSessionGoogleCalendarEvent(client, args);
+
+		return ok(result);
+	});
 }
 
 export function removePackageSessionGoogleCalendarEvent(
 	session: SessionCalendarEventRecord
 ): ResultAsync<{ calendarEventDeleted: boolean }, GoogleCalendarWriteError> {
-	return loadGoogleCalendarClient("GOOGLE_CALENDAR_SYNC_FAILED").andThen((client) =>
-		deleteSessionCalendarEvent({
+	return safeTry(async function* () {
+		const client = yield* loadGoogleCalendarClient("GOOGLE_CALENDAR_SYNC_FAILED");
+
+		const result = yield* deleteSessionCalendarEvent({
 			session,
 			client: {
 				calendar: client.calendar,
 				calendarId: client.calendarId,
 				timeZone: client.timeZone
 			}
-		})
-	);
+		});
+
+		return ok(result);
+	});
 }

@@ -1,4 +1,4 @@
-import type { ResultAsync as NeverthrowResultAsync } from "neverthrow";
+import { ok, safeTry, type ResultAsync as NeverthrowResultAsync } from "neverthrow";
 import { getOrCreateDriveClientId } from "#convex/drive/services/setup";
 import type { Id } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
@@ -35,13 +35,17 @@ export function rejectCheckoutSlotUnavailable(
 	ctx: MutationCtx,
 	args: Pick<CreatePendingCheckoutSessionArgs, "date" | "duration" | "time">
 ) {
-	return getBookingAvailabilitySettings(ctx).andThen((settings) =>
-		checkSessionMeetsAvailabilitySettings({
+	return safeTry(async function* () {
+		const settings = yield* getBookingAvailabilitySettings(ctx);
+
+		const availability = yield* checkSessionMeetsAvailabilitySettings({
 			...args,
 			settings,
 			timeZone: env.GOOGLE_CALENDAR_TIMEZONE
-		})
-	);
+		});
+
+		return ok(availability);
+	});
 }
 
 export function parseCheckoutSessionStartTime(
@@ -55,12 +59,20 @@ export function createPendingCheckoutBooking(
 	args: CreatePendingCheckoutSessionArgs,
 	sessionStartAt: number
 ) {
-	return findPendingPaymentBookingAtStartTime(ctx, sessionStartAt)
-		.andThen(rejectPendingPaymentSlotConflict)
-		.andThen(() => getOrCreateDriveClientId(ctx, buildCheckoutDriveClientInput(args)))
-		.andThen((driveClientId) =>
-			insertPendingCheckoutBookingFields(ctx, args, sessionStartAt, driveClientId)
+	return safeTry(async function* () {
+		const pendingBooking = yield* findPendingPaymentBookingAtStartTime(ctx, sessionStartAt);
+		yield* rejectPendingPaymentSlotConflict(pendingBooking);
+		const driveClientId = yield* getOrCreateDriveClientId(ctx, buildCheckoutDriveClientInput(args));
+
+		const booking = yield* insertPendingCheckoutBookingFields(
+			ctx,
+			args,
+			sessionStartAt,
+			driveClientId
 		);
+
+		return ok(booking);
+	});
 }
 
 export function loadBookingRowByStripeSessionId(ctx: QueryCtx, stripeSessionId: string) {
@@ -78,16 +90,29 @@ export function expirePendingCheckoutByStripeSessionId(
 	ctx: MutationCtx,
 	stripeSessionId: string
 ): NeverthrowResultAsync<{ alreadyExpired: boolean }, ExpireSessionError> {
-	return lookupBookingByStripeSessionId(ctx, stripeSessionId)
-		.andThen(validateSessionExpiryWithBooking)
-		.andThen((step) => expireBookingAfterValidate(ctx, step));
+	return safeTry(async function* () {
+		const booking = yield* lookupBookingByStripeSessionId(ctx, stripeSessionId);
+		const validatedExpiry = yield* validateSessionExpiryWithBooking(booking);
+		const result = yield* expireBookingAfterValidate(ctx, validatedExpiry);
+
+		return ok(result);
+	});
 }
 
 export function abandonPendingCheckoutBooking(
 	ctx: MutationCtx,
 	args: { bookingId: Id<"bookings">; stripeSessionId: string }
 ): NeverthrowResultAsync<DeletePendingSessionSuccess, { reason: "STRIPE_SESSION_MISMATCH" }> {
-	return getBookingRow(ctx, args.bookingId)
-		.andThen((booking) => validatePendingSessionDeletionWithBooking(booking, args.stripeSessionId))
-		.andThen((step) => abandonBookingAfterValidate(ctx, args.bookingId, step));
+	return safeTry(async function* () {
+		const booking = yield* getBookingRow(ctx, args.bookingId);
+
+		const deletion = yield* validatePendingSessionDeletionWithBooking(
+			booking,
+			args.stripeSessionId
+		);
+
+		const result = yield* abandonBookingAfterValidate(ctx, args.bookingId, deletion);
+
+		return ok(result);
+	});
 }

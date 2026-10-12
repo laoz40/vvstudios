@@ -1,5 +1,4 @@
-import { okAsync, type ResultAsync } from "neverthrow";
-import type { PaginationResult } from "convex/server";
+import { ok, okAsync, safeTry } from "neverthrow";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { MutationCtx } from "#convex/_generated/server";
 import {
@@ -19,23 +18,31 @@ export function archiveDeadCheckoutBooking(
 	bookingId: Id<"bookings">,
 	updates: Partial<Doc<"bookings">>,
 	now = Date.now()
-): ResultAsync<null, never> {
-	return getSessionFromDb(ctx, bookingId)
-		.andThen((session) =>
-			patchBookingFields(ctx, bookingId, mergeDeadCheckoutBookingUpdates(session, updates, now))
-		)
-		.orElse(() => okAsync(null));
+) {
+	return safeTry(async function* () {
+		const session = yield* getSessionFromDb(ctx, bookingId);
+
+		return ok(
+			yield* patchBookingFields(
+				ctx,
+				bookingId,
+				mergeDeadCheckoutBookingUpdates(session, updates, now)
+			)
+		);
+	}).orElse(() => okAsync(null));
 }
 
 export function archiveSessionWhenFullyDone(
 	ctx: MutationCtx,
 	bookingId: Id<"bookings"> | null,
 	now = Date.now()
-): ResultAsync<null, never> {
-	return loadSessionForAutoArchive(ctx, bookingId)
-		.andThen((session) => loadSessionInvoiceSummary(ctx, session))
-		.andThen((summary) => archiveSessionIfEligible(ctx, bookingId, now, summary))
-		.orElse(() => okAsync(null));
+) {
+	return safeTry(async function* () {
+		const session = yield* loadSessionForAutoArchive(ctx, bookingId);
+		const summary = yield* loadSessionInvoiceSummary(ctx, session);
+
+		return ok(yield* archiveSessionIfEligible(ctx, bookingId, now, summary));
+	}).orElse(() => okAsync(null));
 }
 
 export function runArchivePastDeadCheckoutBatch(
@@ -43,11 +50,13 @@ export function runArchivePastDeadCheckoutBatch(
 	cursor: string | null,
 	numItems?: number
 ) {
-	return loadDeadCheckoutArchivePage(
-		ctx,
-		cursor,
-		getDeadCheckoutArchiveBatchSize(numItems)
-	).andThen((page: PaginationResult<Doc<"bookings">>) =>
-		archiveLoadedDeadCheckoutPage(ctx, page, Date.now())
-	);
+	return safeTry(async function* () {
+		const page = yield* loadDeadCheckoutArchivePage(
+			ctx,
+			cursor,
+			getDeadCheckoutArchiveBatchSize(numItems)
+		);
+
+		return ok(yield* archiveLoadedDeadCheckoutPage(ctx, page, Date.now()));
+	});
 }
