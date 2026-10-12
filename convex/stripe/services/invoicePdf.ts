@@ -1,6 +1,6 @@
 "use node";
 
-import { type ResultAsync } from "neverthrow";
+import { type ResultAsync, ok, safeTry } from "neverthrow";
 
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { ActionCtx } from "#convex/_generated/server";
@@ -77,14 +77,15 @@ export function loadPublicBookingInvoiceDownload(
 	| { reason: "BOOKING_NOT_CONFIRMED" }
 	| { reason: "INVOICE_DOWNLOAD_EXPIRED" }
 > {
-	return loadBookingByStripeCheckoutSession(ctx, stripeSessionId).andThen(
-		resolvePublicBookingInvoiceDownload
-	);
+	return safeTry(async function* () {
+		const booking = yield* loadBookingByStripeCheckoutSession(ctx, stripeSessionId);
+		const download = yield* resolvePublicBookingInvoiceDownload(booking);
+
+		return ok(download);
+	});
 }
 
-export function loadBookingSettingsForPdf(
-	ctx: ActionCtx
-): ResultAsync<BookingSettingsSnapshot, never> {
+export function loadBookingSettingsForPdf(ctx: ActionCtx) {
 	return queryBookingAvailabilitySettings(ctx);
 }
 
@@ -95,7 +96,12 @@ export function renderBookingReceiptPdfPayload(
 ): ResultAsync<InvoicePdfPayload, BookingReceiptPdfError> {
 	const artifactsResult = buildBookingReceiptArtifacts(booking, receiptCreatedAt, bookingSettings);
 
-	return artifactsResult.asyncAndThen(renderReceiptPdfPayloadFromArtifacts);
+	return safeTry(async function* () {
+		const artifacts = yield* artifactsResult;
+		const pdfPayload = yield* renderReceiptPdfPayloadFromArtifacts(artifacts);
+
+		return ok(pdfPayload);
+	});
 }
 
 export function renderBookingInvoicePdfPayload(
@@ -105,7 +111,12 @@ export function renderBookingInvoicePdfPayload(
 ): ResultAsync<InvoicePdfPayload, BookingInvoicePdfError> {
 	const artifactsResult = buildBookingInvoiceArtifacts(booking, invoiceCreatedAt, bookingSettings);
 
-	return artifactsResult.asyncAndThen(renderInvoicePdfPayloadFromArtifacts);
+	return safeTry(async function* () {
+		const artifacts = yield* artifactsResult;
+		const pdfPayload = yield* renderInvoicePdfPayloadFromArtifacts(artifacts);
+
+		return ok(pdfPayload);
+	});
 }
 
 export function loadPublicPackageReceiptDownload(
@@ -115,7 +126,12 @@ export function loadPublicPackageReceiptDownload(
 	{ packageRecord: Doc<"packages">; receiptCreatedAt: number },
 	PublicPackageReceiptPdfError
 > {
-	return getPackageForAction(ctx, packageId).andThen(validatePublicPackageReceiptDownload);
+	return safeTry(async function* () {
+		const packageRecord = yield* getPackageForAction(ctx, packageId);
+		const download = yield* validatePublicPackageReceiptDownload(packageRecord);
+
+		return ok(download);
+	});
 }
 
 export function renderPackageReceiptPdfPayload(
@@ -129,19 +145,34 @@ export function renderPackageReceiptPdfPayload(
 		bookingSettings
 	);
 
-	return artifactsResult.asyncAndThen(renderReceiptPdfPayloadFromArtifacts);
+	return safeTry(async function* () {
+		const artifacts = yield* artifactsResult;
+		const pdfPayload = yield* renderReceiptPdfPayloadFromArtifacts(artifacts);
+
+		return ok(pdfPayload);
+	});
 }
 
 export function loadAdminBookingForReceiptPdf(
 	ctx: ActionCtx,
 	bookingId: Id<"bookings">
 ): ResultAsync<AdminBookingReceiptContext, AdminBookingReceiptPdfError> {
-	return getSessionFromQuery(ctx, bookingId).andThen(validateAdminBookingReceipt);
+	return safeTry(async function* () {
+		const session = yield* getSessionFromQuery(ctx, bookingId);
+		const receiptContext = yield* validateAdminBookingReceipt(session);
+
+		return ok(receiptContext);
+	});
 }
 
 export function loadAdminPackageForReceiptPdf(
 	ctx: ActionCtx,
 	packageId: Id<"packages">
 ): ResultAsync<AdminPackageReceiptContext, AdminPackageReceiptPdfError> {
-	return getPackageForAction(ctx, packageId).andThen(validateAdminPackageReceipt);
+	return safeTry(async function* () {
+		const packageRecord = yield* getPackageForAction(ctx, packageId);
+		const receiptContext = yield* validateAdminPackageReceipt(packageRecord);
+
+		return ok(receiptContext);
+	});
 }

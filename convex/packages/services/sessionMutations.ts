@@ -1,4 +1,4 @@
-import { type Result, type ResultAsync as ResultAsyncType } from "neverthrow";
+import { ok, safeTry } from "neverthrow";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
 
@@ -9,14 +9,11 @@ import { schedulePackageAdjustmentWhenSessionsComplete } from "#convex/packages/
 import {
 	getCapacityConsumingPackageSessions,
 	rejectLockedEditablePackageSession,
-	rejectWhenPackageCapacityFull,
-	type PackageSessionEditError,
-	type UnschedulePackageSessionError
+	rejectWhenPackageCapacityFull
 } from "#convex/packages/lib/scheduling";
-import { type ValidPackage, type ValidPackageByTokenError } from "#convex/packages/lib/lookup";
+import { type ValidPackage } from "#convex/packages/lib/lookup";
 import { getValidPackageByToken } from "#convex/packages/services/tokenScheduling";
 import type { SessionAvailabilitySettings } from "#convex/sessions/lib/calendarTime";
-import type { SessionTimeParseError } from "#convex/sessions/lib/calendarTime";
 import { checkSessionMeetsAvailabilitySettings } from "#convex/sessions/services/calendarTime";
 
 import type { BookingAvailabilitySettings } from "#studio/lib/bookingAvailabilitySettings";
@@ -60,18 +57,15 @@ type EditablePackageSessionDetails = {
 function getEditablePackageSession(
 	ctx: QueryCtx,
 	args: { token: string; bookingId: Id<"bookings">; now: number }
-): ResultAsyncType<
-	EditablePackageSessionDetails,
-	ValidPackageByTokenError | PackageSessionEditError
-> {
-	return getValidPackageByToken(ctx, args.token, args.now)
-		.andThen((packageRecord: ValidPackage) =>
-			attachPackageSessionForToken(ctx, args.bookingId, packageRecord)
-		)
-		.andThen((_value) => loadSettingsForEditableSession(ctx, _value))
-		.andThen((details: EditablePackageSessionDetails) =>
-			rejectLockedEditablePackageSession(args.now, details)
-		);
+) {
+	return safeTry(async function* () {
+		const packageRecord = yield* getValidPackageByToken(ctx, args.token, args.now);
+		const attachedSession = yield* attachPackageSessionForToken(ctx, args.bookingId, packageRecord);
+		const details = yield* loadSettingsForEditableSession(ctx, attachedSession);
+		const editableDetails = yield* rejectLockedEditablePackageSession(args.now, details);
+
+		return ok(editableDetails);
+	});
 }
 
 type PackageSessionRequestArgs = { token: string; date: string; time: string; now: number };
@@ -89,9 +83,12 @@ export type PackageUnscheduleRequestDetails = LibPackageUnscheduleRequestDetails
 export type SaveCreatedPackageSessionArgs = LibSaveCreatedPackageSessionArgs;
 
 export function loadValidPackageAndBookingSettings(ctx: QueryCtx, args: PackageSessionRequestArgs) {
-	return getValidPackageByToken(ctx, args.token, args.now).andThen((packageRecord: ValidPackage) =>
-		loadBookingSettingsForPackage(ctx, packageRecord)
-	);
+	return safeTry(async function* () {
+		const packageRecord = yield* getValidPackageByToken(ctx, args.token, args.now);
+		const details = yield* loadBookingSettingsForPackage(ctx, packageRecord);
+
+		return ok(details);
+	});
 }
 
 export function rejectPackageCreateWhenUnavailableOrFull(
@@ -100,9 +97,12 @@ export function rejectPackageCreateWhenUnavailableOrFull(
 	packageRecord: ValidPackage,
 	settings: BookingAvailabilitySettings
 ) {
-	return checkPackageSessionAvailability(args, packageRecord, settings, args.now).asyncAndThen(() =>
-		loadAvailablePackageCapacity(ctx, packageRecord, settings)
-	);
+	return safeTry(async function* () {
+		yield* checkPackageSessionAvailability(args, packageRecord, settings, args.now);
+		const capacity = yield* loadAvailablePackageCapacity(ctx, packageRecord, settings);
+
+		return ok(capacity);
+	});
 }
 
 function loadAvailablePackageCapacity(
@@ -110,11 +110,17 @@ function loadAvailablePackageCapacity(
 	packageRecord: ValidPackage,
 	settings: BookingAvailabilitySettings
 ) {
-	return getCapacityConsumingPackageSessions(
-		ctx,
-		packageRecord._id,
-		packageRecord.packageSize
-	).andThen((bookings) => rejectWhenPackageCapacityFull(packageRecord, settings, bookings));
+	return safeTry(async function* () {
+		const sessions = yield* getCapacityConsumingPackageSessions(
+			ctx,
+			packageRecord._id,
+			packageRecord.packageSize
+		);
+
+		const capacity = yield* rejectWhenPackageCapacityFull(packageRecord, settings, sessions);
+
+		return ok(capacity);
+	});
 }
 
 export function parsePackageSessionCreateStartTime(
@@ -129,21 +135,23 @@ export function loadEditablePackageSessionForReschedule(
 	ctx: QueryCtx,
 	args: PackageRescheduleRequestArgs
 ) {
-	return getEditablePackageSession(ctx, args).andThen((details: EditablePackageSessionDetails) =>
-		ensureRescheduleSlotAvailable(args, details)
-	);
+	return safeTry(async function* () {
+		const details = yield* getEditablePackageSession(ctx, args);
+		const validatedDetails = yield* ensureRescheduleSlotAvailable(args, details);
+
+		return ok(validatedDetails);
+	});
 }
 
 function ensureRescheduleSlotAvailable(
 	args: PackageRescheduleRequestArgs,
 	details: EditablePackageSessionDetails
 ) {
-	return checkPackageSessionAvailability(
-		args,
-		details.packageRecord,
-		details.settings,
-		args.now
-	).map(() => details);
+	return safeTry(function* () {
+		yield* checkPackageSessionAvailability(args, details.packageRecord, details.settings, args.now);
+
+		return ok(details);
+	});
 }
 
 export function parsePackageRescheduleStartTime(
@@ -160,37 +168,37 @@ export function parsePackageRescheduleStartTime(
 export function loadEditablePackageSessionForUnschedule(
 	ctx: QueryCtx,
 	args: PackageUnscheduleRequestArgs
-): ResultAsyncType<
-	PackageUnscheduleRequestDetails,
-	ValidPackageByTokenError | UnschedulePackageSessionError
-> {
-	return getEditablePackageSession(ctx, args).map(({ session, packageRecord }) => ({
-		session,
-		packageRecord
-	}));
+) {
+	return safeTry(async function* () {
+		const details = yield* getEditablePackageSession(ctx, args);
+
+		return ok({ session: details.session, packageRecord: details.packageRecord });
+	});
 }
 
 export function loadValidPackageAndCapacityConsumingSessions(
 	ctx: MutationCtx,
 	args: Pick<SaveCreatedPackageSessionArgs, "token" | "now">
 ) {
-	return getValidPackageByToken(ctx, args.token, args.now).andThen((packageFromDb: ValidPackage) =>
-		loadCapacityConsumingSessionsForPackage(ctx, packageFromDb)
-	);
+	return safeTry(async function* () {
+		const packageRecord = yield* getValidPackageByToken(ctx, args.token, args.now);
+		const capacity = yield* loadCapacityConsumingSessionsForPackage(ctx, packageRecord);
+
+		return ok(capacity);
+	});
 }
 
 export function rejectFullPackageAndParseSessionStartTime(
 	args: Pick<SaveCreatedPackageSessionArgs, "date" | "time">,
 	packageFromDb: ValidPackage,
 	packageSessions: Doc<"bookings">[]
-): Result<
-	{ packageFromDb: ValidPackage; sessionStartAt: number },
-	| { reason: "PACKAGE_CAPACITY_EXCEEDED" }
-	| Exclude<SessionTimeParseError, { reason: "BOOKING_INVALID_DURATION" }>
-> {
-	return validateRemainingPackageCapacity(packageFromDb, packageSessions).andThen(() =>
-		parseCreatedSessionStartTime(args, packageFromDb)
-	);
+) {
+	return safeTry(function* () {
+		yield* validateRemainingPackageCapacity(packageFromDb, packageSessions);
+		const startTime = yield* parseCreatedSessionStartTime(args, packageFromDb);
+
+		return ok(startTime);
+	});
 }
 
 export function insertPackageSessionBookingRow(
@@ -199,10 +207,22 @@ export function insertPackageSessionBookingRow(
 	packageFromDb: ValidPackage,
 	sessionStartAt: number
 ) {
-	return getOrCreateDriveClientId(ctx, packageDriveClientArgs(packageFromDb)).andThen(
-		(driveClientId: Id<"driveClients">) =>
-			persistPackageSessionAfterDriveClient(ctx, args, packageFromDb, sessionStartAt, driveClientId)
-	);
+	return safeTry(async function* () {
+		const driveClientId = yield* getOrCreateDriveClientId(
+			ctx,
+			packageDriveClientArgs(packageFromDb)
+		);
+
+		const booking = yield* persistPackageSessionAfterDriveClient(
+			ctx,
+			args,
+			packageFromDb,
+			sessionStartAt,
+			driveClientId
+		);
+
+		return ok(booking);
+	});
 }
 
 function persistPackageSessionAfterDriveClient(
@@ -219,9 +239,18 @@ function persistPackageSessionAfterDriveClient(
 		driveClientId
 	);
 
-	return persistPackageSessionBookingRow(ctx, bookingFields).andThen((bookingId: Id<"bookings">) =>
-		scheduleDriveSetupAfterPackageSessionInsert(ctx, packageFromDb, sessionStartAt, bookingId)
-	);
+	return safeTry(async function* () {
+		const booking = yield* persistPackageSessionBookingRow(ctx, bookingFields);
+
+		const scheduledBooking = yield* scheduleDriveSetupAfterPackageSessionInsert(
+			ctx,
+			packageFromDb,
+			sessionStartAt,
+			booking
+		);
+
+		return ok(scheduledBooking);
+	});
 }
 
 export function clearPackageExpiryReminderStateWhenPending(
@@ -237,5 +266,9 @@ export function schedulePackageAdjustmentWhenAllSessionsBooked(
 	packageId: Id<"packages">,
 	bookingId: Id<"bookings">
 ) {
-	return schedulePackageAdjustmentWhenSessionsComplete(ctx, packageId).map(() => ({ bookingId }));
+	return safeTry(async function* () {
+		yield* schedulePackageAdjustmentWhenSessionsComplete(ctx, packageId);
+
+		return ok({ bookingId });
+	});
 }

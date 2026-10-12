@@ -1,6 +1,6 @@
 "use node";
 
-import { errAsync, okAsync, type ResultAsync } from "neverthrow";
+import { err, okAsync, ok, safeTry } from "neverthrow";
 import type { Id } from "#convex/_generated/dataModel";
 import type { ActionCtx } from "#convex/_generated/server";
 import type { PackageAdjustmentInvoiceInput } from "#studio/features/booking-invoice/lib/booking-artifacts";
@@ -41,33 +41,48 @@ function addRemotePodcastInvoiceItem(
 	args: { adjustmentId: Id<"packageAdjustments">; stripeCustomerId: string; quantity: number },
 	stripeInvoiceId: string
 ) {
-	return findPackageAdjustmentStripeProduct(stripe, packageAdjustmentProductQuery())
-		.andThen((productId) => resolvePackageAdjustmentStripeProduct(stripe, productId))
-		.andThen((productId) =>
-			createPackageAdjustmentStripeInvoiceItem(
-				stripe,
-				args.adjustmentId,
-				buildPackageAdjustmentInvoiceItemArgs(
-					args.stripeCustomerId,
-					stripeInvoiceId,
-					args.quantity,
-					productId
-				)
+	return safeTry(async function* () {
+		const productLookup = yield* findPackageAdjustmentStripeProduct(
+			stripe,
+			packageAdjustmentProductQuery()
+		);
+
+		const productId = yield* resolvePackageAdjustmentStripeProduct(stripe, productLookup);
+		yield* createPackageAdjustmentStripeInvoiceItem(
+			stripe,
+			args.adjustmentId,
+			buildPackageAdjustmentInvoiceItemArgs(
+				args.stripeCustomerId,
+				stripeInvoiceId,
+				args.quantity,
+				productId
 			)
-		)
-		.map(() => ({ stripeInvoiceId }));
+		);
+
+		return ok({ stripeInvoiceId });
+	});
 }
 
 export function createPackageAdjustmentInvoiceDraft(
 	adjustmentId: Id<"packageAdjustments">,
 	input: PackageAdjustmentInvoiceInput
-): ResultAsync<{ stripeInvoiceId: string }, StripeApiFailure> {
+) {
 	const stripe = getStripeClient();
 
-	return requirePackageAdjustmentStripeCustomer(input.packageRecord.stripeCustomerId).andThen(
-		(stripeCustomerId) =>
-			createPackageAdjustmentStripeInvoiceDraft(stripe, adjustmentId, input, stripeCustomerId)
-	);
+	return safeTry(async function* () {
+		const stripeCustomerId = yield* requirePackageAdjustmentStripeCustomer(
+			input.packageRecord.stripeCustomerId
+		);
+
+		const invoiceDraft = yield* createPackageAdjustmentStripeInvoiceDraft(
+			stripe,
+			adjustmentId,
+			input,
+			stripeCustomerId
+		);
+
+		return ok(invoiceDraft);
+	});
 }
 
 function createPackageAdjustmentStripeInvoiceDraft(
@@ -76,29 +91,44 @@ function createPackageAdjustmentStripeInvoiceDraft(
 	{ adjustment, packageRecord }: PackageAdjustmentInvoiceInput,
 	stripeCustomerId: string
 ) {
-	return createPackageAdjustmentStripeInvoice(
-		stripe,
-		adjustmentId,
-		buildPackageAdjustmentStripeInvoiceArgs(stripeCustomerId, adjustmentId, packageRecord._id)
-	).andThen((stripeInvoiceId) =>
-		addRemotePodcastInvoiceItem(
+	return safeTry(async function* () {
+		const stripeInvoiceId = yield* createPackageAdjustmentStripeInvoice(
+			stripe,
+			adjustmentId,
+			buildPackageAdjustmentStripeInvoiceArgs(stripeCustomerId, adjustmentId, packageRecord._id)
+		);
+
+		const invoiceItem = yield* addRemotePodcastInvoiceItem(
 			stripe,
 			{ adjustmentId, stripeCustomerId, quantity: adjustment.quantity },
 			stripeInvoiceId
-		)
-	);
+		);
+
+		return ok(invoiceItem);
+	});
 }
 
 export function sendPackageAdjustmentInvoiceDraft(
 	adjustmentId: Id<"packageAdjustments">,
 	{ stripeInvoiceId }: { stripeInvoiceId: string }
-): ResultAsync<{ stripeInvoiceId: string }, StripeApiFailure> {
+) {
 	const stripe = getStripeClient();
 
-	return finalizePackageAdjustmentStripeInvoice(stripe, adjustmentId, stripeInvoiceId).andThen(
-		(finalizedInvoiceId) =>
-			sendFinalizedPackageAdjustmentInvoice(stripe, adjustmentId, finalizedInvoiceId)
-	);
+	return safeTry(async function* () {
+		const finalizedInvoiceId = yield* finalizePackageAdjustmentStripeInvoice(
+			stripe,
+			adjustmentId,
+			stripeInvoiceId
+		);
+
+		const sentInvoice = yield* sendFinalizedPackageAdjustmentInvoice(
+			stripe,
+			adjustmentId,
+			finalizedInvoiceId
+		);
+
+		return ok(sentInvoice);
+	});
 }
 
 function sendFinalizedPackageAdjustmentInvoice(
@@ -106,9 +136,11 @@ function sendFinalizedPackageAdjustmentInvoice(
 	adjustmentId: Id<"packageAdjustments">,
 	finalizedInvoiceId: string
 ) {
-	return sendPackageAdjustmentStripeInvoice(stripe, adjustmentId, finalizedInvoiceId).map(() => ({
-		stripeInvoiceId: finalizedInvoiceId
-	}));
+	return safeTry(async function* () {
+		yield* sendPackageAdjustmentStripeInvoice(stripe, adjustmentId, finalizedInvoiceId);
+
+		return ok({ stripeInvoiceId: finalizedInvoiceId });
+	});
 }
 
 export function recordSentPackageAdjustmentInvoice(
@@ -117,25 +149,29 @@ export function recordSentPackageAdjustmentInvoice(
 	claimedAt: number,
 	{ stripeInvoiceId }: { stripeInvoiceId: string }
 ) {
-	return recordSentPackageAdjustmentInvoiceStep(ctx, args, claimedAt, stripeInvoiceId).map(
-		() => null
-	);
+	return safeTry(async function* () {
+		yield* recordSentPackageAdjustmentInvoiceStep(ctx, args, claimedAt, stripeInvoiceId);
+
+		return ok(null);
+	});
 }
 
 export function recordFailedPackageAdjustmentInvoice<T extends StripeApiFailure>(
 	ctx: ActionCtx,
 	args: { adjustmentId: Id<"packageAdjustments">; claimedAt: number },
 	failure: T
-): ResultAsync<never, T> {
-	return recordFailedPackageAdjustmentInvoiceStep(ctx, args)
-		.orElse(() => okAsync(null))
-		.andThen(() => errAsync(failure));
+) {
+	return safeTry(async function* () {
+		yield* recordFailedPackageAdjustmentInvoiceStep(ctx, args).orElse(() => okAsync(null));
+
+		return err(failure);
+	});
 }
 
 export function claimPackageAdjustmentInvoiceEmailForSend(
 	ctx: ActionCtx,
 	args: SendPackageAdjustmentInvoiceArgs,
 	claimedAt: number
-): ResultAsync<PackageAdjustmentInvoiceInput, PackageAdjustmentClaimError> {
+) {
 	return claimPackageAdjustmentInvoiceEmailForSendStep(ctx, args, claimedAt);
 }

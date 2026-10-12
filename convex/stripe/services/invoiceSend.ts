@@ -1,6 +1,7 @@
 "use node";
 
-import type { ResultAsync } from "neverthrow";
+import { type ResultAsync, ok, safeTry } from "neverthrow";
+
 import type { Id } from "#convex/_generated/dataModel";
 import type { ActionCtx } from "#convex/_generated/server";
 import {
@@ -34,31 +35,36 @@ export function requireSendReceiptEmailsAndValidateLineItems(
 	{ identity: { email?: string }; lineItems: StripeInvoiceLineItem[] },
 	{ reason: string }
 > {
-	return requirePermissionActions(ctx, "send:receipt-emails").andThen(
-		(identity: StripeInvoiceSenderIdentity) =>
-			validateStripeInvoiceLineItems(lineItems).map((validatedLineItems) => ({
-				identity,
-				lineItems: validatedLineItems
-			}))
-	);
+	return safeTry(async function* () {
+		const identity = yield* requirePermissionActions(ctx, "send:receipt-emails");
+		const validatedLineItems = yield* validateStripeInvoiceLineItems(lineItems);
+
+		return ok({ identity, lineItems: validatedLineItems });
+	});
 }
 
 export function loadBookingStripeCustomerId(
 	ctx: ActionCtx,
 	bookingId: Id<"bookings">
 ): ResultAsync<string, { reason: string }> {
-	return getSessionFromQuery(ctx, bookingId).andThen((session) =>
-		requireStripeInvoiceCustomerId(session.stripeCustomerId)
-	);
+	return safeTry(async function* () {
+		const session = yield* getSessionFromQuery(ctx, bookingId);
+		const stripeCustomerId = yield* requireStripeInvoiceCustomerId(session.stripeCustomerId);
+
+		return ok(stripeCustomerId);
+	});
 }
 
 export function loadPackageStripeCustomerId(
 	ctx: ActionCtx,
 	packageId: Id<"packages">
 ): ResultAsync<string, { reason: string }> {
-	return getPackageForAction(ctx, packageId).andThen((packageRecord) =>
-		requireStripeInvoiceCustomerId(packageRecord.stripeCustomerId)
-	);
+	return safeTry(async function* () {
+		const packageRecord = yield* getPackageForAction(ctx, packageId);
+		const stripeCustomerId = yield* requireStripeInvoiceCustomerId(packageRecord.stripeCustomerId);
+
+		return ok(stripeCustomerId);
+	});
 }
 
 export function loadStripeInvoiceBillingUrlsForStaff(
@@ -68,9 +74,12 @@ export function loadStripeInvoiceBillingUrlsForStaff(
 	StripeInvoiceBillingUrls,
 	PermissionActionError | { reason: "STRIPE_INVOICE_LOOKUP_FAILED" }
 > {
-	return requirePermissionActions(ctx, "view:sensitive-booking-data").andThen(() =>
-		fetchStripeInvoiceBillingUrls(getStripeClient(), stripeInvoiceId)
-	);
+	return safeTry(async function* () {
+		yield* requirePermissionActions(ctx, "view:sensitive-booking-data");
+		const billingUrls = yield* fetchStripeInvoiceBillingUrls(getStripeClient(), stripeInvoiceId);
+
+		return ok(billingUrls);
+	});
 }
 
 function recordBookingStripeInvoiceAfterSend(
@@ -78,10 +87,14 @@ function recordBookingStripeInvoiceAfterSend(
 	args: { bookingId: Id<"bookings">; lineItems: StripeInvoiceLineItem[]; requestId: string },
 	identity: StripeInvoiceSenderIdentity,
 	{ stripeInvoiceId }: { stripeInvoiceId: string }
-) {
-	return fromConvexTuple(
-		recordBookingStripeInvoiceFromAction(ctx, args, identity, stripeInvoiceId)
-	).map(() => ({ stripeInvoiceId }));
+): ResultAsync<{ stripeInvoiceId: string }, { reason: string }> {
+	return safeTry(async function* () {
+		yield* fromConvexTuple(
+			recordBookingStripeInvoiceFromAction(ctx, args, identity, stripeInvoiceId)
+		);
+
+		return ok({ stripeInvoiceId });
+	});
 }
 
 function recordPackageStripeInvoiceAfterSend(
@@ -89,10 +102,14 @@ function recordPackageStripeInvoiceAfterSend(
 	args: { packageId: Id<"packages">; lineItems: StripeInvoiceLineItem[]; requestId: string },
 	identity: StripeInvoiceSenderIdentity,
 	{ stripeInvoiceId }: { stripeInvoiceId: string }
-) {
-	return fromConvexTuple(
-		recordPackageStripeInvoiceFromAction(ctx, args, identity, stripeInvoiceId)
-	).map(() => ({ stripeInvoiceId }));
+): ResultAsync<{ stripeInvoiceId: string }, { reason: string }> {
+	return safeTry(async function* () {
+		yield* fromConvexTuple(
+			recordPackageStripeInvoiceFromAction(ctx, args, identity, stripeInvoiceId)
+		);
+
+		return ok({ stripeInvoiceId });
+	});
 }
 
 export function createAndRecordBookingStripeInvoice(
@@ -101,9 +118,22 @@ export function createAndRecordBookingStripeInvoice(
 	identity: StripeInvoiceSenderIdentity,
 	stripeCustomerId: string
 ): ResultAsync<{ stripeInvoiceId: string }, { reason: string }> {
-	return createAndSendBookingStripeInvoice(getStripeClient(), args, stripeCustomerId).andThen(
-		(stripeInvoice) => recordBookingStripeInvoiceAfterSend(ctx, args, identity, stripeInvoice)
-	);
+	return safeTry(async function* () {
+		const invoice = yield* createAndSendBookingStripeInvoice(
+			getStripeClient(),
+			args,
+			stripeCustomerId
+		);
+
+		const recordedInvoice = yield* recordBookingStripeInvoiceAfterSend(
+			ctx,
+			args,
+			identity,
+			invoice
+		);
+
+		return ok(recordedInvoice);
+	});
 }
 
 export function createAndRecordPackageStripeInvoice(
@@ -112,9 +142,22 @@ export function createAndRecordPackageStripeInvoice(
 	identity: StripeInvoiceSenderIdentity,
 	stripeCustomerId: string
 ): ResultAsync<{ stripeInvoiceId: string }, { reason: string }> {
-	return createAndSendPackageStripeInvoice(getStripeClient(), args, stripeCustomerId).andThen(
-		(stripeInvoice) => recordPackageStripeInvoiceAfterSend(ctx, args, identity, stripeInvoice)
-	);
+	return safeTry(async function* () {
+		const invoice = yield* createAndSendPackageStripeInvoice(
+			getStripeClient(),
+			args,
+			stripeCustomerId
+		);
+
+		const recordedInvoice = yield* recordPackageStripeInvoiceAfterSend(
+			ctx,
+			args,
+			identity,
+			invoice
+		);
+
+		return ok(recordedInvoice);
+	});
 }
 
 export function createAndRecordOptionalEditInvoice(
@@ -123,12 +166,18 @@ export function createAndRecordOptionalEditInvoice(
 	identity: StripeInvoiceSenderIdentity,
 	stripeCustomerId: string
 ): ResultAsync<{ stripeInvoiceId: string } | null, { reason: string }> {
-	return createAndSendOptionalEditInvoice(getStripeClient(), { ...args, stripeCustomerId }).andThen(
-		(stripeInvoice) =>
-			recordOptionalEditInvoiceFromAction(ctx, {
-				...args,
-				createdBy: identity.email,
-				stripeInvoiceId: stripeInvoice?.stripeInvoiceId ?? null
-			}).map(() => stripeInvoice)
-	);
+	return safeTry(async function* () {
+		const invoice = yield* createAndSendOptionalEditInvoice(getStripeClient(), {
+			...args,
+			stripeCustomerId
+		});
+
+		yield* recordOptionalEditInvoiceFromAction(ctx, {
+			...args,
+			createdBy: identity.email,
+			stripeInvoiceId: invoice?.stripeInvoiceId ?? null
+		});
+
+		return ok(invoice);
+	});
 }

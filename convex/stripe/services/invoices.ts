@@ -3,7 +3,7 @@ import {
 	loadPackageForNewInvoice,
 	invoiceArchiveTargets
 } from "#convex/stripe/lib/invoiceArchive";
-import { ok } from "neverthrow";
+import { ok, safeTry } from "neverthrow";
 import type { Id } from "#convex/_generated/dataModel";
 import type { MutationCtx } from "#convex/_generated/server";
 import { unarchivePackageForNewUnpaidInvoice } from "#convex/packages/lib/archive";
@@ -20,10 +20,12 @@ export function unarchiveAfterNewBookingInvoice(
 	bookingId: Id<"bookings">,
 	insertResult: StripeInvoiceInsertResult
 ) {
-	return loadBookingForNewInvoice(ctx, bookingId, insertResult)
-		.andThen((session) => unarchiveSessionForNewUnpaidInvoice(ctx, session))
-		.map(() => insertResult)
-		.orElse(() => ok(insertResult));
+	return safeTry(async function* () {
+		const booking = yield* loadBookingForNewInvoice(ctx, bookingId, insertResult);
+		yield* unarchiveSessionForNewUnpaidInvoice(ctx, booking);
+
+		return ok(insertResult);
+	}).orElse(() => ok(insertResult));
 }
 
 export function unarchiveAfterNewPackageInvoice(
@@ -31,10 +33,12 @@ export function unarchiveAfterNewPackageInvoice(
 	packageId: Id<"packages">,
 	insertResult: StripeInvoiceInsertResult
 ) {
-	return loadPackageForNewInvoice(ctx, packageId, insertResult)
-		.andThen((packageRecord) => unarchivePackageForNewUnpaidInvoice(ctx, packageRecord))
-		.map(() => insertResult)
-		.orElse(() => ok(insertResult));
+	return safeTry(async function* () {
+		const packageRecord = yield* loadPackageForNewInvoice(ctx, packageId, insertResult);
+		yield* unarchivePackageForNewUnpaidInvoice(ctx, packageRecord);
+
+		return ok(insertResult);
+	}).orElse(() => ok(insertResult));
 }
 
 export function archiveBookingWhenStripeInvoicePaid(
@@ -42,10 +46,12 @@ export function archiveBookingWhenStripeInvoicePaid(
 	stripeInvoiceId: string | null,
 	paidAt: number
 ) {
-	return getStripeInvoiceByStripeInvoiceId(ctx, stripeInvoiceId)
-		.map(invoiceArchiveTargets)
-		.andThen((targets) =>
-			archiveSessionWhenFullyDone(ctx, targets.bookingId, paidAt).map(() => targets)
-		)
-		.andThen((targets) => archivePackageWhenFullyDone(ctx, targets.packageId, paidAt));
+	return safeTry(async function* () {
+		const invoice = yield* getStripeInvoiceByStripeInvoiceId(ctx, stripeInvoiceId);
+		const targets = invoiceArchiveTargets(invoice);
+		yield* archiveSessionWhenFullyDone(ctx, targets.bookingId, paidAt);
+		const archivedPackage = yield* archivePackageWhenFullyDone(ctx, targets.packageId, paidAt);
+
+		return ok(archivedPackage);
+	});
 }

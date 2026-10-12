@@ -1,4 +1,5 @@
-import type { Doc, Id } from "#convex/_generated/dataModel";
+import { ok, safeTry } from "neverthrow";
+import type { Id } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
 import {
 	abandonPackageAfterValidate,
@@ -35,40 +36,49 @@ export function claimPackageCheckoutPayment(
 	ctx: MutationCtx,
 	args: ClaimPackageCheckoutPaymentArgs
 ) {
-	return normalizePackageId(ctx, args.packageId)
-		.asyncAndThen((normalizedPackageId: Id<"packages">) =>
-			getPackageFromDb(ctx, normalizedPackageId)
-		)
-		.andThen((packageFromDb: Doc<"packages">) =>
-			validatePackageClaimStripeSession(packageFromDb, args.stripeSessionId)
-		)
-		.andThen((packageFromDb: Doc<"packages">) =>
-			getPackageCheckoutClaimStatus(packageFromDb).map((claimStatus) => ({
-				claimStatus,
-				packageFromDb
-			}))
-		)
-		.andThen(({ claimStatus, packageFromDb }) =>
-			writePackageCheckoutClaimIfPending(ctx, args, packageFromDb, claimStatus)
+	return safeTry(async function* () {
+		const packageId = yield* normalizePackageId(ctx, args.packageId);
+		const packageRecord = yield* getPackageFromDb(ctx, packageId);
+
+		const claimedPackage = yield* validatePackageClaimStripeSession(
+			packageRecord,
+			args.stripeSessionId
 		);
+
+		const claimStatus = yield* getPackageCheckoutClaimStatus(claimedPackage);
+
+		const claim = yield* writePackageCheckoutClaimIfPending(ctx, args, claimedPackage, claimStatus);
+
+		return ok(claim);
+	});
 }
 
 export function abandonPendingPackageCheckout(
 	ctx: MutationCtx,
 	args: { packageId: Id<"packages">; stripeSessionId: string }
 ) {
-	return getPackageFromDb(ctx, args.packageId)
-		.andThen((packageFromDb: Doc<"packages">) =>
-			validatePendingPackageAbandonment(packageFromDb, args.stripeSessionId)
-		)
-		.andThen((decision) => abandonPackageAfterValidate(ctx, args.packageId, decision))
-		.orElse(mapPackageNotFoundToAbandonOutcome);
+	return safeTry(async function* () {
+		const packageRecord = yield* getPackageFromDb(ctx, args.packageId);
+
+		const validAbandonment = yield* validatePendingPackageAbandonment(
+			packageRecord,
+			args.stripeSessionId
+		);
+
+		const outcome = yield* abandonPackageAfterValidate(ctx, args.packageId, validAbandonment);
+
+		return ok(outcome);
+	}).orElse(mapPackageNotFoundToAbandonOutcome);
 }
 
 export function expirePendingPackageByStripeSessionId(ctx: MutationCtx, stripeSessionId: string) {
-	return lookupPackageByStripeSessionId(ctx, stripeSessionId)
-		.andThen(validatePackageExpiry)
-		.andThen((decision) => expirePackageAfterValidate(ctx, decision));
+	return safeTry(async function* () {
+		const packageLookup = yield* lookupPackageByStripeSessionId(ctx, stripeSessionId);
+		const expiredPackage = yield* validatePackageExpiry(packageLookup);
+		const result = yield* expirePackageAfterValidate(ctx, expiredPackage);
+
+		return ok(result);
+	});
 }
 
 export function loadPackageRowByStripeSessionId(ctx: QueryCtx, stripeSessionId: string) {
@@ -76,7 +86,9 @@ export function loadPackageRowByStripeSessionId(ctx: QueryCtx, stripeSessionId: 
 }
 
 export function loadPublicPackageStatusByStripeSessionId(ctx: QueryCtx, stripeSessionId: string) {
-	return loadPackageRowByStripeSessionId(ctx, stripeSessionId).map(
-		buildPublicPackageStatusResponseIfPresent
-	);
+	return safeTry(async function* () {
+		const packageRow = yield* loadPackageRowByStripeSessionId(ctx, stripeSessionId);
+
+		return ok(buildPublicPackageStatusResponseIfPresent(packageRow));
+	});
 }

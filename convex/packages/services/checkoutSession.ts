@@ -1,6 +1,6 @@
 "use node";
 
-import { type ResultAsync } from "neverthrow";
+import { type ResultAsync, ok, safeTry } from "neverthrow";
 import type Stripe from "stripe";
 
 import type { Id } from "#convex/_generated/dataModel";
@@ -41,10 +41,6 @@ export type CloseEmbeddedPackageCheckoutSessionError =
 	| { reason: "STRIPE_CHECKOUT_CLOSE_FAILED" }
 	| { reason: "STRIPE_SESSION_MISMATCH" };
 
-type CloseEmbeddedPackageCheckoutSessionSuccess = {
-	outcome: "already_complete" | "abandoned" | "not_found" | "not_pending";
-};
-
 export function parsePackageCheckoutRequest(args: CreatePackageRequestArgs) {
 	return parsePackageRequest(args);
 }
@@ -53,7 +49,11 @@ export function runPackageCheckoutSubmitRateLimit(
 	ctx: ActionCtx,
 	packageRequest: ParsedPackageRequest
 ): ResultAsync<ParsedPackageRequest, CreatePackageCheckoutSessionError> {
-	return checkPackageSubmitRateLimit(ctx, packageRequest.email).map(() => packageRequest);
+	return safeTry(async function* () {
+		yield* checkPackageSubmitRateLimit(ctx, packageRequest.email);
+
+		return ok(packageRequest);
+	});
 }
 
 type PendingPackageCheckoutDraft = {
@@ -72,57 +72,79 @@ function createPackageCheckoutSessionWithCoupon(
 	stripe: Stripe,
 	draft: PackageCheckoutCustomerDraft
 ) {
-	return createStripeCheckoutDiscountCoupon(stripe, draft.discount).andThen(({ couponId }) =>
-		createEmbeddedStripePackageCheckoutSession(stripe, { ...draft, couponId })
-	);
+	return safeTry(async function* () {
+		const coupon = yield* createStripeCheckoutDiscountCoupon(stripe, draft.discount);
+
+		const checkoutSession = yield* createEmbeddedStripePackageCheckoutSession(stripe, {
+			...draft,
+			couponId: coupon.couponId
+		});
+
+		return ok(checkoutSession);
+	});
 }
 
 function createPendingPackageForCheckout(ctx: ActionCtx, validRequest: ParsedPackageRequest) {
-	return createPendingPackage(ctx, validRequest).andThen(buildPendingPackageCheckoutDraft);
+	return safeTry(async function* () {
+		const packageRecord = yield* createPendingPackage(ctx, validRequest);
+		const checkoutDraft = yield* buildPendingPackageCheckoutDraft(packageRecord);
+
+		return ok(checkoutDraft);
+	});
 }
 
 export function createPendingPackageForStripeCheckout(
 	ctx: ActionCtx,
 	validRequest: ParsedPackageRequest
-): ResultAsync<PendingPackageCheckoutDraft, CreatePackageCheckoutSessionError> {
-	return requireBookingEmailDomain(validRequest.email).andThen(() =>
-		createPendingPackageForCheckout(ctx, validRequest)
-	);
+) {
+	return safeTry(async function* () {
+		yield* requireBookingEmailDomain(validRequest.email);
+		const checkoutDraft = yield* createPendingPackageForCheckout(ctx, validRequest);
+
+		return ok(checkoutDraft);
+	});
 }
 
 export function openEmbeddedPackageStripeCheckout(
 	ctx: ActionCtx,
 	checkoutDraft: PendingPackageCheckoutDraft
-): ResultAsync<
-	{ packageId: Id<"packages">; clientSecret: string; stripeSessionId: string },
-	CreatePackageCheckoutSessionError
-> {
+) {
 	const stripe = getStripeClient();
 
-	return createStripeCheckoutCustomer(stripe, checkoutDraft.packageFromDb, {
-		packageId: checkoutDraft.packageFromDb._id,
-		lineItems: checkoutDraft.checkoutLineItems.lineItems,
-		discount: checkoutDraft.checkoutLineItems.discount
-	})
-		.andThen((draft) => createPackageCheckoutSessionWithCoupon(stripe, draft))
-		.andThen((draft) => linkStripeCheckoutToPendingPackage(ctx, draft));
+	return safeTry(async function* () {
+		const checkoutCustomer = yield* createStripeCheckoutCustomer(
+			stripe,
+			checkoutDraft.packageFromDb,
+			{
+				packageId: checkoutDraft.packageFromDb._id,
+				lineItems: checkoutDraft.checkoutLineItems.lineItems,
+				discount: checkoutDraft.checkoutLineItems.discount
+			}
+		);
+
+		const checkoutSession = yield* createPackageCheckoutSessionWithCoupon(stripe, checkoutCustomer);
+		const linkedSession = yield* linkStripeCheckoutToPendingPackage(ctx, checkoutSession);
+
+		return ok(linkedSession);
+	});
 }
 
 export function closeAbandonedPackageStripeCheckout(
 	ctx: ActionCtx,
 	args: { packageId: Id<"packages">; stripeSessionId: string }
-): ResultAsync<
-	CloseEmbeddedPackageCheckoutSessionSuccess,
-	CloseEmbeddedPackageCheckoutSessionError
-> {
+) {
 	const stripe = getStripeClient();
 
-	return closeOpenStripeCheckoutSession(stripe, args.stripeSessionId, {
-		packageId: args.packageId,
-		stripeSessionId: args.stripeSessionId
-	}).andThen((session: Stripe.Checkout.Session) =>
-		resolveClosedPackageCheckoutSession(ctx, args, session)
-	);
+	return safeTry(async function* () {
+		const closedSession = yield* closeOpenStripeCheckoutSession(stripe, args.stripeSessionId, {
+			packageId: args.packageId,
+			stripeSessionId: args.stripeSessionId
+		});
+
+		const result = yield* resolveClosedPackageCheckoutSession(ctx, args, closedSession);
+
+		return ok(result);
+	});
 }
 
 export type CreatePackageRequestArgs = LibCreatePackageRequestArgs;

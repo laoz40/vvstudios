@@ -1,3 +1,4 @@
+import { ok, safeTry } from "neverthrow";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { MutationCtx } from "#convex/_generated/server";
 import { patchPackageSessionBookingsContactSearch } from "#convex/shared/services/adminSearch";
@@ -6,7 +7,12 @@ import { patchPackageRowInstagramHandle } from "#convex/packages/lib/updates";
 import { getPackageFromDb } from "#convex/packages/services/lookup";
 
 export function loadPackageEligibleForInstagramUpdate(ctx: MutationCtx, packageId: Id<"packages">) {
-	return getPackageFromDb(ctx, packageId).andThen(validateActivePackageForInstagramUpdate);
+	return safeTry(async function* () {
+		const packageRecord = yield* getPackageFromDb(ctx, packageId);
+		const activePackage = yield* validateActivePackageForInstagramUpdate(packageRecord);
+
+		return ok(activePackage);
+	});
 }
 
 export function savePackageInstagramHandle(
@@ -22,7 +28,15 @@ export function savePackageInstagramHandle(
 		instagramHandle: args.instagramHandle
 	};
 
-	return patchPackageRowInstagramHandle(ctx, args).andThen(() =>
-		patchPackageSessionBookingsContactSearch(ctx, args.packageFromDb._id, contactFields)
-	);
+	return safeTry(async function* () {
+		yield* patchPackageRowInstagramHandle(ctx, args);
+
+		const updatedBookings = yield* patchPackageSessionBookingsContactSearch(
+			ctx,
+			args.packageFromDb._id,
+			contactFields
+		);
+
+		return ok(updatedBookings);
+	});
 }

@@ -1,4 +1,4 @@
-import { ResultAsync } from "neverthrow";
+import { ResultAsync, ok, safeTry } from "neverthrow";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { MutationCtx } from "#convex/_generated/server";
 import {
@@ -17,10 +17,11 @@ function loadBookingReceiptSearchPatches(
 ) {
 	return ResultAsync.combine(
 		bookings.map((booking) =>
-			searchBlobPatchForBookingAsync(ctx, booking, { receiptNumber }).map((searchPatch) => ({
-				bookingId: booking._id,
-				searchPatch
-			}))
+			safeTry(async function* () {
+				const searchPatch = yield* searchBlobPatchForBookingAsync(ctx, booking, { receiptNumber });
+
+				return ok({ bookingId: booking._id, searchPatch });
+			})
 		)
 	);
 }
@@ -30,11 +31,15 @@ function writeBookingReceiptNumbers(
 	receiptNumber: string,
 	patches: { bookingId: Id<"bookings">; searchPatch: BookingSearchBlobPatch }[]
 ) {
-	return ResultAsync.combine(
-		patches.map(({ bookingId, searchPatch }) =>
-			patchPackageBookingReceiptNumber(ctx, bookingId, receiptNumber, searchPatch)
-		)
-	).map(() => null);
+	return safeTry(async function* () {
+		yield* ResultAsync.combine(
+			patches.map(({ bookingId, searchPatch }) =>
+				patchPackageBookingReceiptNumber(ctx, bookingId, receiptNumber, searchPatch)
+			)
+		);
+
+		return ok(null);
+	});
 }
 
 export function syncPackageBookingsReceiptNumber(
@@ -42,7 +47,11 @@ export function syncPackageBookingsReceiptNumber(
 	packageId: Id<"packages"> | null,
 	receiptNumber: string
 ) {
-	return loadPackageBookingsForReceiptSync(ctx, packageId)
-		.andThen((bookings) => loadBookingReceiptSearchPatches(ctx, bookings, receiptNumber))
-		.andThen((patches) => writeBookingReceiptNumbers(ctx, receiptNumber, patches));
+	return safeTry(async function* () {
+		const bookings = yield* loadPackageBookingsForReceiptSync(ctx, packageId);
+		const searchPatches = yield* loadBookingReceiptSearchPatches(ctx, bookings, receiptNumber);
+		yield* writeBookingReceiptNumbers(ctx, receiptNumber, searchPatches);
+
+		return ok(null);
+	});
 }

@@ -2,7 +2,7 @@
 
 import { queryBookingAvailabilitySettings } from "#convex/booking/lib/settingsIo";
 
-import { type ResultAsync } from "neverthrow";
+import { type ResultAsync, ok, safeTry } from "neverthrow";
 
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { ActionCtx } from "#convex/_generated/server";
@@ -21,8 +21,6 @@ import {
 } from "#convex/packages/services/paidEmailSend";
 import { getPackageForAction } from "#convex/packages/services/lookup";
 
-import type { BookingAvailabilitySettings } from "#studio/lib/bookingAvailabilitySettings";
-
 export type ResendPackageEmailError =
 	| { reason: "NOT_AUTHENTICATED" }
 	| { reason: "NOT_AUTHORIZED" }
@@ -36,9 +34,13 @@ export function loadPaidPackageForEmailResend(
 	ctx: ActionCtx,
 	args: { packageId: Id<"packages"> }
 ): ResultAsync<{ paidAt: number; packageRecord: Doc<"packages"> }, ResendPackageEmailError> {
-	return requirePermissionActions(ctx, "send:receipt-emails")
-		.andThen(() => getPackageForAction(ctx, args.packageId))
-		.andThen(validatePaidPackageForEmailResend);
+	return safeTry(async function* () {
+		yield* requirePermissionActions(ctx, "send:receipt-emails");
+		const packageRecord = yield* getPackageForAction(ctx, args.packageId);
+		const paidPackage = yield* validatePaidPackageForEmailResend(packageRecord);
+
+		return ok(paidPackage);
+	});
 }
 
 export function refreshPackageScheduleLinkForResend(
@@ -52,16 +54,19 @@ export function sendPackagePaidScheduleEmail(
 	ctx: ActionCtx,
 	args: { packageId: Id<"packages">; tokenResult: PaidPackageResult }
 ): ResultAsync<null, ResendPackageEmailError> {
-	return queryBookingAvailabilitySettings(ctx).andThen(
-		(bookingSettings: BookingAvailabilitySettings) =>
-			sendAndRecordPackagePaidEmail(
-				ctx,
-				args.packageId,
-				buildPackagePaidEmailContext(
-					args.tokenResult,
-					bookingSettings.leadTimeMinutes,
-					checkoutReturnOrigin(env.STRIPE_CHECKOUT_RETURN_URL)
-				)
+	return safeTry(async function* () {
+		const bookingSettings = yield* queryBookingAvailabilitySettings(ctx);
+
+		const emailResult = yield* sendAndRecordPackagePaidEmail(
+			ctx,
+			args.packageId,
+			buildPackagePaidEmailContext(
+				args.tokenResult,
+				bookingSettings.leadTimeMinutes,
+				checkoutReturnOrigin(env.STRIPE_CHECKOUT_RETURN_URL)
 			)
-	);
+		);
+
+		return ok(emailResult);
+	});
 }

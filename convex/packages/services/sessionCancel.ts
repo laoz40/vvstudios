@@ -1,3 +1,4 @@
+import { ok, safeTry } from "neverthrow";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { MutationCtx } from "#convex/_generated/server";
 import {
@@ -7,15 +8,19 @@ import {
 import { archiveDeadCheckoutBooking } from "#convex/sessions/services/archive";
 
 export function cancelPackageSessionBooking(ctx: MutationCtx, bookingId: Id<"bookings">) {
-	return archiveDeadCheckoutBooking(ctx, bookingId, {
-		bookingFailureCode: undefined,
-		googleCalendarId: undefined,
-		googleEventId: undefined,
-		reminderEmailClaimedAt: undefined,
-		reminderEmailSentAt: undefined,
-		reminderEmailFailureCode: undefined,
-		status: "cancelled" as const
-	}).map(() => ({ cancelled: true as const, bookingId }));
+	return safeTry(async function* () {
+		yield* archiveDeadCheckoutBooking(ctx, bookingId, {
+			bookingFailureCode: undefined,
+			googleCalendarId: undefined,
+			googleEventId: undefined,
+			reminderEmailClaimedAt: undefined,
+			reminderEmailSentAt: undefined,
+			reminderEmailFailureCode: undefined,
+			status: "cancelled" as const
+		});
+
+		return ok({ cancelled: true as const, bookingId });
+	});
 }
 
 export function loadPackageSessionOwnedByToken(
@@ -23,7 +28,10 @@ export function loadPackageSessionOwnedByToken(
 	packageFromDb: Doc<"packages">,
 	bookingId: Id<"bookings">
 ) {
-	return getPackageSessionForToken(ctx, packageFromDb._id, bookingId).andThen(
-		rejectMissingCapacityConsumingPackageSession
-	);
+	return safeTry(async function* () {
+		const session = yield* getPackageSessionForToken(ctx, packageFromDb._id, bookingId);
+		const validSession = yield* rejectMissingCapacityConsumingPackageSession(session);
+
+		return ok(validSession);
+	});
 }

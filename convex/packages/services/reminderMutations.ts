@@ -1,3 +1,4 @@
+import { ok, safeTry } from "neverthrow";
 import type { Doc } from "#convex/_generated/dataModel";
 import type { MutationCtx } from "#convex/_generated/server";
 import { getPackageFromDb } from "#convex/packages/services/lookup";
@@ -17,27 +18,35 @@ export function claimPackageReminderEmail(
 	ctx: MutationCtx,
 	args: PackageReminderArgs & { now: number }
 ) {
-	return getPackageFromDb(ctx, args.packageId)
-		.andThen((packageFromDb: Doc<"packages">) =>
-			validatePackageReminderClaim(packageFromDb, args.reminderType)
-		)
-		.andThen(() => patchPackageReminderEmailClaimed(ctx, args));
+	return safeTry(async function* () {
+		const packageRecord = yield* getPackageFromDb(ctx, args.packageId);
+		yield* validatePackageReminderClaim(packageRecord, args.reminderType);
+		const claimed = yield* patchPackageReminderEmailClaimed(ctx, args);
+
+		return ok(claimed);
+	});
 }
 
 export function writePackageReminderEmailSent(
 	ctx: MutationCtx,
 	args: PackageReminderArgs & { now: number }
 ) {
-	return getPackageFromDb(ctx, args.packageId).andThen(() =>
-		patchPackageReminderEmailSent(ctx, args)
-	);
+	return safeTry(async function* () {
+		yield* getPackageFromDb(ctx, args.packageId);
+		const updated = yield* patchPackageReminderEmailSent(ctx, args);
+
+		return ok(updated);
+	});
 }
 
 export function writePackageReminderEmailFailed(
 	ctx: MutationCtx,
 	args: PackageReminderArgs & { failureCode: string }
 ) {
-	return getPackageFromDb(ctx, args.packageId).andThen(() =>
-		patchPackageReminderEmailFailed(ctx, args)
-	);
+	return safeTry(async function* () {
+		yield* getPackageFromDb(ctx, args.packageId);
+		const updated = yield* patchPackageReminderEmailFailed(ctx, args);
+
+		return ok(updated);
+	});
 }

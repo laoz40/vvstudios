@@ -1,7 +1,6 @@
 "use node";
 
-import { type ResultAsync } from "neverthrow";
-import type Stripe from "stripe";
+import { type ResultAsync, ok, safeTry } from "neverthrow";
 
 import type { Id } from "#convex/_generated/dataModel";
 import type { ActionCtx } from "#convex/_generated/server";
@@ -45,40 +44,27 @@ type CloseEmbeddedCheckoutSessionSuccess = {
 	outcome: "already_complete" | "abandoned" | "not_found" | "not_pending";
 };
 
-export function parsePublicBookingForCheckout(
-	args: CreateEmbeddedCheckoutSessionArgs
-): ResultAsync<BookingFormValues, { reason: "BOOKING_INVALID_INPUT" }> {
+export function parsePublicBookingForCheckout(args: CreateEmbeddedCheckoutSessionArgs) {
 	return parsePublicCheckoutBooking(args);
 }
 
-export function runSessionCheckoutSubmitRateLimit(
-	ctx: ActionCtx,
-	booking: BookingFormValues
-): ResultAsync<
-	BookingFormValues,
-	{ reason: "BOOKING_RATE_LIMITED"; retryAfter?: number } | CreateEmbeddedCheckoutSessionError
-> {
-	return getBookingSubmitRateLimitKey(booking.email).andThen((submitRateLimitKey: string) =>
-		enforceSessionSubmitRateLimit(ctx, booking, submitRateLimitKey)
-	);
+export function runSessionCheckoutSubmitRateLimit(ctx: ActionCtx, booking: BookingFormValues) {
+	return safeTry(async function* () {
+		const rateLimitKey = yield* getBookingSubmitRateLimitKey(booking.email);
+		const rateLimitResult = yield* enforceSessionSubmitRateLimit(ctx, booking, rateLimitKey);
+
+		return ok(rateLimitResult);
+	});
 }
 
-export function createPendingBookingForStripeCheckout(
-	ctx: ActionCtx,
-	booking: BookingFormValues
-): ResultAsync<
-	{
-		booking: BookingFormValues;
-		bookingId: Id<"bookings">;
-		lineItems: Parameters<typeof createStripeCheckoutCustomer>[2]["lineItems"];
-	},
-	CreateEmbeddedCheckoutSessionError
-> {
-	return requireBookingEmailDomain(booking.email).andThen(() =>
-		createPendingSessionForCheckout(ctx, booking).andThen(({ bookingId }) =>
-			buildSessionCheckoutLineItems(booking).map((lineItems) => ({ booking, bookingId, lineItems }))
-		)
-	);
+export function createPendingBookingForStripeCheckout(ctx: ActionCtx, booking: BookingFormValues) {
+	return safeTry(async function* () {
+		yield* requireBookingEmailDomain(booking.email);
+		const { bookingId } = yield* createPendingSessionForCheckout(ctx, booking);
+		const lineItems = yield* buildSessionCheckoutLineItems(booking);
+
+		return ok({ booking, bookingId, lineItems });
+	});
 }
 
 export function openEmbeddedBookingStripeCheckout(
@@ -88,18 +74,20 @@ export function openEmbeddedBookingStripeCheckout(
 		bookingId: Id<"bookings">;
 		lineItems: Parameters<typeof createStripeCheckoutCustomer>[2]["lineItems"];
 	}
-): ResultAsync<
-	{ bookingId: Id<"bookings">; clientSecret: string; stripeSessionId: string },
-	CreateEmbeddedCheckoutSessionError
-> {
+) {
 	const stripe = getStripeClient();
 
-	return createStripeCheckoutCustomer(stripe, checkoutDraft.booking, {
-		bookingId: checkoutDraft.bookingId,
-		lineItems: checkoutDraft.lineItems
-	})
-		.andThen((draft) => createEmbeddedStripeCheckoutSession(stripe, draft))
-		.andThen((draft) => linkStripeCheckoutToPendingBooking(ctx, draft));
+	return safeTry(async function* () {
+		const checkoutCustomer = yield* createStripeCheckoutCustomer(stripe, checkoutDraft.booking, {
+			bookingId: checkoutDraft.bookingId,
+			lineItems: checkoutDraft.lineItems
+		});
+
+		const checkoutSession = yield* createEmbeddedStripeCheckoutSession(stripe, checkoutCustomer);
+		const linkedSession = yield* linkStripeCheckoutToPendingBooking(ctx, checkoutSession);
+
+		return ok(linkedSession);
+	});
 }
 
 export function closeAbandonedBookingStripeCheckout(
@@ -108,7 +96,10 @@ export function closeAbandonedBookingStripeCheckout(
 ): ResultAsync<CloseEmbeddedCheckoutSessionSuccess, CloseEmbeddedCheckoutSessionError> {
 	const stripe = getStripeClient();
 
-	return closeOpenStripeCheckoutSession(stripe, args.stripeSessionId, args).andThen(
-		(session: Stripe.Checkout.Session) => resolveClosedBookingCheckoutSession(ctx, args, session)
-	);
+	return safeTry(async function* () {
+		const closedSession = yield* closeOpenStripeCheckoutSession(stripe, args.stripeSessionId, args);
+		const result = yield* resolveClosedBookingCheckoutSession(ctx, args, closedSession);
+
+		return ok(result);
+	});
 }
