@@ -8,7 +8,7 @@ Review-only companion for Convex layer migrations. Implementers: skim wrong/righ
 
 **Wrong:** `okOrThrow(fetchAdminPackagesListPage(ctx, args))` or `okOrThrow(stripe.invoices.create(...))`.
 
-**Right:** Callee returns `ResultAsync`; service chains with `.andThen`. Reserve `okOrThrow` for one Convex I/O expression (`ctx.db…`, `ctx.runQuery`, `ctx.runMutation`, `ctx.scheduler`, `ctx.auth`).
+**Right:** Callee returns `ResultAsync`; services compose steps with `safeTry` and `yield*`, returning `ok(value)` on success. Reserve `okOrThrow` for one Convex I/O expression (`ctx.db…`, `ctx.runQuery`, `ctx.runMutation`, `ctx.scheduler`, `ctx.auth`).
 
 ### Mega-handler service
 

@@ -127,6 +127,56 @@ export const noServiceImplementationRule = defineRule({
 			}
 			return null;
 		}
+		function isNeverthrowSafeTry(node: ESTree.Node) {
+			if (node.type === "MemberExpression") {
+				return methodName(node) === "safeTry" && isNeverthrowImport(node.object, null);
+			}
+			return isNeverthrowImport(node, "safeTry");
+		}
+		function isNeverthrowImport(node: ESTree.Node, name: string | null) {
+			node = resolve(node);
+			if (node.type !== "Identifier") return false;
+			for (
+				let scope: Scope | null = context.sourceCode.getScope(node);
+				scope;
+				scope = scope.upper
+			) {
+				const variable = scope.set.get(node.name);
+				if (!variable) continue;
+				return variable.defs.some(({ node: declaration }) => {
+					if (
+						declaration.parent?.type !== "ImportDeclaration" ||
+						declaration.parent.source.value !== "neverthrow"
+					)
+						return false;
+					if (name === null) return declaration.type === "ImportNamespaceSpecifier";
+					return (
+						declaration.type === "ImportSpecifier" &&
+						(declaration.imported.type === "Identifier"
+							? declaration.imported.name
+							: declaration.imported.value) === name
+					);
+				});
+			}
+			return false;
+		}
+		function isInsideSafeTryGenerator(node: ESTree.Node) {
+			for (let parent: ESTree.Node | null = node.parent; parent; parent = parent.parent) {
+				if (parent.type === "ArrowFunctionExpression" || parent.type === "FunctionDeclaration") {
+					return false;
+				}
+				if (parent.type === "FunctionExpression") {
+					const call = parent.parent;
+					return (
+						parent.generator &&
+						call.type === "CallExpression" &&
+						call.arguments[0] === parent &&
+						isNeverthrowSafeTry(call.callee)
+					);
+				}
+			}
+			return false;
+		}
 		function hasOptionalAccess(node: ESTree.Node): boolean {
 			if (node.type === "ChainExpression") return hasOptionalAccess(node.expression);
 			if (node.type === "MemberExpression") return node.optional || hasOptionalAccess(node.object);
@@ -188,13 +238,23 @@ export const noServiceImplementationRule = defineRule({
 			SwitchStatement: report,
 			ForStatement: report,
 			ForInStatement: report,
-			ForOfStatement: report,
+			ForOfStatement(node: ESTree.ForOfStatement) {
+				if (
+					node.await ||
+					node.left.type !== "VariableDeclaration" ||
+					node.left.kind !== "const" ||
+					!isInsideSafeTryGenerator(node)
+				)
+					report(node);
+			},
 			WhileStatement: report,
 			DoWhileStatement: report,
 			TryStatement: report,
 			ThrowStatement: report,
 			AwaitExpression: report,
-			YieldExpression: report,
+			YieldExpression(node: ESTree.YieldExpression) {
+				if (!node.delegate || !isInsideSafeTryGenerator(node)) report(node);
+			},
 			NewExpression: report,
 			AssignmentExpression: report,
 			UpdateExpression: report

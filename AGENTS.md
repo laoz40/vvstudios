@@ -59,19 +59,18 @@ Feature folders (`booking`, `packages`, `sessions`, `stripe`, `drive`, …) hold
 
 Handlers: neverthrow chain of service steps, no domain `if`s, `.match(tupleOk, tupleErr)` on tuple endpoints. Crons and internal mutations reuse the same service steps.
 
-When you touch code that breaks the guide, fix it only if in scope; do not repo-wide sweep.
-
 ### Conventions (while implementing)
 
 - Do not duplicate constants or defaults between the frontend and Convex; extract shared values to one importable source when possible.
 - Do not suffix internal Convex function names with `Internal` or similar; that is obvious from context.
 - Services whose handlers are exported in the same API module may need an explicit `ResultAsync<..., { reason: string }>` return type to break circular inference.
+- Let TypeScript infer service return types, callback parameters, and local values. Keep annotations needed for input contracts, intentional constraints, or circular inference; remove unused output aliases and imports.
 - New service **functions** are verb-first; do not bulk-rename existing symbols. Split a service that branches on which endpoint called it (mode flags, endpoint-only optional args).
 
 ### Neverthrow
 
 - Return real domain `reason` codes from lib, email senders, and rate limiters. Do not `mapErr` into synthetic codes. Fire-and-forget success returns `null`.
-- Service and lib steps return `Result` / `ResultAsync`; chain with `.andThen` / `.map`. Do not wrap a whole function in `okOrThrow`.
+- Service and lib steps return `Result` / `ResultAsync`. Compose service steps with neverthrow `safeTry` generators and `yield*`; return `ok(value)` on success. Use `function*` for synchronous Results and `async function*` for asynchronous steps. Keep error mapping/recovery and existing parallel or sequential collection semantics. Handlers keep their service chains and terminal tuple conversion; lib does not compose Result steps. Do not wrap a whole function in `okOrThrow`.
 - Helpers in `convex/shared/lib/result.ts` only — do not call `fromSafePromise` / `fromPromise` directly.
   - `okOrThrow` — single Convex I/O at that step: `ctx.db.*`, `ctx.scheduler.*`, `ctx.auth.getUserIdentity()`, or raw `runQuery` / `runMutation`. Infra throws; domain outcomes use `err(...)` in `.andThen`.
   - `fromConvexTuple` — `runQuery` / `runMutation` whose handler uses `.match(tupleOk, tupleErr)`.
