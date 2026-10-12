@@ -10,6 +10,7 @@ import {
 import { useMutation } from "convex/react";
 import { toast } from "sonner";
 import { exhaustiveCheck, tryCatch, type UnexpectedError } from "#/lib/result";
+import { cn } from "#/lib/utils";
 import { Badge } from "#/components/ui/badge";
 import UserPlusIcon from "#/components/ui/user-plus-icon";
 import type { AnimatedIconHandle } from "#/components/ui/types";
@@ -32,6 +33,7 @@ import {
 } from "#/components/ui/table";
 import { api } from "#convex/_generated/api";
 import { AdminTableLoadingRow } from "#studio/features/admin/components/AdminDashboardTableUtils";
+import { ContractorJobsDialog } from "#studio/features/admin/components/ContractorJobsDialog";
 import { EditorNotesDialog } from "#studio/features/admin/components/EditorNotesDialog";
 import { InviteUserDialog } from "#studio/features/admin/components/InviteUserDialog";
 import { PrivacySensitiveText } from "#studio/features/admin/components/PrivacySensitiveText";
@@ -95,6 +97,8 @@ export function EmployeesTable({
 	const [updatingEditorToken, setUpdatingEditorToken] = useState<string | null>(null);
 	const [isEnrolling, setIsEnrolling] = useState(false);
 	const [notesDialog, setNotesDialog] = useState<NotesDialogState>({ status: "closed" });
+	const [jobsEditorToken, setJobsEditorToken] = useState<string | null>(null);
+	const jobsEditor = editors.find((editor) => editor.tokenIdentifier === jobsEditorToken);
 	const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
 	const inviteIconRef = useRef<AnimatedIconHandle | null>(null);
 	const visibleEditors = editors.filter((editor) => editor.isActive !== showRetired);
@@ -135,7 +139,7 @@ export function EmployeesTable({
 	let emptyEmployeeRows = (
 		<TableRow>
 			<TableCell
-				colSpan={7}
+				colSpan={8}
 				className="h-24 text-center text-muted-foreground">
 				No contractors to show.
 			</TableCell>
@@ -145,7 +149,7 @@ export function EmployeesTable({
 	if (isLoadingEmployees) {
 		emptyEmployeeRows = (
 			<AdminTableLoadingRow
-				colSpan={7}
+				colSpan={8}
 				label="Loading contractors"
 			/>
 		);
@@ -211,6 +215,7 @@ export function EmployeesTable({
 							<col className="w-54 md:w-42" />
 							<col className="w-24" />
 							<col className="w-20" />
+							<col className="w-24" />
 							<col className="w-64" />
 							<col className="w-6" />
 						</colgroup>
@@ -219,8 +224,9 @@ export function EmployeesTable({
 								<TableHead>Work status</TableHead>
 								<TableHead>Name</TableHead>
 								<TableHead>Email</TableHead>
+								<TableHead className="font-bold">Active jobs</TableHead>
+								<TableHead>Total jobs</TableHead>
 								<TableHead>Last assigned</TableHead>
-								<TableHead>Total edits</TableHead>
 								<TableHead>Notes</TableHead>
 								<TableHead />
 							</TableRow>
@@ -259,14 +265,28 @@ export function EmployeesTable({
 												<TableCell>
 													<PrivacySensitiveText
 														rowId={editor.tokenIdentifier}
+														className="block max-w-full"
 														value={editor.email}
 														label="email"
 														copyable={false}>
-														{editor.email}
+														<span className="block truncate">{editor.email}</span>
 													</PrivacySensitiveText>
 												</TableCell>
-												<TableCell>{formatLastAssignedAt(editor.lastAssignedAt)}</TableCell>
+												<TableCell>
+													<Button
+														variant="ghost"
+														size="sm"
+														className={cn(
+															"font-bold",
+															editor.activeJobs > 0 ? "text-primary" : "text-foreground"
+														)}
+														aria-label="View contractor active jobs"
+														onClick={() => setJobsEditorToken(editor.tokenIdentifier)}>
+														{editor.activeJobs}
+													</Button>
+												</TableCell>
 												<TableCell>{editor.totalEdits}</TableCell>
+												<TableCell>{formatLastAssignedAt(editor.lastAssignedAt)}</TableCell>
 												<TableCell
 													className="truncate text-muted-foreground select-text"
 													title={editor.notes}>
@@ -321,6 +341,15 @@ export function EmployeesTable({
 					</Table>
 				</div>
 			</section>
+			{jobsEditor ? (
+				<ContractorJobsDialog
+					editor={jobsEditor}
+					open
+					onOpenChange={(open) => {
+						if (!open) setJobsEditorToken(null);
+					}}
+				/>
+			) : null}
 			{notesDialog.status === "open" ? (
 				<EditorNotesDialog
 					editor={notesDialog.editor}

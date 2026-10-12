@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { cn } from "#/lib/utils";
 import {
 	AdminSearchFieldPopover,
 	type AdminSearchFieldPopoverExtraField
@@ -36,7 +37,7 @@ export function PrivacySensitiveText({
 
 	if (!isPrivacyModeEnabled) {
 		if (!canOpenFieldActions) {
-			return <span>{children}</span>;
+			return <span className={className}>{children}</span>;
 		}
 
 		return (
@@ -56,10 +57,10 @@ export function PrivacySensitiveText({
 		return (
 			<button
 				type="button"
-				className="cursor-pointer text-left"
+				className={cn("cursor-pointer text-left", className)}
 				onClick={() => toggleRowPrivacy(rowId)}
 				aria-label={`Reveal ${label}`}>
-				<span className="inline-block blur-sm select-none">{children}</span>
+				<span className="inline-block max-w-full blur-sm select-none">{children}</span>
 			</button>
 		);
 	}
@@ -68,7 +69,7 @@ export function PrivacySensitiveText({
 		return (
 			<button
 				type="button"
-				className="cursor-pointer text-left select-text"
+				className={cn("cursor-pointer text-left select-text", className)}
 				onClick={() => toggleRowPrivacy(rowId)}
 				aria-label={`Hide ${label}`}>
 				{children}

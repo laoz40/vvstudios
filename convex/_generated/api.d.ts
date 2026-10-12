@@ -100,6 +100,7 @@ import type * as drive_services_sessionFolderNames from "../drive/services/sessi
 import type * as drive_services_setup from "../drive/services/setup.js";
 import type * as editor_deliverablesEmail from "../editor/deliverablesEmail.js";
 import type * as editor_deliverablesReviewEmail from "../editor/deliverablesReviewEmail.js";
+import type * as editor_lib_activeJobs from "../editor/lib/activeJobs.js";
 import type * as editor_lib_deliverablesEmailSteps from "../editor/lib/deliverablesEmailSteps.js";
 import type * as editor_lib_deliverablesReviewEmail from "../editor/lib/deliverablesReviewEmail.js";
 import type * as editor_lib_deliverablesReviewNotification from "../editor/lib/deliverablesReviewNotification.js";
@@ -448,6 +449,7 @@ declare const fullApi: ApiFromModules<{
   "drive/services/setup": typeof drive_services_setup;
   "editor/deliverablesEmail": typeof editor_deliverablesEmail;
   "editor/deliverablesReviewEmail": typeof editor_deliverablesReviewEmail;
+  "editor/lib/activeJobs": typeof editor_lib_activeJobs;
   "editor/lib/deliverablesEmailSteps": typeof editor_lib_deliverablesEmailSteps;
   "editor/lib/deliverablesReviewEmail": typeof editor_lib_deliverablesReviewEmail;
   "editor/lib/deliverablesReviewNotification": typeof editor_lib_deliverablesReviewNotification;

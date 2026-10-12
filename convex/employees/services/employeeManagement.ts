@@ -6,7 +6,7 @@ import {
 	assertEditorProfileFound,
 	listEditorProfiles,
 	lookupEditorProfileByToken,
-	getEditorWorkStatus,
+	getEditorWorkload,
 	patchEditorAccess,
 	patchEditorNotes
 } from "#convex/editor/lib/editorAccess";
@@ -21,7 +21,7 @@ import {
 function combineEditorWorkStatuses(ctx: QueryCtx, editors: Doc<"editorProfiles">[]) {
 	return ResultAsync.combine(
 		editors.map((editor) =>
-			getEditorWorkStatus(ctx, editor.tokenIdentifier).map((workStatus) => ({
+			getEditorWorkload(ctx, editor.tokenIdentifier).map(({ workStatus, activeJobs }) => ({
 				tokenIdentifier: editor.tokenIdentifier,
 				displayName: editor.displayName,
 				email: editor.email,
@@ -29,10 +29,15 @@ function combineEditorWorkStatuses(ctx: QueryCtx, editors: Doc<"editorProfiles">
 				lastAssignedAt: editor.lastAssignedAt,
 				notes: editor.notes,
 				totalEdits: editor.totalEdits,
-				workStatus
+				workStatus,
+				activeJobs: activeJobs.length
 			}))
 		)
 	);
+}
+
+export function loadEditorActiveJobs(ctx: QueryCtx, tokenIdentifier: string) {
+	return getEditorWorkload(ctx, tokenIdentifier).map(({ activeJobs }) => activeJobs);
 }
 
 export function loadEmployeeRoster(ctx: QueryCtx) {

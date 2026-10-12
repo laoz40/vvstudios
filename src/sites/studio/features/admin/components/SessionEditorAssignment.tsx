@@ -87,7 +87,7 @@ function showAssignmentError(error: AssignmentError) {
 }
 
 function EditorDetails({ editor, label }: { editor: ActiveEditor; label: string }) {
-	const hasOtherEditJobs = editor.workStatus === "assigned" || editor.workStatus === "editing";
+	const hasOtherAssignedJobs = editor.workStatus === "assigned" || editor.workStatus === "editing";
 
 	return (
 		<div className="flex flex-col gap-2 rounded-lg border p-3">
@@ -97,10 +97,10 @@ function EditorDetails({ editor, label }: { editor: ActiveEditor; label: string 
 				<span>{editor.displayName || "Unnamed editor"}</span>
 				<span className="text-muted-foreground">Email</span>
 				<span className="break-all">{editor.email}</span>
-				<span className="text-muted-foreground">Total edits</span>
+				<span className="text-muted-foreground">Total jobs</span>
 				<span>{editor.totalEdits}</span>
-				<span className="text-muted-foreground">Has other edits assigned</span>
-				<span>{hasOtherEditJobs ? "Yes" : "No"}</span>
+				<span className="text-muted-foreground">Has other jobs assigned</span>
+				<span>{hasOtherAssignedJobs ? "Yes" : "No"}</span>
 			</div>
 		</div>
 	);

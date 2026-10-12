@@ -2,6 +2,7 @@ import { err, ok, type ResultAsync } from "neverthrow";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
 import { okOrThrow } from "#convex/shared/lib/result";
+import { listActiveEditorJobs } from "#convex/editor/lib/activeJobs";
 
 const EDITOR_LIMIT = 200;
 
@@ -40,18 +41,38 @@ export function getEditorWorkStatus(
 				query.eq("assignedEditorTokenIdentifier", tokenIdentifier)
 			)
 			.take(ASSIGNED_SESSION_LIMIT)
+	).map(getEditorWorkStatusFromBookings);
+}
+
+export function getEditorWorkload(ctx: QueryCtx, tokenIdentifier: string) {
+	return okOrThrow(
+		ctx.db
+			.query("bookings")
+			.withIndex("by_assignedEditorTokenIdentifier_and_driveClientId", (query) =>
+				query.eq("assignedEditorTokenIdentifier", tokenIdentifier)
+			)
+			.collect()
 	).map((assignedBookings) => {
-		let hasAssignedSession = false;
-
-		for (const booking of assignedBookings) {
-			if (!isCurrentAssignedSession(booking)) continue;
-			hasAssignedSession = true;
-
-			if (booking.editStatus === "editing") return "editing";
-		}
-
-		return hasAssignedSession ? "assigned" : "unassigned";
+		return {
+			workStatus: getEditorWorkStatusFromBookings(
+				assignedBookings.slice(0, ASSIGNED_SESSION_LIMIT)
+			),
+			activeJobs: listActiveEditorJobs(assignedBookings, Date.now())
+		};
 	});
+}
+
+function getEditorWorkStatusFromBookings(bookings: Doc<"bookings">[]): EditorWorkStatus {
+	let hasAssignedSession = false;
+
+	for (const booking of bookings) {
+		if (!isCurrentAssignedSession(booking)) continue;
+		hasAssignedSession = true;
+
+		if (booking.editStatus === "editing") return "editing";
+	}
+
+	return hasAssignedSession ? "assigned" : "unassigned";
 }
 
 export function lookupEditorProfileByToken(ctx: MutationCtx, tokenIdentifier: string) {
