@@ -1,6 +1,7 @@
 "use node";
 
 import { v } from "convex/values";
+import { ok, safeTry } from "neverthrow";
 import type { ResultAsync } from "neverthrow";
 import { tupleErr, tupleOk } from "#/lib/result";
 import type { Id } from "#convex/_generated/dataModel";
@@ -33,15 +34,17 @@ export const sendPackageAdjustmentInvoice = internalAction({
 export const retryPackageAdjustmentInvoiceEmail = action({
 	args: { adjustmentId: v.id("packageAdjustments") },
 	handler: (ctx, args) =>
-		requirePermissionActions(ctx, "send:receipt-emails")
-			.andThen(() =>
-				sendPackageAdjustmentInvoiceHandler(ctx, {
-					adjustmentId: args.adjustmentId,
-					attempt: "retry",
-					claimedAt: Date.now()
-				})
-			)
-			.match(tupleOk, tupleErr)
+		safeTry(async function* () {
+			yield* requirePermissionActions(ctx, "send:receipt-emails");
+
+			const result = yield* sendPackageAdjustmentInvoiceHandler(ctx, {
+				adjustmentId: args.adjustmentId,
+				attempt: "retry",
+				claimedAt: Date.now()
+			});
+
+			return ok(result);
+		}).match(tupleOk, tupleErr)
 });
 
 function sendPackageAdjustmentInvoiceHandler(
@@ -52,13 +55,22 @@ function sendPackageAdjustmentInvoiceHandler(
 		claimedAt: number;
 	}
 ): ResultAsync<null, SendPackageAdjustmentInvoiceError> {
-	return claimPackageAdjustmentInvoiceEmailForSend(ctx, args, args.claimedAt).andThen(
-		(invoiceInput) =>
-			createPackageAdjustmentInvoiceDraft(args.adjustmentId, invoiceInput)
-				.andThen((invoice) => sendPackageAdjustmentInvoiceDraft(args.adjustmentId, invoice))
-				.orElse((failure) => recordFailedPackageAdjustmentInvoice(ctx, args, failure))
-				.andThen((invoice) =>
-					recordSentPackageAdjustmentInvoice(ctx, args, args.claimedAt, invoice)
-				)
-	);
+	return safeTry(async function* () {
+		const invoiceInput = yield* claimPackageAdjustmentInvoiceEmailForSend(
+			ctx,
+			args,
+			args.claimedAt
+		);
+
+		const invoice = yield* safeTry(async function* () {
+			const draft = yield* createPackageAdjustmentInvoiceDraft(args.adjustmentId, invoiceInput);
+			const sentInvoice = yield* sendPackageAdjustmentInvoiceDraft(args.adjustmentId, draft);
+
+			return ok(sentInvoice);
+		}).orElse((failure) => recordFailedPackageAdjustmentInvoice(ctx, args, failure));
+
+		const result = yield* recordSentPackageAdjustmentInvoice(ctx, args, args.claimedAt, invoice);
+
+		return ok(result);
+	});
 }

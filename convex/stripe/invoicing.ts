@@ -1,6 +1,7 @@
 "use node";
 
 import { v } from "convex/values";
+import { ok, safeTry } from "neverthrow";
 import { tupleErr, tupleOk } from "#/lib/result";
 import { action } from "#convex/_generated/server";
 import {
@@ -21,23 +22,23 @@ export const sendBookingStripeInvoice = action({
 		requestId: v.string()
 	},
 	handler: async (ctx, args) =>
-		await requireSendReceiptEmailsAndValidateLineItems(ctx, args.lineItems)
-			.andThen(({ identity, lineItems }) =>
-				loadBookingStripeCustomerId(ctx, args.bookingId).map((stripeCustomerId) => ({
-					identity,
-					lineItems,
-					stripeCustomerId
-				}))
-			)
-			.andThen(({ identity, lineItems, stripeCustomerId }) =>
-				createAndRecordBookingStripeInvoice(
-					ctx,
-					{ bookingId: args.bookingId, lineItems, requestId: args.requestId },
-					identity,
-					stripeCustomerId
-				)
-			)
-			.match(tupleOk, tupleErr)
+		await safeTry(async function* () {
+			const { identity, lineItems } = yield* requireSendReceiptEmailsAndValidateLineItems(
+				ctx,
+				args.lineItems
+			);
+
+			const stripeCustomerId = yield* loadBookingStripeCustomerId(ctx, args.bookingId);
+
+			const invoice = yield* createAndRecordBookingStripeInvoice(
+				ctx,
+				{ bookingId: args.bookingId, lineItems, requestId: args.requestId },
+				identity,
+				stripeCustomerId
+			);
+
+			return ok(invoice);
+		}).match(tupleOk, tupleErr)
 });
 
 export const sendPackageStripeInvoice = action({
@@ -47,23 +48,23 @@ export const sendPackageStripeInvoice = action({
 		requestId: v.string()
 	},
 	handler: async (ctx, args) =>
-		await requireSendReceiptEmailsAndValidateLineItems(ctx, args.lineItems)
-			.andThen(({ identity, lineItems }) =>
-				loadPackageStripeCustomerId(ctx, args.packageId).map((stripeCustomerId) => ({
-					identity,
-					lineItems,
-					stripeCustomerId
-				}))
-			)
-			.andThen(({ identity, lineItems, stripeCustomerId }) =>
-				createAndRecordPackageStripeInvoice(
-					ctx,
-					{ packageId: args.packageId, lineItems, requestId: args.requestId },
-					identity,
-					stripeCustomerId
-				)
-			)
-			.match(tupleOk, tupleErr)
+		await safeTry(async function* () {
+			const { identity, lineItems } = yield* requireSendReceiptEmailsAndValidateLineItems(
+				ctx,
+				args.lineItems
+			);
+
+			const stripeCustomerId = yield* loadPackageStripeCustomerId(ctx, args.packageId);
+
+			const invoice = yield* createAndRecordPackageStripeInvoice(
+				ctx,
+				{ packageId: args.packageId, lineItems, requestId: args.requestId },
+				identity,
+				stripeCustomerId
+			);
+
+			return ok(invoice);
+		}).match(tupleOk, tupleErr)
 });
 
 export const getStripeInvoiceBillingUrls = action({

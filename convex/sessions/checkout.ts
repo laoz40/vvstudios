@@ -1,4 +1,5 @@
 import { v } from "convex/values";
+import { ok, safeTry } from "neverthrow";
 import { tupleErr, tupleOk } from "#/lib/result";
 import { internalMutation, internalQuery } from "#convex/_generated/server";
 import {
@@ -38,10 +39,13 @@ export const createPendingSession = internalMutation({
 		notes: v.optional(v.string())
 	},
 	handler: (ctx, args) =>
-		rejectCheckoutSlotUnavailable(ctx, args)
-			.andThen(() => parseCheckoutSessionStartTime(args))
-			.andThen((sessionStartAt) => createPendingCheckoutBooking(ctx, args, sessionStartAt))
-			.match(tupleOk, tupleErr)
+		safeTry(async function* () {
+			yield* rejectCheckoutSlotUnavailable(ctx, args);
+			const sessionStartAt = yield* parseCheckoutSessionStartTime(args);
+			const booking = yield* createPendingCheckoutBooking(ctx, args, sessionStartAt);
+
+			return ok(booking);
+		}).match(tupleOk, tupleErr)
 });
 
 export const getSessionByStripeSessionId = internalQuery({

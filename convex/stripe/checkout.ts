@@ -1,6 +1,7 @@
 "use node";
 
 import { v } from "convex/values";
+import { ok, safeTry } from "neverthrow";
 import { action } from "#convex/_generated/server";
 import { tupleErr, tupleOk, type Result } from "#/lib/result";
 import type { Id } from "#convex/_generated/dataModel";
@@ -42,11 +43,14 @@ export const createEmbeddedCheckoutSession = action({
 			CreateEmbeddedCheckoutSessionError
 		>
 	> => {
-		return await parsePublicBookingForCheckout(args)
-			.andThen((booking) => runSessionCheckoutSubmitRateLimit(ctx, booking))
-			.andThen((booking) => createPendingBookingForStripeCheckout(ctx, booking))
-			.andThen((checkoutDraft) => openEmbeddedBookingStripeCheckout(ctx, checkoutDraft))
-			.match(tupleOk, tupleErr);
+		return await safeTry(async function* () {
+			const booking = yield* parsePublicBookingForCheckout(args);
+			const rateLimitedBooking = yield* runSessionCheckoutSubmitRateLimit(ctx, booking);
+			const checkoutDraft = yield* createPendingBookingForStripeCheckout(ctx, rateLimitedBooking);
+			const checkout = yield* openEmbeddedBookingStripeCheckout(ctx, checkoutDraft);
+
+			return ok(checkout);
+		}).match(tupleOk, tupleErr);
 	}
 });
 

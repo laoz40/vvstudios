@@ -13,9 +13,12 @@ import {
 export const listEmployees = query({
 	args: {},
 	handler: (ctx) =>
-		requirePermission(ctx, "update:editor-access")
-			.andThen(() => loadEmployeeRoster(ctx))
-			.match(tupleOk, tupleErr)
+		safeTry(async function* () {
+			yield* requirePermission(ctx, "update:editor-access");
+			const employees = yield* loadEmployeeRoster(ctx);
+
+			return ok(employees);
+		}).match(tupleOk, tupleErr)
 });
 
 export const listActiveJobs = query({
@@ -32,15 +35,21 @@ export const listActiveJobs = query({
 export const updateEmployeeNotes = mutation({
 	args: { tokenIdentifier: v.string(), notes: v.string() },
 	handler: (ctx, args) =>
-		requirePermission(ctx, "update:editor-access")
-			.andThen(() => saveEmployeeNotes(ctx, args.tokenIdentifier, args.notes))
-			.match(tupleOk, tupleErr)
+		safeTry(async function* () {
+			yield* requirePermission(ctx, "update:editor-access");
+			const notes = yield* saveEmployeeNotes(ctx, args.tokenIdentifier, args.notes);
+
+			return ok(notes);
+		}).match(tupleOk, tupleErr)
 });
 
 export const updateEmployeeAccess = mutation({
 	args: { tokenIdentifier: v.string(), isActive: v.boolean() },
 	handler: (ctx, args) =>
-		requirePermission(ctx, "update:editor-access")
-			.andThen(() => saveEmployeeAccess(ctx, args.tokenIdentifier, args.isActive))
-			.match(tupleOk, tupleErr)
+		safeTry(async function* () {
+			yield* requirePermission(ctx, "update:editor-access");
+			const access = yield* saveEmployeeAccess(ctx, args.tokenIdentifier, args.isActive);
+
+			return ok(access);
+		}).match(tupleOk, tupleErr)
 });

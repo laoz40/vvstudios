@@ -1,4 +1,5 @@
 import { v } from "convex/values";
+import { ok, safeTry } from "neverthrow";
 import { tupleErr, tupleOk } from "#/lib/result";
 import { internalMutation } from "#convex/_generated/server";
 import { sessionReservationValidator } from "#convex/sessions/services/reservationValidators";
@@ -55,9 +56,12 @@ export const saveAdminSessionUpdate = internalMutation({
 		reservation: v.optional(sessionReservationValidator)
 	},
 	handler: (ctx, args) =>
-		resolveAdminSessionUpdate(ctx, args)
-			.andThen((resolved) => writeAdminSessionUpdateWithDriveSetup(ctx, args, resolved))
-			.match(tupleOk, tupleErr)
+		safeTry(async function* () {
+			const resolved = yield* resolveAdminSessionUpdate(ctx, args);
+			const session = yield* writeAdminSessionUpdateWithDriveSetup(ctx, args, resolved);
+
+			return ok(session);
+		}).match(tupleOk, tupleErr)
 });
 
 export const saveClientSessionReschedule = internalMutation({
@@ -76,8 +80,11 @@ export const saveClientSessionReschedule = internalMutation({
 		reservation: sessionReservationValidator
 	},
 	handler: (ctx, args) =>
-		validateClientSessionReschedule(ctx, args)
-			.andThen((validated) => patchClientSessionReschedule(ctx, args, validated))
-			.andThen(() => schedulePackageAdjustmentAfterReschedule(ctx, args))
-			.match(tupleOk, tupleErr)
+		safeTry(async function* () {
+			const validated = yield* validateClientSessionReschedule(ctx, args);
+			yield* patchClientSessionReschedule(ctx, args, validated);
+			const adjustment = yield* schedulePackageAdjustmentAfterReschedule(ctx, args);
+
+			return ok(adjustment);
+		}).match(tupleOk, tupleErr)
 });

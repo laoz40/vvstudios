@@ -1,4 +1,5 @@
 import { v } from "convex/values";
+import { ok, safeTry } from "neverthrow";
 import { tupleErr, tupleOk } from "#/lib/result";
 import { internalMutation, internalQuery, mutation, query } from "#convex/_generated/server";
 import {
@@ -17,9 +18,12 @@ export type { RescheduleLinkLookupError } from "#convex/sessions/lib/rescheduleL
 export const createPublicFailedSessionRescheduleLink = mutation({
 	args: { stripeSessionId: v.string() },
 	handler: async (ctx, args) =>
-		await loadPublicFailedSessionByStripeId(ctx, args.stripeSessionId)
-			.andThen((session) => issueRescheduleLink(ctx, session))
-			.match(tupleOk, tupleErr)
+		await safeTry(async function* () {
+			const session = yield* loadPublicFailedSessionByStripeId(ctx, args.stripeSessionId);
+			const rescheduleLink = yield* issueRescheduleLink(ctx, session);
+
+			return ok(rescheduleLink);
+		}).match(tupleOk, tupleErr)
 });
 
 export const createAdminRescheduleLink = mutation({
