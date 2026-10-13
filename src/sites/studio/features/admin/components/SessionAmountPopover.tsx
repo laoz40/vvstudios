@@ -286,7 +286,7 @@ export function SessionAmountPopover({
 					</PopoverHeader>
 					<SessionAmountDetails
 						{...details}
-						showCents={showCents}
+						showCents={true}
 						invoiceState={invoiceState}
 					/>
 				</PopoverContent>
