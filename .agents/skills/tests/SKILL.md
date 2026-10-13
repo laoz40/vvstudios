@@ -5,6 +5,26 @@ description: Test conventions for this repo. Use when writing, adding, reviewing
 
 # Tests
 
+## When to add tests
+
+This rule applies to unit, integration, E2E, and Convex tests. Add tests selectively for critical application behavior. A new feature, changed function, refactor, or bug fix does not automatically require a new test. Adding no tests is a valid outcome.
+
+Before adding a test, identify:
+
+- The specific plausible failure it catches.
+- The consequence for customers or studio operations.
+- Why existing tests or static checks do not already protect against it.
+
+"This feature needs coverage" is not a sufficient reason. A precise behavioral assertion is necessary, but does not by itself justify a test.
+
+Prioritize payment correctness, booking and scheduling integrity, authorization, duplicate processing, and recovery from partial failures. These are examples of consequential risks, not a coverage checklist.
+
+Routine rendering, copy, styling, simple CRUD, trivial helpers, and implementation refactors normally need no new tests. Add one only when it protects a consequential invariant.
+
+Check existing coverage first and prefer extending an existing test that protects the same behavior. Do not duplicate coverage at multiple layers unless each test catches a distinct consequential failure.
+
+## How to write tests
+
 Tests verify behavior through public interfaces, not implementation details. A good test reads like a specification: "user can checkout with valid cart" tells you what capability exists and survives refactors.
 
 ```typescript
@@ -26,7 +46,7 @@ test("checkout calls paymentService.process", async () => {
 
 - Integration-style: test through real interfaces, not mocks of internal parts
 - Public API only; describe WHAT, not HOW
-- One logical assertion per test
+- One behavior per test; use the assertions needed to prove it
 - Expected values are independent literals, not recomputed the same way the implementation computes them
 
 ## Bad tests
@@ -51,14 +71,14 @@ Look for these low-value shapes:
 - Weak or no assertion: no `expect`, or only existence, truthiness, type, non-throwing, or broad numeric checks.
 - Mock or absence only: only checking calls, no calls, `undefined`, an empty collection, or inequality with a wrong value.
 - Self-referential expectations: `expect(f(a)).toBe(f(a))`, or deriving an expected URL using the same builder the subject uses.
-- Constant pins: restating a hand-maintained constant, config default, table row, or prompt string. Test the mechanism that reads the value instead. A constant pin blocks edits without proving behavior.
+- Constant pins: restating a hand-maintained constant, config default, table row, or prompt string. A constant pin blocks edits without proving behavior. Only test the mechanism that reads the value when it meets the criteria in "When to add tests".
 - Fixture asserts fixture: asserting data the test constructed or computed in `beforeEach`, without exercising the subject inside the test body.
 
-Rewrite with concrete behavior, for example `expect(slugify("Hello, World!")).toBe("hello-world")`. For an absence, assert the presence on another input in the same test. For a boundary mock, assert the concrete payload it received or the observable state after the call, rather than merely checking that it was called. This does not permit mocking internal collaborators.
+For tests that meet the criteria in "When to add tests", assert concrete behavior, such as replaying a payment webhook and observing that the booking remains confirmed with one payment recorded. For an absence, assert the presence on another input in the same test. For a boundary mock, assert the concrete payload it received or the observable state after the call, rather than merely checking that it was called. This does not permit mocking internal collaborators.
 
 When no behavioral assertion exists, delete the test. Such tests consume CI time and review attention without detecting the intended defects.
 
-Keep tests of relationships across table rows, such as shared keys or existing parents, and compile-time checks in `*.test-d.ts` files.
+Tests of relationships across table rows, such as shared keys or existing parents, and compile-time checks in `*.test-d.ts` files must also meet the criteria in "When to add tests". Their test shape alone does not justify keeping them.
 
 ## When to mock
 
@@ -87,7 +107,7 @@ Dont mock internal collaborators or anything you control.
 
 ## E2E
 
-- Prioritise E2E for customer-facing flows
+- Prioritize E2E for critical customer-facing flows that meet the criteria in "When to add tests"; do not add one for every feature
 - Create state through UI only; verify through UI (status/read-back). No seeding behind the app.
 - CI E2E test stops before checkout due to Stripe hCaptcha; local specs cover payment and reschedule happy paths.
 
@@ -95,12 +115,6 @@ Dont mock internal collaborators or anything you control.
 
 For Convex test placement or Stripe, Google SDK, PDF, and email boundary stubs, read [boundary-testing.md](references/boundary-testing.md) before choosing fixtures.
 
-- Only to test important flows and failures:
-    - Races
-    - Idempotency — webhook replay, send-once reminders/jobs
-    - Money calculations
-    - Background jobs — reminders, expiry, scheduled Drive setup
-    - Failure recovery — orphan Calendar cleanup, retryable states, partial Drive setup
-- Don't add unless you can explain with a strong reason.
+- Apply the global criteria in "When to add tests". Candidate risks include races, webhook replay, duplicate reminders or jobs, money calculations, expiry, scheduled Drive setup, orphan Calendar cleanup, retryable states, and partial Drive setup. These examples are not a requirement to cover every job or failure path.
 - Use `createConvexTest`; call public queries/mutations when they exist.
 - `ctx.db.get` in test helpers is fine when no caller-facing query exposes the state you assert on.
