@@ -27,7 +27,7 @@ Examples: `convex/packages/scheduling.ts`, `convex/booking/settings.ts`, `convex
 - Thin entrypoints that call **services only**.
 - Read like a short, flat list of steps describing what the endpoint does (as many steps as the story needs — keep it scannable).
 - **No** direct `ctx.db` calls, **no** `#convex/.../lib` imports, **no** domain logic in the handler file (allowlisted exceptions: `http.ts`, `devSeed.ts`, `schema.ts`, `convex/sessions/drive.ts`, …).
-- Own validators and step order; wire tuple results with `.match(tupleOk, tupleErr)`.
+- Own validators and step order; compose service steps with `safeTry` generators and `yield*`, then wire tuple results with `.match(tupleOk, tupleErr)`.
 - Paginated queries keep Convex's plain page format. The handler may await the service Result, throw `ConvexError` for an error, and return the page value. This converts the boundary format without choosing domain operations.
 
 ## Services (`convex/<feature>/services/**`, `convex/shared/services/**`)
@@ -36,7 +36,7 @@ Examples: `convex/packages/scheduling.ts`, `convex/booking/settings.ts`, `convex
 - Composed from **lib** functions (and other services when needed).
 - One service **file** groups related abstractions for one domain concept.
 - **File layout:** name modules for what they do (`checkoutMutations.ts`, `queries.ts`, `invoiceSend.ts`). No `Workflow`, `MutationWorkflow`, or layer jargon in filenames; the parent folder is the feature (`packages/services/`). Do not repeat the feature name in the basename when the path already provides it. Internal Convex entrypoints live in the feature folder (e.g. `sessions/drive.ts`), not under a generic `convex/internal/` folder.
-- Handlers chain several service functions together.
+- Handlers compose several service functions with `safeTry` generators and `yield*`.
 - Function bodies compose meaningful operations with neverthrow `safeTry` generators and `yield*`. Use `function*` for synchronous Results and `async function*` for asynchronous steps, and return `ok(value)` on success. Keep simple mappings, literals, Result constructors, conditional value mappings, argument objects, and projections inline. Do not extract these into tiny wrappers or assign bound callbacks. Domain validation, operation selection (including ternaries, short-circuit calls, optional calls, and selected function references), collection eligibility, non-orchestration loops, and I/O live in lib, including implementation used by private helpers and callbacks. Use `for (const item of items)` inside a `safeTry` generator to sequence Result operations over already selected records. Authorization services load the caller's identity and access and compose lib checks.
 - Name functions for the domain action they perform. Do not add `Step` just because a function appears in a chain.
 - Lib validation returns a `Result` directly; services unwrap it with `yield*`. Do not replace a validation with a callback selector and a returned thunk. Do not select operations from callback tables and immediately invoke them. Skip-capable I/O functions can accept an optional input and return success without I/O when there is nothing to do.
@@ -128,6 +128,8 @@ The `convex-layers` oxlint plugin (`tools/oxlint/convex-layers/`) runs on featur
 | `convex-layers/no-lib-result-composition`                     | Any use of `.andThen`, `.asyncAndThen`, or neverthrow `safeTry` in lib, including pure helpers and private functions. Method references, literal computed access, destructuring, and aliased `safeTry` imports are checked. Compose Result steps in services; simple `.map` transformations remain allowed.                                                                                           |
 | `convex-layers/no-drive-state-write-outside-owner`            | Writes to Drive tables, booking Drive linkage, or booking Drive setup-failure fields outside their designated lib owners under `convex/drive/lib/`.                                                                                                                                                                                                                                                   |
 | `convex-layers/no-billing-recovery-state-write-outside-owner` | Writes to `stripeInvoices`, `packageAdjustments`, or booking/package `originalPaidAmount` outside their designated lib owners under `convex/stripe/lib/` and `convex/packages/lib/`.                                                                                                                                                                                                                  |
+
+The built-in `no-restricted-properties` rule rejects `.andThen` and `.asyncAndThen` throughout application code and directs agents to `safeTry` generators with `yield*`. Convex lib continues to return individual Results and cannot use generators for composition.
 
 These checks enforce identifiable syntax, not every possible semantic disguise. Conditional calls and local aliases are checked, but arbitrary imported helper implementations require review. The trivial-wrapper check is intentionally limited to static or identity returns and objects with at most two properties. Synthetic skip errors with arbitrary names cannot be inferred reliably.
 

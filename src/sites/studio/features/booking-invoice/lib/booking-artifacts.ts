@@ -1,4 +1,4 @@
-import { err, errAsync, ok, type Result, type ResultAsync } from "neverthrow";
+import { err, ok, safeTry, type Result, type ResultAsync } from "neverthrow";
 import type { Doc } from "#convex/_generated/dataModel";
 import {
 	bookingSchema,
@@ -266,13 +266,12 @@ export function createPackageReceiptEmailArtifacts(
 	paidAt: number,
 	options: PackageReceiptArtifactOptions
 ) {
-	return createPackageReceiptArtifacts(packageRecord, paidAt, options).asyncAndThen(
-		(artifactsResult) =>
-			renderBookingReceiptEmail(artifactsResult.artifacts.data).map((emailHtml) => ({
-				...artifactsResult,
-				artifacts: { ...artifactsResult.artifacts, emailHtml }
-			}))
-	);
+	return safeTry(async function* () {
+		const artifactsResult = yield* createPackageReceiptArtifacts(packageRecord, paidAt, options);
+		const emailHtml = yield* renderBookingReceiptEmail(artifactsResult.artifacts.data);
+
+		return ok({ ...artifactsResult, artifacts: { ...artifactsResult.artifacts, emailHtml } });
+	});
 }
 
 export function createBookingReceiptEmailArtifactsForBooking(
@@ -290,18 +289,12 @@ export function createBookingReceiptEmailArtifactsForBooking(
 	},
 	{ reason: "INVALID_BOOKING_DATA" | "RECEIPT_EMAIL_RENDER_FAILED" }
 > {
-	const artifactsResult = createBookingReceiptArtifactsForBooking(booking, createdAt, options);
+	return safeTry(async function* () {
+		const value = yield* createBookingReceiptArtifactsForBooking(booking, createdAt, options);
+		const emailHtml = yield* renderBookingReceiptEmail(value.artifacts.data);
 
-	if (artifactsResult.isErr()) {
-		return errAsync(artifactsResult.error);
-	}
-
-	return artifactsResult.asyncAndThen((value) =>
-		renderBookingReceiptEmail(value.artifacts.data).map((emailHtml) => ({
-			...value,
-			artifacts: { ...value.artifacts, emailHtml }
-		}))
-	);
+		return ok({ ...value, artifacts: { ...value.artifacts, emailHtml } });
+	});
 }
 
 export function createPackageReceiptArtifacts(

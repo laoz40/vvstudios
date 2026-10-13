@@ -1,4 +1,5 @@
 import { v } from "convex/values";
+import { ok, safeTry } from "neverthrow";
 import { tupleErr, tupleOk } from "#/lib/result";
 import { internalMutation } from "#convex/_generated/server";
 import { sessionReservationValidator } from "#convex/sessions/services/reservationValidators";
@@ -22,9 +23,12 @@ export const claimBookingConfirmation = internalMutation({
 		stripeEventId: v.string()
 	},
 	handler: (ctx, args) =>
-		loadBookingStripeConfirmationClaimStatus(ctx, args)
-			.andThen((claimStatus) => writeBookingStripeConfirmationClaim(ctx, args, claimStatus))
-			.match(tupleOk, tupleErr)
+		safeTry(async function* () {
+			const claimStatus = yield* loadBookingStripeConfirmationClaimStatus(ctx, args);
+			const confirmationClaim = yield* writeBookingStripeConfirmationClaim(ctx, args, claimStatus);
+
+			return ok(confirmationClaim);
+		}).match(tupleOk, tupleErr)
 });
 
 export const markBookingConfirmed = internalMutation({

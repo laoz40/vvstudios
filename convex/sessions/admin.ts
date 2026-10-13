@@ -1,6 +1,7 @@
 import { ConvexError } from "convex/values";
 import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
+import { ok, safeTry } from "neverthrow";
 import { tupleErr, tupleOk } from "#/lib/result";
 import { loadDeliverablesCustomerTypeForBooking } from "#convex/editor/services/loadSessionForDeliverables";
 import { internalMutation, internalQuery, mutation, query } from "#convex/_generated/server";
@@ -120,9 +121,17 @@ export const archiveSession = mutation({
 export const archivePastDeadCheckoutSessions = mutation({
 	args: { cursor: v.union(v.string(), v.null()), numItems: v.optional(v.number()) },
 	handler: (ctx, args) =>
-		requirePermission(ctx, "archive:sessions")
-			.andThen(() => runArchivePastDeadCheckoutBatch(ctx, args.cursor, args.numItems))
-			.match(tupleOk, tupleErr)
+		safeTry(async function* () {
+			yield* requirePermission(ctx, "archive:sessions");
+
+			const archivedSessions = yield* runArchivePastDeadCheckoutBatch(
+				ctx,
+				args.cursor,
+				args.numItems
+			);
+
+			return ok(archivedSessions);
+		}).match(tupleOk, tupleErr)
 });
 
 export const updateSessionAdminNotes = mutation({

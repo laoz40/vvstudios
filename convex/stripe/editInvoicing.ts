@@ -1,6 +1,7 @@
 "use node";
 
 import { v } from "convex/values";
+import { ok, safeTry } from "neverthrow";
 import { tupleErr, tupleOk } from "#/lib/result";
 import { action, internalAction } from "#convex/_generated/server";
 import { editInvoiceTargetValidator } from "#convex/stripe/editInvoices";
@@ -41,8 +42,17 @@ export const saveChangesAndSendInvoice = action({
 		revision: v.string()
 	},
 	handler: (ctx, args) =>
-		requireEditInvoicePermissions(ctx)
-			.andThen((identity) => loadConfirmedEditContext(ctx, args, identity))
-			.andThen(({ identity, context }) => finishConfirmedEdit(ctx, args, identity, context))
-			.match(tupleOk, tupleErr)
+		safeTry(async function* () {
+			const identity = yield* requireEditInvoicePermissions(ctx);
+
+			const { identity: confirmedIdentity, context } = yield* loadConfirmedEditContext(
+				ctx,
+				args,
+				identity
+			);
+
+			const result = yield* finishConfirmedEdit(ctx, args, confirmedIdentity, context);
+
+			return ok(result);
+		}).match(tupleOk, tupleErr)
 });

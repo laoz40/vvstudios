@@ -57,7 +57,7 @@ Quick map:
 
 Feature folders (`booking`, `packages`, `sessions`, `stripe`, `drive`, …) hold handlers, services, and lib for that area. Cross-cutting code (auth, `result`, email send, admin search validators) lives under `convex/shared/`. Convex API paths follow folders: e.g. `convex/packages/scheduling.ts` → `api.packages.scheduling.*`.
 
-Handlers: neverthrow chain of service steps, no domain `if`s, `.match(tupleOk, tupleErr)` on tuple endpoints. Crons and internal mutations reuse the same service steps.
+Handlers: neverthrow `safeTry` generators with `yield*` for service steps, no domain `if`s, `.match(tupleOk, tupleErr)` on tuple endpoints. Crons and internal mutations reuse the same service steps.
 
 ### Conventions (while implementing)
 
@@ -70,9 +70,9 @@ Handlers: neverthrow chain of service steps, no domain `if`s, `.match(tupleOk, t
 ### Neverthrow
 
 - Return real domain `reason` codes from lib, email senders, and rate limiters. Do not `mapErr` into synthetic codes. Fire-and-forget success returns `null`.
-- Service and lib steps return `Result` / `ResultAsync`. Compose service steps with neverthrow `safeTry` generators and `yield*`; return `ok(value)` on success. Use `function*` for synchronous Results and `async function*` for asynchronous steps. Keep error mapping/recovery and existing parallel or sequential collection semantics. Handlers keep their service chains and terminal tuple conversion; lib does not compose Result steps. Do not wrap a whole function in `okOrThrow`.
+- Service and lib steps return `Result` / `ResultAsync`. Compose handler and service steps with neverthrow `safeTry` generators and `yield*`; return `ok(value)` on success. Use `function*` for synchronous Results and `async function*` for asynchronous steps. Keep error mapping/recovery and existing parallel or sequential collection semantics. Handlers keep their service step order and terminal tuple conversion; lib does not compose Result steps. Do not wrap a whole function in `okOrThrow`. `.andThen` and `.asyncAndThen` are prohibited by lint; use generators for Result composition.
 - Helpers in `convex/shared/lib/result.ts` only — do not call `fromSafePromise` / `fromPromise` directly.
-  - `okOrThrow` — single Convex I/O at that step: `ctx.db.*`, `ctx.scheduler.*`, `ctx.auth.getUserIdentity()`, or raw `runQuery` / `runMutation`. Infra throws; domain outcomes use `err(...)` in `.andThen`.
+  - `okOrThrow` — single Convex I/O at that step: `ctx.db.*`, `ctx.scheduler.*`, `ctx.auth.getUserIdentity()`, or raw `runQuery` / `runMutation`. Infra throws; domain outcomes return `err(...)` from lib validation steps.
   - `fromConvexTuple` — `runQuery` / `runMutation` whose handler uses `.match(tupleOk, tupleErr)`.
   - `tryPromise` — external APIs (Stripe, Resend, Google, render); `catch` maps to domain `err`, never rethrows.
 - Lib exports returning `ResultAsync` build it from steps; no export-level `tryPromise` / `okOrThrow` around internal async helpers.

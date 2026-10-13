@@ -1,4 +1,5 @@
 import { v } from "convex/values";
+import { ok, safeTry } from "neverthrow";
 import { tupleErr, tupleOk, type Result } from "#/lib/result";
 import type { Id } from "#convex/_generated/dataModel";
 import type {
@@ -96,12 +97,25 @@ export const createPackageSession = action({
 	): Promise<Result<{ bookingId: Id<"bookings"> }, CreatePackageSessionError>> => {
 		const now = Date.now();
 
-		return loadPackageCreateRequestAndCheckRateLimit(ctx, args, now)
-			.andThen((details) => syncNewPackageSessionCalendar(ctx, args, details))
-			.andThen(({ calendar, details }) =>
-				saveCreatedPackageSessionAfterCalendar(ctx, args, now, calendar, details)
-			)
-			.match(tupleOk, tupleErr);
+		return safeTry(async function* () {
+			const details = yield* loadPackageCreateRequestAndCheckRateLimit(ctx, args, now);
+
+			const { calendar, details: calendarDetails } = yield* syncNewPackageSessionCalendar(
+				ctx,
+				args,
+				details
+			);
+
+			const booking = yield* saveCreatedPackageSessionAfterCalendar(
+				ctx,
+				args,
+				now,
+				calendar,
+				calendarDetails
+			);
+
+			return ok(booking);
+		}).match(tupleOk, tupleErr);
 	}
 });
 
@@ -113,20 +127,26 @@ export const reschedulePackageSession = action({
 	): Promise<Result<{ bookingId: Id<"bookings"> }, ReschedulePackageSessionError>> => {
 		const now = Date.now();
 
-		return loadPackageRescheduleTarget(ctx, args, now)
-			.andThen((details) =>
-				reservePackageRescheduleSlot(ctx, args, details).map((reservation) => ({
-					details,
-					reservation
-				}))
-			)
-			.andThen(({ details, reservation }) =>
-				syncPackageRescheduleCalendar(ctx, args, details, reservation)
-			)
-			.andThen(({ calendar, details, reservation }) =>
-				savePackageSessionRescheduleAfterCalendar(ctx, args, details, calendar, reservation)
-			)
-			.match(tupleOk, tupleErr);
+		return safeTry(async function* () {
+			const details = yield* loadPackageRescheduleTarget(ctx, args, now);
+			const reservation = yield* reservePackageRescheduleSlot(ctx, args, details);
+
+			const {
+				calendar,
+				details: calendarDetails,
+				reservation: calendarReservation
+			} = yield* syncPackageRescheduleCalendar(ctx, args, details, reservation);
+
+			const booking = yield* savePackageSessionRescheduleAfterCalendar(
+				ctx,
+				args,
+				calendarDetails,
+				calendar,
+				calendarReservation
+			);
+
+			return ok(booking);
+		}).match(tupleOk, tupleErr);
 	}
 });
 
@@ -140,11 +160,14 @@ export const unschedulePackageSession = action({
 	> => {
 		const now = Date.now();
 
-		return loadPackageUnscheduleTarget(ctx, args, now)
-			.andThen((details) => clearPackageSessionCalendar(ctx, details).map(() => details))
-			.andThen(() => markPackageSessionCancelled(ctx, args, now))
-			.andThen((cancelled) => cleanupCancelledPackageDrive(ctx, cancelled))
-			.match(tupleOk, tupleErr);
+		return safeTry(async function* () {
+			const details = yield* loadPackageUnscheduleTarget(ctx, args, now);
+			yield* clearPackageSessionCalendar(ctx, details);
+			const cancelled = yield* markPackageSessionCancelled(ctx, args, now);
+			const result = yield* cleanupCancelledPackageDrive(ctx, cancelled);
+
+			return ok(result);
+		}).match(tupleOk, tupleErr);
 	}
 });
 
@@ -158,17 +181,20 @@ export const processPackageAdjustmentAtExpiry = internalMutation({
 	handler: (ctx, args) => {
 		const now = Date.now();
 
-		return loadExpiredPackageAdjustmentSessions(ctx, args, now)
-			.andThen((sessions) =>
-				recordPackageAdjustment(
-					ctx,
-					{ packageId: args.packageId, trigger: "package_expired", createdAt: now },
-					sessions
-				)
-			)
-			.andThen((nextCheckAt) => deferExpiredPackageAdjustment(ctx, args, nextCheckAt))
-			.andThen(() => archivePackageWhenFullyDone(ctx, args.packageId, now))
-			.match(tupleOk, tupleErr);
+		return safeTry(async function* () {
+			const sessions = yield* loadExpiredPackageAdjustmentSessions(ctx, args, now);
+
+			const nextCheckAt = yield* recordPackageAdjustment(
+				ctx,
+				{ packageId: args.packageId, trigger: "package_expired", createdAt: now },
+				sessions
+			);
+
+			yield* deferExpiredPackageAdjustment(ctx, args, nextCheckAt);
+			const archived = yield* archivePackageWhenFullyDone(ctx, args.packageId, now);
+
+			return ok(archived);
+		}).match(tupleOk, tupleErr);
 	}
 });
 
@@ -177,17 +203,20 @@ export const processPackageAdjustmentWhenSessionsComplete = internalMutation({
 	handler: (ctx, args) => {
 		const now = Date.now();
 
-		return loadCompletedPackageAdjustmentSessions(ctx, args.packageId)
-			.andThen((sessions) =>
-				recordPackageAdjustment(
-					ctx,
-					{ packageId: args.packageId, trigger: "all_sessions_completed", createdAt: now },
-					sessions
-				)
-			)
-			.andThen((nextCheckAt) => deferCompletedPackageAdjustment(ctx, args.packageId, nextCheckAt))
-			.andThen(() => archivePackageWhenFullyDone(ctx, args.packageId, now))
-			.match(tupleOk, tupleErr);
+		return safeTry(async function* () {
+			const sessions = yield* loadCompletedPackageAdjustmentSessions(ctx, args.packageId);
+
+			const nextCheckAt = yield* recordPackageAdjustment(
+				ctx,
+				{ packageId: args.packageId, trigger: "all_sessions_completed", createdAt: now },
+				sessions
+			);
+
+			yield* deferCompletedPackageAdjustment(ctx, args.packageId, nextCheckAt);
+			const archived = yield* archivePackageWhenFullyDone(ctx, args.packageId, now);
+
+			return ok(archived);
+		}).match(tupleOk, tupleErr);
 	}
 });
 
@@ -196,22 +225,31 @@ const requestArgs = { token: v.string(), date: v.string(), time: v.string(), now
 export const validatePackageSessionRequest = internalQuery({
 	args: requestArgs,
 	handler: (ctx, args) =>
-		loadValidPackageAndBookingSettings(ctx, args)
-			.andThen(({ packageRecord, settings }) =>
-				rejectPackageCreateWhenUnavailableOrFull(ctx, args, packageRecord, settings)
-			)
-			.andThen(({ packageRecord, settings }) =>
-				parsePackageSessionCreateStartTime(args, packageRecord, settings)
-			)
-			.match(tupleOk, tupleErr)
+		safeTry(async function* () {
+			const { packageRecord, settings } = yield* loadValidPackageAndBookingSettings(ctx, args);
+
+			const { packageRecord: validatedPackage, settings: validatedSettings } =
+				yield* rejectPackageCreateWhenUnavailableOrFull(ctx, args, packageRecord, settings);
+
+			const parsed = yield* parsePackageSessionCreateStartTime(
+				args,
+				validatedPackage,
+				validatedSettings
+			);
+
+			return ok(parsed);
+		}).match(tupleOk, tupleErr)
 });
 
 export const validatePackageRescheduleRequest = internalQuery({
 	args: { ...requestArgs, bookingId: v.id("bookings") },
 	handler: (ctx, args) =>
-		loadEditablePackageSessionForReschedule(ctx, args)
-			.andThen((details) => parsePackageRescheduleStartTime(args, details))
-			.match(tupleOk, tupleErr)
+		safeTry(async function* () {
+			const details = yield* loadEditablePackageSessionForReschedule(ctx, args);
+			const parsed = yield* parsePackageRescheduleStartTime(args, details);
+
+			return ok(parsed);
+		}).match(tupleOk, tupleErr)
 });
 
 export const validatePackageUnscheduleRequest = internalQuery({
@@ -228,29 +266,41 @@ export const saveCreatedPackageSession = internalMutation({
 		googleEventId: v.optional(v.string())
 	},
 	handler: (ctx, args) =>
-		loadValidPackageAndCapacityConsumingSessions(ctx, args)
-			.andThen(({ packageFromDb, packageSessions }) =>
-				rejectFullPackageAndParseSessionStartTime(args, packageFromDb, packageSessions)
-			)
-			.andThen(({ packageFromDb, sessionStartAt }) =>
-				insertPackageSessionBookingRow(ctx, args, packageFromDb, sessionStartAt)
-			)
-			.andThen(({ bookingId, packageFromDb }) =>
-				clearPackageExpiryReminderStateWhenPending(ctx, packageFromDb, bookingId)
-			)
-			.andThen(({ bookingId, packageFromDb }) =>
-				schedulePackageAdjustmentWhenAllSessionsBooked(ctx, packageFromDb._id, bookingId)
-			)
-			.match(tupleOk, tupleErr)
+		safeTry(async function* () {
+			const { packageFromDb, packageSessions } =
+				yield* loadValidPackageAndCapacityConsumingSessions(ctx, args);
+
+			const { packageFromDb: validatedPackage, sessionStartAt } =
+				yield* rejectFullPackageAndParseSessionStartTime(args, packageFromDb, packageSessions);
+
+			const { bookingId, packageFromDb: insertedPackage } = yield* insertPackageSessionBookingRow(
+				ctx,
+				args,
+				validatedPackage,
+				sessionStartAt
+			);
+
+			const { bookingId: clearedBookingId, packageFromDb: clearedPackage } =
+				yield* clearPackageExpiryReminderStateWhenPending(ctx, insertedPackage, bookingId);
+
+			const scheduled = yield* schedulePackageAdjustmentWhenAllSessionsBooked(
+				ctx,
+				clearedPackage._id,
+				clearedBookingId
+			);
+
+			return ok(scheduled);
+		}).match(tupleOk, tupleErr)
 });
 
 export const cancelPackageSession = internalMutation({
 	args: { bookingId: v.id("bookings"), token: v.string(), now: v.number() },
 	handler: (ctx, args) =>
-		loadPaidPackageByScheduleToken(ctx, args)
-			.andThen((packageFromDb) =>
-				loadPackageSessionOwnedByToken(ctx, packageFromDb, args.bookingId)
-			)
-			.andThen(() => cancelPackageSessionBooking(ctx, args.bookingId))
-			.match(tupleOk, tupleErr)
+		safeTry(async function* () {
+			const packageFromDb = yield* loadPaidPackageByScheduleToken(ctx, args);
+			yield* loadPackageSessionOwnedByToken(ctx, packageFromDb, args.bookingId);
+			const cancelled = yield* cancelPackageSessionBooking(ctx, args.bookingId);
+
+			return ok(cancelled);
+		}).match(tupleOk, tupleErr)
 });

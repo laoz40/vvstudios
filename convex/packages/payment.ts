@@ -1,6 +1,7 @@
 "use node";
 
 import { v } from "convex/values";
+import { ok, safeTry } from "neverthrow";
 import { action } from "#convex/_generated/server";
 import { tupleErr, tupleOk } from "#/lib/result";
 import { bookingDetailsFieldsValidator } from "#convex/booking/services/formValidators";
@@ -23,11 +24,14 @@ export const createPackageCheckoutSession = action({
 		packageSize: v.union(v.literal(4), v.literal(8), v.literal(12))
 	},
 	handler: async (ctx, args) => {
-		return await parsePackageCheckoutRequest(args)
-			.andThen((packageRequest) => runPackageCheckoutSubmitRateLimit(ctx, packageRequest))
-			.andThen((validRequest) => createPendingPackageForStripeCheckout(ctx, validRequest))
-			.andThen((checkoutDraft) => openEmbeddedPackageStripeCheckout(ctx, checkoutDraft))
-			.match(tupleOk, tupleErr);
+		return await safeTry(async function* () {
+			const packageRequest = yield* parsePackageCheckoutRequest(args);
+			const validRequest = yield* runPackageCheckoutSubmitRateLimit(ctx, packageRequest);
+			const checkoutDraft = yield* createPendingPackageForStripeCheckout(ctx, validRequest);
+			const checkout = yield* openEmbeddedPackageStripeCheckout(ctx, checkoutDraft);
+
+			return ok(checkout);
+		}).match(tupleOk, tupleErr);
 	}
 });
 
@@ -40,10 +44,15 @@ export const closeEmbeddedPackageCheckoutSession = action({
 export const resendPackageEmail = action({
 	args: { packageId: v.id("packages") },
 	handler: async (ctx, args) =>
-		await loadPaidPackageForEmailResend(ctx, args)
-			.andThen(() => refreshPackageScheduleLinkForResend(ctx, args.packageId))
-			.andThen((tokenResult) =>
-				sendPackagePaidScheduleEmail(ctx, { packageId: args.packageId, tokenResult })
-			)
-			.match(tupleOk, tupleErr)
+		await safeTry(async function* () {
+			yield* loadPaidPackageForEmailResend(ctx, args);
+			const tokenResult = yield* refreshPackageScheduleLinkForResend(ctx, args.packageId);
+
+			const result = yield* sendPackagePaidScheduleEmail(ctx, {
+				packageId: args.packageId,
+				tokenResult
+			});
+
+			return ok(result);
+		}).match(tupleOk, tupleErr)
 });

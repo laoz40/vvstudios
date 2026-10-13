@@ -1,5 +1,6 @@
 import { paginationOptsValidator } from "convex/server";
 import { ConvexError, v } from "convex/values";
+import { ok, safeTry } from "neverthrow";
 import { tupleErr, tupleOk } from "#/lib/result";
 import { internalMutation, internalQuery, mutation, query } from "#convex/_generated/server";
 import { bookingDetailsFieldsValidator } from "#convex/booking/services/formValidators";
@@ -77,9 +78,12 @@ export const updatePackageFromAdmin = mutation({
 		expiresAt: v.optional(v.number())
 	},
 	handler: (ctx, args) =>
-		loadAdminPackageUpdateValidation(ctx, args)
-			.andThen((validated) => writeAdminPackageFields(ctx, args, validated))
-			.match(tupleOk, tupleErr)
+		safeTry(async function* () {
+			const validated = yield* loadAdminPackageUpdateValidation(ctx, args);
+			const updated = yield* writeAdminPackageFields(ctx, args, validated);
+
+			return ok(updated);
+		}).match(tupleOk, tupleErr)
 });
 
 export const archivePackage = mutation({
@@ -116,14 +120,16 @@ export const markPackageReceiptEmailAttempt = internalMutation({
 export const savePackageInstagramHandle = mutation({
 	args: { packageId: v.id("packages"), instagramHandle: v.string() },
 	handler: (ctx, args) =>
-		loadPackageEligibleForInstagramUpdate(ctx, args.packageId)
-			.andThen((packageFromDb) =>
-				applyPackageInstagramHandleUpdate(ctx, {
-					packageFromDb,
-					instagramHandle: args.instagramHandle
-				})
-			)
-			.match(tupleOk, tupleErr)
+		safeTry(async function* () {
+			const packageFromDb = yield* loadPackageEligibleForInstagramUpdate(ctx, args.packageId);
+
+			const updated = yield* applyPackageInstagramHandleUpdate(ctx, {
+				packageFromDb,
+				instagramHandle: args.instagramHandle
+			});
+
+			return ok(updated);
+		}).match(tupleOk, tupleErr)
 });
 
 export const getPackageById = internalQuery({

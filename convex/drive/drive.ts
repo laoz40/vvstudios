@@ -1,6 +1,6 @@
 "use node";
 
-import { okAsync } from "neverthrow";
+import { ok, okAsync, safeTry } from "neverthrow";
 import { v } from "convex/values";
 import { tupleErr, tupleOk, type Result } from "#/lib/result";
 import { action, internalAction } from "#convex/_generated/server";
@@ -21,17 +21,23 @@ type RetryEditorAccessError =
 export const retryEditorAccess = action({
 	args: { bookingId: v.id("bookings") },
 	handler: (ctx, args): Promise<Result<null, RetryEditorAccessError>> =>
-		requirePermissionActions(ctx, "edit:sessions")
-			.andThen(() => runEditorAccessSetup(ctx, args))
-			.match(tupleOk, tupleErr)
+		safeTry(async function* () {
+			yield* requirePermissionActions(ctx, "edit:sessions");
+			const result = yield* runEditorAccessSetup(ctx, args);
+
+			return ok(result);
+		}).match(tupleOk, tupleErr)
 });
 
 export const retryEditorAssignmentEmail = action({
 	args: { bookingId: v.id("bookings") },
 	handler: (ctx, args): Promise<Result<null, RetryEditorAccessError>> =>
-		requirePermissionActions(ctx, "edit:sessions")
-			.andThen(() => runEditorAssignmentEmailRetry(ctx, args))
-			.match(tupleOk, tupleErr)
+		safeTry(async function* () {
+			yield* requirePermissionActions(ctx, "edit:sessions");
+			const result = yield* runEditorAssignmentEmailRetry(ctx, args);
+
+			return ok(result);
+		}).match(tupleOk, tupleErr)
 });
 
 export const setupEditorAccess = internalAction({
@@ -57,7 +63,10 @@ export const retireEditorDriveAccess = internalAction({
 export const retryPreviousEditorRemoval = action({
 	args: { bookingId: v.id("bookings") },
 	handler: (ctx, args): Promise<Result<null, RetryEditorAccessError>> =>
-		requirePermissionActions(ctx, "edit:sessions")
-			.andThen(() => retryFailedPreviousEditorRemoval(ctx, args))
-			.match(tupleOk, tupleErr)
+		safeTry(async function* () {
+			yield* requirePermissionActions(ctx, "edit:sessions");
+			const result = yield* retryFailedPreviousEditorRemoval(ctx, args);
+
+			return ok(result);
+		}).match(tupleOk, tupleErr)
 });

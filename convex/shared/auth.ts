@@ -1,4 +1,5 @@
 import { v } from "convex/values";
+import { ok, safeTry } from "neverthrow";
 import { tupleErr, tupleOk } from "#/lib/result";
 import { internalQuery, mutation, query } from "#convex/_generated/server";
 import {
@@ -18,24 +19,33 @@ export const getEditorByToken = internalQuery({
 export const getCurrentUserAccess = query({
 	args: {},
 	handler: (ctx) =>
-		requireUser(ctx)
-			.andThen((identity) => loadUserAccessForIdentity(ctx, identity))
-			.match(tupleOk, tupleErr)
+		safeTry(async function* () {
+			const identity = yield* requireUser(ctx);
+			const access = yield* loadUserAccessForIdentity(ctx, identity);
+
+			return ok(access);
+		}).match(tupleOk, tupleErr)
 });
 
 export const createEditorUser = mutation({
 	args: {},
 	handler: (ctx) =>
-		requireUser(ctx)
-			.andThen((identity) => saveSignedInEditorProfile(ctx, identity))
-			.match(tupleOk, tupleErr)
+		safeTry(async function* () {
+			const identity = yield* requireUser(ctx);
+			const profile = yield* saveSignedInEditorProfile(ctx, identity);
+
+			return ok(profile);
+		}).match(tupleOk, tupleErr)
 });
 
 export const enrollAdminAsEditor = mutation({
 	args: {},
 	handler: (ctx) =>
-		requireUser(ctx)
-			.andThen(requireAdminIdentity)
-			.andThen((identity) => saveAdminEditorEnrollment(ctx, identity))
-			.match(tupleOk, tupleErr)
+		safeTry(async function* () {
+			const user = yield* requireUser(ctx);
+			const identity = yield* requireAdminIdentity(user);
+			const enrollment = yield* saveAdminEditorEnrollment(ctx, identity);
+
+			return ok(enrollment);
+		}).match(tupleOk, tupleErr)
 });

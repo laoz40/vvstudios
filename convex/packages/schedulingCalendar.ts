@@ -1,6 +1,7 @@
 "use node";
 
 import { v } from "convex/values";
+import { ok, safeTry } from "neverthrow";
 import { tupleErr, tupleOk, type Result } from "#/lib/result";
 import { action, internalAction } from "#convex/_generated/server";
 import {
@@ -41,10 +42,13 @@ export const getPackageBusyWindows = action({
 			PackageAvailabilityError
 		>
 	> =>
-		await loadValidPackageForCalendarAvailability(ctx, args)
-			.andThen(loadPackageBookableRangeBusyWindows)
-			.andThen(groupPackageBusyWindowsByMonth)
-			.match(tupleOk, tupleErr)
+		await safeTry(async function* () {
+			const availability = yield* loadValidPackageForCalendarAvailability(ctx, args);
+			const busyWindows = yield* loadPackageBookableRangeBusyWindows(availability);
+			const groupedBusyWindows = yield* groupPackageBusyWindowsByMonth(busyWindows);
+
+			return ok(groupedBusyWindows);
+		}).match(tupleOk, tupleErr)
 });
 
 export const createPackageSessionCalendarEvent = internalAction({
