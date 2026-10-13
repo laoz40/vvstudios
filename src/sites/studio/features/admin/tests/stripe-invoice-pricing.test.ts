@@ -13,7 +13,6 @@
 import { describe, expect, test } from "vitest";
 import {
 	buildStripeInvoiceLineItemsFromDrafts,
-	getApplyToAllSessionsLabel,
 	getStripeInvoiceLineItemOptions,
 	getStripeInvoiceLineItemSelectionValue,
 	parseStripeInvoiceLineItemSelection,
@@ -65,12 +64,6 @@ describe("buildStripeInvoiceLineItemsFromDrafts", () => {
 
 	test("returns null when there are no line items", () => {
 		expect(buildStripeInvoiceLineItemsFromDrafts([], sessionContext)).toBeNull();
-	});
-});
-
-describe("getApplyToAllSessionsLabel", () => {
-	test("uses the session count in the checkbox label", () => {
-		expect(getApplyToAllSessionsLabel(4)).toBe("Apply to all 4 sessions");
 	});
 });
 

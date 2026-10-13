@@ -11,7 +11,8 @@
  *
  * 3. Invoice downloads
  *    Public session and package receipt downloads enforce record existence, lifecycle state, and
- *    the one-hour access window. Admin package receipt downloads remain available after that window.
+ *    the one-hour access window. Successful downloads return PDF bytes, and admin package receipt
+ *    downloads remain available after that window.
  */
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { bookingDocument, packageDocument } from "#convex/tests/insertDocumentDefaults";
@@ -360,7 +361,9 @@ describe("invoice download access", () => {
 
 				expect(error).toBeNull();
 				expect(payload).toMatchObject({ contentType: "application/pdf" });
-				expect(payload?.content.byteLength).toBeGreaterThan(0);
+				const pdf = new TextDecoder().decode(payload?.content);
+				expect(pdf.startsWith("%PDF-")).toBe(true);
+				expect(pdf.trimEnd().endsWith("%%EOF")).toBe(true);
 			})
 		);
 	});
@@ -380,7 +383,9 @@ describe("invoice download access", () => {
 				expect(error).toBeNull();
 				expect(payload).toMatchObject({ contentType: "application/pdf" });
 				expect(payload?.filename).toMatch(/^booking-receipt-/);
-				expect(payload?.content.byteLength).toBeGreaterThan(0);
+				const pdf = new TextDecoder().decode(payload?.content);
+				expect(pdf.startsWith("%PDF-")).toBe(true);
+				expect(pdf.trimEnd().endsWith("%%EOF")).toBe(true);
 			})
 		);
 	});
@@ -410,7 +415,9 @@ describe("invoice download access", () => {
 				expect(error).toBeNull();
 				expect(payload).toMatchObject({ contentType: "application/pdf" });
 				expect(payload?.filename).toMatch(/^package-receipt-/);
-				expect(payload?.content.byteLength).toBeGreaterThan(0);
+				const pdf = new TextDecoder().decode(payload?.content);
+				expect(pdf.startsWith("%PDF-")).toBe(true);
+				expect(pdf.trimEnd().endsWith("%%EOF")).toBe(true);
 			})
 		);
 	});
@@ -451,7 +458,9 @@ describe("invoice download access", () => {
 		expect(adminError).toBeNull();
 		expect(adminPayload).toMatchObject({ contentType: "application/pdf" });
 		expect(adminPayload?.filename).toMatch(/^package-receipt-/);
-		expect(adminPayload?.content.byteLength).toBeGreaterThan(0);
+		const pdf = new TextDecoder().decode(adminPayload?.content);
+		expect(pdf.startsWith("%PDF-")).toBe(true);
+		expect(pdf.trimEnd().endsWith("%%EOF")).toBe(true);
 	});
 
 	test("allows admin booking receipt downloads for confirmed sessions", async () => {
@@ -465,7 +474,9 @@ describe("invoice download access", () => {
 		expect(error).toBeNull();
 		expect(payload).toMatchObject({ contentType: "application/pdf" });
 		expect(payload?.filename).toMatch(/^booking-receipt-/);
-		expect(payload?.content.byteLength).toBeGreaterThan(0);
+		const pdf = new TextDecoder().decode(payload?.content);
+		expect(pdf.startsWith("%PDF-")).toBe(true);
+		expect(pdf.trimEnd().endsWith("%%EOF")).toBe(true);
 	});
 });
 
