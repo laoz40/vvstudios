@@ -1,6 +1,6 @@
 # Boundary testing
 
-Put pure lib tests in `convex/<feature>/lib/tests/` or `convex/shared/lib/tests/`. Put tests using `createConvexTest` or registered endpoints in `convex/tests/` (cross-feature flows and shared fixtures like `insertDocumentDefaults.ts`). Call the real endpoint and stub only the external transport. Keep SDK request construction, domain logic, and rendering real.
+Choose the test interface using the [module-interface review rules](../../../../docs/CODING_STANDARDS.md#tests) before choosing a folder. Put justified pure-module tests in `convex/<feature>/lib/tests/` or `convex/shared/lib/tests/`. Put tests using `createConvexTest` or registered endpoints in `convex/tests/` (cross-feature flows and shared fixtures like `insertDocumentDefaults.ts`). Call the real endpoint and stub only the external transport. Keep SDK request construction, domain logic, and rendering real.
 
 Use these existing examples instead of copying fixtures:
 

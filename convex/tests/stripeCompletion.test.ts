@@ -1,5 +1,5 @@
 /**
- * These tests cover booking and package payment claim idempotency and recoverable failure guards.
+ * These tests cover Stripe payment claims and the stored state they protect.
  *
  * 1. First claim wins
  *    Calling the payment claim twice must keep the first Stripe event details and paid amount.
@@ -7,19 +7,25 @@
  * 2. Stale confirmation failure
  *    A delayed confirmation failure must not regress a booking that already reached a later state.
  *
- * 3. Invoice email failure status guard
- *    Email failures may only move confirmed bookings into the recoverable email-failed state.
+ * 3. Booking claim rejection
+ *    Mismatched Stripe sessions and invalid booking states cannot write payment details.
  *
  * 4. Package checkout claim
- *    Concurrent package checkout webhooks must only let one handler run completion.
+ *    Repeated package checkout webhooks only let one handler claim payment completion.
  *
- * 5. Completed booking replay
+ * 5. Package claim rejection
+ *    Mismatched Stripe sessions and invalid package states cannot write payment details.
+ *
+ * 6. Completed booking replay
  *    A claimed booking already confirmed completes without settings or external work.
  *
- * 6. Unclaimed booking
+ * 7. Unclaimed booking
  *    Calendar completion preserves the genuine missing-claim error.
+ *
+ * 8. Invoice email failure status guard
+ *    Email failures may only move confirmed bookings into the recoverable email-failed state.
  */
-import { beforeEach, describe, expect, test, vi } from "vitest";
+import { beforeAll, beforeEach, describe, expect, test, vi } from "vitest";
 import { bookingDocument, packageDocument } from "#convex/tests/insertDocumentDefaults";
 import { internal } from "#convex/_generated/api";
 import type { Id } from "#convex/_generated/dataModel";
@@ -34,6 +40,11 @@ const bookingDate = "2030-01-10";
 const bookingTime = "10:00";
 
 type TestClient = ReturnType<typeof createConvexTest>;
+
+// Load the registered action and its SDK dependencies before the test timeout starts.
+beforeAll(async () => {
+	await import("#convex/googleCalendar/calendar");
+});
 
 beforeEach(() => {
 	vi.spyOn(Date, "now").mockReturnValue(now);
@@ -65,22 +76,66 @@ describe("booking payment completion", () => {
 		const bookingId = await seedBooking(t);
 
 		const firstClaim = await claimBooking(t, bookingId, "evt-first");
-		const claimedBooking = await readBooking(t, bookingId);
 		const duplicateClaim = await claimBooking(t, bookingId, "evt-duplicate");
 		const replayedClaim = await claimBooking(t, bookingId, "evt-first");
 
 		expect(firstClaim).toMatchObject([null, { outcome: "claimed" }]);
 		expect(duplicateClaim).toEqual([null, { outcome: "already_claimed" }]);
 		expect(replayedClaim).toEqual([null, { outcome: "already_claimed" }]);
-		expect(await readBooking(t, bookingId)).toMatchObject({
-			bookingConfirmationClaimedAt: claimedBooking?.bookingConfirmationClaimedAt,
+		expect(await readBookingPaymentState(t, bookingId)).toEqual({
+			status: "pending_payment",
+			bookingConfirmationClaimedAt: now,
 			bookingConfirmationEventId: "evt-first",
-			paymentCompletedAt: claimedBooking?.paymentCompletedAt,
+			paymentCompletedAt: now,
 			stripePaymentIntentId: "pi-1",
 			originalPaidAmount: 200,
 			stripeSessionId: "cs-1"
 		});
 	});
+
+	test("rejects a claim for a different Stripe session without changing payment state", async () => {
+		const t = createConvexTest();
+		const bookingId = await seedBooking(t);
+
+		expect(await claimBooking(t, bookingId, "evt-mismatch", "cs-other")).toEqual([
+			{ reason: "STRIPE_SESSION_MISMATCH" },
+			null
+		]);
+		expect(await readBookingPaymentState(t, bookingId)).toEqual({
+			status: "pending_payment",
+			stripeSessionId: "cs-1",
+			bookingConfirmationClaimedAt: undefined,
+			bookingConfirmationEventId: undefined,
+			paymentCompletedAt: undefined,
+			stripePaymentIntentId: undefined,
+			originalPaidAmount: undefined
+		});
+	});
+
+	test.each([
+		["cancelled", { reason: "BOOKING_INVALID_STATUS", status: "cancelled" }],
+		["abandoned", { reason: "BOOKING_INVALID_STATUS", status: "abandoned" }],
+		["expired", { reason: "BOOKING_EXPIRED" }],
+		["failed", { reason: "BOOKING_FAILED" }]
+	] as const)(
+		"rejects a claim for a %s booking without changing payment state",
+		async (status, error) => {
+			const t = createConvexTest();
+			const bookingId = await seedBooking(t);
+			await t.run((ctx) => ctx.db.patch("bookings", bookingId, { status }));
+
+			expect(await claimBooking(t, bookingId, "evt-invalid")).toEqual([error, null]);
+			expect(await readBookingPaymentState(t, bookingId)).toEqual({
+				status,
+				stripeSessionId: "cs-1",
+				bookingConfirmationClaimedAt: undefined,
+				bookingConfirmationEventId: undefined,
+				paymentCompletedAt: undefined,
+				stripePaymentIntentId: undefined,
+				originalPaidAmount: undefined
+			});
+		}
+	);
 
 	test("ignores a stale confirmation failure after the booking has moved on", async () => {
 		const t = createConvexTest();
@@ -133,18 +188,56 @@ describe("package payment completion", () => {
 		const packageId = await seedPendingPackage(t);
 
 		const firstClaim = await claimPackage(t, packageId);
-		const claimedPackage = await readPackage(t, packageId);
 		const duplicateClaim = await claimPackage(t, packageId);
 
 		expect(firstClaim).toMatchObject([null, { outcome: "claimed" }]);
 		expect(duplicateClaim).toMatchObject([null, { outcome: "already_claimed" }]);
-		expect(await readPackage(t, packageId)).toMatchObject({
-			packageCheckoutClaimedAt: claimedPackage?.packageCheckoutClaimedAt,
+		expect(await readPackagePaymentState(t, packageId)).toEqual({
+			status: "pending_payment",
+			packageCheckoutClaimedAt: now,
 			stripePaymentIntentId: "pi-1",
 			originalPaidAmount: 200,
 			stripeSessionId: "cs-1"
 		});
 	});
+
+	test("rejects a claim for a different Stripe session without changing payment state", async () => {
+		const t = createConvexTest();
+		const packageId = await seedPendingPackage(t);
+
+		expect(await claimPackage(t, packageId, "cs-other")).toEqual([
+			{ reason: "STRIPE_SESSION_MISMATCH" },
+			null
+		]);
+		expect(await readPackagePaymentState(t, packageId)).toEqual({
+			status: "pending_payment",
+			stripeSessionId: "cs-1",
+			packageCheckoutClaimedAt: undefined,
+			stripePaymentIntentId: undefined,
+			originalPaidAmount: undefined
+		});
+	});
+
+	test.each(["abandoned", "expired"] as const)(
+		"rejects a claim for an %s package without changing payment state",
+		async (status) => {
+			const t = createConvexTest();
+			const packageId = await seedPendingPackage(t);
+			await t.run((ctx) => ctx.db.patch("packages", packageId, { status }));
+
+			expect(await claimPackage(t, packageId)).toEqual([
+				{ reason: "STRIPE_SESSION_MISMATCH" },
+				null
+			]);
+			expect(await readPackagePaymentState(t, packageId)).toEqual({
+				status,
+				stripeSessionId: "cs-1",
+				packageCheckoutClaimedAt: undefined,
+				stripePaymentIntentId: undefined,
+				originalPaidAmount: undefined
+			});
+		}
+	);
 });
 
 async function seedBooking(t: TestClient, email = "customer@example.com") {
@@ -173,10 +266,15 @@ async function seedBooking(t: TestClient, email = "customer@example.com") {
 	});
 }
 
-async function claimBooking(t: TestClient, bookingId: Id<"bookings">, stripeEventId: string) {
+async function claimBooking(
+	t: TestClient,
+	bookingId: Id<"bookings">,
+	stripeEventId: string,
+	stripeSessionId = "cs-1"
+) {
 	return await t.mutation(internal.booking.confirmation.claimBookingConfirmation, {
 		bookingId,
-		stripeSessionId: "cs-1",
+		stripeSessionId,
 		stripePaymentIntentId: "pi-1",
 		originalPaidAmount: 200,
 		stripeEventId
@@ -184,7 +282,26 @@ async function claimBooking(t: TestClient, bookingId: Id<"bookings">, stripeEven
 }
 
 async function readBooking(t: TestClient, bookingId: Id<"bookings">) {
-	return await t.run((ctx) => ctx.db.get("bookings", bookingId));
+	const [error, booking] = await t.query(internal.sessions.admin.getSessionById, { bookingId });
+	expect(error).toBeNull();
+
+	return booking;
+}
+
+async function readBookingPaymentState(t: TestClient, bookingId: Id<"bookings">) {
+	const booking = await readBooking(t, bookingId);
+
+	if (booking === null) throw new Error("Expected booking to exist");
+
+	return {
+		status: booking.status,
+		stripeSessionId: booking.stripeSessionId,
+		bookingConfirmationClaimedAt: booking.bookingConfirmationClaimedAt,
+		bookingConfirmationEventId: booking.bookingConfirmationEventId,
+		paymentCompletedAt: booking.paymentCompletedAt,
+		stripePaymentIntentId: booking.stripePaymentIntentId,
+		originalPaidAmount: booking.originalPaidAmount
+	};
 }
 
 async function seedPendingPackage(t: TestClient) {
@@ -214,17 +331,33 @@ async function seedPendingPackage(t: TestClient) {
 	);
 }
 
-async function claimPackage(t: TestClient, packageId: Id<"packages">) {
+async function claimPackage(t: TestClient, packageId: Id<"packages">, stripeSessionId = "cs-1") {
 	return await t.mutation(internal.packages.checkout.claimPackageCheckoutPayment, {
 		packageId,
-		stripeSessionId: "cs-1",
+		stripeSessionId,
 		stripePaymentIntentId: "pi-1",
 		originalPaidAmount: 200
 	});
 }
 
 async function readPackage(t: TestClient, packageId: Id<"packages">) {
-	return await t.run((ctx) => ctx.db.get("packages", packageId));
+	const packageRecord = await t.query(internal.packages.admin.getPackageById, { packageId });
+
+	if (packageRecord === null) throw new Error("Expected package to exist");
+
+	return packageRecord;
+}
+
+async function readPackagePaymentState(t: TestClient, packageId: Id<"packages">) {
+	const packageRecord = await readPackage(t, packageId);
+
+	return {
+		status: packageRecord.status,
+		stripeSessionId: packageRecord.stripeSessionId,
+		packageCheckoutClaimedAt: packageRecord.packageCheckoutClaimedAt,
+		stripePaymentIntentId: packageRecord.stripePaymentIntentId,
+		originalPaidAmount: packageRecord.originalPaidAmount
+	};
 }
 
 async function ensureBookingSettings(ctx: Parameters<Parameters<TestClient["run"]>[0]>[0]) {

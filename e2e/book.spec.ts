@@ -6,19 +6,13 @@
  * Local env: `.env.local` (Playwright loads it via `playwright.config.ts`). See `.agents/skills/verify-vvstudios/features/README.md`.
  * Run with `bun run test:e2e`.
  *
- * 1. Loads booking form sections
- *    Assert core form headings and fields render on `/book`.
+ * 1. Single session checkout opens payment modal
+ *    Fill the form, submit, verify terms, agree, and assert the Stripe payment modal opens.
  *
- * 2. Single session form opens terms dialog
- *    Fill a single-session booking and submit; terms dialog appears.
- *
- * 3. Single session checkout opens payment modal
- *    Agree to terms and assert the Stripe payment modal opens (modal closed in `finally`).
- *
- * 4. Package checkout opens payment modal
- *    Fill a package booking, agree to terms, and assert the Stripe payment modal opens (modal closed in `finally`).
+ * 2. Package checkout opens payment modal
+ *    Fill a package booking, verify terms, agree, and assert the Stripe payment modal opens.
  */
-import { expect, test } from "@playwright/test";
+import { test } from "@playwright/test";
 import {
 	captureCheckoutDiagnostics,
 	expectPaymentModalWithDiagnostics
@@ -35,26 +29,6 @@ import {
 
 test.describe("book page", () => {
 	test.describe.configure({ mode: "serial" });
-	test("loads booking form sections", async ({ page }) => {
-		await page.goto("/book");
-
-		await expect(page.getByRole("heading", { name: "Studio Hire Booking" })).toBeVisible();
-		await expect(page.getByText("Booking Type *")).toBeVisible();
-		await expect(page.getByText("Session Duration *")).toBeVisible();
-		await expect(page.getByText("Contact Details")).toBeVisible();
-		await expect(page.getByText("Session Date *")).toBeVisible();
-	});
-
-	test("single session form opens terms dialog", async ({ page }) => {
-		test.setTimeout(45_000);
-
-		await page.goto("/book");
-
-		await fillSingleSessionBookingForm(page, getE2eBookingSlotOffset(test.info().parallelIndex));
-		await submitBookingForm(page);
-		await expectTermsDialog(page);
-	});
-
 	test("single session checkout opens payment modal", async ({ page }) => {
 		test.setTimeout(75_000);
 

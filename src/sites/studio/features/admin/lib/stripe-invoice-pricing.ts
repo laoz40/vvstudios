@@ -49,10 +49,6 @@ function calculateDurationUpgradeLineItem(
 	);
 }
 
-export function getApplyToAllSessionsLabel(sessionCount: number) {
-	return `Apply to all ${sessionCount} sessions`;
-}
-
 function calculateAddonLineItem(
 	context: StripeInvoiceContext,
 	addon: BookingAddon,

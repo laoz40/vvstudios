@@ -4,6 +4,12 @@
  * 1. Editor session PII redaction
  *    The restricted editor sessions query returns useful row fields without phone, email,
  *    payment, or calendar identifiers.
+ *
+ * 2. Archived session assignment
+ *    Admins can assign archived confirmed sessions and the editor sees the saved notes.
+ *
+ * 3. Archived session visibility
+ *    Editors continue to see assigned sessions after an admin archives them.
  */
 import type { UserIdentity } from "convex/server";
 import { bookingDocument } from "#convex/tests/insertDocumentDefaults";
@@ -270,5 +276,15 @@ describe("restricted editor session query", () => {
 			});
 
 		expect(error).toBeNull();
+
+		const result = await t
+			.withIdentity(editorIdentity)
+			.query(listEditorSessions, { paginationOpts });
+
+		expect(result.page).toEqual(
+			expect.arrayContaining([
+				expect.objectContaining({ _id: bookingId, adminNotes: "Finish deliverables after filing" })
+			])
+		);
 	});
 });

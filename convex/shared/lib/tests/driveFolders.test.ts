@@ -1,16 +1,13 @@
 /**
- * Drive folder naming and setup validation helpers.
+ * Drive setup validation helpers.
  *
- * 1. Folder name formatting
- *    Formats stable Drive folder labels from session and package metadata.
- *
- * 2. validateDriveSetup
+ * 1. validateDriveSetup
  *    Rejects missing, ineligible, or stale bookings before Drive work starts.
  *
- * 3. shouldRecordDriveSetupFailure
+ * 2. shouldRecordDriveSetupFailure
  *    Records only actionable setup failures on the booking row.
  *
- * 4. areDriveSetupFoldersSaved
+ * 3. areDriveSetupFoldersSaved
  *    Treats setup as complete only when every required folder id is stored on the client and session rows.
  */
 import { describe, expect, test } from "vitest";
@@ -21,12 +18,6 @@ import {
 	validateDriveSetup,
 	type DriveSetupInfo
 } from "#convex/drive/lib/sessionFolders/driveSetupInfo";
-import {
-	getClientFolderName,
-	getPackageFolderName,
-	getPackageSessionFolderName,
-	getSessionFolderName
-} from "#convex/drive/lib/googleDrive";
 import { testBookingId, testPackageId } from "#convex/shared/lib/tests/testIds";
 
 const sessionStartAt = Date.parse("2030-01-09T23:00:00.000Z");
@@ -97,19 +88,6 @@ function setupInfo(
 		driveSession: null
 	};
 }
-
-describe("drive folder names", () => {
-	test("formats client, session, and package folder names", () => {
-		expect(getClientFolderName({ accountName: " Acme ", contactName: "Bob" })).toBe(
-			"Acme (VV Studios)"
-		);
-		expect(getSessionFolderName(sessionStartAt)).toBe("10 Jan 2030 - 10:00 AM");
-		expect(getPackageFolderName({ packageSize: 4, purchasedAt: sessionStartAt })).toBe(
-			"4-Session Package - Ordered on 10 Jan 2030"
-		);
-		expect(getPackageSessionFolderName(2, sessionStartAt)).toBe("2 - 10 Jan 2030 (10:00AM)");
-	});
-});
 
 describe("validateDriveSetup", () => {
 	test("rejects a missing booking", () => {

@@ -5,7 +5,7 @@
  *    Strips formatting and normalizes Australian +61 numbers to a leading 0.
  *
  * 2. parseAdminSearchQuery
- *    Parses field:value admin queries or unprefixed blob text.
+ *    Parses unprefixed blob text.
  */
 import { describe, expect, test } from "vitest";
 import { parseAdminSearchQuery } from "#convex/shared/lib/adminSearch/adminSearchQuery";
@@ -36,12 +36,5 @@ describe("contactNormalization", () => {
 describe("parseAdminSearchQuery", () => {
 	test("unprefixed blob", () => {
 		expect(parseAdminSearchQuery("acme studio")).toEqual({ kind: "blob", text: "acme studio" });
-	});
-
-	test("phone prefix", () => {
-		expect(parseAdminSearchQuery("phone:+61 434 367 184")).toEqual({
-			kind: "phone",
-			value: "+61 434 367 184"
-		});
 	});
 });

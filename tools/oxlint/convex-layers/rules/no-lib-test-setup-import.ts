@@ -4,7 +4,7 @@ import { defineRule } from "@oxlint/plugins";
 import type { ESTree } from "@oxlint/plugins";
 
 function isLibTestFile(filename: string): boolean {
-	return /(?:^|\/)convex\/lib\/tests\//u.test(filename.replaceAll("\\", "/"));
+	return /(?:^|\/)convex\/(?:[^/]+\/)?lib\/tests\//u.test(filename.replaceAll("\\", "/"));
 }
 
 function importsConvexTestSetup(filename: string, source: string): boolean {
@@ -36,16 +36,16 @@ function importSource(node: ESTree.Node): string | null {
 	return null;
 }
 
-/** Keep Convex integration-test setup out of pure convex/lib tests. */
+/** Keep Convex integration-test setup out of pure lib tests. */
 export const noLibTestSetupImportRule = defineRule({
 	meta: {
 		type: "problem",
 		docs: {
-			description: "Disallow importing convex/test.setup from convex/lib/tests/**."
+			description: "Disallow importing convex/test.setup from Convex lib test directories."
 		},
 		messages: {
 			libTestSetupImport:
-				"Pure convex/lib tests must not import convex/test.setup. Move integration coverage to convex/tests/**."
+				"Pure Convex lib tests must not import convex/test.setup. Move integration coverage to convex/tests/**."
 		}
 	},
 	create(context) {
