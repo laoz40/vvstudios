@@ -25,7 +25,7 @@
  * 8. Invoice email failure status guard
  *    Email failures may only move confirmed bookings into the recoverable email-failed state.
  */
-import { beforeEach, describe, expect, test, vi } from "vitest";
+import { beforeAll, beforeEach, describe, expect, test, vi } from "vitest";
 import { bookingDocument, packageDocument } from "#convex/tests/insertDocumentDefaults";
 import { internal } from "#convex/_generated/api";
 import type { Id } from "#convex/_generated/dataModel";
@@ -40,6 +40,11 @@ const bookingDate = "2030-01-10";
 const bookingTime = "10:00";
 
 type TestClient = ReturnType<typeof createConvexTest>;
+
+// Load the registered action and its SDK dependencies before the test timeout starts.
+beforeAll(async () => {
+	await import("#convex/googleCalendar/calendar");
+});
 
 beforeEach(() => {
 	vi.spyOn(Date, "now").mockReturnValue(now);
