@@ -27,6 +27,8 @@ Check existing coverage first and prefer extending an existing test that protect
 
 Tests verify behavior through public interfaces, not implementation details. A good test reads like a specification: "user can checkout with valid cart" tells you what capability exists and survives refactors.
 
+For choosing that interface and moving workflow tests upward, follow the [module-interface review rules](../../../docs/CODING_STANDARDS.md#tests). They apply during implementation too. A public interface means a useful capability for the module's callers, not every exported function or only browser-facing endpoints.
+
 ```typescript
 // GOOD: tests observable behavior
 test("user can checkout with valid cart", async () => {
@@ -109,12 +111,12 @@ Dont mock internal collaborators or anything you control.
 
 - Prioritize E2E for critical customer-facing flows that meet the criteria in "When to add tests"; do not add one for every feature
 - Create state through UI only; verify through UI (status/read-back). No seeding behind the app.
-- CI E2E test stops before checkout due to Stripe hCaptcha; local specs cover payment and reschedule happy paths.
+- CI session and package E2E tests open Stripe checkout and close it without completing payment because of Stripe hCaptcha. Preserve both tests; local payment, reschedule, and package-scheduling specs protect distinct behavior.
 
 ## Convex tests
 
 For Convex test placement or Stripe, Google SDK, PDF, and email boundary stubs, read [boundary-testing.md](references/boundary-testing.md) before choosing fixtures.
 
 - Apply the global criteria in "When to add tests". Candidate risks include races, webhook replay, duplicate reminders or jobs, money calculations, expiry, scheduled Drive setup, orphan Calendar cleanup, retryable states, and partial Drive setup. These examples are not a requirement to cover every job or failure path.
-- Use `createConvexTest`; call public queries/mutations when they exist.
+- Use `createConvexTest`; call registered queries, mutations, or actions through generated `api` or `internal` references as described in the module-interface review rules.
 - `ctx.db.get` in test helpers is fine when no caller-facing query exposes the state you assert on.

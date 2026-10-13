@@ -68,4 +68,9 @@ Judge names by what the value represents or the function accomplishes. A forward
 
 ## Tests
 
-- Make sure any tests are high value tests. See the `tests` skill.
+- Apply the admission rule and test conventions in the [tests skill](../.agents/skills/tests/SKILL.md). A code change does not automatically require a test.
+- For each added or changed behavioral test, identify the module's meaningful public interface and the consequential failure the test protects against. An exported helper is not automatically a public interface. Callers should use that interface for a useful capability without knowing its internal steps, flags, or database patches.
+- Push tests of workflow helpers, guards, and patch builders up to the existing module interface when that interface can exercise the same failure. Extend an existing behavioral test and remove equivalent lower-level coverage. Preserve distinct failure cases before deleting tests; moving a file or renaming a helper does not improve the test.
+- For Convex workflows, prefer registered queries, mutations, and actions through generated `api` or `internal` references. Internal entrypoints used by jobs, webhooks, or other Convex functions can be meaningful interfaces. Keep handlers → services → lib; a test can exercise the whole module through a handler without collapsing those layers.
+- Direct tests of meaningful pure modules, such as shared pricing calculations, remain valid when they protect a distinct consequential invariant. Module-interface tests do not require browser E2E. Stub external transport, time, or randomness rather than internal collaborators; use existing retrieval queries for read-back when they expose the state being checked.
+- Reject pass-through wrappers, barrel exports, and test-only production entrypoints introduced merely to make an implementation import look public. A deep module hides substantial behavior behind a small useful interface. If no useful interface exists, report the design problem rather than silently prescribing an architecture migration.
