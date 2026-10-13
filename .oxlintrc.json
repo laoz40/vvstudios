@@ -303,10 +303,11 @@
 		},
 		{
 			"files": ["convex/shared/lib/tests/**"],
-			"rules": {
-				"typescript/no-unsafe-type-assertion": "off",
-				"convex-layers/no-lib-test-setup-import": "error"
-			}
+			"rules": { "typescript/no-unsafe-type-assertion": "off" }
+		},
+		{
+			"files": ["convex/lib/tests/**", "convex/*/lib/tests/**"],
+			"rules": { "convex-layers/no-lib-test-setup-import": "error" }
 		},
 		{ "files": ["convex/tests/**"], "rules": { "anti-slop/no-module-mocking": "error" } },
 		{
