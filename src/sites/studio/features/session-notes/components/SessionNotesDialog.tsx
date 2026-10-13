@@ -10,7 +10,7 @@ import {
 	DialogHeader,
 	DialogTitle
 } from "#/components/ui/dialog";
-import { Field, FieldLabel } from "#/components/ui/field";
+import { Field, FieldDescription, FieldLabel } from "#/components/ui/field";
 import { Textarea } from "#/components/ui/textarea";
 import type { Id } from "#convex/_generated/dataModel";
 import { tryCatch, type Result } from "#/lib/result";
@@ -20,6 +20,7 @@ type SessionNotesDialogProps = {
 	description: ReactNode;
 	fieldIdPrefix: string;
 	fieldLabel?: string;
+	notificationMessage: string;
 	onOpenChange: (open: boolean) => void;
 	onSave: (notes: string) => Promise<Result<null, { reason: string }>>;
 	open: boolean;
@@ -39,6 +40,7 @@ function SessionNotesDialogForm({
 	description,
 	fieldIdPrefix,
 	fieldLabel,
+	notificationMessage,
 	isSaving,
 	onOpenChange,
 	onSave,
@@ -76,11 +78,13 @@ function SessionNotesDialogForm({
 				{fieldLabel ? <FieldLabel htmlFor={fieldId}>{fieldLabel}</FieldLabel> : null}
 				<Textarea
 					id={fieldId}
+					aria-describedby={`${fieldId}-notification`}
 					value={notes}
 					disabled={isSaving}
 					placeholder="Write anything..."
 					onChange={(event) => setNotes(event.target.value)}
 				/>
+				<FieldDescription id={`${fieldId}-notification`}>{notificationMessage}</FieldDescription>
 			</Field>
 			<DialogFooter>
 				<Button
@@ -112,6 +116,7 @@ export function SessionNotesDialog({
 	description,
 	fieldIdPrefix,
 	fieldLabel,
+	notificationMessage,
 	onOpenChange,
 	onSave,
 	open,
@@ -136,6 +141,7 @@ export function SessionNotesDialog({
 						description={description}
 						fieldIdPrefix={fieldIdPrefix}
 						fieldLabel={fieldLabel}
+						notificationMessage={notificationMessage}
 						isSaving={isSaving}
 						onOpenChange={onOpenChange}
 						onSave={onSave}
