@@ -14,7 +14,7 @@ Review-only companion for Convex layer migrations. Implementers: skim wrong/righ
 
 **Wrong:** `handler` calls one service function whose body is the entire workflow (`confirmPaidBooking` doing twelve steps).
 
-**Right:** Handler chains 3–6 named steps (lib or small services). Each step is a verb-shaped function.
+**Right:** Handler composes named service steps with `safeTry` and `yield*`. Each step is a verb-shaped function.
 
 ### `tryPromise` catch rethrow
 
@@ -42,10 +42,10 @@ tryPromise({
 On touched handler files:
 
 ```bash
-rg 'handler:\s*\(' convex -l | xargs -I{} rg '\.andThen\(' {}
+rg '\.(andThen|asyncAndThen)\b' convex src --glob '!**/_generated/**' --glob '!*.test.ts'
 ```
 
-Fail when a handler body is mostly a single `.andThen(() => oneMegaService(...))` unless the callee is a trivial lib one-liner.
+Any `.andThen` or `.asyncAndThen` use fails lint. Multi-step handlers use `safeTry` generators and `yield*`, then terminal `.match(tupleOk, tupleErr)`. A handler that only calls one service can return its tuple conversion directly.
 
 Also spot-check:
 

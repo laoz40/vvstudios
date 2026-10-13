@@ -22,6 +22,17 @@
 	"rules": {
 		"@typescript-eslint/ban-ts-comment": "error",
 		"no-array-constructor": "error",
+		"no-restricted-properties": [
+			"error",
+			{
+				"property": "andThen",
+				"message": "Compose Result steps with safeTry(function* () { ... }) or safeTry(async function* () { ... }) and yield*. Convex lib returns individual Results; compose them in services."
+			},
+			{
+				"property": "asyncAndThen",
+				"message": "Compose asynchronous Result steps with safeTry(async function* () { ... }) and yield*. Convex lib returns individual Results; compose them in services."
+			}
+		],
 		"no-nested-ternary": "error",
 		"@typescript-eslint/no-duplicate-enum-values": "error",
 		"@typescript-eslint/no-empty-object-type": "error",
