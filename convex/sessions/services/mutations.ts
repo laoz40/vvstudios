@@ -16,6 +16,11 @@ import { requirePermission } from "#convex/shared/services/auth";
 import { requireConfirmedBookingSession } from "#convex/sessions/lib/adminList";
 import { writeSessionEditStatusWithHostNotification } from "#convex/sessions/services/deliverables";
 import { writeSessionInstagramHandle } from "#convex/sessions/services/adminList";
+import {
+	loadEditorForAdminNotesNotification,
+	scheduleAdminNotesEmail,
+	scheduleEditorNotesEmail
+} from "#convex/sessions/lib/notesNotification";
 
 function loadDeliverablesAccessStep(
 	ctx: MutationCtx,
@@ -89,7 +94,10 @@ export function writeSessionAdminNotesFromAdmin(
 		yield* requirePermission(ctx, "assign:session-editor");
 		const session = yield* getSessionFromDb(ctx, args.bookingId);
 
-		return ok(yield* saveSessionAdminNotes(ctx, session, args.adminNotes));
+		yield* saveSessionAdminNotes(ctx, session, args.adminNotes);
+		const editor = yield* loadEditorForAdminNotesNotification(ctx, session, args.adminNotes);
+
+		return ok(yield* scheduleAdminNotesEmail(ctx, session, args.adminNotes, editor));
 	});
 }
 
@@ -102,7 +110,9 @@ export function writeSessionEditorNotesFromEditor(
 		const access = yield* loadDeliverablesAccessStep(ctx, args.bookingId, identity);
 		const ownedAccess = yield* requireDeliverablesOwnership(access);
 
-		return ok(yield* saveSessionEditorNotes(ctx, ownedAccess.session, args.editorNotes));
+		yield* saveSessionEditorNotes(ctx, ownedAccess.session, args.editorNotes);
+
+		return ok(yield* scheduleEditorNotesEmail(ctx, ownedAccess.session, args.editorNotes));
 	});
 }
 

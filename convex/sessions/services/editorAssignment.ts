@@ -3,6 +3,7 @@ import type { Doc } from "#convex/_generated/dataModel";
 import type { MutationCtx } from "#convex/_generated/server";
 import { loadDriveSessionRowByBookingId } from "#convex/drive/lib/driveBookingDriveClient";
 import { searchBlobPatchForBookingAsync } from "#convex/shared/lib/adminSearch/adminSearchBlob";
+import { scheduleAdminNotesEmail } from "#convex/sessions/lib/notesNotification";
 import {
 	editorAssignmentAccessState,
 	editorAssignmentSearchInput,
@@ -51,6 +52,7 @@ function saveSessionEditorAssignmentWithAccess(
 
 		yield* patchEditorAssignmentAfterSearch(ctx, session, editor, adminNotes, searchBlobPatch);
 		yield* patchLastAssignedIfEditor(ctx, editor);
+		yield* scheduleAdminNotesEmail(ctx, session, adminNotes, editor);
 		yield* scheduleDriveAccessRemovalIfNeeded(
 			ctx,
 			session._id,

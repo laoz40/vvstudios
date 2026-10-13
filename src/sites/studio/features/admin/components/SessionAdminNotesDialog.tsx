@@ -35,6 +35,7 @@ export function SessionAdminNotesDialog({
 				</>
 			}
 			fieldLabel="Admin notes"
+			notificationMessage="Saving new or changed notes emails the assigned editor."
 			saveErrorMessage="Unable to save admin notes for this session."
 			saveSuccessMessage="Admin notes saved."
 			onSave={(notes) => updateSessionAdminNotes({ bookingId, adminNotes: notes })}

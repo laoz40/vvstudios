@@ -9,6 +9,7 @@ import { RescheduledBookingEmail } from "#studio/features/rescheduled-booking-em
 import { ClientAssetsEmail } from "#studio/features/client-assets-email/ClientAssetsEmail";
 import { DeliverablesEmail } from "#studio/features/deliverables-email/DeliverablesEmail";
 import { EditorAssignmentEmail } from "#studio/features/editor-assignment-email/EditorAssignmentEmail";
+import { SessionNotesEmail } from "#studio/features/session-notes-email/SessionNotesEmail";
 import type { DeliverablesEmailVariant } from "#studio/features/deliverables-email/lib/constants";
 import { formatBookingTimeRange } from "#studio/lib/bookingdatetime";
 import { formatDriveSessionMediaFolderName, getEditorEditDueAt } from "#studio/lib/bookingdatetime";
@@ -28,6 +29,30 @@ import {
 } from "#convex/shared/lib/email/emailSend";
 import { okAsync } from "neverthrow";
 import { tryPromise } from "#convex/shared/lib/result";
+
+export function renderSessionNotesEmailHtml(args: {
+	kind: "admin" | "editor";
+	clientName: string;
+	sessionDate: string;
+	notes: string;
+}) {
+	return tryPromise({
+		try: () =>
+			render(
+				createElement(SessionNotesEmail, {
+					kind: args.kind,
+					clientName: args.clientName,
+					sessionDateLabel: formatSessionDateLong(args.sessionDate),
+					notes: args.notes
+				})
+			),
+		catch: (cause) => {
+			console.error("Session notes email render failed", { kind: args.kind, cause });
+
+			return { reason: "EMAIL_RENDER_FAILED" as const };
+		}
+	});
+}
 
 type SendBookingReminderEmailForBookingArgs = {
 	name: string;

@@ -242,6 +242,8 @@ import type * as sessions_lib_calendarTime from "../sessions/lib/calendarTime.js
 import type * as sessions_lib_checkout from "../sessions/lib/checkout.js";
 import type * as sessions_lib_editorAssignmentSteps from "../sessions/lib/editorAssignmentSteps.js";
 import type * as sessions_lib_lookup from "../sessions/lib/lookup.js";
+import type * as sessions_lib_notesEmail from "../sessions/lib/notesEmail.js";
+import type * as sessions_lib_notesNotification from "../sessions/lib/notesNotification.js";
 import type * as sessions_lib_pendingCheckoutSession from "../sessions/lib/pendingCheckoutSession.js";
 import type * as sessions_lib_reminderCron from "../sessions/lib/reminderCron.js";
 import type * as sessions_lib_reminderDb from "../sessions/lib/reminderDb.js";
@@ -256,6 +258,7 @@ import type * as sessions_lib_schedulingArgs from "../sessions/lib/schedulingArg
 import type * as sessions_lib_schedulingSave from "../sessions/lib/schedulingSave.js";
 import type * as sessions_lib_schedulingSaveSteps from "../sessions/lib/schedulingSaveSteps.js";
 import type * as sessions_lib_slotReservationAction from "../sessions/lib/slotReservationAction.js";
+import type * as sessions_notesEmail from "../sessions/notesEmail.js";
 import type * as sessions_reminders from "../sessions/reminders.js";
 import type * as sessions_reschedule from "../sessions/reschedule.js";
 import type * as sessions_scheduling from "../sessions/scheduling.js";
@@ -268,6 +271,7 @@ import type * as sessions_services_editor from "../sessions/services/editor.js";
 import type * as sessions_services_editorAssignment from "../sessions/services/editorAssignment.js";
 import type * as sessions_services_lookup from "../sessions/services/lookup.js";
 import type * as sessions_services_mutations from "../sessions/services/mutations.js";
+import type * as sessions_services_notesEmail from "../sessions/services/notesEmail.js";
 import type * as sessions_services_queries from "../sessions/services/queries.js";
 import type * as sessions_services_reminderCron from "../sessions/services/reminderCron.js";
 import type * as sessions_services_reminderMutations from "../sessions/services/reminderMutations.js";
@@ -591,6 +595,8 @@ declare const fullApi: ApiFromModules<{
   "sessions/lib/checkout": typeof sessions_lib_checkout;
   "sessions/lib/editorAssignmentSteps": typeof sessions_lib_editorAssignmentSteps;
   "sessions/lib/lookup": typeof sessions_lib_lookup;
+  "sessions/lib/notesEmail": typeof sessions_lib_notesEmail;
+  "sessions/lib/notesNotification": typeof sessions_lib_notesNotification;
   "sessions/lib/pendingCheckoutSession": typeof sessions_lib_pendingCheckoutSession;
   "sessions/lib/reminderCron": typeof sessions_lib_reminderCron;
   "sessions/lib/reminderDb": typeof sessions_lib_reminderDb;
@@ -605,6 +611,7 @@ declare const fullApi: ApiFromModules<{
   "sessions/lib/schedulingSave": typeof sessions_lib_schedulingSave;
   "sessions/lib/schedulingSaveSteps": typeof sessions_lib_schedulingSaveSteps;
   "sessions/lib/slotReservationAction": typeof sessions_lib_slotReservationAction;
+  "sessions/notesEmail": typeof sessions_notesEmail;
   "sessions/reminders": typeof sessions_reminders;
   "sessions/reschedule": typeof sessions_reschedule;
   "sessions/scheduling": typeof sessions_scheduling;
@@ -617,6 +624,7 @@ declare const fullApi: ApiFromModules<{
   "sessions/services/editorAssignment": typeof sessions_services_editorAssignment;
   "sessions/services/lookup": typeof sessions_services_lookup;
   "sessions/services/mutations": typeof sessions_services_mutations;
+  "sessions/services/notesEmail": typeof sessions_services_notesEmail;
   "sessions/services/queries": typeof sessions_services_queries;
   "sessions/services/reminderCron": typeof sessions_services_reminderCron;
   "sessions/services/reminderMutations": typeof sessions_services_reminderMutations;
