@@ -1,4 +1,6 @@
-export type StudioLegalPageSection = { body: string; title: string };
+import type { ReactNode } from "react";
+
+export type StudioLegalPageSection = { body: ReactNode; title: string };
 
 export type StudioLegalPageProps = {
 	lastUpdated: string;
