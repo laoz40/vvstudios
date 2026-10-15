@@ -44,7 +44,8 @@ import {
 	isUpcomingBooking
 } from "#studio/lib/bookingdatetime";
 
-const driveWorkflowAttentionMessage = "Google Drive needs attention";
+const driveWorkflowAttentionMessage =
+	"A Google Drive setup step failed or is incomplete. Open the session menu and select Google Drive folders to see details and retry.";
 
 function DriveWorkflowAttentionIcon() {
 	return (

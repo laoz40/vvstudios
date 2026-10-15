@@ -17,20 +17,26 @@ const bookingPageErrorMessages = {
 	BOOKING_TOO_FAR_AHEAD: "That date is too far ahead. Please choose a closer date.",
 	BOOKING_TOO_SOON: "That time is too soon. Please choose a later slot.",
 	INVALID_ZONED_TIME: "Choose a valid booking time.",
-	CLOSE_CHECKOUT_FAILED: "Something went wrong while closing checkout.",
+	CLOSE_CHECKOUT_FAILED:
+		"We couldn't close checkout. Refresh the page and try again. Contact VV Studios if it still fails.",
 	GOOGLE_CALENDAR_AUTH_FAILED:
 		"We couldn't load booking times right now. Please refresh or contact us if this keeps happening.",
 	GOOGLE_CALENDAR_AVAILABILITY_FAILED:
 		"We couldn't load booking times right now. Please refresh or try again soon.",
 	GOOGLE_CALENDAR_RATE_LIMITED:
 		"Booking times are being checked too often. Please wait a minute, then try again.",
-	LOAD_AVAILABILITY_FAILED: "Something went wrong while loading availability.",
-	START_CHECKOUT_FAILED: "Something went wrong while starting checkout.",
-	STRIPE_CHECKOUT_CLOSE_FAILED: "Failed to close checkout.",
-	STRIPE_CHECKOUT_CREATE_FAILED: "Something went wrong while starting checkout.",
+	LOAD_AVAILABILITY_FAILED:
+		"We couldn't load booking times. Refresh the page and try again. Contact VV Studios if it still fails.",
+	START_CHECKOUT_FAILED:
+		"We couldn't start checkout. Refresh the page and try again. Contact VV Studios if it still fails.",
+	STRIPE_CHECKOUT_CLOSE_FAILED:
+		"We couldn't close checkout. Refresh the page and try again. Contact VV Studios if it still fails.",
+	STRIPE_CHECKOUT_CREATE_FAILED:
+		"We couldn't start checkout. Refresh the page and try again. Contact VV Studios if it still fails.",
 	STRIPE_SESSION_MISMATCH:
 		"We couldn’t close this checkout session safely. Please refresh the page and try again.",
-	UNKNOWN: "Something went wrong."
+	UNKNOWN:
+		"We couldn't complete that request. Refresh the page and try again. Contact VV Studios if it still fails."
 } as const;
 
 type StartCheckoutToastError =
