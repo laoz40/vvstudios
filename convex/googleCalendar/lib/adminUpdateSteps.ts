@@ -69,20 +69,22 @@ export function insertFailedSessionGoogleEvent({
 		catch: (error) => {
 			const parsedError = calendarErrorSchema.safeParse(error);
 
-			const reason = parsedError.success
-				? mapCalendarErrorCode(parsedError.data, "GOOGLE_CALENDAR_CREATE_FAILED")
-				: "GOOGLE_CALENDAR_CREATE_FAILED";
+			const failure = {
+				reason: parsedError.success
+					? mapCalendarErrorCode(parsedError.data, "GOOGLE_CALENDAR_CREATE_FAILED")
+					: "GOOGLE_CALENDAR_CREATE_FAILED"
+			};
 
 			logError(
 				{
 					operation: "googleCalendar.adminFailedSessionEvent.insert",
-					reason,
+					...failure,
 					calendarId: client.calendarId
 				},
 				error
 			);
 
-			return { reason };
+			return failure;
 		}
 	});
 }

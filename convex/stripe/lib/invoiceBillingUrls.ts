@@ -98,16 +98,14 @@ export function getStripeInvoiceBillingUrls(
 			return billingUrls;
 		},
 		catch: (cause) => {
+			const failure = { reason: "STRIPE_INVOICE_LOOKUP_FAILED" } as const;
+
 			logError(
-				{
-					operation: "stripe.invoice.billingUrls.lookup",
-					reason: "STRIPE_INVOICE_LOOKUP_FAILED",
-					stripeInvoiceId
-				},
+				{ operation: "stripe.invoice.billingUrls.lookup", ...failure, stripeInvoiceId },
 				cause
 			);
 
-			return { reason: "STRIPE_INVOICE_LOOKUP_FAILED" as const };
+			return failure;
 		}
 	});
 }

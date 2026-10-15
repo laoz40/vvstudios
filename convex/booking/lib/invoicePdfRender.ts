@@ -14,16 +14,14 @@ export function renderBookingInvoicePdfInNode(data: BookingInvoiceData) {
 			return renderBookingInvoicePdf(data);
 		},
 		catch: (cause) => {
+			const failure = { reason: "INVOICE_PDF_RENDER_FAILED" } as const;
+
 			logError(
-				{
-					operation: "pdf.renderBookingInvoice",
-					reason: "INVOICE_PDF_RENDER_FAILED",
-					invoiceNumber: data.invoice.number
-				},
+				{ operation: "pdf.renderBookingInvoice", ...failure, invoiceNumber: data.invoice.number },
 				cause
 			);
 
-			return { reason: "INVOICE_PDF_RENDER_FAILED" as const };
+			return failure;
 		}
 	});
 }
@@ -37,16 +35,14 @@ export function renderBookingReceiptPdfInNode(data: BookingReceiptData) {
 			return renderBookingReceiptPdf(data);
 		},
 		catch: (cause) => {
+			const failure = { reason: "RECEIPT_PDF_RENDER_FAILED" } as const;
+
 			logError(
-				{
-					operation: "pdf.renderBookingReceipt",
-					reason: "RECEIPT_PDF_RENDER_FAILED",
-					receiptNumber: data.receipt.number
-				},
+				{ operation: "pdf.renderBookingReceipt", ...failure, receiptNumber: data.receipt.number },
 				cause
 			);
 
-			return { reason: "RECEIPT_PDF_RENDER_FAILED" as const };
+			return failure;
 		}
 	});
 }

@@ -94,12 +94,11 @@ export function requestClerkInvitation(email: string) {
 				})
 			}),
 		catch: (cause) => {
-			logError(
-				{ operation: "clerk.requestInvitation", reason: "CLERK_INVITATION_FAILED", email },
-				cause
-			);
+			const failure = { reason: "CLERK_INVITATION_FAILED" } as const;
 
-			return { reason: "CLERK_INVITATION_FAILED" as const };
+			logError({ operation: "clerk.requestInvitation", ...failure, email }, cause);
+
+			return failure;
 		}
 	});
 }
@@ -113,16 +112,14 @@ export function readClerkInvitationBody(response: Response) {
 			return parsedBody.success ? parsedBody.data : { errors: undefined };
 		},
 		catch: (cause) => {
+			const failure = { reason: "CLERK_INVITATION_FAILED" } as const;
+
 			logError(
-				{
-					operation: "clerk.readInvitationResponse",
-					reason: "CLERK_INVITATION_FAILED",
-					status: response.status
-				},
+				{ operation: "clerk.readInvitationResponse", ...failure, status: response.status },
 				cause
 			);
 
-			return { reason: "CLERK_INVITATION_FAILED" as const };
+			return failure;
 		}
 	});
 }

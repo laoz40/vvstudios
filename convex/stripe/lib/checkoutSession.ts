@@ -80,17 +80,19 @@ export function createStripeCheckoutCustomer<
 				.create({ email: booking.email, name: booking.name })
 				.then((customer) => ({ ...checkoutDraft, stripeCustomerId: customer.id })),
 		catch: (cause) => {
+			const failure = { reason: "STRIPE_CHECKOUT_CREATE_FAILED" } as const;
+
 			logError(
 				{
 					operation: "stripe.checkout.customer.create",
-					reason: "STRIPE_CHECKOUT_CREATE_FAILED",
+					...failure,
 					bookingId: checkoutDraft.bookingId,
 					packageId: checkoutDraft.packageId
 				},
 				cause
 			);
 
-			return { reason: "STRIPE_CHECKOUT_CREATE_FAILED" as const };
+			return failure;
 		}
 	});
 }
@@ -114,16 +116,18 @@ export function createEmbeddedStripeCheckoutSession(
 				})
 				.then((session) => ({ ...checkoutDraft, session })),
 		catch: (cause) => {
+			const failure = { reason: "STRIPE_CHECKOUT_CREATE_FAILED" } as const;
+
 			logError(
 				{
 					operation: "stripe.checkout.session.create",
-					reason: "STRIPE_CHECKOUT_CREATE_FAILED",
+					...failure,
 					bookingId: checkoutDraft.bookingId
 				},
 				cause
 			);
 
-			return { reason: "STRIPE_CHECKOUT_CREATE_FAILED" as const };
+			return failure;
 		}
 	});
 }
@@ -184,12 +188,11 @@ export function createStripeCheckoutDiscountCoupon(
 				})
 				.then((coupon) => ({ couponId: coupon.id })),
 		catch: (cause) => {
-			logError(
-				{ operation: "stripe.checkout.coupon.create", reason: "STRIPE_CHECKOUT_CREATE_FAILED" },
-				cause
-			);
+			const failure = { reason: "STRIPE_CHECKOUT_CREATE_FAILED" } as const;
 
-			return { reason: "STRIPE_CHECKOUT_CREATE_FAILED" as const };
+			logError({ operation: "stripe.checkout.coupon.create", ...failure }, cause);
+
+			return failure;
 		}
 	});
 }
@@ -220,21 +223,23 @@ export function createEmbeddedStripePackageCheckoutSession(
 					session
 				})),
 		catch: (cause) => {
+			const failure = { reason: "STRIPE_CHECKOUT_CREATE_FAILED" } as const;
+
 			logError(
 				{
 					operation: "stripe.packageCheckout.session.create",
-					reason: "STRIPE_CHECKOUT_CREATE_FAILED",
+					...failure,
 					packageId: checkoutDraft.packageId
 				},
 				cause
 			);
 
-			return { reason: "STRIPE_CHECKOUT_CREATE_FAILED" as const };
+			return failure;
 		}
 	});
 }
 
-type StripeCheckoutCloseLogContext = {
+type StripeCheckoutCloseArgs = {
 	stripeSessionId: string;
 	bookingId?: Id<"bookings">;
 	packageId?: Id<"packages">;
@@ -242,30 +247,33 @@ type StripeCheckoutCloseLogContext = {
 
 export function closeOpenStripeCheckoutSession(
 	stripe: Stripe,
-	stripeSessionId: string,
-	logContext: StripeCheckoutCloseLogContext
+	args: StripeCheckoutCloseArgs
 ): ResultAsync<Stripe.Checkout.Session, StripeCheckoutCloseFailed> {
 	return tryPromise({
 		try: async () => {
-			const session = await stripe.checkout.sessions.retrieve(stripeSessionId);
+			const session = await stripe.checkout.sessions.retrieve(args.stripeSessionId);
 
 			if (session.status === "open") {
-				await stripe.checkout.sessions.expire(stripeSessionId);
+				await stripe.checkout.sessions.expire(args.stripeSessionId);
 			}
 
 			return session;
 		},
 		catch: (cause) => {
+			const failure = { reason: "STRIPE_CHECKOUT_CLOSE_FAILED" } as const;
+
 			logError(
 				{
 					operation: "stripe.checkout.session.close",
-					reason: "STRIPE_CHECKOUT_CLOSE_FAILED",
-					...logContext
+					stripeSessionId: args.stripeSessionId,
+					bookingId: args.bookingId,
+					packageId: args.packageId,
+					...failure
 				},
 				cause
 			);
 
-			return { reason: "STRIPE_CHECKOUT_CLOSE_FAILED" as const };
+			return failure;
 		}
 	});
 }

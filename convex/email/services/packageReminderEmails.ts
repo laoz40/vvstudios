@@ -8,10 +8,7 @@ import { sendPackageExpiryReminderEmailWithHtml } from "#convex/email/lib/packag
 
 export function sendPackageExpiryReminderEmail(args: SendPackageExpiryReminderEmailArgs) {
 	return safeTry(async function* () {
-		const html = yield* renderPackageExpiryReminderEmailHtml(args, {
-			operation: "email.renderPackageExpiryReminder",
-			packageId: args.packageId
-		});
+		const html = yield* renderPackageExpiryReminderEmailHtml(args);
 
 		const result = yield* sendPackageExpiryReminderEmailWithHtml(args, html);
 

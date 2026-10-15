@@ -25,13 +25,15 @@ export function loadGoogleCalendarClient<T extends CalendarFallbackCode>(fallbac
 		catch: (error) => {
 			const parsedError = calendarErrorSchema.safeParse(error);
 
-			const reason = parsedError.success
-				? mapCalendarErrorCode(parsedError.data, fallbackReason)
-				: fallbackReason;
+			const failure = {
+				reason: parsedError.success
+					? mapCalendarErrorCode(parsedError.data, fallbackReason)
+					: fallbackReason
+			};
 
-			logError({ operation: "googleCalendar.client.load", reason }, error);
+			logError({ operation: "googleCalendar.client.load", ...failure }, error);
 
-			return { reason };
+			return failure;
 		}
 	});
 }

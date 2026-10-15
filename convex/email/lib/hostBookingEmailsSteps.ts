@@ -51,10 +51,7 @@ export function renderSessionHostEmailWhenNeeded(
 ): ResultAsync<string | null, { reason: "EMAIL_RENDER_FAILED" }> {
 	if (args === null || hosts.length === 0) return okAsync(null);
 
-	return renderSessionHostDetailsEmailHtml(args, {
-		operation: "email.renderSessionHostDetails",
-		bookingId: args.bookingId
-	});
+	return renderSessionHostDetailsEmailHtml(args);
 }
 
 export function renderPackageHostEmailWhenNeeded(
@@ -63,8 +60,5 @@ export function renderPackageHostEmailWhenNeeded(
 ): ResultAsync<string | null, { reason: "EMAIL_RENDER_FAILED" }> {
 	if (args === null || hosts.length === 0) return okAsync(null);
 
-	return renderPackageHostDetailsEmailHtml(args, {
-		operation: "email.renderPackageHostDetails",
-		packageId: args.packageId
-	});
+	return renderPackageHostDetailsEmailHtml(args);
 }

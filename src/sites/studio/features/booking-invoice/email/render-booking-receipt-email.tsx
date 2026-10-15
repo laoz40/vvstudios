@@ -8,16 +8,14 @@ export function renderBookingReceiptEmail(data: BookingReceiptData) {
 	return tryPromise({
 		try: () => render(<BookingReceiptEmail data={data} />),
 		catch: (cause) => {
+			const failure = { reason: "RECEIPT_EMAIL_RENDER_FAILED" } as const;
+
 			logError(
-				{
-					operation: "email.renderReceipt",
-					reason: "RECEIPT_EMAIL_RENDER_FAILED",
-					receiptNumber: data.receipt.number
-				},
+				{ operation: "email.renderReceipt", ...failure, receiptNumber: data.receipt.number },
 				cause
 			);
 
-			return { reason: "RECEIPT_EMAIL_RENDER_FAILED" as const };
+			return failure;
 		}
 	});
 }

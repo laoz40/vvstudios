@@ -44,18 +44,16 @@ export function retrieveCheckoutSession(
 	return tryPromise({
 		try: () => getStripeClient().checkout.sessions.retrieve(stripeSessionId),
 		catch: (cause) => {
+			const failure = { reason: "STRIPE_CHECKOUT_LOOKUP_FAILED" } as const;
+
 			if (!isExpectedStripeError(cause)) {
 				logError(
-					{
-						operation: "stripe.checkout.session.lookup",
-						reason: "STRIPE_CHECKOUT_LOOKUP_FAILED",
-						stripeSessionId
-					},
+					{ operation: "stripe.checkout.session.lookup", ...failure, stripeSessionId },
 					cause
 				);
 			}
 
-			return { reason: "STRIPE_CHECKOUT_LOOKUP_FAILED" as const };
+			return failure;
 		}
 	});
 }
@@ -71,18 +69,13 @@ export function retrieveStripeCustomer(
 	return tryPromise({
 		try: () => getStripeClient().customers.retrieve(stripeCustomerId),
 		catch: (cause) => {
+			const failure = { reason: "STRIPE_CUSTOMER_LOOKUP_FAILED" } as const;
+
 			if (!isExpectedStripeError(cause)) {
-				logError(
-					{
-						operation: "stripe.customer.lookup",
-						reason: "STRIPE_CUSTOMER_LOOKUP_FAILED",
-						stripeCustomerId
-					},
-					cause
-				);
+				logError({ operation: "stripe.customer.lookup", ...failure, stripeCustomerId }, cause);
 			}
 
-			return { reason: "STRIPE_CUSTOMER_LOOKUP_FAILED" as const };
+			return failure;
 		}
 	});
 }

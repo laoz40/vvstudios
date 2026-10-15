@@ -118,12 +118,11 @@ export function requestEmail(args: {
 				body: JSON.stringify(requestBody)
 			}),
 		catch: (cause) => {
-			logError(
-				{ ...args.logContext, reason: "EMAIL_REQUEST_FAILED", recipientCount: args.to.length },
-				cause
-			);
+			const failure = { reason: "EMAIL_REQUEST_FAILED" } as const;
 
-			return { reason: "EMAIL_REQUEST_FAILED" as const };
+			logError({ ...args.logContext, ...failure, recipientCount: args.to.length }, cause);
+
+			return failure;
 		}
 	});
 }
@@ -132,9 +131,11 @@ export function readEmailResponseBody(response: Response, logContext: LogContext
 	return tryPromise({
 		try: () => response.text(),
 		catch: (cause) => {
-			logError({ ...logContext, reason: "EMAIL_RESPONSE_FAILED", status: response.status }, cause);
+			const failure = { reason: "EMAIL_RESPONSE_FAILED" } as const;
 
-			return { reason: "EMAIL_RESPONSE_FAILED" as const };
+			logError({ ...logContext, ...failure, status: response.status }, cause);
+
+			return failure;
 		}
 	});
 }
@@ -146,16 +147,18 @@ export function rejectEmailResponse(
 	attachmentCount: number,
 	logContext: LogContext
 ) {
+	const failure = { reason: "EMAIL_RESPONSE_FAILED" } as const;
+
 	logError({
 		...logContext,
-		reason: "EMAIL_RESPONSE_FAILED",
+		...failure,
 		status: response.status,
 		providerResponse: responseBody.slice(0, 2000),
 		recipientCount,
 		attachmentCount
 	});
 
-	return err({ reason: "EMAIL_RESPONSE_FAILED" as const });
+	return err(failure);
 }
 
 // Sending an email is one external operation, including inspecting its HTTP response.

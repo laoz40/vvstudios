@@ -201,11 +201,13 @@ export function createAndSendStripeInvoice(
 			return finalizedInvoice.id;
 		},
 		catch: (cause) => {
+			const failure = { reason: "STRIPE_INVOICE_FAILED" } as const;
+
 			if (!isExpectedStripeError(cause)) {
 				logError(
 					{
 						operation: "stripe.invoice.createAndSend",
-						reason: "STRIPE_INVOICE_FAILED",
+						...failure,
 						bookingId: input.metadata.kind === "booking" ? input.metadata.bookingId : undefined,
 						packageId: input.metadata.kind === "package" ? input.metadata.packageId : undefined
 					},
@@ -213,7 +215,7 @@ export function createAndSendStripeInvoice(
 				);
 			}
 
-			return { reason: "STRIPE_INVOICE_FAILED" as const };
+			return failure;
 		}
 	}).map((stripeInvoiceId) => ({ stripeInvoiceId }));
 }

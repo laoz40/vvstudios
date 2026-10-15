@@ -246,13 +246,15 @@ export function insertClaimedCalendarEvent(
 		catch: (error) => {
 			const parsed = calendarErrorSchema.safeParse(error);
 
-			const reason = parsed.success
-				? mapCalendarErrorCode(parsed.data, "GOOGLE_CALENDAR_CREATE_FAILED")
-				: "GOOGLE_CALENDAR_CREATE_FAILED";
+			const failure = {
+				reason: parsed.success
+					? mapCalendarErrorCode(parsed.data, "GOOGLE_CALENDAR_CREATE_FAILED")
+					: "GOOGLE_CALENDAR_CREATE_FAILED"
+			};
 
-			logError({ operation: "calendar.createBookingEvent", bookingId, reason }, error);
+			logError({ operation: "calendar.createBookingEvent", bookingId, ...failure }, error);
 
-			return { reason };
+			return failure;
 		}
 	});
 }

@@ -1,4 +1,3 @@
-import type { Id } from "#convex/_generated/dataModel";
 import { ok, safeTry } from "neverthrow";
 import {
 	renderClientAssetsEmailHtml,
@@ -16,14 +15,9 @@ import {
 	sendSessionDeliverablesEmailWithHtml
 } from "#convex/email/lib/templateEmailsSteps";
 
-export function sendClientAssetsEmail(
-	args: SendClientAssetsEmailArgs & { bookingId: Id<"bookings">; email: string }
-) {
+export function sendClientAssetsEmail(args: SendClientAssetsEmailArgs & { email: string }) {
 	return safeTry(async function* () {
-		const html = yield* renderClientAssetsEmailHtml(args, {
-			operation: "email.renderClientAssets",
-			bookingId: args.bookingId
-		});
+		const html = yield* renderClientAssetsEmailHtml(args);
 
 		const result = yield* sendClientAssetsEmailWithHtml(args, html);
 
@@ -32,15 +26,12 @@ export function sendClientAssetsEmail(
 }
 
 export function sendEditorAssignmentEmail(
-	args: SendEditorAssignmentEmailArgs & { bookingId: Id<"bookings">; editorEmail: string }
+	args: SendEditorAssignmentEmailArgs & { editorEmail: string }
 ) {
 	const sessionDate = formatTimestampDateLong(args.sessionStartAt);
 
 	return safeTry(async function* () {
-		const html = yield* renderEditorAssignmentEmailHtml(args, {
-			operation: "email.renderEditorAssignment",
-			bookingId: args.bookingId
-		});
+		const html = yield* renderEditorAssignmentEmailHtml(args);
 
 		const result = yield* sendEditorAssignmentEmailWithHtml(args, sessionDate, html);
 
@@ -49,13 +40,10 @@ export function sendEditorAssignmentEmail(
 }
 
 export function sendSessionDeliverablesEmail(
-	args: SendSessionDeliverablesEmailArgs & { bookingId: Id<"bookings">; email: string }
+	args: SendSessionDeliverablesEmailArgs & { email: string }
 ) {
 	return safeTry(async function* () {
-		const html = yield* renderSessionDeliverablesEmailHtml(args, {
-			operation: "email.renderSessionDeliverables",
-			bookingId: args.bookingId
-		});
+		const html = yield* renderSessionDeliverablesEmailHtml(args);
 
 		const result = yield* sendSessionDeliverablesEmailWithHtml(args, html);
 
