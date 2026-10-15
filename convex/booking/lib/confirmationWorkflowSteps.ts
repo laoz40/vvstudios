@@ -10,7 +10,6 @@ import { getGoogleCalendarClient } from "#convex/googleCalendar/lib/googleCalend
 import { removeOrphanedSessionCalendarEvent } from "#convex/googleCalendar/lib/googleCalendarEventCalls";
 import type { SessionReservation } from "#convex/sessions/lib/reservations";
 import { fromConvexTuple } from "#convex/shared/lib/result";
-import { exhaustiveCheck } from "#/lib/result";
 import { logError } from "#convex/shared/lib/logger";
 
 export function handleSaveConfirmedBookingFailure(
@@ -24,27 +23,11 @@ export function handleSaveConfirmedBookingFailure(
 		| { reason: "BOOKING_RESERVATION_MISMATCH" }
 		| { reason: "BOOKING_INVALID_DURATION" }
 ) {
-	const reason = error.reason;
-
-	switch (reason) {
-		case "BOOKING_NOT_FOUND":
-			console.error("Booking disappeared before confirmation completed", {
-				bookingId: session._id
-			});
-			break;
-		case "BOOKING_RESERVATION_MISMATCH":
-			console.error("Booking reservation changed before confirmation completed", {
-				bookingId: session._id
-			});
-			break;
-		case "BOOKING_INVALID_DURATION":
-			console.error("Booking duration was invalid before Drive setup could be scheduled", {
-				bookingId: session._id
-			});
-			break;
-		default:
-			exhaustiveCheck(reason);
-	}
+	logError({
+		operation: "booking.saveConfirmedBooking",
+		bookingId: session._id,
+		reason: error.reason
+	});
 
 	if (!googleEventId) {
 		return okAsync(false);
@@ -64,7 +47,8 @@ export function logInvoiceEmailFailureMarkFailed(
 	bookingId: Id<"bookings">,
 	markFailedError: { reason: string }
 ) {
-	console.error("Failed to record booking invoice email failure", {
+	logError({
+		operation: "booking.recordInvoiceEmailFailure",
 		bookingId,
 		reason: markFailedError.reason
 	});
@@ -106,7 +90,8 @@ export function logReceiptNumberRecordFailure(
 	bookingId: Id<"bookings">,
 	recordReceiptError: { reason: string }
 ) {
-	console.error("Failed to store booking receipt number after email send", {
+	logError({
+		operation: "booking.recordReceiptNumberAfterEmail",
 		bookingId,
 		reason: recordReceiptError.reason
 	});

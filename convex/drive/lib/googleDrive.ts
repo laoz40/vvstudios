@@ -83,7 +83,19 @@ export function parseDriveFolderResponse(
 ): import("neverthrow").Result<SavedDriveFolder, DriveError> {
 	const folder = driveFolderSchema.safeParse(response);
 
-	return folder.success ? ok(folder.data) : err({ reason: "GOOGLE_DRIVE_FOLDER_RESPONSE_INVALID" });
+	if (folder.success) return ok(folder.data);
+
+	const failure = { reason: "GOOGLE_DRIVE_FOLDER_RESPONSE_INVALID" as const };
+	logError(
+		{
+			operation: "googleDrive.folder.parseResponse",
+			responseId: response?.id,
+			reason: failure.reason
+		},
+		folder.error
+	);
+
+	return err(failure);
 }
 
 export function parseDriveFolderResponseIfAvailable(
@@ -101,9 +113,19 @@ export function parseDriveFolderListResponse(
 ): import("neverthrow").Result<SavedDriveFolder[], DriveError> {
 	const folders = z.array(driveFolderSchema).safeParse(files ?? []);
 
-	return folders.success
-		? ok(folders.data)
-		: err({ reason: "GOOGLE_DRIVE_FOLDER_RESPONSE_INVALID" });
+	if (folders.success) return ok(folders.data);
+
+	const failure = { reason: "GOOGLE_DRIVE_FOLDER_RESPONSE_INVALID" as const };
+	logError(
+		{
+			operation: "googleDrive.folder.list.parseResponse",
+			responseCount: files?.length,
+			reason: failure.reason
+		},
+		folders.error
+	);
+
+	return err(failure);
 }
 
 export function parseDriveFolderListIfAvailable(
@@ -119,9 +141,19 @@ export function parseDriveFolderChildrenResponse(
 ): import("neverthrow").Result<ListedDriveChild[], DriveError> {
 	const children = z.array(listedDriveChildSchema).safeParse(files ?? []);
 
-	return children.success
-		? ok(children.data)
-		: err({ reason: "GOOGLE_DRIVE_FOLDER_RESPONSE_INVALID" });
+	if (children.success) return ok(children.data);
+
+	const failure = { reason: "GOOGLE_DRIVE_FOLDER_RESPONSE_INVALID" as const };
+	logError(
+		{
+			operation: "googleDrive.folder.children.parseResponse",
+			responseCount: files?.length,
+			reason: failure.reason
+		},
+		children.error
+	);
+
+	return err(failure);
 }
 
 export function parseDrivePermissionListResponse(
@@ -129,9 +161,19 @@ export function parseDrivePermissionListResponse(
 ): import("neverthrow").Result<z.infer<typeof listedDrivePermissionSchema>[], DriveError> {
 	const listed = z.array(listedDrivePermissionSchema).safeParse(permissions ?? []);
 
-	return listed.success
-		? ok(listed.data)
-		: err({ reason: "GOOGLE_DRIVE_PERMISSION_RESPONSE_INVALID" });
+	if (listed.success) return ok(listed.data);
+
+	const failure = { reason: "GOOGLE_DRIVE_PERMISSION_RESPONSE_INVALID" as const };
+	logError(
+		{
+			operation: "googleDrive.permission.list.parseResponse",
+			responseCount: permissions?.length,
+			reason: failure.reason
+		},
+		listed.error
+	);
+
+	return err(failure);
 }
 
 export function parseDrivePermissionListForRemoval(
@@ -152,9 +194,19 @@ export function parseDrivePermissionResponse(
 ): import("neverthrow").Result<SavedDrivePermission, DriveError> {
 	const permission = drivePermissionSchema.safeParse(response);
 
-	return permission.success
-		? ok(permission.data)
-		: err({ reason: "GOOGLE_DRIVE_PERMISSION_RESPONSE_INVALID" });
+	if (permission.success) return ok(permission.data);
+
+	const failure = { reason: "GOOGLE_DRIVE_PERMISSION_RESPONSE_INVALID" as const };
+	logError(
+		{
+			operation: "googleDrive.permission.parseResponse",
+			responseId: response?.id,
+			reason: failure.reason
+		},
+		permission.error
+	);
+
+	return err(failure);
 }
 
 export function parseAnyonePermissionResponse(
@@ -162,9 +214,19 @@ export function parseAnyonePermissionResponse(
 ): import("neverthrow").Result<AnyonePermission, DriveError> {
 	const permission = anyonePermissionSchema.safeParse(response);
 
-	return permission.success
-		? ok(permission.data)
-		: err({ reason: "GOOGLE_DRIVE_PERMISSION_RESPONSE_INVALID" });
+	if (permission.success) return ok(permission.data);
+
+	const failure = { reason: "GOOGLE_DRIVE_PERMISSION_RESPONSE_INVALID" as const };
+	logError(
+		{
+			operation: "googleDrive.anyonePermission.parseResponse",
+			responseId: response?.id,
+			reason: failure.reason
+		},
+		permission.error
+	);
+
+	return err(failure);
 }
 
 export function loadDriveClient() {

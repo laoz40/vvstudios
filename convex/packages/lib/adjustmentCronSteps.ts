@@ -13,6 +13,7 @@ import {
 	scheduleCompletedPackageAdjustmentCheck,
 	scheduleExpiredPackageAdjustmentCheck
 } from "#convex/packages/lib/adjustmentJobs";
+import { logError } from "#convex/shared/lib/logger";
 
 type ReadyPackageAdjustment = Extract<
 	ReturnType<typeof evaluatePackageAdjustment>,
@@ -95,7 +96,7 @@ export function preparePackageAdjustment(
 	}
 
 	if (evaluation.kind === "invalid_duration") {
-		console.error("Package adjustment could not parse a session duration", { packageId });
+		logError({ operation: "packages.evaluateAdjustment", packageId, reason: "INVALID_DURATION" });
 
 		return { kind: "skip", nextCheckAt: null };
 	}

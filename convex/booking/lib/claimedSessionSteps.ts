@@ -104,7 +104,18 @@ export function prepareClaimedCalendarEvent(
 ): ResultAsync<PreparedClaimedCalendarEvent, CompleteClaimedSessionError> {
 	const payload = buildClaimedBookingCalendarPayload(session, client.timeZone);
 
-	if (payload.isErr()) return failInvalidClaimedSession(ctx, session, reservation);
+	if (payload.isErr()) {
+		logError(
+			{
+				operation: "booking.prepareCalendarEvent",
+				bookingId: session._id,
+				reason: "BOOKING_INVALID_INPUT"
+			},
+			payload.error
+		);
+
+		return failInvalidClaimedSession(ctx, session, reservation);
+	}
 
 	return okAsync({ kind: "ready", body: payload.value });
 }
@@ -136,7 +147,11 @@ export function requireClaimed(
 }
 
 export function markClaimedBookingTimeUnavailable(ctx: ActionCtx, bookingId: Id<"bookings">) {
-	return failBookingConfirmation(ctx, bookingId, "BOOKING_TIME_UNAVAILABLE").map(() => ({
+	const failure = { reason: "BOOKING_TIME_UNAVAILABLE" } as const;
+
+	logError({ operation: "booking.confirmCheckout", bookingId, ...failure });
+
+	return failBookingConfirmation(ctx, bookingId, failure.reason).map(() => ({
 		outcome: "booking_time_unavailable" as const
 	}));
 }

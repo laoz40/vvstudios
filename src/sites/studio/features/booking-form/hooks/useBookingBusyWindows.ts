@@ -4,6 +4,7 @@ import { useAction } from "convex/react";
 import { toast } from "sonner";
 import { z } from "zod";
 import { api } from "#convex/_generated/api";
+import { logError } from "#convex/shared/lib/logger";
 import { tryCatch } from "#/lib/result";
 import { availabilityErrorMessages } from "#studio/features/booking-form/lib/booking-page-errors";
 import {
@@ -80,11 +81,14 @@ export function useBookingBusyWindows({
 
 	// Booking shows fetch failures as a toast as well as inline form error.
 	useEffect(() => {
-		if (!fetchAvailabilityError) {
+		if (!fetchAvailabilityError || !isBookingBusyWindowsLoadError(busyWindowsQuery.error)) {
 			return;
 		}
 
-		console.error("Booking availability failed", busyWindowsQuery.error);
+		logError(
+			{ operation: "booking.loadAvailability", reason: busyWindowsQuery.error.reason },
+			busyWindowsQuery.error
+		);
 		toast.error(fetchAvailabilityError);
 	}, [busyWindowsQuery.error, fetchAvailabilityError]);
 

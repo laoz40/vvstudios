@@ -3,10 +3,7 @@ import Stripe from "stripe";
 export type StripeApiFailure = { reason: string };
 
 export function isExpectedStripeError(cause: unknown) {
-	return (
-		cause instanceof Stripe.errors.StripeCardError ||
-		(cause instanceof Stripe.errors.StripeInvalidRequestError && cause.code === "resource_missing")
-	);
+	return cause instanceof Stripe.errors.StripeCardError;
 }
 
 export function stripeApiFailureReason(cause: unknown): StripeApiFailure {

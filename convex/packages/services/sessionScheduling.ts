@@ -1,7 +1,6 @@
 import {
 	createdPackageSessionSaveArgs,
 	checkRateLimitForPackageSession,
-	logOrphanCalendarCleanupFailure,
 	reservationFromPackageSessionSlot
 } from "#convex/packages/lib/sessionSchedulingSteps";
 
@@ -101,7 +100,7 @@ function compensateOrphanCalendarAndFail<T>(
 			googleEventId: calendar.googleEventId,
 			name: details.packageRecord.name,
 			time: args.time
-		}).mapErr((cleanupError) => logOrphanCalendarCleanupFailure(saveError, cleanupError));
+		}).mapErr(() => saveError);
 
 		return err(saveError);
 	});

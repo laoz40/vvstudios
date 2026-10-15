@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useAction } from "convex/react";
 import { api } from "#convex/_generated/api";
+import { logError } from "#convex/shared/lib/logger";
 import { tryCatch } from "#/lib/result";
 import {
 	mergeBookableRangeBusyWindows,
@@ -65,7 +66,20 @@ export function usePackageCalendarBusyWindows({
 			setIsLoadingCalendar(false);
 
 			if (busyWindowsError !== null) {
-				console.error("Failed to load package calendar busy windows", busyWindowsError);
+				if (
+					[
+						"GOOGLE_CALENDAR_AUTH_FAILED",
+						"GOOGLE_CALENDAR_AVAILABILITY_FAILED",
+						"GOOGLE_CALENDAR_RATE_LIMITED",
+						"UNEXPECTED_ERROR"
+					].includes(busyWindowsError.reason)
+				) {
+					logError(
+						{ operation: "packages.loadCalendarAvailability", reason: busyWindowsError.reason },
+						busyWindowsError
+					);
+				}
+
 				setCalendarLoadError(getPackageAvailabilityErrorMessage(busyWindowsError));
 
 				return;
