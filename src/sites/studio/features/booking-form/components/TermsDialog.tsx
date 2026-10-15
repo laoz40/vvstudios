@@ -14,11 +14,11 @@ export const terms = [
 	{ title: "1 - Payment", body: "Full payment is required upfront to secure all bookings." },
 	{
 		title: "2 - Damage & Liability",
-		body: "Clients will be charged for any equipment or property damage during their session (excluding fair wear and tear). We are not responsible for left items or poor remote guest connections. For studio equipment failure or corrupted files, liability is strictly limited to a full refund or free reshoot."
+		body: "Clients will be charged for any equipment or property damage during their session (excluding fair wear and tear). We are not responsible for left items or poor remote guest connections. To the extent permitted by law, liability for studio equipment failure or corrupted files is limited to a full refund or free reshoot. Nothing in these terms excludes, restricts or modifies rights or remedies that cannot lawfully be excluded under Australian Consumer Law."
 	},
 	{
 		title: "3 - Cancellations & Rescheduling",
-		body: "Payments are non-refundable for cancellations, change of mind, or no-shows (subject to Australian Consumer Law). Bookings include 1 free reschedule with 12+ hours' notice."
+		body: "Payments are non-refundable for cancellations, change of mind, or no-shows (subject to Australian Consumer Law). Bookings may be rescheduled with a minimum of 12 hours notice."
 	},
 	{
 		title: "4 - Conduct, Surveillance & Media",
