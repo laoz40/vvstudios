@@ -1,9 +1,6 @@
 import { LoaderCircle } from "lucide-react";
 import { Button } from "#/components/ui/button";
-import { BOOKING_RECEIPT_NOTES } from "#studio/features/booking-invoice/lib/constants";
-import { formatNoticeWindowLabel } from "#studio/features/booking-form/lib/package-scheduling-rules";
 import { Modal } from "#studio/components/Modal";
-import { DEFAULT_BOOKING_AVAILABILITY_SETTINGS } from "#studio/lib/bookingAvailabilitySettings";
 
 const dialogTitle = "Terms & Conditions";
 
@@ -13,27 +10,23 @@ const cancelButtonLabel = "Cancel";
 
 const confirmButtonLabel = "Agree & Book";
 
-const defaultNoticeWindowLabel = formatNoticeWindowLabel(
-	DEFAULT_BOOKING_AVAILABILITY_SETTINGS.leadTimeMinutes
-);
-
 export const terms = [
 	{ title: "1 - Payment", body: "Full payment is required upfront to secure all bookings." },
 	{
 		title: "2 - Damage & Liability",
-		body: "Clients are responsible for any damage caused to studio equipment or property during their session, excluding reasonable wear and tear. Repair or replacement costs will be charged accordingly."
+		body: "Clients will be charged for any equipment or property damage during their session (excluding fair wear and tear). We are not responsible for left items or poor remote guest connections. For studio equipment failure or corrupted files, liability is strictly limited to a full refund or free reshoot."
 	},
 	{
 		title: "3 - Cancellations & Rescheduling",
-		body: BOOKING_RECEIPT_NOTES.getCancellationPolicy(defaultNoticeWindowLabel)
+		body: "Payments are non-refundable for cancellations, change of mind, or no-shows (subject to Australian Consumer Law). Bookings include 1 free reschedule with 12+ hours' notice."
 	},
 	{
-		title: "4 - Session Conduct & Surveillance",
-		body: "Clients must arrive on time and behave respectfully. The studio is monitored by video surveillance for safety and security. The studio reserves the right to end a session without refund in cases of unsafe, illegal, or inappropriate behaviour."
+		title: "4 - Conduct, Surveillance & Media",
+		body: "Session times include setup and pack-down; late arrivals will not be extended. The studio is under video surveillance; sessions may be ended without refund for unsafe, illegal, or inappropriate behaviour. Unless requested otherwise, we may use session snippets or behind-the-scenes for promotion."
 	},
 	{
 		title: "5 - Delivery & Revisions",
-		body: "All content will be delivered after your session. Base edits include up to 3 revision rounds, limited to corrections (e.g. cuts, timing, errors). Additional revisions or creative changes will be charged separately."
+		body: "Delivered files expire and are permanently deleted after 7 days. Revisions must be requested within 2 business days of delivery (all clip feedback must be submitted together per round):\n\n• Rough Cut & Clip Volume Pack: 1 free revision (cuts, timing & text errors only).\n\n• Complete Edit & Handcrafted Clips: 2 free revisions (stylised changes allowed).\n\n• Clip Selection: Editors select the best moments unless timestamps are provided before editing begins; swapping chosen clips for completely new timestamps counts as a new order.\n\n• Extra Revisions: $50 per round (max 5 total)."
 	}
 ] as const;
 
@@ -89,7 +82,7 @@ export function TermsDialog({ isSubmitting, onConfirm, open, onOpenChange }: Ter
 						key={item.title}
 						className="space-y-1.5">
 						<h3 className="font-semibold text-foreground">{item.title}</h3>
-						<p className="leading-6 text-muted-foreground">{item.body}</p>
+						<p className="leading-6 whitespace-pre-line text-muted-foreground">{item.body}</p>
 					</section>
 				))}
 			</div>
