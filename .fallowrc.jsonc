@@ -1,5 +1,14 @@
 {
 	"$schema": "./node_modules/fallow/schema.json",
+	"ignorePatterns": ["!.agents/**"],
+	"framework": [
+		{
+			"name": "studio-browser-verification",
+			"enablers": ["@playwright/test"],
+			"entryPoints": [".agents/skills/verify-vvstudios/*.ts"],
+			"entryPointRole": "test"
+		}
+	],
 	"entry": [
 		"nitro.config.ts",
 		"scripts/preview-*.tsx",

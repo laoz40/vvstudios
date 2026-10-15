@@ -31,7 +31,7 @@ function createDefaultContactDetails(): BookingContactDetails {
 }
 
 /** Spread E2E bookings across bookable days so reruns don't fight the same Google Calendar slot. */
-export function getE2eDayIndexBucket(bucketCount = 5, parallelIndex = 0) {
+function getE2eDayIndexBucket(bucketCount = 5, parallelIndex = 0) {
 	return (Math.floor(Date.now() / 60_000) + parallelIndex) % bucketCount;
 }
 
