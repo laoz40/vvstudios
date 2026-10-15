@@ -1,7 +1,7 @@
 import { expect, type Page } from "@playwright/test";
 import { pickFirstBookableDateAndTime } from "./booking-form";
 
-export async function openFirstUnscheduledPackageSession(page: Page) {
+async function openFirstUnscheduledPackageSession(page: Page) {
 	await expect(page.getByRole("heading", { name: "Schedule your package sessions" })).toBeVisible();
 
 	const firstDateRequiredSession = page

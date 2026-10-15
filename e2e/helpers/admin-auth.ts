@@ -13,7 +13,7 @@ export function ensureClerkTestingEnv() {
 	}
 }
 
-export function getE2eAdminEmail() {
+function getE2eAdminEmail() {
 	return process.env.E2E_ADMIN_EMAIL;
 }
 
