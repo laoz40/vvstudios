@@ -17,6 +17,10 @@ export function buildSessionNotesEmailRequest(args: SessionNotesEmailArgs, html:
 				to: recipients,
 				subject: `${label} notes updated: ${args.clientName} (${args.sessionDate})`,
 				html,
+				logContext: {
+					operation: `email.sendSessionNotes.${args.kind}`,
+					notificationKey: args.idempotencyKey
+				},
 				idempotencyKey: args.idempotencyKey
 			};
 }

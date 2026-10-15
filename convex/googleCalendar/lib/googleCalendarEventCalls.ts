@@ -5,6 +5,7 @@ import {
 	isCalendarEventNotFound,
 	mapCalendarErrorCode
 } from "#convex/googleCalendar/lib/googleCalendarErrors";
+import { logError } from "#convex/shared/lib/logger";
 import { tryPromise } from "#convex/shared/lib/result";
 
 export type GoogleCalendarDeleteError = {
@@ -38,19 +39,20 @@ export function removeOrphanedSessionCalendarEvent({
 	return tryPromise({
 		try: () => calendar.events.delete({ calendarId, eventId: googleEventId, sendUpdates: "all" }),
 		catch: (error) => {
-			console.error("Orphaned session Calendar event cleanup failed", {
-				bookingId,
-				googleEventId,
-				error
-			});
-
 			const parsedError = calendarErrorSchema.safeParse(error);
 
-			return {
-				reason: parsedError.success
-					? mapCalendarErrorCode(parsedError.data, "GOOGLE_CALENDAR_DELETE_FAILED")
-					: "GOOGLE_CALENDAR_DELETE_FAILED"
-			};
+			const reason = parsedError.success
+				? mapCalendarErrorCode(parsedError.data, "GOOGLE_CALENDAR_DELETE_FAILED")
+				: "GOOGLE_CALENDAR_DELETE_FAILED";
+
+			if (!parsedError.success || !isCalendarEventNotFound(parsedError.data)) {
+				logError(
+					{ operation: "googleCalendar.event.removeOrphaned", reason, bookingId, googleEventId },
+					error
+				);
+			}
+
+			return { reason };
 		}
 	}).map(() => undefined);
 }
@@ -89,11 +91,16 @@ export function deleteGoogleCalendarEventIfFound(
 				return { reason: "GOOGLE_CALENDAR_DELETE_FAILED" as const };
 			}
 
-			return {
-				reason: parsedError.success
-					? mapCalendarErrorCode(parsedError.data, "GOOGLE_CALENDAR_DELETE_FAILED")
-					: ("GOOGLE_CALENDAR_DELETE_FAILED" as const)
-			};
+			const reason = parsedError.success
+				? mapCalendarErrorCode(parsedError.data, "GOOGLE_CALENDAR_DELETE_FAILED")
+				: "GOOGLE_CALENDAR_DELETE_FAILED";
+
+			logError(
+				{ operation: "googleCalendar.event.deleteIfFound", reason, calendarId, eventId },
+				cause
+			);
+
+			return { reason };
 		}
 	});
 }
@@ -122,11 +129,13 @@ export function listGoogleCalendarEventsInWindow({
 		catch: (error) => {
 			const parsedError = calendarErrorSchema.safeParse(error);
 
-			return {
-				reason: parsedError.success
-					? mapCalendarErrorCode(parsedError.data, "GOOGLE_CALENDAR_DELETE_FAILED")
-					: "GOOGLE_CALENDAR_DELETE_FAILED"
-			};
+			const reason = parsedError.success
+				? mapCalendarErrorCode(parsedError.data, "GOOGLE_CALENDAR_DELETE_FAILED")
+				: "GOOGLE_CALENDAR_DELETE_FAILED";
+
+			logError({ operation: "googleCalendar.events.list", reason, calendarId }, error);
+
+			return { reason };
 		}
 	}).map((response) => response.data.items ?? []);
 }
@@ -153,11 +162,13 @@ export function getGoogleCalendarEvent({
 				return { kind: "missing" };
 			}
 
-			return {
-				reason: parsedError.success
-					? mapCalendarErrorCode(parsedError.data, fallbackReason)
-					: fallbackReason
-			};
+			const reason = parsedError.success
+				? mapCalendarErrorCode(parsedError.data, fallbackReason)
+				: fallbackReason;
+
+			logError({ operation: "googleCalendar.event.get", reason, calendarId, eventId }, cause);
+
+			return { reason };
 		}
 	});
 }
@@ -182,11 +193,13 @@ export function patchGoogleCalendarEvent({
 				return { kind: "missing" };
 			}
 
-			return {
-				reason: parsedError.success
-					? mapCalendarErrorCode(parsedError.data, "GOOGLE_CALENDAR_UPDATE_FAILED")
-					: "GOOGLE_CALENDAR_UPDATE_FAILED"
-			};
+			const reason = parsedError.success
+				? mapCalendarErrorCode(parsedError.data, "GOOGLE_CALENDAR_UPDATE_FAILED")
+				: "GOOGLE_CALENDAR_UPDATE_FAILED";
+
+			logError({ operation: "googleCalendar.event.patch", reason, calendarId, eventId }, cause);
+
+			return { reason };
 		}
 	});
 }
@@ -205,11 +218,13 @@ export function insertGoogleCalendarEvent({
 		catch: (error) => {
 			const parsedError = calendarErrorSchema.safeParse(error);
 
-			return {
-				reason: parsedError.success
-					? mapCalendarErrorCode(parsedError.data, "GOOGLE_CALENDAR_CREATE_FAILED")
-					: "GOOGLE_CALENDAR_CREATE_FAILED"
-			};
+			const reason = parsedError.success
+				? mapCalendarErrorCode(parsedError.data, "GOOGLE_CALENDAR_CREATE_FAILED")
+				: "GOOGLE_CALENDAR_CREATE_FAILED";
+
+			logError({ operation: "googleCalendar.event.insert", reason, calendarId }, error);
+
+			return { reason };
 		}
 	});
 }

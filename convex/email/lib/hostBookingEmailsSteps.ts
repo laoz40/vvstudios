@@ -21,9 +21,12 @@ export function sendSessionHostDetailsEmailWithHtml(
 ): ReturnType<typeof sendEmail> {
 	if (args === null || html === null) return okAsync(null);
 
-	return sendEmail({ to: hostEmails, subject: sessionHostDetailsEmailSubject(args), html }).map(
-		() => null
-	);
+	return sendEmail({
+		to: hostEmails,
+		subject: sessionHostDetailsEmailSubject(args),
+		html,
+		logContext: { operation: "email.sendSessionHostDetails", bookingId: args.bookingId }
+	}).map(() => null);
 }
 
 export function sendPackageHostDetailsEmailWithHtml(
@@ -34,9 +37,12 @@ export function sendPackageHostDetailsEmailWithHtml(
 ): ReturnType<typeof sendEmail> {
 	if (args === null || html === null) return okAsync(null);
 
-	return sendEmail({ to: hostEmails, subject: packageHostDetailsEmailSubject(args), html }).map(
-		() => null
-	);
+	return sendEmail({
+		to: hostEmails,
+		subject: packageHostDetailsEmailSubject(args),
+		html,
+		logContext: { operation: "email.sendPackageHostDetails", packageId: args.packageId }
+	}).map(() => null);
 }
 
 export function renderSessionHostEmailWhenNeeded(
@@ -45,7 +51,10 @@ export function renderSessionHostEmailWhenNeeded(
 ): ResultAsync<string | null, { reason: "EMAIL_RENDER_FAILED" }> {
 	if (args === null || hosts.length === 0) return okAsync(null);
 
-	return renderSessionHostDetailsEmailHtml(args);
+	return renderSessionHostDetailsEmailHtml(args, {
+		operation: "email.renderSessionHostDetails",
+		bookingId: args.bookingId
+	});
 }
 
 export function renderPackageHostEmailWhenNeeded(
@@ -54,5 +63,8 @@ export function renderPackageHostEmailWhenNeeded(
 ): ResultAsync<string | null, { reason: "EMAIL_RENDER_FAILED" }> {
 	if (args === null || hosts.length === 0) return okAsync(null);
 
-	return renderPackageHostDetailsEmailHtml(args);
+	return renderPackageHostDetailsEmailHtml(args, {
+		operation: "email.renderPackageHostDetails",
+		packageId: args.packageId
+	});
 }

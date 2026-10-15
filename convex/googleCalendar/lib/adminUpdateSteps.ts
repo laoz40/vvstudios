@@ -14,6 +14,7 @@ import {
 	mapCalendarErrorCode
 } from "#convex/googleCalendar/lib/googleCalendarErrors";
 import { tryPromise } from "#convex/shared/lib/result";
+import { logError } from "#convex/shared/lib/logger";
 import type { SaveAdminSessionUpdateArgs } from "#convex/sessions/lib/schedulingArgs";
 import { pickBookingAddonQuantities } from "#/domain/booking/addon-quantities";
 import { removeOrphanedSessionCalendarEvent } from "#convex/googleCalendar/lib/googleCalendarEventCalls";
@@ -68,11 +69,20 @@ export function insertFailedSessionGoogleEvent({
 		catch: (error) => {
 			const parsedError = calendarErrorSchema.safeParse(error);
 
-			return {
-				reason: parsedError.success
-					? mapCalendarErrorCode(parsedError.data, "GOOGLE_CALENDAR_CREATE_FAILED")
-					: "GOOGLE_CALENDAR_CREATE_FAILED"
-			};
+			const reason = parsedError.success
+				? mapCalendarErrorCode(parsedError.data, "GOOGLE_CALENDAR_CREATE_FAILED")
+				: "GOOGLE_CALENDAR_CREATE_FAILED";
+
+			logError(
+				{
+					operation: "googleCalendar.adminFailedSessionEvent.insert",
+					reason,
+					calendarId: client.calendarId
+				},
+				error
+			);
+
+			return { reason };
 		}
 	});
 }

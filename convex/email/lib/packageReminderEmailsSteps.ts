@@ -8,5 +8,10 @@ export function sendPackageExpiryReminderEmailWithHtml(
 	args: SendPackageExpiryReminderEmailArgs,
 	html: string
 ) {
-	return sendEmail({ to: [args.email], subject: packageExpiryReminderEmailSubject(args), html });
+	return sendEmail({
+		to: [args.email],
+		subject: packageExpiryReminderEmailSubject(args),
+		html,
+		logContext: { operation: "email.sendPackageExpiryReminder", packageId: args.packageId }
+	});
 }

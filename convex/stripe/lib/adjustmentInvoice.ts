@@ -1,10 +1,12 @@
 "use node";
 
+import { logError } from "#convex/shared/lib/logger";
+
 import type Stripe from "stripe";
 import type { Id } from "#convex/_generated/dataModel";
 import { PACKAGE_ADJUSTMENT_PAYMENT_DUE_MS } from "#convex/packages/lib/adjustments";
 import { tryPromise } from "#convex/shared/lib/result";
-import { stripeApiFailureReason } from "#convex/stripe/lib/apiErrors";
+import { isExpectedStripeError, stripeApiFailureReason } from "#convex/stripe/lib/apiErrors";
 import type { StripeClient } from "#convex/stripe/lib/client";
 
 const MILLISECONDS_PER_DAY = 24 * 60 * 60 * 1000;
@@ -32,7 +34,22 @@ export function createPackageAdjustmentStripeInvoice(
 			stripe.invoices.create(params, {
 				idempotencyKey: packageAdjustmentInvoiceIdempotencyKey(adjustmentId, "create")
 			}),
-		catch: stripeApiFailureReason
+		catch: (cause) => {
+			const failure = stripeApiFailureReason(cause);
+
+			if (!isExpectedStripeError(cause)) {
+				logError(
+					{
+						operation: "stripe.packageAdjustment.invoice.create",
+						reason: failure.reason,
+						adjustmentId
+					},
+					cause
+				);
+			}
+
+			return failure;
+		}
 	}).map((invoice) => invoice.id);
 }
 
@@ -42,7 +59,18 @@ export function findPackageAdjustmentStripeProduct(
 ) {
 	return tryPromise({
 		try: () => stripe.products.search(params),
-		catch: stripeApiFailureReason
+		catch: (cause) => {
+			const failure = stripeApiFailureReason(cause);
+
+			if (!isExpectedStripeError(cause)) {
+				logError(
+					{ operation: "stripe.packageAdjustment.product.search", reason: failure.reason },
+					cause
+				);
+			}
+
+			return failure;
+		}
 	}).map((products) => products.data[0]?.id);
 }
 
@@ -52,7 +80,18 @@ export function createPackageAdjustmentStripeProduct(
 ) {
 	return tryPromise({
 		try: () => stripe.products.create(params),
-		catch: stripeApiFailureReason
+		catch: (cause) => {
+			const failure = stripeApiFailureReason(cause);
+
+			if (!isExpectedStripeError(cause)) {
+				logError(
+					{ operation: "stripe.packageAdjustment.product.create", reason: failure.reason },
+					cause
+				);
+			}
+
+			return failure;
+		}
 	}).map((product) => product.id);
 }
 
@@ -66,7 +105,22 @@ export function createPackageAdjustmentStripeInvoiceItem(
 			stripe.invoiceItems.create(params, {
 				idempotencyKey: packageAdjustmentInvoiceIdempotencyKey(adjustmentId, "item")
 			}),
-		catch: stripeApiFailureReason
+		catch: (cause) => {
+			const failure = stripeApiFailureReason(cause);
+
+			if (!isExpectedStripeError(cause)) {
+				logError(
+					{
+						operation: "stripe.packageAdjustment.invoiceItem.create",
+						reason: failure.reason,
+						adjustmentId
+					},
+					cause
+				);
+			}
+
+			return failure;
+		}
 	}).map(() => null);
 }
 
@@ -80,7 +134,22 @@ export function finalizePackageAdjustmentStripeInvoice(
 			stripe.invoices.finalizeInvoice(stripeInvoiceId, undefined, {
 				idempotencyKey: packageAdjustmentInvoiceIdempotencyKey(adjustmentId, "finalize")
 			}),
-		catch: stripeApiFailureReason
+		catch: (cause) => {
+			const failure = stripeApiFailureReason(cause);
+
+			if (!isExpectedStripeError(cause)) {
+				logError(
+					{
+						operation: "stripe.packageAdjustment.invoice.finalize",
+						reason: failure.reason,
+						adjustmentId
+					},
+					cause
+				);
+			}
+
+			return failure;
+		}
 	}).map((invoice) => invoice.id);
 }
 
@@ -94,6 +163,21 @@ export function sendPackageAdjustmentStripeInvoice(
 			stripe.invoices.sendInvoice(stripeInvoiceId, undefined, {
 				idempotencyKey: packageAdjustmentInvoiceIdempotencyKey(adjustmentId, "send")
 			}),
-		catch: stripeApiFailureReason
+		catch: (cause) => {
+			const failure = stripeApiFailureReason(cause);
+
+			if (!isExpectedStripeError(cause)) {
+				logError(
+					{
+						operation: "stripe.packageAdjustment.invoice.send",
+						reason: failure.reason,
+						adjustmentId
+					},
+					cause
+				);
+			}
+
+			return failure;
+		}
 	}).map(() => null);
 }

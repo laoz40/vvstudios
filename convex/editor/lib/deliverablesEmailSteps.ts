@@ -44,18 +44,6 @@ export function requireNonEmptyDeliverablesFolder(
 	return okAsync(folder);
 }
 
-export function logDeliverablesEmailFailure(
-	bookingId: Id<"bookings">,
-	emailError: SendDeliverablesError
-) {
-	console.error("Manual session deliverables email send failed", {
-		bookingId,
-		reason: emailError.reason
-	});
-
-	return emailError;
-}
-
 export function queryDeliverablesSetup(ctx: ActionCtx, bookingId: Id<"bookings">) {
 	return fromConvexTuple(ctx.runQuery(internal.sessions.drive.getDriveSetup, { bookingId }));
 }

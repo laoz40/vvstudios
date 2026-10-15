@@ -4,6 +4,7 @@ import { formatEditingAddonLabel } from "#/domain/booking/addon-quantities";
 import { pickBookingAddonQuantities } from "#/domain/booking/addon-quantities";
 import type { BookingAddonQuantitiesArgs } from "#convex/booking/lib/addonQuantities";
 import { env } from "#convex/env";
+import { logError, type LogContext } from "#convex/shared/lib/logger";
 
 export interface EmailAttachment {
 	content: Uint8Array;
@@ -81,6 +82,7 @@ export function requestEmail(args: {
 	html: string;
 	attachments?: EmailAttachment[];
 	idempotencyKey?: string;
+	logContext: LogContext;
 }) {
 	const attachments = args.attachments?.map((attachment) => ({
 		filename: attachment.filename,
@@ -116,18 +118,21 @@ export function requestEmail(args: {
 				body: JSON.stringify(requestBody)
 			}),
 		catch: (cause) => {
-			console.error("Resend email request failed", { recipientCount: args.to.length, cause });
+			logError(
+				{ ...args.logContext, reason: "EMAIL_REQUEST_FAILED", recipientCount: args.to.length },
+				cause
+			);
 
 			return { reason: "EMAIL_REQUEST_FAILED" as const };
 		}
 	});
 }
 
-export function readEmailResponseBody(response: Response) {
+export function readEmailResponseBody(response: Response, logContext: LogContext) {
 	return tryPromise({
 		try: () => response.text(),
 		catch: (cause) => {
-			console.error("Resend email response body read failed", { status: response.status, cause });
+			logError({ ...logContext, reason: "EMAIL_RESPONSE_FAILED", status: response.status }, cause);
 
 			return { reason: "EMAIL_RESPONSE_FAILED" as const };
 		}
@@ -138,11 +143,14 @@ export function rejectEmailResponse(
 	response: Response,
 	responseBody: string,
 	recipientCount: number,
-	attachmentCount: number
+	attachmentCount: number,
+	logContext: LogContext
 ) {
-	console.error("Resend email response failed", {
+	logError({
+		...logContext,
+		reason: "EMAIL_RESPONSE_FAILED",
 		status: response.status,
-		body: responseBody,
+		providerResponse: responseBody.slice(0, 2000),
 		recipientCount,
 		attachmentCount
 	});
@@ -160,11 +168,17 @@ async function sendEmailRequest(
 	const response = request.value;
 
 	if (response.ok) return ok(null);
-	const body = await readEmailResponseBody(response);
+	const body = await readEmailResponseBody(response, args.logContext);
 
 	if (body.isErr()) return err(body.error);
 
-	return rejectEmailResponse(response, body.value, args.to.length, args.attachments?.length ?? 0);
+	return rejectEmailResponse(
+		response,
+		body.value,
+		args.to.length,
+		args.attachments?.length ?? 0,
+		args.logContext
+	);
 }
 
 export function sendEmail(args: Parameters<typeof requestEmail>[0]) {

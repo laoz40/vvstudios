@@ -11,6 +11,7 @@ import { removeOrphanedSessionCalendarEvent } from "#convex/googleCalendar/lib/g
 import type { SessionReservation } from "#convex/sessions/lib/reservations";
 import { fromConvexTuple } from "#convex/shared/lib/result";
 import { exhaustiveCheck } from "#/lib/result";
+import { logError } from "#convex/shared/lib/logger";
 
 export function handleSaveConfirmedBookingFailure(
 	_ctx: ActionCtx,
@@ -73,10 +74,8 @@ export function logInvoiceEmailFailureMarkFailed(
 
 export function recordInvoiceEmailFailure(
 	ctx: ActionCtx,
-	{ bookingId, message, reason }: { bookingId: Id<"bookings">; message: string; reason: string }
+	{ bookingId }: { bookingId: Id<"bookings"> }
 ): ResultAsync<null, never> {
-	console.error(message, { bookingId, reason });
-
 	return fromConvexTuple(
 		ctx.runMutation(internal.booking.confirmation.markSessionInvoiceEmailFailed, { bookingId })
 	)
@@ -115,16 +114,8 @@ export function logReceiptNumberRecordFailure(
 	return okAsync(null);
 }
 
-export function sendInvoiceEmailFailure(
-	ctx: ActionCtx,
-	session: Doc<"bookings">,
-	error: { reason: string }
-) {
-	return recordInvoiceEmailFailure(ctx, {
-		bookingId: session._id,
-		message: "Booking invoice email failed during booking confirmation",
-		reason: error.reason
-	});
+export function sendInvoiceEmailFailure(ctx: ActionCtx, session: Doc<"bookings">) {
+	return recordInvoiceEmailFailure(ctx, { bookingId: session._id });
 }
 
 export function sendInvoiceWithRescheduleLinkFailure(
@@ -132,11 +123,13 @@ export function sendInvoiceWithRescheduleLinkFailure(
 	session: Doc<"bookings">,
 	error: { reason: string }
 ) {
-	return recordInvoiceEmailFailure(ctx, {
+	logError({
+		operation: "booking.createInvoiceRescheduleLink",
 		bookingId: session._id,
-		message: "Booking invoice reschedule link create failed",
 		reason: error.reason
 	});
+
+	return recordInvoiceEmailFailure(ctx, { bookingId: session._id });
 }
 
 export function reminderEmailForWindow(
@@ -146,6 +139,7 @@ export function reminderEmailForWindow(
 	rescheduleUrl: string | undefined
 ) {
 	return {
+		bookingId: session._id,
 		name: session.name,
 		email: session.email,
 		date: session.date,

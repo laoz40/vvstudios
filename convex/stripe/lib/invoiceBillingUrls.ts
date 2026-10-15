@@ -2,6 +2,7 @@
 
 import { ResultAsync } from "neverthrow";
 import { z } from "zod";
+import { logError } from "#convex/shared/lib/logger";
 import { tryPromise } from "#convex/shared/lib/result";
 import type { StripeClient } from "#convex/stripe/lib/client";
 
@@ -96,6 +97,17 @@ export function getStripeInvoiceBillingUrls(
 
 			return billingUrls;
 		},
-		catch: () => ({ reason: "STRIPE_INVOICE_LOOKUP_FAILED" as const })
+		catch: (cause) => {
+			logError(
+				{
+					operation: "stripe.invoice.billingUrls.lookup",
+					reason: "STRIPE_INVOICE_LOOKUP_FAILED",
+					stripeInvoiceId
+				},
+				cause
+			);
+
+			return { reason: "STRIPE_INVOICE_LOOKUP_FAILED" as const };
+		}
 	});
 }

@@ -1,6 +1,6 @@
 "use node";
 
-import { ok, safeTry, type ResultAsync } from "neverthrow";
+import { ok, okAsync, safeTry, type ResultAsync } from "neverthrow";
 import type { Doc } from "#convex/_generated/dataModel";
 import type { PackageInvoiceInput } from "#studio/features/booking-invoice/lib/booking-artifacts";
 import {
@@ -10,8 +10,6 @@ import {
 	buildPackageReceiptHostEmailArgs,
 	createBookingReceiptArtifacts,
 	createPackageReceiptArtifacts,
-	logBookingReceiptHostEmailFailure,
-	logPackageReceiptHostEmailFailure,
 	sendBookingReceiptCustomerEmail,
 	sendPackageReceiptCustomerEmail,
 	type SentBookingReceipt,
@@ -48,9 +46,9 @@ function sendBookingReceiptHostEmail(
 	receipt: SentBookingReceipt
 ) {
 	return safeTry(async function* () {
-		yield* sendSessionHostDetailsEmail(buildBookingReceiptHostEmailArgs(options, receipt)).orElse(
-			(error: { reason: string }) => logBookingReceiptHostEmailFailure(booking._id, error)
-		);
+		yield* sendSessionHostDetailsEmail(
+			buildBookingReceiptHostEmailArgs(booking._id, options, receipt)
+		).orElse(() => okAsync(null));
 
 		return ok({ receiptNumber: receipt.artifacts.data.receipt.number });
 	});
@@ -65,9 +63,7 @@ function sendPackageReceiptHostEmail(
 	return safeTry(async function* () {
 		yield* sendPackageHostDetailsEmail(
 			buildPackageReceiptHostEmailArgs(packageRecord, paidAt, options, receipt)
-		).orElse((error: { reason: string }) =>
-			logPackageReceiptHostEmailFailure(packageRecord._id, error)
-		);
+		).orElse(() => okAsync(null));
 
 		return ok({ receiptNumber: receipt.artifacts.data.receipt.number });
 	});

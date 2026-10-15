@@ -10,6 +10,7 @@ import {
 	REMINDER_TIME_ZONE
 } from "#convex/shared/lib/reminderScheduleTime";
 import { fromConvexTuple } from "#convex/shared/lib/result";
+import { logError } from "#convex/shared/lib/logger";
 
 export type PackageExpiryReminderCandidate = Doc<"packages"> & { remainingSessions: number };
 
@@ -103,8 +104,15 @@ export function isolateExpiryReminder(
 	return new ResultAsync(
 		Promise.resolve(result)
 			.then(() => ok(null))
-			.catch((error) => {
-				console.error(`Failed to process expiry reminder for package ${record._id}`, error);
+			.catch((cause: unknown) => {
+				logError(
+					{
+						operation: "reminders.processPackageExpiry",
+						packageId: record._id,
+						reason: "UNEXPECTED_ERROR"
+					},
+					cause
+				);
 
 				return ok(null);
 			})

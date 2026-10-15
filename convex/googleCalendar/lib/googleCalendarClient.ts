@@ -9,6 +9,7 @@ import {
 	mapCalendarErrorCode,
 	type CalendarFallbackCode
 } from "#convex/googleCalendar/lib/googleCalendarErrors";
+import { logError } from "#convex/shared/lib/logger";
 import { tryPromise } from "#convex/shared/lib/result";
 
 function parseGoogleCalendarAvailabilityIds(calendarId: string) {
@@ -24,11 +25,13 @@ export function loadGoogleCalendarClient<T extends CalendarFallbackCode>(fallbac
 		catch: (error) => {
 			const parsedError = calendarErrorSchema.safeParse(error);
 
-			return {
-				reason: parsedError.success
-					? mapCalendarErrorCode(parsedError.data, fallbackReason)
-					: fallbackReason
-			};
+			const reason = parsedError.success
+				? mapCalendarErrorCode(parsedError.data, fallbackReason)
+				: fallbackReason;
+
+			logError({ operation: "googleCalendar.client.load", reason }, error);
+
+			return { reason };
 		}
 	});
 }

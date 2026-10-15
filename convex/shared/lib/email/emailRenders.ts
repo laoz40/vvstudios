@@ -29,13 +29,13 @@ import {
 } from "#convex/shared/lib/email/emailSend";
 import { okAsync } from "neverthrow";
 import { tryPromise } from "#convex/shared/lib/result";
+import { logError, type LogContext } from "#convex/shared/lib/logger";
+import type { Id } from "#convex/_generated/dataModel";
 
-export function renderSessionNotesEmailHtml(args: {
-	kind: "admin" | "editor";
-	clientName: string;
-	sessionDate: string;
-	notes: string;
-}) {
+export function renderSessionNotesEmailHtml(
+	args: { kind: "admin" | "editor"; clientName: string; sessionDate: string; notes: string },
+	logContext: LogContext = { operation: "email.renderSessionNotes" }
+) {
 	return tryPromise({
 		try: () =>
 			render(
@@ -47,7 +47,7 @@ export function renderSessionNotesEmailHtml(args: {
 				})
 			),
 		catch: (cause) => {
-			console.error("Session notes email render failed", { kind: args.kind, cause });
+			logError({ ...logContext, reason: "EMAIL_RENDER_FAILED", kind: args.kind }, cause);
 
 			return { reason: "EMAIL_RENDER_FAILED" as const };
 		}
@@ -55,6 +55,7 @@ export function renderSessionNotesEmailHtml(args: {
 }
 
 type SendBookingReminderEmailForBookingArgs = {
+	bookingId: Id<"bookings">;
 	name: string;
 	email: string;
 	date: string;
@@ -74,6 +75,7 @@ interface SessionHostRescheduleDetails {
 }
 
 export type SendBookingRescheduledCustomerEmailArgs = {
+	bookingId: Id<"bookings">;
 	addons: BookingAddon[];
 	date: string;
 	duration: string;
@@ -87,6 +89,7 @@ export type SendBookingRescheduledCustomerEmailArgs = {
 } & BookingAddonQuantitiesArgs;
 
 export type SendSessionHostDetailsEmailArgs = {
+	bookingId: Id<"bookings">;
 	invoiceNumber: string;
 	name: string;
 	email: string;
@@ -103,6 +106,7 @@ export type SendSessionHostDetailsEmailArgs = {
 } & BookingAddonQuantitiesArgs;
 
 export type SendPackageHostDetailsEmailArgs = {
+	packageId: Id<"packages">;
 	invoiceNumber: string;
 	name: string;
 	email: string;
@@ -124,6 +128,7 @@ export type SendDeliverablesReviewReadyHostEmailArgs = {
 };
 
 export type SendPackageExpiryReminderEmailArgs = {
+	packageId: Id<"packages">;
 	email: string;
 	expiresAt: number;
 	name: string;
@@ -150,7 +155,13 @@ function signoffName() {
 	return BOOKING_INVOICE_BUSINESS.ownerName.split(" ")[0] ?? BOOKING_INVOICE_BUSINESS.ownerName;
 }
 
-export function renderSessionHostDetailsEmailHtml(args: SendSessionHostDetailsEmailArgs) {
+export function renderSessionHostDetailsEmailHtml(
+	args: SendSessionHostDetailsEmailArgs,
+	logContext: LogContext = {
+		operation: "email.renderSessionHostDetails",
+		bookingId: args.bookingId
+	}
+) {
 	const addonsLine = formatAddonsLine({ addons: args.addons, ...pickBookingAddonQuantities(args) });
 
 	const bookingDetails = {
@@ -180,17 +191,23 @@ export function renderSessionHostDetailsEmailHtml(args: SendSessionHostDetailsEm
 	return tryPromise({
 		try: () => render(emailElement),
 		catch: (cause) => {
-			console.error("Session host details email render failed", {
-				invoiceNumber: args.invoiceNumber,
+			logError(
+				{ ...logContext, reason: "EMAIL_RENDER_FAILED", invoiceNumber: args.invoiceNumber },
 				cause
-			});
+			);
 
 			return { reason: "EMAIL_RENDER_FAILED" as const };
 		}
 	});
 }
 
-export function renderPackageHostDetailsEmailHtml(args: SendPackageHostDetailsEmailArgs) {
+export function renderPackageHostDetailsEmailHtml(
+	args: SendPackageHostDetailsEmailArgs,
+	logContext: LogContext = {
+		operation: "email.renderPackageHostDetails",
+		packageId: args.packageId
+	}
+) {
 	return tryPromise({
 		try: () =>
 			render(
@@ -213,10 +230,10 @@ export function renderPackageHostDetailsEmailHtml(args: SendPackageHostDetailsEm
 				})
 			),
 		catch: (cause) => {
-			console.error("Package host details email render failed", {
-				invoiceNumber: args.invoiceNumber,
+			logError(
+				{ ...logContext, reason: "EMAIL_RENDER_FAILED", invoiceNumber: args.invoiceNumber },
 				cause
-			});
+			);
 
 			return { reason: "EMAIL_RENDER_FAILED" as const };
 		}
@@ -225,7 +242,8 @@ export function renderPackageHostDetailsEmailHtml(args: SendPackageHostDetailsEm
 
 export function renderDeliverablesReviewReadyHostEmailHtml(
 	args: SendDeliverablesReviewReadyHostEmailArgs,
-	recipients: string[]
+	recipients: string[],
+	logContext: LogContext = { operation: "email.renderDeliverablesReviewReady" }
 ) {
 	if (recipients.length === 0) {
 		return okAsync(null);
@@ -244,10 +262,10 @@ export function renderDeliverablesReviewReadyHostEmailHtml(
 				})
 			).then((html) => ({ html, recipients })),
 		catch: (cause) => {
-			console.error("Deliverables review ready host email render failed", {
-				clientName: args.clientName,
+			logError(
+				{ ...logContext, reason: "EMAIL_RENDER_FAILED", clientName: args.clientName },
 				cause
-			});
+			);
 
 			return { reason: "EMAIL_RENDER_FAILED" as const };
 		}
@@ -255,7 +273,11 @@ export function renderDeliverablesReviewReadyHostEmailHtml(
 }
 
 export function renderBookingRescheduledCustomerEmailHtml(
-	args: SendBookingRescheduledCustomerEmailArgs
+	args: SendBookingRescheduledCustomerEmailArgs,
+	logContext: LogContext = {
+		operation: "email.renderBookingRescheduledCustomer",
+		bookingId: args.bookingId
+	}
 ) {
 	const addonsLine = formatAddonsLine({ addons: args.addons, ...pickBookingAddonQuantities(args) });
 
@@ -276,17 +298,20 @@ export function renderBookingRescheduledCustomerEmailHtml(
 				})
 			),
 		catch: (cause) => {
-			console.error("Booking reschedule customer email render failed", {
-				bookingEmail: args.email,
-				cause
-			});
+			logError({ ...logContext, reason: "EMAIL_RENDER_FAILED" }, cause);
 
 			return { reason: "EMAIL_RENDER_FAILED" as const };
 		}
 	});
 }
 
-export function renderPackageExpiryReminderEmailHtml(args: SendPackageExpiryReminderEmailArgs) {
+export function renderPackageExpiryReminderEmailHtml(
+	args: SendPackageExpiryReminderEmailArgs,
+	logContext: LogContext = {
+		operation: "email.renderPackageExpiryReminder",
+		packageId: args.packageId
+	}
+) {
 	return tryPromise({
 		try: () =>
 			render(
@@ -298,27 +323,31 @@ export function renderPackageExpiryReminderEmailHtml(args: SendPackageExpiryRemi
 				})
 			),
 		catch: (cause) => {
-			console.error("Package expiry reminder email render failed", { email: args.email, cause });
+			logError({ ...logContext, reason: "EMAIL_RENDER_FAILED" }, cause);
 
 			return { reason: "EMAIL_RENDER_FAILED" as const };
 		}
 	});
 }
 
-export function renderSessionReminderEmailHtml({
-	name,
-	email,
-	date: _date,
-	startDateTime,
-	time,
-	timeZone,
-	service,
-	duration,
-	addons,
-	isPackageSession,
-	rescheduleUrl,
-	...addonQuantities
-}: SendBookingReminderEmailForBookingArgs) {
+export function renderSessionReminderEmailHtml(
+	args: SendBookingReminderEmailForBookingArgs,
+	logContext: LogContext = { operation: "email.renderSessionReminder", bookingId: args.bookingId }
+) {
+	const {
+		name,
+		date: _date,
+		startDateTime,
+		time,
+		timeZone,
+		service,
+		duration,
+		addons,
+		isPackageSession,
+		rescheduleUrl,
+		...addonQuantities
+	} = args;
+
 	const addonsLine = formatAddonsLine({ addons, ...pickBookingAddonQuantities(addonQuantities) });
 	const bookingDate = formatCalendarEventDate(startDateTime, timeZone);
 	const bookingTime = formatBookingTimeRange(time, duration);
@@ -339,14 +368,17 @@ export function renderSessionReminderEmailHtml({
 				})
 			),
 		catch: (cause) => {
-			console.error("Session reminder email render failed", { email, cause });
+			logError({ ...logContext, reason: "EMAIL_RENDER_FAILED" }, cause);
 
 			return { reason: "EMAIL_RENDER_FAILED" as const };
 		}
 	});
 }
 
-export function renderClientAssetsEmailHtml(args: SendClientAssetsEmailArgs) {
+export function renderClientAssetsEmailHtml(
+	args: SendClientAssetsEmailArgs,
+	logContext: LogContext = { operation: "email.renderClientAssets" }
+) {
 	return tryPromise({
 		try: () =>
 			render(
@@ -356,11 +388,18 @@ export function renderClientAssetsEmailHtml(args: SendClientAssetsEmailArgs) {
 					signoffName: signoffName()
 				})
 			),
-		catch: (_cause) => ({ reason: "EMAIL_RENDER_FAILED" as const })
+		catch: (cause) => {
+			logError({ ...logContext, reason: "EMAIL_RENDER_FAILED" }, cause);
+
+			return { reason: "EMAIL_RENDER_FAILED" as const };
+		}
 	});
 }
 
-export function renderEditorAssignmentEmailHtml(args: SendEditorAssignmentEmailArgs) {
+export function renderEditorAssignmentEmailHtml(
+	args: SendEditorAssignmentEmailArgs,
+	logContext: LogContext = { operation: "email.renderEditorAssignment" }
+) {
 	const sessionDate = formatTimestampDateLong(args.sessionStartAt);
 	const dueDateLabel = formatTimestampDateLong(getEditorEditDueAt(args.sessionStartAt));
 
@@ -380,11 +419,18 @@ export function renderEditorAssignmentEmailHtml(args: SendEditorAssignmentEmailA
 					signoffName: signoffName()
 				})
 			),
-		catch: (_cause) => ({ reason: "EMAIL_RENDER_FAILED" as const })
+		catch: (cause) => {
+			logError({ ...logContext, reason: "EMAIL_RENDER_FAILED" }, cause);
+
+			return { reason: "EMAIL_RENDER_FAILED" as const };
+		}
 	});
 }
 
-export function renderSessionDeliverablesEmailHtml(args: SendSessionDeliverablesEmailArgs) {
+export function renderSessionDeliverablesEmailHtml(
+	args: SendSessionDeliverablesEmailArgs,
+	logContext: LogContext = { operation: "email.renderSessionDeliverables" }
+) {
 	return tryPromise({
 		try: () =>
 			render(
@@ -397,7 +443,11 @@ export function renderSessionDeliverablesEmailHtml(args: SendSessionDeliverables
 					signoffName: signoffName()
 				})
 			),
-		catch: (_cause) => ({ reason: "EMAIL_RENDER_FAILED" as const })
+		catch: (cause) => {
+			logError({ ...logContext, reason: "EMAIL_RENDER_FAILED" }, cause);
+
+			return { reason: "EMAIL_RENDER_FAILED" as const };
+		}
 	});
 }
 

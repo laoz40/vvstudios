@@ -6,6 +6,7 @@ import { internal } from "#convex/_generated/api";
 import type { Id } from "#convex/_generated/dataModel";
 import type { ActionCtx } from "#convex/_generated/server";
 import { env } from "#convex/env";
+import { logError } from "#convex/shared/lib/logger";
 import { fromConvexTuple, tryPromise } from "#convex/shared/lib/result";
 import type { SessionAvailabilityValidationError } from "#convex/sessions/lib/calendarTime";
 import type {
@@ -62,7 +63,13 @@ export function createPendingSessionForCheckout(
 	);
 }
 
-export function createStripeCheckoutCustomer<T extends { lineItems: SessionCheckoutLineItem[] }>(
+export function createStripeCheckoutCustomer<
+	T extends {
+		lineItems: SessionCheckoutLineItem[];
+		bookingId?: Id<"bookings">;
+		packageId?: Id<"packages">;
+	}
+>(
 	stripe: Stripe,
 	booking: Pick<SessionCheckoutBooking, "email" | "name">,
 	checkoutDraft: T
@@ -73,7 +80,15 @@ export function createStripeCheckoutCustomer<T extends { lineItems: SessionCheck
 				.create({ email: booking.email, name: booking.name })
 				.then((customer) => ({ ...checkoutDraft, stripeCustomerId: customer.id })),
 		catch: (cause) => {
-			console.error("Stripe customer create failed", { cause });
+			logError(
+				{
+					operation: "stripe.checkout.customer.create",
+					reason: "STRIPE_CHECKOUT_CREATE_FAILED",
+					bookingId: checkoutDraft.bookingId,
+					packageId: checkoutDraft.packageId
+				},
+				cause
+			);
 
 			return { reason: "STRIPE_CHECKOUT_CREATE_FAILED" as const };
 		}
@@ -99,7 +114,14 @@ export function createEmbeddedStripeCheckoutSession(
 				})
 				.then((session) => ({ ...checkoutDraft, session })),
 		catch: (cause) => {
-			console.error("Stripe checkout session create failed", { cause });
+			logError(
+				{
+					operation: "stripe.checkout.session.create",
+					reason: "STRIPE_CHECKOUT_CREATE_FAILED",
+					bookingId: checkoutDraft.bookingId
+				},
+				cause
+			);
 
 			return { reason: "STRIPE_CHECKOUT_CREATE_FAILED" as const };
 		}
@@ -162,7 +184,10 @@ export function createStripeCheckoutDiscountCoupon(
 				})
 				.then((coupon) => ({ couponId: coupon.id })),
 		catch: (cause) => {
-			console.error("Stripe checkout coupon create failed", { cause });
+			logError(
+				{ operation: "stripe.checkout.coupon.create", reason: "STRIPE_CHECKOUT_CREATE_FAILED" },
+				cause
+			);
 
 			return { reason: "STRIPE_CHECKOUT_CREATE_FAILED" as const };
 		}
@@ -195,7 +220,14 @@ export function createEmbeddedStripePackageCheckoutSession(
 					session
 				})),
 		catch: (cause) => {
-			console.error("Stripe package checkout session create failed", { cause });
+			logError(
+				{
+					operation: "stripe.packageCheckout.session.create",
+					reason: "STRIPE_CHECKOUT_CREATE_FAILED",
+					packageId: checkoutDraft.packageId
+				},
+				cause
+			);
 
 			return { reason: "STRIPE_CHECKOUT_CREATE_FAILED" as const };
 		}
@@ -224,7 +256,14 @@ export function closeOpenStripeCheckoutSession(
 			return session;
 		},
 		catch: (cause) => {
-			console.error("Stripe checkout close failed", { ...logContext, cause });
+			logError(
+				{
+					operation: "stripe.checkout.session.close",
+					reason: "STRIPE_CHECKOUT_CLOSE_FAILED",
+					...logContext
+				},
+				cause
+			);
 
 			return { reason: "STRIPE_CHECKOUT_CLOSE_FAILED" as const };
 		}

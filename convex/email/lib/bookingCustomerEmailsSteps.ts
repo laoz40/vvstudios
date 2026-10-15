@@ -15,7 +15,8 @@ export function sendBookingRescheduledCustomerEmailWithHtml(
 	return sendEmail({
 		to: [args.email],
 		subject: bookingRescheduledCustomerEmailSubject(args),
-		html
+		html,
+		logContext: { operation: "email.sendBookingRescheduledCustomer", bookingId: args.bookingId }
 	}).map(() => null);
 }
 
@@ -27,6 +28,7 @@ export function sendSessionReminderEmailWithHtml(
 	return sendEmail({
 		to: [args.email, ...getHostEmails()],
 		subject: sessionReminderEmailSubject(args),
-		html
+		html,
+		logContext: { operation: "email.sendSessionReminder", bookingId: args.bookingId }
 	}).map(() => null);
 }

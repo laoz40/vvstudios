@@ -14,6 +14,7 @@ import {
 	mapCalendarErrorCode
 } from "#convex/googleCalendar/lib/googleCalendarErrors";
 import { tryPromise } from "#convex/shared/lib/result";
+import { logError } from "#convex/shared/lib/logger";
 import { buildSessionCalendarEventPayload } from "#convex/sessions/lib/calendarEventPayload";
 import { pickBookingAddonQuantities } from "#/domain/booking/addon-quantities";
 import { failBookingConfirmation } from "#convex/sessions/lib/adminEdit";
@@ -232,7 +233,8 @@ export function loadedClaimedSessionFromPending(
 
 export function insertClaimedCalendarEvent(
 	client: GoogleCalendarClient,
-	requestBody: calendar_v3.Schema$Event
+	requestBody: calendar_v3.Schema$Event,
+	bookingId: Id<"bookings">
 ) {
 	return tryPromise({
 		try: () =>
@@ -244,11 +246,13 @@ export function insertClaimedCalendarEvent(
 		catch: (error) => {
 			const parsed = calendarErrorSchema.safeParse(error);
 
-			return {
-				reason: parsed.success
-					? mapCalendarErrorCode(parsed.data, "GOOGLE_CALENDAR_CREATE_FAILED")
-					: "GOOGLE_CALENDAR_CREATE_FAILED"
-			};
+			const reason = parsed.success
+				? mapCalendarErrorCode(parsed.data, "GOOGLE_CALENDAR_CREATE_FAILED")
+				: "GOOGLE_CALENDAR_CREATE_FAILED";
+
+			logError({ operation: "calendar.createBookingEvent", bookingId, reason }, error);
+
+			return { reason };
 		}
 	});
 }

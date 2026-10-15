@@ -20,7 +20,11 @@ export function sendClientAssetsEmail(
 	args: SendClientAssetsEmailArgs & { bookingId: Id<"bookings">; email: string }
 ) {
 	return safeTry(async function* () {
-		const html = yield* renderClientAssetsEmailHtml(args);
+		const html = yield* renderClientAssetsEmailHtml(args, {
+			operation: "email.renderClientAssets",
+			bookingId: args.bookingId
+		});
+
 		const result = yield* sendClientAssetsEmailWithHtml(args, html);
 
 		return ok(result);
@@ -28,12 +32,16 @@ export function sendClientAssetsEmail(
 }
 
 export function sendEditorAssignmentEmail(
-	args: SendEditorAssignmentEmailArgs & { editorEmail: string }
+	args: SendEditorAssignmentEmailArgs & { bookingId: Id<"bookings">; editorEmail: string }
 ) {
 	const sessionDate = formatTimestampDateLong(args.sessionStartAt);
 
 	return safeTry(async function* () {
-		const html = yield* renderEditorAssignmentEmailHtml(args);
+		const html = yield* renderEditorAssignmentEmailHtml(args, {
+			operation: "email.renderEditorAssignment",
+			bookingId: args.bookingId
+		});
+
 		const result = yield* sendEditorAssignmentEmailWithHtml(args, sessionDate, html);
 
 		return ok(result);
@@ -41,10 +49,14 @@ export function sendEditorAssignmentEmail(
 }
 
 export function sendSessionDeliverablesEmail(
-	args: SendSessionDeliverablesEmailArgs & { email: string }
+	args: SendSessionDeliverablesEmailArgs & { bookingId: Id<"bookings">; email: string }
 ) {
 	return safeTry(async function* () {
-		const html = yield* renderSessionDeliverablesEmailHtml(args);
+		const html = yield* renderSessionDeliverablesEmailHtml(args, {
+			operation: "email.renderSessionDeliverables",
+			bookingId: args.bookingId
+		});
+
 		const result = yield* sendSessionDeliverablesEmailWithHtml(args, html);
 
 		return ok(result);

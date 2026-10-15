@@ -104,7 +104,7 @@ function insertAndHandleClaimedCalendarEvent(
 	body: Parameters<typeof insertClaimedCalendarEvent>[1]
 ): ResultAsync<InsertClaimedBookingCalendarEventResult, CompleteClaimedSessionError> {
 	return safeTry(async function* () {
-		const createdEvent = yield* insertClaimedCalendarEvent(client, body);
+		const createdEvent = yield* insertClaimedCalendarEvent(client, body, session._id);
 
 		return ok({ kind: "created" as const, googleEventId: createdEvent.data.id ?? undefined });
 	}).orElse((error) => failCalendarCreateForClaimedBooking(ctx, session, reservation, error));

@@ -107,7 +107,7 @@ function sendInvoiceEmailsWithRescheduleUrl(
 		const result = yield* recordReceiptNumberAfterEmail(ctx, session._id, receipt);
 
 		return ok(result);
-	}).orElse((error: { reason: string }) => sendInvoiceEmailFailure(ctx, session, error));
+	}).orElse(() => sendInvoiceEmailFailure(ctx, session));
 }
 
 export function sendConfirmedBookingInvoice(

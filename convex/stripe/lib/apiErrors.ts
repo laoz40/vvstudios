@@ -2,22 +2,23 @@ import Stripe from "stripe";
 
 export type StripeApiFailure = { reason: string };
 
+export function isExpectedStripeError(cause: unknown) {
+	return (
+		cause instanceof Stripe.errors.StripeCardError ||
+		(cause instanceof Stripe.errors.StripeInvalidRequestError && cause.code === "resource_missing")
+	);
+}
+
 export function stripeApiFailureReason(cause: unknown): StripeApiFailure {
-	if (cause instanceof Stripe.errors.StripeError) {
-		const code = cause.code?.trim();
+	if (!(cause instanceof Stripe.errors.StripeError)) return { reason: "STRIPE_API_FAILED" };
 
-		if (code) {
-			return { reason: `STRIPE_${code.toUpperCase().replaceAll("-", "_")}` };
-		}
+	const code = cause.code?.trim();
 
-		const typeSuffix = cause.type.replace(/^Stripe/, "").replace(/Error$/, "");
+	if (code) return { reason: `STRIPE_${code.toUpperCase().replaceAll("-", "_")}` };
 
-		if (typeSuffix) {
-			return { reason: `STRIPE_${typeSuffix.toUpperCase()}` };
-		}
-	}
+	const typeSuffix = cause.type.replace(/^Stripe/, "").replace(/Error$/, "");
 
-	console.error("Stripe API call failed", { cause });
+	if (typeSuffix) return { reason: `STRIPE_${typeSuffix.toUpperCase()}` };
 
 	return { reason: "STRIPE_API_FAILED" };
 }

@@ -207,6 +207,7 @@ type EditorAssignmentEmailClaim = {
 function sendClaimedEditorAssignmentEmail(ctx: ActionCtx, claim: EditorAssignmentEmailClaim) {
 	const sendAndSave = safeTry(async function* () {
 		yield* sendEditorAssignmentEmail({
+			bookingId: claim.bookingId,
 			editorEmail: claim.editorEmail,
 			editorName: claim.editorName,
 			sessionName: claim.sessionName,

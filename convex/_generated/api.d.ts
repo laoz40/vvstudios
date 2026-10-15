@@ -67,6 +67,7 @@ import type * as drive_lib_editorRetirement from "../drive/lib/editorRetirement.
 import type * as drive_lib_folderRecovery from "../drive/lib/folderRecovery.js";
 import type * as drive_lib_folderSetupDecisions from "../drive/lib/folderSetupDecisions.js";
 import type * as drive_lib_googleDrive from "../drive/lib/googleDrive.js";
+import type * as drive_lib_googleDriveErrors from "../drive/lib/googleDriveErrors.js";
 import type * as drive_lib_sessionFolderNumbers from "../drive/lib/sessionFolderNumbers.js";
 import type * as drive_lib_sessionFolderServiceDecisions from "../drive/lib/sessionFolderServiceDecisions.js";
 import type * as drive_lib_sessionFolders_allocateNumbers from "../drive/lib/sessionFolders/allocateNumbers.js";
@@ -301,6 +302,7 @@ import type * as shared_lib_email_emailRenders from "../shared/lib/email/emailRe
 import type * as shared_lib_email_emailSend from "../shared/lib/email/emailSend.js";
 import type * as shared_lib_listAdminPackages from "../shared/lib/listAdminPackages.js";
 import type * as shared_lib_listAdminSessions from "../shared/lib/listAdminSessions.js";
+import type * as shared_lib_logger from "../shared/lib/logger.js";
 import type * as shared_lib_rateLimits from "../shared/lib/rateLimits.js";
 import type * as shared_lib_reminderScheduleTime from "../shared/lib/reminderScheduleTime.js";
 import type * as shared_lib_result from "../shared/lib/result.js";
@@ -420,6 +422,7 @@ declare const fullApi: ApiFromModules<{
   "drive/lib/folderRecovery": typeof drive_lib_folderRecovery;
   "drive/lib/folderSetupDecisions": typeof drive_lib_folderSetupDecisions;
   "drive/lib/googleDrive": typeof drive_lib_googleDrive;
+  "drive/lib/googleDriveErrors": typeof drive_lib_googleDriveErrors;
   "drive/lib/sessionFolderNumbers": typeof drive_lib_sessionFolderNumbers;
   "drive/lib/sessionFolderServiceDecisions": typeof drive_lib_sessionFolderServiceDecisions;
   "drive/lib/sessionFolders/allocateNumbers": typeof drive_lib_sessionFolders_allocateNumbers;
@@ -654,6 +657,7 @@ declare const fullApi: ApiFromModules<{
   "shared/lib/email/emailSend": typeof shared_lib_email_emailSend;
   "shared/lib/listAdminPackages": typeof shared_lib_listAdminPackages;
   "shared/lib/listAdminSessions": typeof shared_lib_listAdminSessions;
+  "shared/lib/logger": typeof shared_lib_logger;
   "shared/lib/rateLimits": typeof shared_lib_rateLimits;
   "shared/lib/reminderScheduleTime": typeof shared_lib_reminderScheduleTime;
   "shared/lib/result": typeof shared_lib_result;
