@@ -365,9 +365,14 @@
 				"convex-layers/no-result-match-outside-handler": "error",
 				"convex-layers/no-trivial-result-wrapper": "error",
 				"convex-layers/no-synthetic-skip-error": "error",
+				"convex-layers/logged-failure-shares-reason": "error",
 				"convex-layers/no-drive-state-write-outside-owner": "error",
 				"convex-layers/no-billing-recovery-state-write-outside-owner": "error"
 			}
+		},
+		{
+			"files": ["src/**/*.{ts,tsx}"],
+			"rules": { "convex-layers/logged-failure-shares-reason": "error" }
 		},
 		{
 			"files": ["**/*.ts", "**/*.tsx", "**/*.mts", "**/*.cts"],

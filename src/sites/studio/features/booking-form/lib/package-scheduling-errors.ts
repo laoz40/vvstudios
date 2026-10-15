@@ -68,13 +68,11 @@ export function getPackageAvailabilityErrorMessage(error: PackageBusyWindowsErro
 		case "INVALID_ZONED_TIME":
 			return "Please choose a valid time.";
 		case "GOOGLE_CALENDAR_AUTH_FAILED":
-			return "Calendar access failed. Please try again later.";
 		case "GOOGLE_CALENDAR_AVAILABILITY_FAILED":
-			return "Availability could not be loaded. Please try again.";
+		case "UNEXPECTED_ERROR":
+			return "We couldn't load available session times. Refresh the page and try again. Contact VV Studios if it still fails.";
 		case "GOOGLE_CALENDAR_RATE_LIMITED":
 			return "Availability was checked too many times. Please wait a minute and try again.";
-		case "UNEXPECTED_ERROR":
-			return "Something went wrong while loading availability.";
 		default:
 			return exhaustiveCheck(reason);
 	}
@@ -96,7 +94,26 @@ export function getSaveDefaultSpaceToastMessage(error: SaveDefaultSpaceError) {
 	}
 }
 
-type SavePackageBookingMessage = string | ((noticeWindowLabel: string) => string);
+type SavePackageBookingReason = SavePackageBookingError["reason"];
+
+type SavePackageBookingGroupedReason =
+	| "GOOGLE_CALENDAR_AUTH_FAILED"
+	| "GOOGLE_CALENDAR_SYNC_FAILED"
+	| "GOOGLE_CALENDAR_AVAILABILITY_FAILED"
+	| "GOOGLE_CALENDAR_CREATE_FAILED"
+	| "GOOGLE_CALENDAR_UPDATE_FAILED"
+	| "GOOGLE_CALENDAR_DELETE_FAILED"
+	| "UNEXPECTED_ERROR";
+
+const savePackageBookingGroupedReasons: Record<SavePackageBookingGroupedReason, true> = {
+	GOOGLE_CALENDAR_AUTH_FAILED: true,
+	GOOGLE_CALENDAR_SYNC_FAILED: true,
+	GOOGLE_CALENDAR_AVAILABILITY_FAILED: true,
+	GOOGLE_CALENDAR_CREATE_FAILED: true,
+	GOOGLE_CALENDAR_UPDATE_FAILED: true,
+	GOOGLE_CALENDAR_DELETE_FAILED: true,
+	UNEXPECTED_ERROR: true
+};
 
 const savePackageBookingMessages = {
 	PACKAGE_LINK_INVALID: "Please use the scheduling link from your latest VV Studios email.",
@@ -106,8 +123,6 @@ const savePackageBookingMessages = {
 	PACKAGE_CAPACITY_EXCEEDED: "All sessions in this package are already scheduled.",
 	PACKAGE_BOOKING_NOT_FOUND: "This package session could not be found.",
 	BOOKING_NOT_FOUND: "This package session could not be found.",
-	PACKAGE_BOOKING_LOCKED: (noticeWindowLabel: string) =>
-		`This session can only be changed more than ${noticeWindowLabel} before it starts.`,
 	BOOKING_INVALID_DATE: "Please choose a valid date.",
 	BOOKING_INVALID_DURATION: "This package has an invalid session duration.",
 	BOOKING_INVALID_TIME: "Please choose a valid time.",
@@ -117,26 +132,48 @@ const savePackageBookingMessages = {
 	BOOKING_TIME_UNAVAILABLE: "That time was just booked. Please choose another time.",
 	INVALID_ZONED_TIME: "Please choose a valid time.",
 	BOOKING_RATE_LIMITED: "Too many session updates. Please wait a minute and try again.",
-	GOOGLE_CALENDAR_AUTH_FAILED: "Calendar access failed. Please try again later.",
-	GOOGLE_CALENDAR_SYNC_FAILED: "Could not update the calendar event. Please try again.",
-	GOOGLE_CALENDAR_AVAILABILITY_FAILED: "Availability could not be loaded. Please try again.",
-	GOOGLE_CALENDAR_CREATE_FAILED: "Could not create the calendar event. Please try again.",
-	GOOGLE_CALENDAR_UPDATE_FAILED: "Could not update the calendar event. Please try again.",
-	GOOGLE_CALENDAR_DELETE_FAILED: "Could not remove the calendar event. Please try again.",
-	GOOGLE_CALENDAR_RATE_LIMITED:
-		"Availability was checked too many times. Please wait a minute and try again.",
-	UNEXPECTED_ERROR: "Something went wrong while saving this session."
-} satisfies Record<SavePackageBookingError["reason"], SavePackageBookingMessage>;
+	GOOGLE_CALENDAR_RATE_LIMITED: "Please wait a minute before trying to save this session again."
+} satisfies Record<
+	Exclude<SavePackageBookingReason, SavePackageBookingGroupedReason | "PACKAGE_BOOKING_LOCKED">,
+	string
+>;
+
+function isSavePackageBookingGroupedReason(
+	reason: SavePackageBookingReason
+): reason is SavePackageBookingGroupedReason {
+	return Object.hasOwn(savePackageBookingGroupedReasons, reason);
+}
+
+function getSavePackageBookingGroupedMessage(reason: SavePackageBookingGroupedReason) {
+	switch (reason) {
+		case "GOOGLE_CALENDAR_AUTH_FAILED":
+		case "GOOGLE_CALENDAR_SYNC_FAILED":
+		case "GOOGLE_CALENDAR_AVAILABILITY_FAILED":
+		case "GOOGLE_CALENDAR_CREATE_FAILED":
+		case "GOOGLE_CALENDAR_UPDATE_FAILED":
+		case "GOOGLE_CALENDAR_DELETE_FAILED":
+		case "UNEXPECTED_ERROR":
+			return "We couldn't save this session. Please try again. Contact VV Studios if it still fails.";
+		default:
+			return exhaustiveCheck(reason);
+	}
+}
 
 export function getSavePackageBookingToastMessage(
 	error: SavePackageBookingError,
 	noticeWindowLabel: string
 ) {
-	if (error.reason === "PACKAGE_BOOKING_LOCKED") {
-		return savePackageBookingMessages.PACKAGE_BOOKING_LOCKED(noticeWindowLabel);
+	const reason = error.reason;
+
+	if (reason === "PACKAGE_BOOKING_LOCKED") {
+		return `This session can only be changed more than ${noticeWindowLabel} before it starts.`;
 	}
 
-	return savePackageBookingMessages[error.reason];
+	if (isSavePackageBookingGroupedReason(reason)) {
+		return getSavePackageBookingGroupedMessage(reason);
+	}
+
+	return savePackageBookingMessages[reason];
 }
 
 export function getUnschedulePackageBookingToastMessage(
@@ -156,19 +193,15 @@ export function getUnschedulePackageBookingToastMessage(
 		case "PACKAGE_BOOKING_LOCKED":
 			return `This session can only be unscheduled more than ${noticeWindowLabel} before it starts.`;
 		case "GOOGLE_CALENDAR_AUTH_FAILED":
-			return "Calendar access failed. Please try again later.";
 		case "GOOGLE_CALENDAR_SYNC_FAILED":
 		case "GOOGLE_CALENDAR_DELETE_FAILED":
-			return "Could not remove the calendar event. Please try again.";
 		case "GOOGLE_CALENDAR_AVAILABILITY_FAILED":
-			return "Availability could not be loaded. Please try again.";
 		case "GOOGLE_CALENDAR_CREATE_FAILED":
 		case "GOOGLE_CALENDAR_UPDATE_FAILED":
-			return "Could not update the calendar event. Please try again.";
-		case "GOOGLE_CALENDAR_RATE_LIMITED":
-			return "Calendar updates are busy. Please wait a minute and try again.";
 		case "UNEXPECTED_ERROR":
-			return "Something went wrong while unscheduling this session.";
+			return "We couldn't unschedule this session. Please try again. Contact VV Studios if it still fails.";
+		case "GOOGLE_CALENDAR_RATE_LIMITED":
+			return "Please wait a minute before trying to unschedule this session again.";
 		default:
 			return exhaustiveCheck(reason);
 	}

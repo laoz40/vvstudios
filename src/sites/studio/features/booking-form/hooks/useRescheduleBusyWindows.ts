@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAction } from "convex/react";
 import { api } from "#convex/_generated/api";
+import { logError } from "#convex/shared/lib/logger";
 import { tryCatch } from "#/lib/result";
 import {
 	getDevRescheduleAvailabilityStatus,
@@ -109,7 +110,10 @@ export function useRescheduleBusyWindows({
 		}
 
 		if (fetchErrorOutcome?.kind === "availabilityError") {
-			console.error("Failed to load reschedule availability", busyWindowsQuery.error);
+			logError(
+				{ operation: "booking.loadRescheduleAvailability", reason: busyWindowsQuery.error.reason },
+				busyWindowsQuery.error
+			);
 		}
 	}, [busyWindowsQuery.error, fetchErrorOutcome]);
 

@@ -132,6 +132,17 @@ export function getAvailabilityErrorMessage(error: RescheduleAvailabilityError):
 	}
 }
 
+type RescheduleUpdateToastReason = RescheduleUpdateToastError["reason"];
+
+type GroupedRescheduleUpdateReason =
+	| "BOOKING_INVALID_TIME"
+	| "INVALID_ZONED_TIME"
+	| "GOOGLE_CALENDAR_AUTH_FAILED"
+	| "GOOGLE_CALENDAR_AVAILABILITY_FAILED"
+	| "GOOGLE_CALENDAR_CREATE_FAILED"
+	| "GOOGLE_CALENDAR_UPDATE_FAILED"
+	| "UNEXPECTED_ERROR";
+
 const rescheduleUpdateToastMessages = {
 	RESCHEDULE_LINK_NOT_FOUND: "This reschedule link could not be found.",
 	RESCHEDULE_LINK_USED: "This reschedule link has already been used.",
@@ -140,27 +151,53 @@ const rescheduleUpdateToastMessages = {
 	BOOKING_NOT_RESCHEDULABLE: "This booking can’t be rescheduled online.",
 	BOOKING_INVALID_DATE: "Please choose a valid date.",
 	BOOKING_INVALID_DURATION: "This booking has an invalid session duration.",
-	BOOKING_INVALID_TIME: "Please choose a valid time.",
 	BOOKING_INVALID_INPUT:
 		"This booking can’t be updated from this link. Please contact us for help.",
 	BOOKING_OUTSIDE_OPENING_HOURS: "Please choose a time within opening hours.",
 	BOOKING_TIME_UNAVAILABLE: "That time is no longer available. Please choose another time.",
 	BOOKING_TOO_FAR_AHEAD: "Please choose a date before your package expiry date.",
 	BOOKING_TOO_SOON: "Please choose a later time.",
-	INVALID_ZONED_TIME: "Please choose a valid time.",
-	GOOGLE_CALENDAR_AUTH_FAILED:
-		"We couldn’t update the calendar. Please contact us and we’ll help you.",
-	GOOGLE_CALENDAR_AVAILABILITY_FAILED:
-		"We couldn’t update the calendar. Please contact us and we’ll help you.",
-	GOOGLE_CALENDAR_CREATE_FAILED:
-		"We couldn’t update the calendar. Please contact us and we’ll help you.",
-	GOOGLE_CALENDAR_UPDATE_FAILED:
-		"We couldn’t update the calendar. Please contact us and we’ll help you.",
 	BOOKING_RATE_LIMITED: "Too many reschedule attempts. Please wait a moment and try again.",
-	GOOGLE_CALENDAR_RATE_LIMITED: "Calendar is temporarily busy. Please wait a moment and try again.",
-	UNEXPECTED_ERROR: "Something went wrong while updating your booking."
-} satisfies Record<RescheduleUpdateToastError["reason"], string>;
+	GOOGLE_CALENDAR_RATE_LIMITED:
+		"Please wait a moment before trying to save your new session time again."
+} satisfies Record<Exclude<RescheduleUpdateToastReason, GroupedRescheduleUpdateReason>, string>;
+
+const groupedRescheduleUpdateReasons: Record<GroupedRescheduleUpdateReason, true> = {
+	BOOKING_INVALID_TIME: true,
+	INVALID_ZONED_TIME: true,
+	GOOGLE_CALENDAR_AUTH_FAILED: true,
+	GOOGLE_CALENDAR_AVAILABILITY_FAILED: true,
+	GOOGLE_CALENDAR_CREATE_FAILED: true,
+	GOOGLE_CALENDAR_UPDATE_FAILED: true,
+	UNEXPECTED_ERROR: true
+};
+
+function isGroupedRescheduleUpdateReason(
+	reason: RescheduleUpdateToastReason
+): reason is GroupedRescheduleUpdateReason {
+	return Object.hasOwn(groupedRescheduleUpdateReasons, reason);
+}
+
+function getGroupedRescheduleUpdateMessage(reason: GroupedRescheduleUpdateReason) {
+	switch (reason) {
+		case "BOOKING_INVALID_TIME":
+		case "INVALID_ZONED_TIME":
+			return "Please choose a valid time.";
+		case "GOOGLE_CALENDAR_AUTH_FAILED":
+		case "GOOGLE_CALENDAR_AVAILABILITY_FAILED":
+		case "GOOGLE_CALENDAR_CREATE_FAILED":
+		case "GOOGLE_CALENDAR_UPDATE_FAILED":
+		case "UNEXPECTED_ERROR":
+			return "We couldn't save your new session time. Please try again. Contact VV Studios if it still fails.";
+		default:
+			return exhaustiveCheck(reason);
+	}
+}
 
 export function getRescheduleUpdateToastMessage(error: RescheduleUpdateToastError): string {
-	return rescheduleUpdateToastMessages[error.reason];
+	const reason = error.reason;
+
+	return isGroupedRescheduleUpdateReason(reason)
+		? getGroupedRescheduleUpdateMessage(reason)
+		: rescheduleUpdateToastMessages[reason];
 }

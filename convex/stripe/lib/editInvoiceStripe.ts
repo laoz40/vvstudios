@@ -3,6 +3,8 @@
 import { err, ok, okAsync, type Result, type ResultAsync } from "neverthrow";
 import type Stripe from "stripe";
 import { tryPromise } from "#convex/shared/lib/result";
+import { isExpectedStripeError } from "#convex/stripe/lib/apiErrors";
+import { logError } from "#convex/shared/lib/logger";
 import { getStripeClient } from "#convex/stripe/lib/client";
 import { BOOKING_INVOICE_CURRENCY } from "#/domain/booking/price-constants";
 
@@ -41,7 +43,18 @@ export function retrieveCheckoutSession(
 
 	return tryPromise({
 		try: () => getStripeClient().checkout.sessions.retrieve(stripeSessionId),
-		catch: () => ({ reason: "STRIPE_CHECKOUT_LOOKUP_FAILED" as const })
+		catch: (cause) => {
+			const failure = { reason: "STRIPE_CHECKOUT_LOOKUP_FAILED" } as const;
+
+			if (!isExpectedStripeError(cause)) {
+				logError(
+					{ operation: "stripe.checkout.session.lookup", ...failure, stripeSessionId },
+					cause
+				);
+			}
+
+			return failure;
+		}
 	});
 }
 
@@ -55,6 +68,14 @@ export function retrieveStripeCustomer(
 
 	return tryPromise({
 		try: () => getStripeClient().customers.retrieve(stripeCustomerId),
-		catch: () => ({ reason: "STRIPE_CUSTOMER_LOOKUP_FAILED" as const })
+		catch: (cause) => {
+			const failure = { reason: "STRIPE_CUSTOMER_LOOKUP_FAILED" } as const;
+
+			if (!isExpectedStripeError(cause)) {
+				logError({ operation: "stripe.customer.lookup", ...failure, stripeCustomerId }, cause);
+			}
+
+			return failure;
+		}
 	});
 }

@@ -23,6 +23,7 @@ import type {
 	BookingInvoiceLineItem,
 	BookingReceiptData
 } from "#studio/features/booking-invoice/lib/types";
+import { logError } from "#convex/shared/lib/logger";
 
 export type PackageReceiptArtifactOptions = {
 	leadTimeMinutes: number;
@@ -219,7 +220,14 @@ export function createBookingReceiptArtifactsForBooking(
 	const parsedBooking = bookingSchema.safeParse(getBookingInvoiceParseInput(booking, undefined));
 
 	if (!parsedBooking.success) {
-		return err({ reason: "INVALID_BOOKING_DATA" as const });
+		const failure = { reason: "INVALID_BOOKING_DATA" } as const;
+
+		logError(
+			{ operation: "booking.createReceiptArtifacts", bookingId: booking._id, ...failure },
+			parsedBooking.error
+		);
+
+		return err(failure);
 	}
 
 	const receiptNumber = resolveBookingReceiptNumber(

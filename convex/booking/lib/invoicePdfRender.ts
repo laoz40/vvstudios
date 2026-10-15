@@ -1,4 +1,5 @@
 import { tryPromise } from "#convex/shared/lib/result";
+import { logError } from "#convex/shared/lib/logger";
 import type {
 	BookingInvoiceData,
 	BookingReceiptData
@@ -13,12 +14,14 @@ export function renderBookingInvoicePdfInNode(data: BookingInvoiceData) {
 			return renderBookingInvoicePdf(data);
 		},
 		catch: (cause) => {
-			console.error("Booking invoice PDF render failed", {
-				invoiceNumber: data.invoice.number,
-				cause
-			});
+			const failure = { reason: "INVOICE_PDF_RENDER_FAILED" } as const;
 
-			return { reason: "INVOICE_PDF_RENDER_FAILED" as const };
+			logError(
+				{ operation: "pdf.renderBookingInvoice", ...failure, invoiceNumber: data.invoice.number },
+				cause
+			);
+
+			return failure;
 		}
 	});
 }
@@ -32,12 +35,14 @@ export function renderBookingReceiptPdfInNode(data: BookingReceiptData) {
 			return renderBookingReceiptPdf(data);
 		},
 		catch: (cause) => {
-			console.error("Booking receipt PDF render failed", {
-				receiptNumber: data.receipt.number,
-				cause
-			});
+			const failure = { reason: "RECEIPT_PDF_RENDER_FAILED" } as const;
 
-			return { reason: "RECEIPT_PDF_RENDER_FAILED" as const };
+			logError(
+				{ operation: "pdf.renderBookingReceipt", ...failure, receiptNumber: data.receipt.number },
+				cause
+			);
+
+			return failure;
 		}
 	});
 }

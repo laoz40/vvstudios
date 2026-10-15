@@ -136,10 +136,7 @@ export function closeAbandonedPackageStripeCheckout(
 	const stripe = getStripeClient();
 
 	return safeTry(async function* () {
-		const closedSession = yield* closeOpenStripeCheckoutSession(stripe, args.stripeSessionId, {
-			packageId: args.packageId,
-			stripeSessionId: args.stripeSessionId
-		});
+		const closedSession = yield* closeOpenStripeCheckoutSession(stripe, args);
 
 		const result = yield* resolveClosedPackageCheckoutSession(ctx, args, closedSession);
 

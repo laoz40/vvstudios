@@ -16,12 +16,13 @@ export function sendClientAssetsEmailWithHtml(
 		to: [args.email],
 		subject: "Anything you'd like us to use in your video edit?",
 		html,
+		logContext: { operation: "email.sendClientAssets", bookingId: args.bookingId },
 		idempotencyKey: `client-assets:${args.bookingId}:${args.assetsUrl}`
 	});
 }
 
 export function sendEditorAssignmentEmailWithHtml(
-	args: SendEditorAssignmentEmailArgs & { editorEmail: string },
+	args: SendEditorAssignmentEmailArgs & { bookingId: Id<"bookings">; editorEmail: string },
 	sessionDate: string,
 
 	html: string
@@ -30,18 +31,20 @@ export function sendEditorAssignmentEmailWithHtml(
 		to: [args.editorEmail],
 		subject: `New editing job assigned: ${args.sessionName}, ${sessionDate}`,
 		html,
+		logContext: { operation: "email.sendEditorAssignment", bookingId: args.bookingId },
 		idempotencyKey: `editor-assignment:${args.editorEmail}:${args.sessionStartAt}`
 	});
 }
 
 export function sendSessionDeliverablesEmailWithHtml(
-	args: SendSessionDeliverablesEmailArgs & { email: string },
+	args: SendSessionDeliverablesEmailArgs & { bookingId: Id<"bookings">; email: string },
 
 	html: string
 ) {
 	return sendEmail({
 		to: [args.email],
 		subject: `Your VV Studios Deliverables Folder - ${formatSessionDateShort(args.date)}`,
-		html
+		html,
+		logContext: { operation: "email.sendSessionDeliverables", bookingId: args.bookingId }
 	});
 }

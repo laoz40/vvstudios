@@ -1,5 +1,4 @@
 import type { BookingFormValues } from "#studio/features/booking-form/lib/booking-form-model";
-import { ok } from "neverthrow";
 import type { Doc } from "#convex/_generated/dataModel";
 import { sendEmail } from "#convex/shared/lib/email/emailSend";
 import {
@@ -100,7 +99,8 @@ export function sendBookingReceiptCustomerEmail(
 		to: [booking.email],
 		subject: "Studio booking confirmed - " + formatSessionDateShort(booking.date),
 		html: receipt.artifacts.emailHtml,
-		attachments: [{ ...receipt.artifacts.pdf, content: receipt.pdfContent }]
+		attachments: [{ ...receipt.artifacts.pdf, content: receipt.pdfContent }],
+		logContext: { operation: "email.sendBookingReceipt", bookingId: booking._id }
 	}).map(() => ({ artifacts: receipt.artifacts, parsedBooking: receipt.parsedBooking }));
 }
 
@@ -118,7 +118,8 @@ export function sendPackageReceiptCustomerEmail(
 			formatTimestampDateShort(paidAt) +
 			")",
 		html: receipt.artifacts.emailHtml,
-		attachments: [{ ...receipt.artifacts.pdf, content: receipt.pdfContent }]
+		attachments: [{ ...receipt.artifacts.pdf, content: receipt.pdfContent }],
+		logContext: { operation: "email.sendPackageReceipt", packageId: packageRecord._id }
 	}).map(() => ({ artifacts: receipt.artifacts }));
 }
 
@@ -138,6 +139,7 @@ export function attachPdfToPackageReceiptArtifacts(receipt: PackageReceiptArtifa
 }
 
 export function buildBookingReceiptHostEmailArgs(
+	bookingId: Doc<"bookings">["_id"],
 	options: { reschedule?: SessionHostRescheduleDetails; skipHostEmail?: boolean },
 	receipt: SentBookingReceipt
 ): SendSessionHostDetailsEmailArgs | null {
@@ -147,6 +149,7 @@ export function buildBookingReceiptHostEmailArgs(
 	if (options.skipHostEmail) return null;
 
 	return {
+		bookingId,
 		invoiceNumber: receiptNumber,
 		name: bookingForHost.name,
 		email: bookingForHost.email,
@@ -173,6 +176,7 @@ export function buildPackageReceiptHostEmailArgs(
 	if (options.skipHostEmail) return null;
 
 	return {
+		packageId: packageRecord._id,
 		invoiceNumber: receipt.artifacts.data.receipt.number,
 		name: packageRecord.name,
 		email: packageRecord.email,
@@ -189,22 +193,4 @@ export function buildPackageReceiptHostEmailArgs(
 		packageSize: packageRecord.packageSize,
 		invoiceDueAt: paidAt
 	};
-}
-
-export function logBookingReceiptHostEmailFailure(
-	bookingId: Doc<"bookings">["_id"],
-	error: { reason: string }
-) {
-	console.error("Booking receipt host email send failed", { bookingId, reason: error.reason });
-
-	return ok(null);
-}
-
-export function logPackageReceiptHostEmailFailure(
-	packageId: PackageInvoiceInput["_id"],
-	error: { reason: string }
-) {
-	console.error("Package receipt host email send failed", { packageId, reason: error.reason });
-
-	return ok(null);
 }

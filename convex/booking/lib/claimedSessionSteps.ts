@@ -14,6 +14,7 @@ import {
 	mapCalendarErrorCode
 } from "#convex/googleCalendar/lib/googleCalendarErrors";
 import { tryPromise } from "#convex/shared/lib/result";
+import { logError } from "#convex/shared/lib/logger";
 import { buildSessionCalendarEventPayload } from "#convex/sessions/lib/calendarEventPayload";
 import { pickBookingAddonQuantities } from "#/domain/booking/addon-quantities";
 import { failBookingConfirmation } from "#convex/sessions/lib/adminEdit";
@@ -103,7 +104,18 @@ export function prepareClaimedCalendarEvent(
 ): ResultAsync<PreparedClaimedCalendarEvent, CompleteClaimedSessionError> {
 	const payload = buildClaimedBookingCalendarPayload(session, client.timeZone);
 
-	if (payload.isErr()) return failInvalidClaimedSession(ctx, session, reservation);
+	if (payload.isErr()) {
+		logError(
+			{
+				operation: "booking.prepareCalendarEvent",
+				bookingId: session._id,
+				reason: "BOOKING_INVALID_INPUT"
+			},
+			payload.error
+		);
+
+		return failInvalidClaimedSession(ctx, session, reservation);
+	}
 
 	return okAsync({ kind: "ready", body: payload.value });
 }
@@ -135,7 +147,11 @@ export function requireClaimed(
 }
 
 export function markClaimedBookingTimeUnavailable(ctx: ActionCtx, bookingId: Id<"bookings">) {
-	return failBookingConfirmation(ctx, bookingId, "BOOKING_TIME_UNAVAILABLE").map(() => ({
+	const failure = { reason: "BOOKING_TIME_UNAVAILABLE" } as const;
+
+	logError({ operation: "booking.confirmCheckout", bookingId, ...failure });
+
+	return failBookingConfirmation(ctx, bookingId, failure.reason).map(() => ({
 		outcome: "booking_time_unavailable" as const
 	}));
 }
@@ -232,7 +248,8 @@ export function loadedClaimedSessionFromPending(
 
 export function insertClaimedCalendarEvent(
 	client: GoogleCalendarClient,
-	requestBody: calendar_v3.Schema$Event
+	requestBody: calendar_v3.Schema$Event,
+	bookingId: Id<"bookings">
 ) {
 	return tryPromise({
 		try: () =>
@@ -244,11 +261,15 @@ export function insertClaimedCalendarEvent(
 		catch: (error) => {
 			const parsed = calendarErrorSchema.safeParse(error);
 
-			return {
+			const failure = {
 				reason: parsed.success
 					? mapCalendarErrorCode(parsed.data, "GOOGLE_CALENDAR_CREATE_FAILED")
 					: "GOOGLE_CALENDAR_CREATE_FAILED"
 			};
+
+			logError({ operation: "calendar.createBookingEvent", bookingId, ...failure }, error);
+
+			return failure;
 		}
 	});
 }

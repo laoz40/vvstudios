@@ -1,6 +1,7 @@
 import type { ResultAsync } from "neverthrow";
 import { z } from "zod";
 
+import { logError } from "#convex/shared/lib/logger";
 import { tryPromise } from "#convex/shared/lib/result";
 
 export type CalendarFallbackCode =
@@ -47,9 +48,13 @@ export function tryGoogleCalendarAvailability<T>(
 		catch: (cause) => {
 			const parsedError = calendarErrorSchema.safeParse(cause);
 
-			return parsedError.success
+			const failure = parsedError.success
 				? googleCalendarAvailabilityErrorFromCause(parsedError.data)
-				: { reason: "GOOGLE_CALENDAR_AVAILABILITY_FAILED" };
+				: { reason: "GOOGLE_CALENDAR_AVAILABILITY_FAILED" as const };
+
+			logError({ operation: "googleCalendar.availability.load", reason: failure.reason }, cause);
+
+			return failure;
 		}
 	});
 }

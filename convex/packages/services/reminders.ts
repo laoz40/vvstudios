@@ -54,6 +54,7 @@ export function listPackagesPotentiallyDueForExpiryReminderService(
 function sendClaimedExpiryReminder(ctx: ActionCtx, now: number, record: DueExpiryCandidate) {
 	return safeTry(async function* () {
 		yield* sendPackageExpiryReminderEmail({
+			packageId: record._id,
 			email: record.email,
 			expiresAt: record.expiresAt,
 			name: record.name,

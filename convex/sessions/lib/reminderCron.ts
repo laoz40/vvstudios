@@ -9,6 +9,7 @@ import {
 	REMINDER_TIME_ZONE
 } from "#convex/shared/lib/reminderScheduleTime";
 import { fromConvexTuple } from "#convex/shared/lib/result";
+import { logError } from "#convex/shared/lib/logger";
 
 export function sessionReminderQueryArgs(nowDate: Date) {
 	return {
@@ -32,8 +33,15 @@ export function sendSessionReminderEmail(ctx: ActionCtx, booking: Doc<"bookings"
 			.runAction(internal.googleCalendar.calendar.sendSessionReminderEmail, {
 				bookingId: booking._id
 			})
-			.catch((error) => {
-				console.error(`Failed to process session reminder for booking ${booking._id}`, error);
+			.catch((cause: unknown) => {
+				logError(
+					{
+						operation: "reminders.processSession",
+						bookingId: booking._id,
+						reason: "UNEXPECTED_ERROR"
+					},
+					cause
+				);
 
 				return tupleOk(null);
 			})

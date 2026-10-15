@@ -8,6 +8,8 @@ import type { ActionCtx } from "#convex/_generated/server";
 import { fromConvexTuple, tryPromise } from "#convex/shared/lib/result";
 import type { EditInvoiceTarget } from "#convex/stripe/lib/editInvoiceDb";
 import type { StripeClient } from "#convex/stripe/lib/client";
+import { isExpectedStripeError } from "#convex/stripe/lib/apiErrors";
+import { logError } from "#convex/shared/lib/logger";
 import { BOOKING_INVOICE_CURRENCY } from "#/domain/booking/price-constants";
 
 export const ADMIN_STRIPE_INVOICE_DAYS_UNTIL_DUE = 7;
@@ -198,7 +200,23 @@ export function createAndSendStripeInvoice(
 
 			return finalizedInvoice.id;
 		},
-		catch: () => ({ reason: "STRIPE_INVOICE_FAILED" as const })
+		catch: (cause) => {
+			const failure = { reason: "STRIPE_INVOICE_FAILED" } as const;
+
+			if (!isExpectedStripeError(cause)) {
+				logError(
+					{
+						operation: "stripe.invoice.createAndSend",
+						...failure,
+						bookingId: input.metadata.kind === "booking" ? input.metadata.bookingId : undefined,
+						packageId: input.metadata.kind === "package" ? input.metadata.packageId : undefined
+					},
+					cause
+				);
+			}
+
+			return failure;
+		}
 	}).map((stripeInvoiceId) => ({ stripeInvoiceId }));
 }
 

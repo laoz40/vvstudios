@@ -1,6 +1,6 @@
 "use node";
 
-import { ok, safeTry } from "neverthrow";
+import { errAsync, ok, okAsync, safeTry } from "neverthrow";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { ActionCtx } from "#convex/_generated/server";
 import { createBookingInvoiceArtifactsForBooking } from "#studio/features/booking-invoice/lib/booking-artifacts";
@@ -12,9 +12,6 @@ import {
 	bookingRescheduledCustomerEmailArgs,
 	bookingInvoiceArtifactCreatedAt,
 	hostRescheduleEmailArgs,
-	logAdminHostRescheduleEmailFailure,
-	logCustomerHostRescheduleEmailFailure,
-	logSessionHostRescheduleEmailFailure,
 	type HostRescheduleBooking
 } from "#convex/sessions/lib/rescheduleEmails";
 
@@ -26,9 +23,7 @@ function afterCustomerRescheduleEmailStep(
 		leadTimeMinutes: options.leadTimeMinutes,
 		originalDate: options.originalDate,
 		originalTime: options.originalTime
-	}).orElse((error: { reason: string }) =>
-		logCustomerHostRescheduleEmailFailure(booking._id, error)
-	);
+	}).orElse(() => okAsync(null));
 }
 
 export function sendBookingRescheduledEmailsForBooking(
@@ -70,8 +65,13 @@ function sendSessionHostEmailFromArtifacts(
 	value: { artifacts: { data: { invoice: { number: string } } }; booking: HostRescheduleBooking }
 ) {
 	return sendSessionHostDetailsEmail(
-		hostRescheduleEmailArgs(value.booking, value.artifacts.data.invoice.number, options)
-	).orElse((error: { reason: string }) => logSessionHostRescheduleEmailFailure(booking._id, error));
+		hostRescheduleEmailArgs(
+			booking._id,
+			value.booking,
+			value.artifacts.data.invoice.number,
+			options
+		)
+	).orElse(() => errAsync({ reason: "HOST_EMAIL_SEND_FAILED" as const }));
 }
 
 function notifyHostAfterAdminRescheduleStep(
@@ -88,9 +88,7 @@ function notifyHostAfterAdminRescheduleStep(
 		originalDate: args.originalDate,
 		originalTime: args.originalTime
 	})
-		.orElse((error: { reason: string }) =>
-			logAdminHostRescheduleEmailFailure(updatedSession._id, error)
-		)
+		.orElse(() => okAsync(null))
 		.map(() => args.result);
 }
 

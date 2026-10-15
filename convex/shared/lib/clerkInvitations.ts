@@ -5,6 +5,7 @@ import { z } from "zod";
 import { studioSite } from "#/config/sites";
 import { env } from "#convex/env";
 import { tryPromise } from "#convex/shared/lib/result";
+import { logError } from "#convex/shared/lib/logger";
 
 const clerkInvitationsUrl = "https://api.clerk.com/v1/invitations";
 
@@ -93,9 +94,11 @@ export function requestClerkInvitation(email: string) {
 				})
 			}),
 		catch: (cause) => {
-			console.error("Clerk invitation request failed", { cause });
+			const failure = { reason: "CLERK_INVITATION_FAILED" } as const;
 
-			return { reason: "CLERK_INVITATION_FAILED" as const };
+			logError({ operation: "clerk.requestInvitation", ...failure, email }, cause);
+
+			return failure;
 		}
 	});
 }
@@ -109,16 +112,32 @@ export function readClerkInvitationBody(response: Response) {
 			return parsedBody.success ? parsedBody.data : { errors: undefined };
 		},
 		catch: (cause) => {
-			console.error("Clerk invitation response parse failed", { cause });
+			const failure = { reason: "CLERK_INVITATION_FAILED" } as const;
 
-			return { reason: "CLERK_INVITATION_FAILED" as const };
+			logError(
+				{ operation: "clerk.readInvitationResponse", ...failure, status: response.status },
+				cause
+			);
+
+			return failure;
 		}
 	});
 }
 
 export function validateClerkInvitationResponse(response: Response, body: ParsedClerkError) {
 	if (!response.ok) {
-		return err(mapInvitationError(body));
+		const error = mapInvitationError(body);
+
+		if (error.reason === "CLERK_INVITATION_FAILED") {
+			logError({
+				operation: "clerk.requestInvitation",
+				reason: error.reason,
+				status: response.status,
+				providerCode: body.errors?.[0]?.code
+			});
+		}
+
+		return err(error);
 	}
 
 	return ok(null);

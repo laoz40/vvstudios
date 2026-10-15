@@ -21,9 +21,12 @@ export function sendSessionHostDetailsEmailWithHtml(
 ): ReturnType<typeof sendEmail> {
 	if (args === null || html === null) return okAsync(null);
 
-	return sendEmail({ to: hostEmails, subject: sessionHostDetailsEmailSubject(args), html }).map(
-		() => null
-	);
+	return sendEmail({
+		to: hostEmails,
+		subject: sessionHostDetailsEmailSubject(args),
+		html,
+		logContext: { operation: "email.sendSessionHostDetails", bookingId: args.bookingId }
+	}).map(() => null);
 }
 
 export function sendPackageHostDetailsEmailWithHtml(
@@ -34,9 +37,12 @@ export function sendPackageHostDetailsEmailWithHtml(
 ): ReturnType<typeof sendEmail> {
 	if (args === null || html === null) return okAsync(null);
 
-	return sendEmail({ to: hostEmails, subject: packageHostDetailsEmailSubject(args), html }).map(
-		() => null
-	);
+	return sendEmail({
+		to: hostEmails,
+		subject: packageHostDetailsEmailSubject(args),
+		html,
+		logContext: { operation: "email.sendPackageHostDetails", packageId: args.packageId }
+	}).map(() => null);
 }
 
 export function renderSessionHostEmailWhenNeeded(

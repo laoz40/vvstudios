@@ -14,6 +14,7 @@ export function buildDeliverablesReviewReadyEmailRequest(
 				to: email.recipients,
 				subject: deliverablesReviewReadyHostEmailSubject(args),
 				html: email.html,
+				logContext: { operation: "email.sendDeliverablesReviewReady" },
 				idempotencyKey: args.idempotencyKey
 			};
 }

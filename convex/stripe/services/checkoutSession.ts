@@ -97,7 +97,7 @@ export function closeAbandonedBookingStripeCheckout(
 	const stripe = getStripeClient();
 
 	return safeTry(async function* () {
-		const closedSession = yield* closeOpenStripeCheckoutSession(stripe, args.stripeSessionId, args);
+		const closedSession = yield* closeOpenStripeCheckoutSession(stripe, args);
 		const result = yield* resolveClosedBookingCheckoutSession(ctx, args, closedSession);
 
 		return ok(result);

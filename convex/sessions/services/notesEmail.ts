@@ -8,6 +8,7 @@ import { renderSessionNotesEmailHtml } from "#convex/shared/lib/email/emailRende
 export function sendSessionNotesEmail(args: Parameters<typeof buildSessionNotesEmailRequest>[0]) {
 	return safeTry(async function* () {
 		const html = yield* renderSessionNotesEmailHtml(args);
+
 		yield* sendEmailIfPresent(buildSessionNotesEmailRequest(args, html));
 
 		return ok(null);

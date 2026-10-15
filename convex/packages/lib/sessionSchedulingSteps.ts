@@ -28,12 +28,6 @@ export function checkRateLimitForPackageSession(
 	return checkPackageIdSubmitRateLimit(ctx, details.packageRecord._id).map(() => details);
 }
 
-export function logOrphanCalendarCleanupFailure<T>(saveError: T, cleanupError: { reason: string }) {
-	console.error("Failed to compensate orphan package Calendar event", cleanupError);
-
-	return saveError;
-}
-
 export function reservationFromPackageSessionSlot(
 	reservationResult:
 		| { outcome: "unavailable" }

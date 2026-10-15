@@ -9,6 +9,7 @@ import { completeSessionCheckoutService } from "#convex/booking/services/confirm
 import type { PackageAdjustmentInvoicePaymentClaimError } from "#convex/packages/lib/adjustmentInvoicePayment";
 import { completeStripeInvoicePaymentService } from "#convex/stripe/services/invoicePayment";
 import { completePackageCheckoutService } from "#convex/packages/services/checkoutCompletion";
+import { logError } from "#convex/shared/lib/logger";
 
 const http = httpRouter();
 
@@ -67,20 +68,22 @@ async function handleCompletedPackageCheckout(
 
 		switch (failureKind) {
 			case "claim_failed":
-				console.error("Package completion claim failed", {
+				logError({
+					operation: "stripe.checkout.package.claim",
+					reason: failure.error.reason,
 					eventId: event.id,
 					sessionId: session.id,
-					packageId,
-					claimError: failure.error
+					packageId
 				});
 
 				return new Response("claim failed", { status: 200 });
 			case "completion_failed":
-				console.error("Package completion failed", {
+				logError({
+					operation: "stripe.checkout.package.complete",
+					reason: failure.error.reason,
 					eventId: event.id,
 					sessionId: session.id,
-					packageId,
-					completionError: failure.error
+					packageId
 				});
 
 				return new Response("completion failed", { status: 200 });
@@ -125,20 +128,22 @@ async function handleCompletedSessionCheckout(
 
 		switch (failureKind) {
 			case "claim_failed":
-				console.error("Booking completion claim failed", {
+				logError({
+					operation: "stripe.checkout.booking.claim",
+					reason: failure.error.reason,
 					eventId: event.id,
 					sessionId: session.id,
-					bookingId,
-					claimError: failure.error
+					bookingId
 				});
 
 				return new Response("claim failed", { status: 200 });
 			case "completion_failed":
-				console.error("Booking completion failed", {
+				logError({
+					operation: "stripe.checkout.booking.complete",
+					reason: failure.error.reason,
 					eventId: event.id,
 					sessionId: session.id,
-					bookingId,
-					completionError: failure.error
+					bookingId
 				});
 
 				return new Response("completion failed", { status: 200 });
@@ -179,7 +184,9 @@ async function handleCompletedCheckout(
 	const bookingId = session.metadata?.bookingId;
 
 	if (!bookingId) {
-		console.error("Stripe checkout session missing bookingId metadata", {
+		logError({
+			operation: "stripe.checkout.metadata.validate",
+			reason: "STRIPE_CHECKOUT_BOOKING_ID_METADATA_MISSING",
 			eventId: event.id,
 			sessionId: session.id
 		});
@@ -235,20 +242,24 @@ async function handlePaidInvoice(ctx: ActionCtx, event: Stripe.InvoicePaidEvent)
 
 		switch (failure.kind) {
 			case "not_found":
-				console.error("Stripe invoice payment had no matching record", {
-					eventId: event.id,
-					stripeInvoiceId,
-					adjustmentId,
-					metadata: invoice.metadata
-				});
+				if (isManagedStripeInvoice(invoice)) {
+					logError({
+						operation: "stripe.invoice.payment.lookup",
+						reason: "STRIPE_INVOICE_PAYMENT_RECORD_NOT_FOUND",
+						eventId: event.id,
+						stripeInvoiceId,
+						adjustmentId
+					});
+				}
 
 				return new Response("not found", { status: retryWebhook ? 500 : 200 });
 			case "claim_failed":
-				console.error("Stripe invoice payment claim failed", {
+				logError({
+					operation: "stripe.invoice.payment.claim",
+					reason: failure.error.reason,
 					eventId: event.id,
 					stripeInvoiceId,
-					adjustmentId,
-					claimError: failure.error
+					adjustmentId
 				});
 
 				return new Response("claim failed", { status: retryWebhook ? 500 : 200 });
@@ -310,7 +321,13 @@ http.route({
 		try {
 			event = await stripe.webhooks.constructEventAsync(body, signature, env.STRIPE_WEBHOOK_SECRET);
 		} catch (error) {
-			console.error("Invalid Stripe webhook signature", error);
+			logError(
+				{
+					operation: "stripe.webhook.signature.verify",
+					reason: "STRIPE_WEBHOOK_SIGNATURE_INVALID"
+				},
+				error
+			);
 
 			return new Response("Invalid Stripe webhook signature", { status: 400 });
 		}

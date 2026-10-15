@@ -1,4 +1,3 @@
-import type { Id } from "#convex/_generated/dataModel";
 import { ok, safeTry } from "neverthrow";
 import {
 	renderClientAssetsEmailHtml,
@@ -16,11 +15,10 @@ import {
 	sendSessionDeliverablesEmailWithHtml
 } from "#convex/email/lib/templateEmailsSteps";
 
-export function sendClientAssetsEmail(
-	args: SendClientAssetsEmailArgs & { bookingId: Id<"bookings">; email: string }
-) {
+export function sendClientAssetsEmail(args: SendClientAssetsEmailArgs & { email: string }) {
 	return safeTry(async function* () {
 		const html = yield* renderClientAssetsEmailHtml(args);
+
 		const result = yield* sendClientAssetsEmailWithHtml(args, html);
 
 		return ok(result);
@@ -34,6 +32,7 @@ export function sendEditorAssignmentEmail(
 
 	return safeTry(async function* () {
 		const html = yield* renderEditorAssignmentEmailHtml(args);
+
 		const result = yield* sendEditorAssignmentEmailWithHtml(args, sessionDate, html);
 
 		return ok(result);
@@ -45,6 +44,7 @@ export function sendSessionDeliverablesEmail(
 ) {
 	return safeTry(async function* () {
 		const html = yield* renderSessionDeliverablesEmailHtml(args);
+
 		const result = yield* sendSessionDeliverablesEmailWithHtml(args, html);
 
 		return ok(result);

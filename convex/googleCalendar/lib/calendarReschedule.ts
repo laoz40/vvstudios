@@ -4,6 +4,7 @@ import type { getGoogleCalendarClient } from "#convex/googleCalendar/lib/googleC
 import type { SessionAvailabilitySettings } from "#convex/sessions/lib/calendarTime";
 import type { SaveClientSessionRescheduleArgs } from "#convex/sessions/lib/schedulingArgs";
 import { pickBookingAddonQuantities } from "#/domain/booking/addon-quantities";
+import { logError } from "#convex/shared/lib/logger";
 
 export function resolveRescheduleReservation(
 	details: { link: Doc<"bookingRescheduleLinks">; session: Doc<"bookings"> },
@@ -31,7 +32,7 @@ export function logRescheduleUnlockFailureResult(
 	linkId: Doc<"bookingRescheduleLinks">["_id"],
 	error: { reason: string }
 ) {
-	console.error("Reschedule link unlock failed", { linkId, error });
+	logError({ operation: "googleCalendar.reschedule.unlockLink", reason: error.reason, linkId });
 
 	return okAsync(null);
 }
@@ -40,7 +41,11 @@ export function logRescheduleReservationCleanupFailureResult(
 	bookingId: Doc<"bookings">["_id"],
 	error: { reason: string }
 ) {
-	console.error("Reschedule reservation cleanup failed", { bookingId, error });
+	logError({
+		operation: "googleCalendar.reschedule.cleanupReservation",
+		reason: error.reason,
+		bookingId
+	});
 
 	return okAsync(null);
 }

@@ -13,6 +13,7 @@ import { noBillingRecoveryStateWriteOutsideOwnerRule } from "./rules/no-billing-
 import { noResultMatchOutsideHandlerRule } from "./rules/no-result-match-outside-handler.ts";
 import { noTrivialResultWrapperRule } from "./rules/no-trivial-result-wrapper.ts";
 import { noSyntheticSkipErrorRule } from "./rules/no-synthetic-skip-error.ts";
+import { loggedFailureSharesReasonRule } from "./rules/logged-failure-shares-reason.ts";
 
 /** Oxlint rules enforcing Convex handler → service → lib layering. */
 const convexLayersPlugin = eslintCompatPlugin({
@@ -21,6 +22,7 @@ const convexLayersPlugin = eslintCompatPlugin({
 		"no-result-match-outside-handler": noResultMatchOutsideHandlerRule,
 		"no-trivial-result-wrapper": noTrivialResultWrapperRule,
 		"no-synthetic-skip-error": noSyntheticSkipErrorRule,
+		"logged-failure-shares-reason": loggedFailureSharesReasonRule,
 
 		"no-db-in-services": noDbInServicesRule,
 		"no-service-implementation": noServiceImplementationRule,

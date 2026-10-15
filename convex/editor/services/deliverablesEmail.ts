@@ -18,8 +18,7 @@ import { ensureAnyoneReaderPermission } from "#convex/drive/services/googleDrive
 
 import {
 	parseSavedDeliverablesFolderFromSetup,
-	requireNonEmptyDeliverablesFolder,
-	logDeliverablesEmailFailure
+	requireNonEmptyDeliverablesFolder
 } from "#convex/editor/lib/deliverablesEmailSteps";
 
 export type SendSessionDeliverablesEmailArgs = { bookingId: Id<"bookings">; editorNotes?: string };
@@ -78,6 +77,7 @@ export function sendDeliverablesEmailForSession(
 	return safeTry(async function* () {
 		const emailVariant = yield* queryDeliverablesCustomerType(ctx, session);
 		yield* sendDeliverablesEmail({
+			bookingId: session._id,
 			date: session.date,
 			driveLink: folderUrl,
 			editorNotes,
@@ -87,5 +87,5 @@ export function sendDeliverablesEmailForSession(
 		});
 
 		return ok(null);
-	}).mapErr((emailError) => logDeliverablesEmailFailure(session._id, emailError));
+	});
 }
