@@ -1,4 +1,6 @@
-export type StudioLegalPageSection = { body: string; title: string };
+import type { ReactNode } from "react";
+
+export type StudioLegalPageSection = { body: ReactNode; title: string };
 
 export type StudioLegalPageProps = {
 	lastUpdated: string;
@@ -20,7 +22,9 @@ export function StudioLegalPage({ lastUpdated, sections, title }: StudioLegalPag
 							key={section.title}
 							className="space-y-2">
 							<h2 className="text-xl font-bold tracking-tight">{section.title}</h2>
-							<p className="leading-relaxed text-muted-foreground">{section.body}</p>
+							<p className="leading-relaxed whitespace-pre-line text-muted-foreground">
+								{section.body}
+							</p>
 						</section>
 					))}
 				</div>
