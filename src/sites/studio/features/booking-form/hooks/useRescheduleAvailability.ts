@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useReducer, useState } from "react";
 import { useQuery } from "convex/react";
 import { api } from "#convex/_generated/api";
 import {
@@ -20,6 +20,10 @@ import {
 	isBookingDateUnavailable,
 	type BusyWindowsByMonth
 } from "#studio/features/booking-form/lib/monthly-availability";
+import {
+	initialRescheduleSelectionState,
+	reduceRescheduleSelection
+} from "#studio/features/booking-form/lib/reschedule-selection-machine";
 import type { RescheduleLinkInvalidContent } from "#studio/features/booking-form/lib/reschedule-errors";
 import type { BookingAvailabilitySettings } from "#studio/lib/bookingAvailabilitySettings";
 import {
@@ -46,8 +50,8 @@ interface RescheduleAvailabilityState {
 	invalidLinkMessage: RescheduleLinkInvalidContent | null;
 	selectedDateValue: string;
 	selectedTime: string;
-	setSelectedDateValue: (date: string) => void;
-	setSelectedTime: (time: string) => void;
+	handleDateChange: (date: string) => void;
+	handleTimeChange: (time: string) => void;
 	timeSelectionMessage: BookingTimeSelectionMessage | null;
 }
 
@@ -158,8 +162,12 @@ export function useRescheduleAvailability({
 	const [currentTimestamp, setCurrentTimestamp] = useState(getCurrentTimestamp);
 
 	// Date and time selection
-	const [selectedDateValue, setSelectedDateValue] = useState("");
-	const [selectedTime, setSelectedTime] = useState("");
+	const [selection, dispatch] = useReducer(
+		reduceRescheduleSelection,
+		initialRescheduleSelectionState
+	);
+
+	const { selectedDateValue, selectedTime } = selection;
 
 	// Derived date range values
 	const selectedDate = useMemo(() => parseDateValue(selectedDateValue), [selectedDateValue]);
@@ -210,8 +218,7 @@ export function useRescheduleAvailability({
 		}
 
 		clearInvalidLinkMessage();
-		setSelectedTime("");
-		setSelectedDateValue(formatDateValue(startOfToday()));
+		dispatch({ type: "dateChanged", dateValue: formatDateValue(startOfToday()) });
 	}, [activeDevScenario, clearInvalidLinkMessage]);
 
 	const pickerOptions = useMemo(
@@ -250,6 +257,14 @@ export function useRescheduleAvailability({
 		isViewingSelectedMonth
 	});
 
+	function handleDateChange(dateValue: string) {
+		dispatch({ type: "dateChanged", dateValue });
+	}
+
+	function handleTimeChange(time: string) {
+		dispatch({ type: "timeChanged", time });
+	}
+
 	return {
 		availability: {
 			availabilityError,
@@ -269,8 +284,8 @@ export function useRescheduleAvailability({
 		invalidLinkMessage,
 		selectedDateValue,
 		selectedTime,
-		setSelectedDateValue,
-		setSelectedTime,
+		handleDateChange,
+		handleTimeChange,
 		timeSelectionMessage
 	};
 }

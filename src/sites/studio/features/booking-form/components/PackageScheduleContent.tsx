@@ -67,10 +67,12 @@ export function PackageScheduleContent({
 
 	const scheduling = usePackageSchedule({ packageData, token });
 
-	const [{ savingSessionKey, unschedulingBookingId }, dispatch] = useReducer(
+	const [operation, dispatch] = useReducer(
 		reducePackageSessionOperation,
 		initialPackageSessionOperationState
 	);
+
+	const { savingSessionKey, unschedulingBookingId } = operation;
 
 	const [isSavingDefaultSpace, setIsSavingDefaultSpace] = useState(false);
 
