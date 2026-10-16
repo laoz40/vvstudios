@@ -1,5 +1,5 @@
 import { useEditInvoice } from "#studio/features/admin/hooks/useEditInvoice";
-import { useState } from "react";
+import { useReducer } from "react";
 import { useAction } from "convex/react";
 import { toast } from "sonner";
 import { api } from "#convex/_generated/api";
@@ -11,25 +11,33 @@ import {
 } from "#studio/features/admin/lib/session-edit";
 import { getSessionEditWarningState } from "#studio/features/admin/lib/session-edit-warnings";
 import type { SessionRecord } from "#studio/features/admin/lib/admin-sessions";
+import {
+	initialSessionEditState,
+	reduceSessionEdit
+} from "#studio/features/admin/lib/session-edit-machine";
 
 export function useEditAction(session: SessionRecord) {
 	const updateSession = useAction(api.googleCalendar.calendar.updateSessionFromAdmin);
-	const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+	const [edit, dispatch] = useReducer(reduceSessionEdit, initialSessionEditState);
+	const { confirmation, isEditDialogOpen, isReplacementEventDialogOpen } = edit;
+	const isEditConfirmationDialogOpen = confirmation.kind === "pending" && confirmation.isOpen;
+	const pendingEditWarningState = confirmation.kind === "pending" ? confirmation.warnings : null;
 
 	const invoice = useEditInvoice({ kind: "booking", bookingId: session._id }, () => {
-		setIsEditDialogOpen(false);
-		setIsEditConfirmationDialogOpen(false);
+		dispatch({ type: "invoiceSaved" });
 	});
 
-	const [isReplacementEventDialogOpen, setIsReplacementEventDialogOpen] = useState(false);
-	const [isEditConfirmationDialogOpen, setIsEditConfirmationDialogOpen] = useState(false);
-	const [pendingEditDraft, setPendingEditDraft] = useState<SessionEditDraft | null>(null);
+	function setIsEditDialogOpen(open: boolean) {
+		dispatch({ type: "editDialogChanged", open });
+	}
 
-	const [pendingEditWarningState, setPendingEditWarningState] = useState<ReturnType<
-		typeof getSessionEditWarningState
-	> | null>(null);
+	function setIsReplacementEventDialogOpen(open: boolean) {
+		dispatch({ type: "replacementNoticeChanged", open });
+	}
 
-	const [isSaving, setIsSaving] = useState(false);
+	function setIsEditConfirmationDialogOpen(open: boolean) {
+		dispatch({ type: "confirmationVisibilityChanged", open });
+	}
 
 	async function saveSessionEdit(
 		values: SessionEditDraft,
@@ -43,41 +51,41 @@ export function useEditAction(session: SessionRecord) {
 			return;
 		}
 
-		if (!options?.skipConfirmation) {
-			const warningState = getSessionEditWarningState(session, values);
+		const warningState = getSessionEditWarningState(session, values);
 
-			if (warningState.requiresConfirmation) {
-				setPendingEditDraft(values);
-				setPendingEditWarningState(warningState);
-				setIsEditConfirmationDialogOpen(true);
+		if (!options?.skipConfirmation && warningState.requiresConfirmation) {
+			dispatch({ type: "confirmationRequested", draft: values, warnings: warningState });
 
-				if (warningState.pricingFieldLabels.length > 0) {
-					setIsSaving(true);
+			if (warningState.pricingFieldLabels.length > 0) {
+				dispatch({ type: "operationStarted", operation: "reviewingInvoice" });
+
+				try {
 					await invoice.reviewInvoice({
 						kind: "booking",
 						values: buildSessionUpdateInput(session, parsedDraft.parsedValues)
 					});
-					setIsSaving(false);
+				} finally {
+					dispatch({ type: "operationFinished" });
 				}
-
-				return;
 			}
+
+			return;
 		}
 
-		setIsSaving(true);
+		dispatch({ type: "operationStarted", operation: "saving" });
 
-		if (getSessionEditWarningState(session, values).pricingFieldLabels.length > 0) {
-			const draft = {
-				kind: "booking" as const,
-				values: buildSessionUpdateInput(session, parsedDraft.parsedValues)
-			};
-
-			await invoice.saveNonbillable(draft);
-		} else {
-			await saveOrdinarySessionEdit(parsedDraft);
+		try {
+			if (warningState.pricingFieldLabels.length > 0) {
+				await invoice.saveNonbillable({
+					kind: "booking",
+					values: buildSessionUpdateInput(session, parsedDraft.parsedValues)
+				});
+			} else {
+				await saveOrdinarySessionEdit(parsedDraft);
+			}
+		} finally {
+			dispatch({ type: "operationFinished" });
 		}
-
-		setIsSaving(false);
 	}
 
 	async function saveOrdinarySessionEdit(
@@ -87,10 +95,9 @@ export function useEditAction(session: SessionRecord) {
 
 		if (outcome === "error") return;
 
-		setIsEditDialogOpen(false);
+		dispatch({ type: "sessionSaved", replacementCreated: outcome === "replacement-created" });
 
 		if (outcome === "replacement-created") {
-			setIsReplacementEventDialogOpen(true);
 			toast.success("Booking updated. Replacement Calendar event created.");
 
 			return;
@@ -104,23 +111,24 @@ export function useEditAction(session: SessionRecord) {
 	}
 
 	function closeEditConfirmationDialog() {
-		setPendingEditDraft(null);
-		setPendingEditWarningState(null);
-		setIsEditConfirmationDialogOpen(false);
+		dispatch({ type: "confirmationCleared" });
 	}
 
 	async function handleConfirmEditBooking() {
-		if (!pendingEditDraft) {
+		if (confirmation.kind !== "pending") {
 			closeEditConfirmationDialog();
 
 			return;
 		}
 
-		const draftToSave = pendingEditDraft;
-		setIsEditConfirmationDialogOpen(false);
-		await saveSessionEdit(draftToSave, { skipConfirmation: true });
-		setPendingEditWarningState(null);
-		setPendingEditDraft(null);
+		const draftToSave = confirmation.draft;
+		dispatch({ type: "confirmationVisibilityChanged", open: false });
+
+		try {
+			await saveSessionEdit(draftToSave, { skipConfirmation: true });
+		} finally {
+			dispatch({ type: "confirmationCleared" });
+		}
 	}
 
 	return {
@@ -130,7 +138,7 @@ export function useEditAction(session: SessionRecord) {
 		handleEditBooking,
 		isEditConfirmationDialogOpen,
 		isReplacementEventDialogOpen,
-		isSaving: isSaving || invoice.open,
+		isSaving: edit.operation !== "idle" || invoice.open,
 		pendingEditWarningState,
 		setIsEditConfirmationDialogOpen,
 		isEditDialogOpen,
