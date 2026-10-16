@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useReducer, useState } from "react";
 import { useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { api } from "#convex/_generated/api";
@@ -11,7 +11,11 @@ import {
 	type BookingFormValues,
 	type BookingTimeSelectionMessage
 } from "#studio/features/booking-form/lib/booking-form-model";
-import { isAddonAvailableForService } from "#/domain/booking/catalog";
+import {
+	initialPackageSessionEditorState,
+	reducePackageSessionEditor,
+	type PackageSessionDraft
+} from "#studio/features/booking-form/lib/package-session-editor-machine";
 import {
 	excludeBusyEvent,
 	getBookableAvailableTimes,
@@ -40,15 +44,10 @@ type PackageData = NonNullable<
 	FunctionReturnType<typeof api.packages.scheduling.getPackageByToken>[1]
 >;
 
-type SessionSelectionState = {
+interface SessionSelectionState extends PackageSessionDraft {
 	activeSessionKey: string | null;
 	highlightedBookingId: Id<"bookings"> | null;
-	selectedDateValue: string;
-	selectedNotes: string;
-	selectedRemotePodcast: boolean;
-	selectedService: BookingFormValues["service"];
-	selectedTime: string;
-};
+}
 
 interface UsePackageScheduleOptions {
 	packageData: PackageData;
@@ -178,15 +177,12 @@ export function usePackageSchedule({
 
 	const [currentTimestamp, setCurrentTimestamp] = useState(getCurrentTimestamp);
 
-	const [sessionSelection, setSessionSelection] = useState<SessionSelectionState>({
-		activeSessionKey: null,
-		highlightedBookingId: null,
-		selectedDateValue: "",
-		selectedNotes: "",
-		selectedRemotePodcast: false,
-		selectedService: "",
-		selectedTime: ""
-	});
+	const [sessionSelection, dispatch] = useReducer(
+		reducePackageSessionEditor,
+		initialPackageSessionEditorState
+	);
+
+	const [highlightedBookingId, setHighlightedBookingId] = useState<Id<"bookings"> | null>(null);
 
 	const calendarView = useMemo(() => {
 		const today = startOfToday();
@@ -236,18 +232,18 @@ export function usePackageSchedule({
 
 	// Fade the updated session border back after the success highlight.
 	useEffect(() => {
-		if (sessionSelection.highlightedBookingId === null) {
+		if (highlightedBookingId === null) {
 			return undefined;
 		}
 
 		const timeout = window.setTimeout(() => {
-			setSessionSelection((current) => ({ ...current, highlightedBookingId: null }));
+			setHighlightedBookingId(null);
 		}, 1_000);
 
 		return () => {
 			window.clearTimeout(timeout);
 		};
-	}, [sessionSelection.highlightedBookingId]);
+	}, [highlightedBookingId]);
 
 	const datePickerOptions = getPackageDatePickerOptions({
 		currentTimestamp,
@@ -271,14 +267,7 @@ export function usePackageSchedule({
 	const noticeWindowLabel = formatNoticeWindowLabel(availabilitySettings.leadTimeMinutes);
 
 	function clearSessionSelection() {
-		setSessionSelection((current) => ({
-			...current,
-			selectedDateValue: "",
-			selectedNotes: "",
-			selectedRemotePodcast: false,
-			selectedService: "",
-			selectedTime: ""
-		}));
+		dispatch({ type: "draftCleared" });
 	}
 
 	function handleChooseSession(sessionKey: string, dateValue?: string, time?: string) {
@@ -287,61 +276,52 @@ export function usePackageSchedule({
 		const selectedService =
 			recordingSpaceSchema.safeParse(booking?.service ?? packageData.defaultSpace).data ?? "";
 
-		const selectedRemotePodcast =
-			isAddonAvailableForService(selectedService, "Remote Podcast") &&
-			(booking?.addons.includes("Remote Podcast") ?? false);
-
-		setSessionSelection({
-			activeSessionKey: sessionKey,
-			highlightedBookingId: null,
-			selectedDateValue: dateValue ?? "",
-			selectedNotes: booking?.notes ?? "",
-			selectedRemotePodcast,
-			selectedService,
-			selectedTime: time ?? ""
+		setHighlightedBookingId(null);
+		dispatch({
+			type: "sessionChosen",
+			sessionKey,
+			draft: {
+				selectedDateValue: dateValue ?? "",
+				selectedNotes: booking?.notes ?? "",
+				selectedRemotePodcast: booking?.addons.includes("Remote Podcast") ?? false,
+				selectedService,
+				selectedTime: time ?? ""
+			}
 		});
 	}
 
 	function handleCloseSession() {
-		setSessionSelection((current) => ({ ...current, activeSessionKey: null }));
+		dispatch({ type: "editorClosed" });
 	}
 
 	function handleDateChange(dateValue: string) {
-		setSessionSelection((current) => ({
-			...current,
-			selectedDateValue: dateValue,
-			selectedTime: ""
-		}));
+		dispatch({ type: "dateChanged", dateValue });
 	}
 
 	function handleRemotePodcastChange(checked: boolean) {
-		setSessionSelection((current) => ({ ...current, selectedRemotePodcast: checked }));
-	}
-
-	function setHighlightedBookingId(bookingId: Id<"bookings"> | null) {
-		setSessionSelection((current) => ({ ...current, highlightedBookingId: bookingId }));
+		dispatch({ type: "remotePodcastChanged", checked });
 	}
 
 	function setSelectedNotes(notes: string) {
-		setSessionSelection((current) => ({ ...current, selectedNotes: notes }));
+		dispatch({ type: "notesChanged", notes });
 	}
 
 	function setSelectedService(service: Exclude<BookingFormValues["service"], "">) {
-		setSessionSelection((current) => ({
-			...current,
-			selectedRemotePodcast: isAddonAvailableForService(service, "Remote Podcast")
-				? current.selectedRemotePodcast
-				: false,
-			selectedService: service
-		}));
+		dispatch({ type: "serviceChanged", service });
 	}
 
 	function setSelectedTime(time: string) {
-		setSessionSelection((current) => ({ ...current, selectedTime: time }));
+		dispatch({ type: "timeChanged", time });
 	}
 
 	return {
-		...sessionSelection,
+		activeSessionKey: sessionSelection.activeSessionKey,
+		selectedDateValue: sessionSelection.selectedDateValue,
+		selectedNotes: sessionSelection.selectedNotes,
+		selectedRemotePodcast: sessionSelection.selectedRemotePodcast,
+		selectedService: sessionSelection.selectedService,
+		selectedTime: sessionSelection.selectedTime,
+		highlightedBookingId,
 		activeBooking,
 		availability: {
 			availabilityError: calendarLoadError,
