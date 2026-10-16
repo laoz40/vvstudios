@@ -52,12 +52,12 @@ export function useBookingSubmit({
 		initialBookingCheckoutState
 	);
 
-	const checkoutStateRef = useRef(initialBookingCheckoutState);
+	const checkout = useRef(initialBookingCheckoutState);
 
 	function dispatch(event: BookingCheckoutEvent) {
-		// requestSubmit can run before React renders again. Apply the same transition
-		// immediately so repeated clicks cannot reuse a terms confirmation.
-		checkoutStateRef.current = reduceBookingCheckout(checkoutStateRef.current, event);
+		// Update checkout now so the form submission below sees that terms were accepted.
+		// React updates the displayed state on its next render.
+		checkout.current = reduceBookingCheckout(checkout.current, event);
 		reactDispatch(event);
 	}
 
@@ -138,13 +138,13 @@ export function useBookingSubmit({
 	};
 
 	const handleSubmit = async (value: BookingFormValues) => {
-		if (checkoutStateRef.current.kind === "creatingCheckout") {
+		if (checkout.current.kind === "creatingCheckout") {
 			return;
 		}
 
 		const parsedValue = publicBookingSchema.parse(value);
 
-		if (checkoutStateRef.current.kind !== "validatingForm") {
+		if (checkout.current.kind !== "validatingForm") {
 			openTermsModal();
 			void loadBookingPaymentModal();
 			throw termsDialogPendingError;
@@ -166,7 +166,7 @@ export function useBookingSubmit({
 	};
 
 	const handleTermsConfirm = () => {
-		if (checkoutStateRef.current.kind !== "requiresTerms") {
+		if (checkout.current.kind !== "requiresTerms") {
 			return;
 		}
 
