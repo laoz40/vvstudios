@@ -1,4 +1,4 @@
-export const CONTACT_EMAIL = "josephgvideo@gmail.com";
+export const CONTACT_EMAIL = "contact@vertigovisuals.com.au";
 
 export const CONTACT_PHONE = "0434367184";
 

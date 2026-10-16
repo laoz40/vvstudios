@@ -26,7 +26,7 @@ export const terms = [
 	},
 	{
 		title: "5 - Delivery & Revisions",
-		body: "Delivered files expire and are permanently deleted after 7 days. Revisions must be requested within 2 business days of delivery (all clip feedback must be submitted together per round):\n\n• Rough Cut & Clip Volume Pack: 1 free revision (cuts, timing & text errors only).\n\n• Complete Edit & Handcrafted Clips: 2 free revisions (stylised changes allowed).\n\n• Clip Selection: Editors select the best moments unless timestamps are provided before editing begins; swapping chosen clips for completely new timestamps counts as a new order.\n\n• Extra Revisions: $50 per round (max 5 total)."
+		body: "Delivered files expire and are permanently deleted after 7 days. Revisions must be requested within 2 business days of delivery (all clip feedback must be submitted together per round):\n\n• Rough Cut & Clip Volume Pack: 1 free revision (cuts, timing & text errors only).\n\n• Complete Edit & Handcrafted Clips: 2 free revisions (stylised changes allowed).\n\n• Clip Selection: Editors select the best moments unless timestamps are provided before editing begins; swapping chosen clips for completely new timestamps counts as a new order.\n\n• Extra Revisions: $50 per additional round, up to a maximum of 5 additional rounds, excluding the free revisions listed above."
 	}
 ] as const;
 
