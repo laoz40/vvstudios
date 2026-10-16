@@ -2,7 +2,6 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAction } from "convex/react";
 import { api } from "#convex/_generated/api";
-import { logError } from "#convex/shared/lib/logger";
 import { tryCatch } from "#/lib/result";
 import {
 	getDevRescheduleAvailabilityStatus,
@@ -103,19 +102,6 @@ export function useRescheduleBusyWindows({
 
 	const fetchAvailabilityError =
 		fetchErrorOutcome?.kind === "availabilityError" ? fetchErrorOutcome.message : "";
-
-	useEffect(() => {
-		if (!isRescheduleBusyWindowsLoadError(busyWindowsQuery.error)) {
-			return;
-		}
-
-		if (fetchErrorOutcome?.kind === "availabilityError") {
-			logError(
-				{ operation: "booking.loadRescheduleAvailability", reason: busyWindowsQuery.error.reason },
-				busyWindowsQuery.error
-			);
-		}
-	}, [busyWindowsQuery.error, fetchErrorOutcome]);
 
 	// Clears an invalid-link fetch error when dev scenarios reset the page state.
 	const clearInvalidLinkMessage = useCallback(() => {

@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useReducer, useState } from "react";
 import { useAction } from "convex/react";
 import { api } from "#convex/_generated/api";
-import { logError } from "#convex/shared/lib/logger";
 import { tryCatch } from "#/lib/result";
 import type { BusyWindowsByMonth } from "#studio/features/booking-form/lib/monthly-availability";
 import {
@@ -67,20 +66,6 @@ export function usePackageCalendarBusyWindows({
 			}
 
 			if (busyWindowsError !== null) {
-				if (
-					[
-						"GOOGLE_CALENDAR_AUTH_FAILED",
-						"GOOGLE_CALENDAR_AVAILABILITY_FAILED",
-						"GOOGLE_CALENDAR_RATE_LIMITED",
-						"UNEXPECTED_ERROR"
-					].includes(busyWindowsError.reason)
-				) {
-					logError(
-						{ operation: "packages.loadCalendarAvailability", reason: busyWindowsError.reason },
-						busyWindowsError
-					);
-				}
-
 				dispatch({
 					type: "loadFailed",
 					message: getPackageAvailabilityErrorMessage(busyWindowsError)
