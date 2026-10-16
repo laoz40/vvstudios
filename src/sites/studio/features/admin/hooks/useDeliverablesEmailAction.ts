@@ -1,9 +1,13 @@
-import { useEffect, useState } from "react";
+import { useEffect, useReducer } from "react";
 import { useAction, useMutation, useQuery } from "convex/react";
 import { toast } from "sonner";
 import { api } from "#convex/_generated/api";
 import { tryCatch } from "#/lib/result";
 import type { SessionRecord } from "#studio/features/admin/lib/admin-sessions";
+import {
+	createDeliverablesEmailState,
+	reduceDeliverablesEmail
+} from "#studio/features/admin/lib/deliverables-email-machine";
 import {
 	formatDriveSessionMediaFolderName,
 	getBookingStartTimestamp
@@ -59,26 +63,38 @@ function getDeliverablesDriveErrorToast(reason: string): string | undefined {
 	}
 }
 
-type DeliverablesEmailSendState = { status: "ready-to-send" } | { status: "status-repair" };
-
 export function useDeliverablesEmailAction(session: SessionRecord) {
 	const sendSessionDeliverablesEmail = useAction(
 		api.editor.deliverablesEmail.sendSessionDeliverablesEmail
 	);
 
 	const updateSessionEditStatus = useMutation(api.sessions.admin.updateSessionEditStatus);
-	const [isDeliverablesEmailDialogOpen, setIsDeliverablesEmailDialogOpen] = useState(false);
-	const [isEmailingDeliverables, setIsEmailingDeliverables] = useState(false);
 
-	const [deliverablesEditorNotesDraft, setDeliverablesEditorNotesDraft] = useState(
-		session.deliverablesClientNotes ?? ""
+	const [email, dispatch] = useReducer(
+		reduceDeliverablesEmail,
+		session.deliverablesClientNotes ?? "",
+		createDeliverablesEmailState
 	);
 
-	const [markDeliverablesAsSentAfterSending, setMarkDeliverablesAsSentAfterSending] =
-		useState(false);
+	const {
+		isDeliverablesEmailDialogOpen,
+		deliverablesEditorNotesDraft,
+		markDeliverablesAsSentAfterSending
+	} = email;
 
-	const [deliverablesEmailSendState, setDeliverablesEmailSendState] =
-		useState<DeliverablesEmailSendState>({ status: "ready-to-send" });
+	const isEmailingDeliverables = email.kind === "sending" || email.kind === "repairingStatus";
+
+	function setIsDeliverablesEmailDialogOpen(open: boolean) {
+		dispatch({ type: "dialogOpenChanged", open });
+	}
+
+	function setDeliverablesEditorNotesDraft(notes: string) {
+		dispatch({ type: "notesChanged", notes });
+	}
+
+	function setMarkDeliverablesAsSentAfterSending(checked: boolean) {
+		dispatch({ type: "markAsSentChanged", checked });
+	}
 
 	const driveStatusResult = useQuery(
 		api.sessions.admin.getDriveStatus,
@@ -96,13 +112,13 @@ export function useDeliverablesEmailAction(session: SessionRecord) {
 	useEffect(() => {
 		if (!isDeliverablesEmailDialogOpen) return;
 
-		setDeliverablesEditorNotesDraft(session.deliverablesClientNotes ?? "");
+		dispatch({ type: "notesChanged", notes: session.deliverablesClientNotes ?? "" });
 	}, [isDeliverablesEmailDialogOpen, session.deliverablesClientNotes]);
 
 	async function handleEmailDeliverables() {
-		setIsEmailingDeliverables(true);
+		dispatch({ type: "sendStarted" });
 
-		if (deliverablesEmailSendState.status === "status-repair") {
+		if (email.kind === "statusRepair" || email.kind === "repairingStatus") {
 			await repairDeliverablesStatusAfterEmailSent("Deliverables status updated.");
 
 			return;
@@ -117,7 +133,7 @@ export function useDeliverablesEmailAction(session: SessionRecord) {
 
 		if (emailError !== null) {
 			toast.error(deliverablesEmailErrorToast(emailError.reason));
-			setIsEmailingDeliverables(false);
+			dispatch({ type: "emailFailed" });
 
 			return;
 		}
@@ -125,7 +141,6 @@ export function useDeliverablesEmailAction(session: SessionRecord) {
 		if (!markDeliverablesAsSentAfterSending) {
 			resetDeliverablesEmailDialog();
 			toast.success(`Deliverables email sent to ${session.email}.`);
-			setIsEmailingDeliverables(false);
 
 			return;
 		}
@@ -134,28 +149,25 @@ export function useDeliverablesEmailAction(session: SessionRecord) {
 	}
 
 	async function repairDeliverablesStatusAfterEmailSent(successMessage: string) {
+		dispatch({ type: "statusUpdateStarted" });
+
 		const [statusError] = await tryCatch(
 			updateSessionEditStatus({ bookingId: session._id, editStatus: "completed" })
 		);
 
 		if (statusError !== null) {
 			toast.error("Deliverables email sent, but status couldn't be updated. Please let us know.");
-			setDeliverablesEmailSendState({ status: "status-repair" });
-			setIsEmailingDeliverables(false);
+			dispatch({ type: "statusUpdateFailed" });
 
 			return;
 		}
 
 		resetDeliverablesEmailDialog();
 		toast.success(successMessage);
-		setIsEmailingDeliverables(false);
 	}
 
 	function resetDeliverablesEmailDialog() {
-		setDeliverablesEditorNotesDraft("");
-		setMarkDeliverablesAsSentAfterSending(false);
-		setDeliverablesEmailSendState({ status: "ready-to-send" });
-		setIsDeliverablesEmailDialogOpen(false);
+		dispatch({ type: "completed" });
 	}
 
 	return {
