@@ -1,4 +1,4 @@
-import { useState, type ReactNode, type SubmitEvent } from "react";
+import { useReducer, type ReactNode, type SubmitEvent } from "react";
 import { useMutation } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { toast } from "sonner";
@@ -7,6 +7,10 @@ import { Input } from "#/components/ui/input";
 import { api } from "#convex/_generated/api";
 import type { Id } from "#convex/_generated/dataModel";
 import { exhaustiveCheck, tryCatch } from "#/lib/result";
+import {
+	initialInstagramRepostState,
+	reduceInstagramRepost
+} from "#studio/features/booking-complete/lib/instagram-repost-machine";
 
 type InstagramRepostTarget =
 	| { kind: "booking"; stripeSessionId: string }
@@ -29,9 +33,10 @@ export interface InstagramRepostPromptProps {
 }
 
 export function InstagramRepostPrompt({ target }: InstagramRepostPromptProps): ReactNode {
-	const [instagramHandle, setInstagramHandle] = useState("");
-	const [isSubmitted, setIsSubmitted] = useState(false);
-	const [isSubmitting, setIsSubmitting] = useState(false);
+	const [submission, dispatch] = useReducer(reduceInstagramRepost, initialInstagramRepostState);
+	const { instagramHandle } = submission;
+	const isSubmitted = submission.kind === "submitted";
+	const isSubmitting = submission.kind === "saving";
 	const saveSessionInstagramHandle = useMutation(api.sessions.admin.saveSessionInstagramHandle);
 	const savePackageInstagramHandle = useMutation(api.packages.admin.savePackageInstagramHandle);
 
@@ -44,19 +49,18 @@ export function InstagramRepostPrompt({ target }: InstagramRepostPromptProps): R
 			return;
 		}
 
-		setIsSubmitting(true);
+		dispatch({ type: "saveStarted" });
 
 		const wasSaved = await saveInstagramHandle(trimmedInstagramHandle);
 
 		if (!wasSaved) {
-			setIsSubmitting(false);
+			dispatch({ type: "saveFailed" });
 
 			return;
 		}
 
-		setIsSubmitted(true);
+		dispatch({ type: "saveSucceeded" });
 		toast.success("Thanks! We’ll keep an eye out for your post.");
-		setIsSubmitting(false);
 	}
 
 	async function saveInstagramHandle(trimmedInstagramHandle: string): Promise<boolean> {
@@ -121,7 +125,9 @@ export function InstagramRepostPrompt({ target }: InstagramRepostPromptProps): R
 						disabled={isSubmitting || isSubmitted}
 						placeholder="@yourhandle"
 						value={instagramHandle}
-						onChange={(event) => setInstagramHandle(event.target.value)}
+						onChange={(event) =>
+							dispatch({ type: "handleChanged", instagramHandle: event.target.value })
+						}
 					/>
 					<Button
 						type="submit"
