@@ -1,4 +1,4 @@
-import { useRef, useState, type RefObject } from "react";
+import { useReducer, useRef, type RefObject } from "react";
 import { useAction } from "convex/react";
 import { toast } from "sonner";
 import { api } from "#convex/_generated/api";
@@ -18,6 +18,11 @@ import {
 	startCheckoutToastMessages
 } from "#studio/features/booking-form/lib/booking-page-errors";
 import { tryCatch } from "#/lib/result";
+import {
+	initialBookingCheckoutState,
+	reduceBookingCheckout,
+	type BookingCheckoutEvent
+} from "#studio/features/booking-form/lib/booking-checkout-machine";
 
 type CreateEmbeddedCheckoutSessionAction = ReturnType<
 	typeof useAction<typeof api.stripe.checkout.createEmbeddedCheckoutSession>
@@ -42,15 +47,23 @@ export function useBookingSubmit({
 	formRef,
 	persistBookingInfoFromForm
 }: UseBookingSubmitOptions) {
-	const [isSubmitting, setIsSubmitting] = useState(false);
-	const isSubmittingRef = useRef(false);
-	const submitAfterTermsRef = useRef(false);
+	const [checkoutState, reactDispatch] = useReducer(
+		reduceBookingCheckout,
+		initialBookingCheckoutState
+	);
+
+	const checkoutStateRef = useRef(initialBookingCheckoutState);
+
+	function dispatch(event: BookingCheckoutEvent) {
+		// requestSubmit can run before React renders again. Apply the same transition
+		// immediately so repeated clicks cannot reuse a terms confirmation.
+		checkoutStateRef.current = reduceBookingCheckout(checkoutStateRef.current, event);
+		reactDispatch(event);
+	}
 
 	const submitPackageBooking = async (parsedValue: BookingFormValues) => {
 		const packageFormValue = packageFormSchema.parse(parsedValue);
 
-		isSubmittingRef.current = true;
-		setIsSubmitting(true);
 		const addonQuantities = pickBookingAddonQuantities(packageFormValue);
 
 		const [error, session] = await tryCatch(
@@ -71,10 +84,6 @@ export function useBookingSubmit({
 			})
 		);
 
-		isSubmittingRef.current = false;
-		setIsSubmitting(false);
-		submitAfterTermsRef.current = false;
-
 		if (error !== null) {
 			toast.error(createPackageToastMessages[error.reason]);
 
@@ -91,8 +100,6 @@ export function useBookingSubmit({
 	};
 
 	const submitSingleBooking = async (parsedValue: BookingFormValues) => {
-		isSubmittingRef.current = true;
-		setIsSubmitting(true);
 		const addonQuantities = pickBookingAddonQuantities(parsedValue);
 
 		const [error, session] = await tryCatch(
@@ -115,10 +122,6 @@ export function useBookingSubmit({
 			})
 		);
 
-		isSubmittingRef.current = false;
-		setIsSubmitting(false);
-		submitAfterTermsRef.current = false;
-
 		if (error !== null) {
 			toast.error(startCheckoutToastMessages[error.reason]);
 
@@ -135,41 +138,50 @@ export function useBookingSubmit({
 	};
 
 	const handleSubmit = async (value: BookingFormValues) => {
-		if (isSubmittingRef.current) {
+		if (checkoutStateRef.current.kind === "creatingCheckout") {
 			return;
 		}
 
 		const parsedValue = publicBookingSchema.parse(value);
 
-		if (!submitAfterTermsRef.current) {
+		if (checkoutStateRef.current.kind !== "validatingForm") {
 			openTermsModal();
 			void loadBookingPaymentModal();
 			throw termsDialogPendingError;
 		}
 
-		submitAfterTermsRef.current = false;
+		dispatch({ type: "formValidated" });
 
-		if (parsedValue.bookingMode === "package") {
-			await submitPackageBooking(parsedValue);
+		try {
+			if (parsedValue.bookingMode === "package") {
+				await submitPackageBooking(parsedValue);
 
-			return;
+				return;
+			}
+
+			await submitSingleBooking(parsedValue);
+		} finally {
+			dispatch({ type: "checkoutFinished" });
 		}
-
-		await submitSingleBooking(parsedValue);
 	};
 
 	const handleTermsConfirm = () => {
-		if (isSubmittingRef.current || submitAfterTermsRef.current) {
+		if (checkoutStateRef.current.kind !== "requiresTerms") {
 			return;
 		}
 
-		submitAfterTermsRef.current = true;
+		dispatch({ type: "termsConfirmed" });
 		formRef.current?.requestSubmit();
 	};
 
 	const resetTermsSubmit = () => {
-		submitAfterTermsRef.current = false;
+		dispatch({ type: "formInvalid" });
 	};
 
-	return { handleSubmit, handleTermsConfirm, isSubmitting, resetTermsSubmit };
+	return {
+		handleSubmit,
+		handleTermsConfirm,
+		isSubmitting: checkoutState.kind === "creatingCheckout",
+		resetTermsSubmit
+	};
 }
