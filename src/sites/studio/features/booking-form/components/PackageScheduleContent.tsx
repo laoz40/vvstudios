@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useReducer, useState } from "react";
 import { useAction, useMutation } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { toast } from "sonner";
@@ -22,6 +22,10 @@ import {
 	getSavePackageBookingToastMessage,
 	getUnschedulePackageBookingToastMessage
 } from "#studio/features/booking-form/lib/package-scheduling-errors";
+import {
+	initialPackageSessionOperationState,
+	reducePackageSessionOperation
+} from "#studio/features/booking-form/lib/package-session-operation-machine";
 import { getPackageSchedulingProgressMessage } from "#studio/features/booking-form/lib/package-scheduling-rules";
 import {
 	performPackageSessionSave,
@@ -62,9 +66,15 @@ export function PackageScheduleContent({
 	const unschedulePackageSession = useAction(api.packages.scheduling.unschedulePackageSession);
 
 	const scheduling = usePackageSchedule({ packageData, token });
-	const [savingSessionKey, setSavingSessionKey] = useState<string | null>(null);
+
+	const [operation, dispatch] = useReducer(
+		reducePackageSessionOperation,
+		initialPackageSessionOperationState
+	);
+
+	const { savingSessionKey, unschedulingBookingId } = operation;
+
 	const [isSavingDefaultSpace, setIsSavingDefaultSpace] = useState(false);
-	const [unschedulingBookingId, setUnschedulingBookingId] = useState<Id<"bookings"> | null>(null);
 
 	const schedulingProgressMessage = getPackageSchedulingProgressMessage(
 		packageData.packageSize,
@@ -128,7 +138,7 @@ export function PackageScheduleContent({
 			return;
 		}
 
-		setSavingSessionKey(scheduling.activeSessionKey);
+		dispatch({ type: "saveStarted", sessionKey: scheduling.activeSessionKey });
 
 		const sessionInput = {
 			date: scheduling.selectedDateValue,
@@ -139,67 +149,71 @@ export function PackageScheduleContent({
 			token
 		};
 
-		const saveOutcome = await performPackageSessionSave(
-			scheduling.activeBooking,
-			sessionInput,
-			createPackageSession,
-			reschedulePackageSession
-		);
-
-		setSavingSessionKey(null);
-
-		if (saveOutcome.status === "error") {
-			toast.error(
-				getSavePackageBookingToastMessage(saveOutcome.error, scheduling.noticeWindowLabel)
+		try {
+			const saveOutcome = await performPackageSessionSave(
+				scheduling.activeBooking,
+				sessionInput,
+				createPackageSession,
+				reschedulePackageSession
 			);
 
-			return;
-		}
+			if (saveOutcome.status === "error") {
+				toast.error(
+					getSavePackageBookingToastMessage(saveOutcome.error, scheduling.noticeWindowLabel)
+				);
 
-		closeBookingModal();
-		scheduling.handleCloseSession();
-		scheduling.setHighlightedBookingId(saveOutcome.bookingId);
-		toast.success(
-			saveOutcome.wasReschedule
-				? "Session rescheduled. Check your email for the updated invitation."
-				: "Calendar event created. Check your email for the invitation."
-		);
-		scheduling.invalidateCalendarCache();
+				return;
+			}
+
+			closeBookingModal();
+			scheduling.handleCloseSession();
+			scheduling.setHighlightedBookingId(saveOutcome.bookingId);
+			toast.success(
+				saveOutcome.wasReschedule
+					? "Session rescheduled. Check your email for the updated invitation."
+					: "Calendar event created. Check your email for the invitation."
+			);
+			scheduling.invalidateCalendarCache();
+		} finally {
+			dispatch({ type: "saveFinished" });
+		}
 	}
 
 	async function handleUnschedule(bookingId: Id<"bookings">) {
-		setUnschedulingBookingId(bookingId);
+		dispatch({ type: "unscheduleStarted", bookingId });
 
-		const unscheduleOutcome = await performPackageSessionUnschedule(
-			bookingId,
-			token,
-			unschedulePackageSession
-		);
-
-		setUnschedulingBookingId(null);
-
-		if (unscheduleOutcome.status === "error") {
-			toast.error(
-				getUnschedulePackageBookingToastMessage(
-					unscheduleOutcome.error,
-					scheduling.noticeWindowLabel
-				)
+		try {
+			const unscheduleOutcome = await performPackageSessionUnschedule(
+				bookingId,
+				token,
+				unschedulePackageSession
 			);
 
-			return;
+			if (unscheduleOutcome.status === "error") {
+				toast.error(
+					getUnschedulePackageBookingToastMessage(
+						unscheduleOutcome.error,
+						scheduling.noticeWindowLabel
+					)
+				);
+
+				return;
+			}
+
+			closeBookingModal();
+			const wasEditingBooking = scheduling.activeSessionKey === bookingId;
+			scheduling.handleCloseSession();
+			scheduling.setHighlightedBookingId(null);
+			scheduling.invalidateCalendarCache();
+
+			if (wasEditingBooking) {
+				scheduling.clearSessionSelection();
+			}
+
+			toast.success("Session unscheduled.");
+		} finally {
+			dispatch({ type: "unscheduleFinished" });
 		}
-
-		closeBookingModal();
-		const wasEditingBooking = scheduling.activeSessionKey === bookingId;
-		scheduling.handleCloseSession();
-		scheduling.setHighlightedBookingId(null);
-		scheduling.invalidateCalendarCache();
-
-		if (wasEditingBooking) {
-			scheduling.clearSessionSelection();
-		}
-
-		toast.success("Session unscheduled.");
 	}
 
 	return (

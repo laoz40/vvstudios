@@ -1,12 +1,12 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useReducer, useState } from "react";
 import { useAction } from "convex/react";
 import { api } from "#convex/_generated/api";
-import { logError } from "#convex/shared/lib/logger";
 import { tryCatch } from "#/lib/result";
+import type { BusyWindowsByMonth } from "#studio/features/booking-form/lib/monthly-availability";
 import {
-	mergeBookableRangeBusyWindows,
-	type BusyWindowsByMonth
-} from "#studio/features/booking-form/lib/monthly-availability";
+	initialPackageCalendarState,
+	reducePackageCalendar
+} from "#studio/features/booking-form/lib/package-calendar-machine";
 import { getPackageAvailabilityErrorMessage } from "#studio/features/booking-form/lib/package-scheduling-errors";
 import { getAvailabilityRateLimitKey } from "#studio/features/booking-form/lib/saved-booking-info";
 
@@ -29,9 +29,11 @@ export function usePackageCalendarBusyWindows({
 	const getPackageBusyWindows = useAction(api.packages.schedulingCalendar.getPackageBusyWindows);
 
 	const [rateLimitKey, setRateLimitKey] = useState<string | null>(null);
-	const [calendarLoadError, setCalendarLoadError] = useState("");
-	const [busyWindowsByMonth, setBusyWindowsByMonth] = useState<BusyWindowsByMonth>({});
-	const [isLoadingCalendar, setIsLoadingCalendar] = useState(false);
+
+	const [calendar, dispatch] = useReducer(reducePackageCalendar, initialPackageCalendarState);
+	const { busyWindowsByMonth } = calendar;
+	const calendarLoadError = calendar.kind === "error" ? calendar.message : "";
+	const isLoadingCalendar = calendar.kind === "loading";
 
 	useEffect(() => {
 		setRateLimitKey(getAvailabilityRateLimitKey());
@@ -51,7 +53,7 @@ export function usePackageCalendarBusyWindows({
 		}
 
 		let isCancelled = false;
-		setIsLoadingCalendar(true);
+		dispatch({ type: "loadStarted" });
 		const activeRateLimitKey = rateLimitKey;
 
 		async function loadBusyWindows() {
@@ -63,31 +65,16 @@ export function usePackageCalendarBusyWindows({
 				return;
 			}
 
-			setIsLoadingCalendar(false);
-
 			if (busyWindowsError !== null) {
-				if (
-					[
-						"GOOGLE_CALENDAR_AUTH_FAILED",
-						"GOOGLE_CALENDAR_AVAILABILITY_FAILED",
-						"GOOGLE_CALENDAR_RATE_LIMITED",
-						"UNEXPECTED_ERROR"
-					].includes(busyWindowsError.reason)
-				) {
-					logError(
-						{ operation: "packages.loadCalendarAvailability", reason: busyWindowsError.reason },
-						busyWindowsError
-					);
-				}
-
-				setCalendarLoadError(getPackageAvailabilityErrorMessage(busyWindowsError));
+				dispatch({
+					type: "loadFailed",
+					message: getPackageAvailabilityErrorMessage(busyWindowsError)
+				});
 
 				return;
 			}
 
-			setBusyWindowsByMonth((current) =>
-				mergeBookableRangeBusyWindows({ bookableMonthKeys, current, result })
-			);
+			dispatch({ type: "loadSucceeded", bookableMonthKeys, result });
 		}
 
 		void loadBusyWindows();
@@ -105,8 +92,7 @@ export function usePackageCalendarBusyWindows({
 	]);
 
 	const invalidateCalendarCache = useCallback(() => {
-		setCalendarLoadError("");
-		setBusyWindowsByMonth({});
+		dispatch({ type: "cacheCleared" });
 	}, []);
 
 	return { busyWindowsByMonth, calendarLoadError, invalidateCalendarCache, isLoadingCalendar };

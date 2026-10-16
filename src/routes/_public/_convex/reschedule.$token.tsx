@@ -70,8 +70,8 @@ function ReschedulePage() {
 		invalidLinkMessage,
 		selectedDateValue,
 		selectedTime,
-		setSelectedDateValue,
-		setSelectedTime,
+		handleDateChange,
+		handleTimeChange,
 		timeSelectionMessage
 	} = useRescheduleAvailability({ activeDevScenario, duration: bookingDuration, token });
 
@@ -220,12 +220,8 @@ function ReschedulePage() {
 					<BookingDateTimePicker
 						availability={availability}
 						duration={booking.duration}
-						onDateChange={(dateValue) => {
-							setSelectedDateValue(dateValue);
-
-							setSelectedTime("");
-						}}
-						onTimeChange={setSelectedTime}
+						onDateChange={handleDateChange}
+						onTimeChange={handleTimeChange}
 						selectedTime={selectedTime}
 						timeSelectionMessage={timeSelectionMessage}
 					/>
