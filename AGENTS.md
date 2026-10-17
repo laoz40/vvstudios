@@ -17,11 +17,18 @@ Operational priorities: accessibility, fast first paint on marketing pages, and 
 ## Behaviour
 
 - Ask before making assumptions that change behavior, UX, or architecture.
-- If a problem can be solved in a simpler way, propose it.
-- If a task would produce a very large commit, propose splitting into smaller commits per major change or file group.
-- Do not blindly assume a schema migration or backwards compatibility is required. Features may not be live yet; ask to clarify when unsure.
-- Prefer **KISS**, **YAGNI**, and **DRY** in this codebase. Reach for the simplest thing that works; do not build for hypothetical futures; do not copy-paste when one shared place is enough.
+- If a task would produce a very large commit, split into smaller commits per major change or file group.
 - Never use oxlint ignore comments to bypass the linter; fix or restructure instead.
+
+- When adding a new feature, always avoid feature creep and over-engineering
+    - Reach for the simplest thing that works
+    - Suggest issues from edge cases before you implement fixes for them or build for hypothetical futures.
+    - Do not assume backwards compatibility, migrations, or backfills are needed. Check if the feature is actually in the main branch already
+    - Make sure not to write low value tests that don't relate to the core behaviour
+    - Make sure not to add unecessary fields to the db schema
+- Use YAGNI and DRY principles
+
+Writing code is cheap for you, which makes over-engineering easy. Counter it by borrowing a human maintainer's fatigue. Aim for the most result with the least code and complexity. If a human developer would find the code exhausting to maintain, it is a bad solution. Be lazy. Stay simple.
 
 ## Verify changes
 
