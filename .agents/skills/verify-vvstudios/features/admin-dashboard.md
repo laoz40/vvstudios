@@ -4,7 +4,7 @@ An authorised admin signs in and manages sessions, packages, and contractors on 
 
 ## Sub-features
 
-- `dashboard-gate` loads `/dashboard` after Clerk + Convex auth and editor provisioning (loading labels include **Calibrating systems**, **Contacting security**, then dashboard-stage copy).
+- `dashboard-gate` loads `/dashboard` after Clerk + Convex auth and editor provisioning (the route starts with **Calibrating systems**, followed by authentication, account preparation, and dashboard data loading).
 - `dashboard-admin-tabs` shows tabs **Sessions**, **Packages**, and **Contractors**.
 - `dashboard-sessions-table` shows session filters (**Inbox**, **All sessions**) and search placeholder `Search sessions...`.
 - `dashboard-packages-tab` switches to **Packages** and shows package table chrome.

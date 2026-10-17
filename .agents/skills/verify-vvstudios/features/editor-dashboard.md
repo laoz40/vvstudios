@@ -1,8 +1,8 @@
 # Editor dashboard
 
-An editor signs in and sees **only the confirmed sessions assigned to them**: customer name, session date, service, notes, deliverable status, and Drive when editing has started. Empty **Nothing in your queue** is not proof.
+An editor signs in and sees **only the confirmed or email-failed sessions assigned to them**: customer name, session date, service, notes, deliverable status, and Drive when editing has started. Empty **Nothing in your queue** is not proof.
 
-The drive helper creates a throwaway Clerk user (Backend API, `+clerk_test` email, no admin metadata), signs them in so Convex enrolls an editor profile, assigns a confirmed session from the admin UI, asserts the customer row, then deletes the Clerk user.
+The drive helper creates a throwaway Clerk user (Backend API, `+clerk_test` email, no admin metadata), signs them in so Convex enrolls an editor profile, assigns a confirmed session from the admin UI, asserts the customer row, then restores the original assignment, retires the temporary profile, and deletes the Clerk user.
 
 ## Sub-features
 
@@ -31,8 +31,8 @@ Preconditions:
 ## Gotchas
 
 - This is verification scaffolding, not a Playwright spec in `e2e/`.
-- Clerk delete does not remove the Convex `editorProfiles` row. Later assign lists may show stale **VVVerify {timestamp}** names until someone deactivates them.
-- The chosen session stays assigned to that (now deleted) Clerk token. Re-run may reassign a different inbox row.
+- Clerk delete does not remove the Convex `editorProfiles` row. The helper retires that profile so it is absent from active assign lists; its inactive history remains under **Show retired**.
+- The helper restores the original assignment through the admin UI, then retires the temporary profile. Check `cleanup.txt`; a cleanup error makes the command fail. `cleanup.json` records the temporary user and original assignment for recovery.
 - `SelectTrigger` `preventDefault` on pointerdown: focus the combobox and press Enter.
 - Only confirmed / email_failed sessions are visible to editors.
 - Do not `convex run` to patch assignment.

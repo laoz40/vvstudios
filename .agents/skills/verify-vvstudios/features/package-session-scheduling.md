@@ -22,9 +22,9 @@ Preconditions:
 
 - `E2E_RESEND_API_KEY` or `RESEND_API_KEY` in `.env.local` (same Resend account Convex uses).
 - Stripe test keys and our dev server on port 3000.
-- Run `bun run test:e2e:package-payment` with `--workers=1` (script default).
+- Run `bun run test:e2e:package-payment --headed` with `--workers=1` (script default).
 
-- **Package checkout and email.** Run `bun run test:e2e:package-payment`. Spec skips with a clear message if Resend API key is missing.
+- **Package checkout and email.** Run `bun run test:e2e:package-payment --headed`. Spec skips with a clear message if Resend API key is missing.
 - **Confirmation.** After pay, heading **4-Session Package confirmed** (or chosen size) and URL `/booking-complete` with `session_id=`.
 - **Schedule URL.** Helper `waitForPackageScheduleUrl` polls Resend since test start; `page.goto(scheduleUrl)` shows heading **Schedule your package sessions**.
 - **Save session 1.** `scheduleFirstPackageSession` clicks **Schedule**, fills calendar via `[data-slot="calendar"]`, clicks **SAVE SESSION**. Success text **Calendar event created. Check your email for the invitation.** appears.
@@ -34,6 +34,6 @@ Preconditions:
 ## Gotchas
 
 - Package proof creates real Convex bookings and Google Calendar events; serialize with other payment tests.
-- Resend polling can take minutes; spec timeout is 270s.
+- Resend polling defaults to a 60s timeout; the full spec timeout is 270s.
 - Do not mint schedule tokens manually or skip email by calling Convex mutations.
 - `bun run test:e2e:package-schedule` is an alias of the package payment spec; same constraints apply.

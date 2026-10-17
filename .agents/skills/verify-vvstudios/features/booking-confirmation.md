@@ -23,7 +23,7 @@ Preconditions:
 - `bun .agents/skills/verify-vvstudios/launch.ts` or doctor confirms our dev server on port 3000.
 - `--workers=1`; no concurrent payment specs against shared Convex.
 
-- **Full pay path.** Run `bun run test:e2e:session-payment`. Exit code 0 after `completeStripePayment` and `expectBookingConfirmed`.
+- **Full pay path.** Run `bun run test:e2e:session-payment --headed`. Exit code 0 after `completeStripePayment` and `expectBookingConfirmed`.
 - **URL proof.** During the spec, `page` URL matches `/booking-complete` and `/session_id=/`.
 - **Heading proof.** Visible heading **Your booking is confirmed!** within the helper timeout (45s). If **We received your payment** appears instead, treat as failure (calendar slot conflict).
 - **Stripe iframe.** Inside the payment dialog iframe: text **TEST MODE**, fill **Card number** `4242 4242 4242 4242`, expiry `12 / 34`, CVC `123`, then **Pay**.
