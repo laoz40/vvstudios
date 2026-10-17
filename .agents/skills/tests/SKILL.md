@@ -27,7 +27,7 @@ Check existing coverage first and prefer extending an existing test that protect
 
 Tests verify behavior through public interfaces, not implementation details. A good test reads like a specification: "user can checkout with valid cart" tells you what capability exists and survives refactors.
 
-For choosing that interface and moving workflow tests upward, follow the [module-interface review rules](../../../docs/CODING_STANDARDS.md#tests). They apply during implementation too. A public interface means a useful capability for the module's callers, not every exported function or only browser-facing endpoints.
+A public interface means a useful capability for the module's callers, not every exported function or only browser-facing endpoints.
 
 ```typescript
 // GOOD: tests observable behavior
@@ -43,6 +43,14 @@ test("checkout calls paymentService.process", async () => {
   expect(mockPayment.process).toHaveBeenCalledWith(cart.total);
 });
 ```
+
+## Module interfaces
+
+- For each added or changed behavioral test, identify the module's meaningful public interface and the consequential failure the test protects against. An exported helper is not automatically a public interface. Callers should use that interface for a useful capability without knowing its internal steps, flags, or database patches.
+- Push tests of workflow helpers, guards, and patch builders up to the existing module interface when that interface can exercise the same failure. Extend an existing behavioral test and remove equivalent lower-level coverage. Preserve distinct failure cases before deleting tests; moving a file or renaming a helper does not improve the test.
+- For Convex workflows, prefer registered queries, mutations, and actions through generated `api` or `internal` references. Internal entrypoints used by jobs, webhooks, or other Convex functions can be meaningful interfaces. Keep handlers → services → lib; a test can exercise the whole module through a handler without collapsing those layers.
+- Direct tests of meaningful pure modules, such as shared pricing calculations, remain valid when they protect a distinct consequential invariant. Module-interface tests do not require browser E2E. Stub external transport, time, or randomness rather than internal collaborators; use existing retrieval queries for read-back when they expose the state being checked.
+- Reject pass-through wrappers, barrel exports, and test-only production entrypoints introduced merely to make an implementation import look public. A deep module hides substantial behavior behind a small useful interface. If no useful interface exists, report the design problem rather than silently prescribing an architecture migration.
 
 ## Good tests
 
@@ -118,5 +126,5 @@ Dont mock internal collaborators or anything you control.
 For Convex test placement or Stripe, Google SDK, PDF, and email boundary stubs, read [boundary-testing.md](references/boundary-testing.md) before choosing fixtures.
 
 - Apply the global criteria in "When to add tests". Candidate risks include races, webhook replay, duplicate reminders or jobs, money calculations, expiry, scheduled Drive setup, orphan Calendar cleanup, retryable states, and partial Drive setup. These examples are not a requirement to cover every job or failure path.
-- Use `createConvexTest`; call registered queries, mutations, or actions through generated `api` or `internal` references as described in the module-interface review rules.
+- Use `createConvexTest`; call registered queries, mutations, or actions through generated `api` or `internal` references as described in [Module interfaces](#module-interfaces).
 - `ctx.db.get` in test helpers is fine when no caller-facing query exposes the state you assert on.
