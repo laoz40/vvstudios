@@ -1,6 +1,6 @@
 # AGENTS.md
 
-Instructions for agents **implementing** work in this repository. Post-implementation standards for a review subagent live in [CODING_STANDARDS.md](./docs/CODING_STANDARDS.md); do not load that file during normal feature work. Only load and use review subagent when user asks for code review.
+These instructions apply during implementation. For user-requested code reviews, use the installed global `code-review` skill for the workflow and [CODING_STANDARDS.md](./docs/CODING_STANDARDS.md) for repository review rules. Load those review instructions and run review subagents only for requested reviews.
 
 ## Project
 
@@ -17,67 +17,31 @@ Operational priorities: accessibility, fast first paint on marketing pages, and 
 ## Behaviour
 
 - Ask before making assumptions that change behavior, UX, or architecture.
-- If a problem can be solved in a simpler way, propose it.
-- If a task would produce a very large commit, propose splitting into smaller commits per major change or file group.
-- Do not blindly assume a schema migration or backwards compatibility is required. Features may not be live yet; ask to clarify when unsure.
-- Prefer **KISS**, **YAGNI**, and **DRY** in this codebase. Reach for the simplest thing that works; do not build for hypothetical futures; do not copy-paste when one shared place is enough.
+- If a task would produce a very large commit, split into smaller commits per major change or file group.
 - Never use oxlint ignore comments to bypass the linter; fix or restructure instead.
+
+- When adding a new feature, always avoid feature creep and over-engineering
+    - Reach for the simplest thing that works
+    - Suggest issues from edge cases before you implement fixes for them or build for hypothetical futures.
+    - Do not assume backwards compatibility, migrations, or backfills are needed. Check if the feature is actually in the main branch already
+    - Make sure not to write low value tests that don't relate to the core behaviour
+    - Make sure not to add unecessary fields to the db schema
+- Use YAGNI and DRY principles
+
+Writing code is cheap for you, which makes over-engineering easy. Counter it by borrowing a human maintainer's fatigue. Aim for the most result with the least code and complexity. If a human developer would find the code exhausting to maintain, it is a bad solution. Be lazy. Stay simple.
 
 ## Verify changes
 
-- After code changes and before opening a PR, run `bun run verify`. [scripts/verify.sh](./scripts/verify.sh) installs dependencies and runs the local checks in order, stopping on failure.
-- Add `--convex` when Convex functions changed. Deployment finishes before any requested E2E tests start.
-- Run E2E only immediately before creating a PR, not during routine development verification. Run the relevant flows once against the final changes.
-- For pre-PR booking E2E coverage, run `bun run verify --e2e all`. It runs session reschedule (including payment) and package scheduling (including payment) sequentially, without smoke or duplicate payment-only runs.
-- Payment E2E runs headed. The runner checks display/browser availability before local checks and exits immediately if unavailable; complete pre-PR E2E on a machine with a usable display.
-- For changes limited to one flow, select `--e2e smoke`, `--e2e session-reschedule`, or `--e2e package-schedule`. For dashboard changes, use the related flow commands in [.agents/skills/verify-vvstudios/SKILL.md](./.agents/skills/verify-vvstudios/SKILL.md).
+- After code changes and before opening a PR, run `bun run verify`.
+- Add `--convex` when Convex functions changed, following the [Convex deployment workflow](./docs/convex-three-layers.md#workflow). Sync must finish before E2E.
+- Run E2E only immediately before creating a PR. Before selecting E2E flows, verifying browser behavior, or investigating failed CI checks, read the [verification skill](./.agents/skills/verify-vvstudios/SKILL.md) for commands, browser prerequisites, and evidence requirements.
 - Do not run `build` unless asked.
 - Do not start the dev server if one is already running.
 
 ## Convex
 
-### Workflow
-
-- For Convex code, read `convex/_generated/ai/guidelines.md` first.
-- Use `bun run verify --convex` to verify and sync changed functions to the configured dev deployment when no long-running `convex dev` is already up and no deploy key is set. If one is already running, omit `--convex` and wait for it to finish syncing before E2E.
-- Do not start a long-running `convex dev`.
-- Cloud agents doing Convex work: use the `convex-cloud-agents` skill under `.agents/skills/`.
-
-### Three-layer architecture
-
-Read **[docs/convex-three-layers.md](./docs/convex-three-layers.md)** first for handlers → services → lib (the project goal for every endpoint).
-
-Quick map:
-
-| Layer | Where | Calls | You should see |
-| --- | --- | --- | --- |
-| Handler | `convex/<feature>/*.ts` (plus root globals like `schema.ts`, `http.ts`, `crons.ts`) | services only | A short, flat list of steps (*what* happens) |
-| Service | `convex/<feature>/services/**`, `convex/shared/services/**` | lib (+ other services) | One abstraction per function; policy here |
-| Lib | `convex/<feature>/lib/**`, `convex/shared/lib/**` | — | Small DB/logic primitives; no policy |
-
-Feature folders (`booking`, `packages`, `sessions`, `stripe`, `drive`, …) hold handlers, services, and lib for that area. Cross-cutting code (auth, `result`, email send, admin search validators) lives under `convex/shared/`. Convex API paths follow folders: e.g. `convex/packages/scheduling.ts` → `api.packages.scheduling.*`.
-
-Handlers: neverthrow `safeTry` generators with `yield*` for service steps, no domain `if`s, `.match(tupleOk, tupleErr)` on tuple endpoints. Crons and internal mutations reuse the same service steps.
-
-### Conventions (while implementing)
-
-- Do not duplicate constants or defaults between the frontend and Convex; extract shared values to one importable source when possible.
-- Do not suffix internal Convex function names with `Internal` or similar; that is obvious from context.
-- Services whose handlers are exported in the same API module may need an explicit `ResultAsync<..., { reason: string }>` return type to break circular inference.
-- Let TypeScript infer service return types, callback parameters, and local values. Keep annotations needed for input contracts, intentional constraints, or circular inference; remove unused output aliases and imports.
-- New service **functions** are verb-first; do not bulk-rename existing symbols. Split a service that branches on which endpoint called it (mode flags, endpoint-only optional args).
-
-### Neverthrow
-
-- Return real domain `reason` codes from lib, email senders, and rate limiters. Do not `mapErr` into synthetic codes. Fire-and-forget success returns `null`.
-- Service and lib steps return `Result` / `ResultAsync`. Compose handler and service steps with neverthrow `safeTry` generators and `yield*`; return `ok(value)` on success. Use `function*` for synchronous Results and `async function*` for asynchronous steps. Keep error mapping/recovery and existing parallel or sequential collection semantics. Handlers keep their service step order and terminal tuple conversion; lib does not compose Result steps. Do not wrap a whole function in `okOrThrow`. `.andThen` and `.asyncAndThen` are prohibited by lint; use generators for Result composition.
-- Helpers in `convex/shared/lib/result.ts` only — do not call `fromSafePromise` / `fromPromise` directly.
-  - `okOrThrow` — single Convex I/O at that step: `ctx.db.*`, `ctx.scheduler.*`, `ctx.auth.getUserIdentity()`, or raw `runQuery` / `runMutation`. Infra throws; domain outcomes return `err(...)` from lib validation steps.
-  - `fromConvexTuple` — `runQuery` / `runMutation` whose handler uses `.match(tupleOk, tupleErr)`.
-  - `tryPromise` — external APIs (Stripe, Resend, Google, render); `catch` maps to domain `err`, never rethrows.
-- Lib exports returning `ResultAsync` build it from steps; no export-level `tryPromise` / `okOrThrow` around internal async helpers.
-- Paginated query handlers may return plain pagination at the boundary when tuples break Convex pagination; use `okOrThrow` on individual reads inside service/lib row-load steps.
+Before implementing, debugging, or reviewing code under `convex/`, including schemas, handlers, services, and lib, read the [Convex guidelines](./convex/_generated/ai/guidelines.md), then the [project Convex guide](./docs/convex-three-layers.md). The project guide defines deployment workflow, layer boundaries, naming, and error handling.
 
 ## Tests
 
-When writing tests, use the `tests` skill in `.agents/skills/tests/`.
+Write or change tests only with explicit user approval. Otherwise record candidates in [test proposals](./docs/test-proposals.md) and continue implementation without test changes. Before proposing, writing, or reviewing tests, read the [tests skill](./.agents/skills/tests/SKILL.md) for proposal criteria and approved-test conventions.

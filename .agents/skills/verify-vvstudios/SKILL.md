@@ -1,6 +1,6 @@
 ---
 name: verify-vvstudios
-description: Verify VV Studios (TanStack Start + Vite web UI at http://localhost:3000). Use when proving public marketing pages, Convex-backed customer booking, payment confirmation, package session scheduling, customer reschedule, Clerk staff login, admin dashboard, or editor dashboard before merge or after risky UI changes. Also use when investigating failed CI checks.
+description: Verify VV Studios at http://localhost:3000. Use before selecting or running pre-PR E2E flows, verifying marketing pages, booking/payment, package scheduling, rescheduling, staff login or dashboards in the browser, or investigating failed CI checks.
 ---
 
 # Verify VV Studios
@@ -8,6 +8,20 @@ description: Verify VV Studios (TanStack Start + Vite web UI at http://localhost
 VV Studios is a podcast studio hire site (brand **VV Studios**). The primary surface is the public web app: marketing pages plus live booking against a shared Convex cloud deployment. Clerk powers `/login` and `/dashboard` (see the clerk-login and admin-dashboard feature files).
 
 Timezone for browser checks: **Australia/Sydney** (matches Playwright config).
+
+## Pre-PR verification
+
+Run relevant E2E flows once against the final changes, immediately before creating a PR. For routine development verification, run `bun run verify` without E2E. The [verification runner](../../../scripts/verify.sh) installs dependencies and runs local checks in order, stopping on failure.
+
+Choose the command for the changed flow:
+
+- Booking changes spanning flows: `bun run verify --e2e all`. It runs session reschedule including payment, then package scheduling including payment, sequentially. Skip additional smoke or payment-only runs that duplicate this coverage.
+- Changes limited to one flow: `bun run verify --e2e smoke`, `bun run verify --e2e session-reschedule`, or `bun run verify --e2e package-schedule`.
+- Admin or editor dashboard changes: run `bun run verify`, then the matching dashboard command under [Drive](#drive).
+
+When Convex functions changed, follow the [Convex deployment workflow](../../../docs/convex-three-layers.md#workflow) before running E2E. Add `--convex` to the selected verification command when that workflow permits; the runner completes deployment before E2E starts.
+
+Payment E2E requires headed Chromium and a usable display. The runner checks display/browser availability before local checks and exits immediately if unavailable. Complete payment E2E on a machine with a usable display.
 
 ## Launch
 

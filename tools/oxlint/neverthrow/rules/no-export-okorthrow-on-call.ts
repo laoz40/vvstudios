@@ -311,7 +311,7 @@ export const noExportOkOrThrowOnCallRule = defineRule({
 		},
 		messages: {
 			notConvexIo:
-				"`okOrThrow` must wrap a single Convex I/O promise (`ctx.db`, `ctx.scheduler`, `ctx.auth`, `ctx.runQuery`, `ctx.runMutation`), `crypto.subtle.digest`, or `Promise.all` of those patches/queries. Callees that touch Stripe, DNS, fetch, or Drive should return `ResultAsync` and be chained with `.andThen`."
+				"`okOrThrow` must wrap a single Convex I/O promise (`ctx.db`, `ctx.scheduler`, `ctx.auth`, `ctx.runQuery`, `ctx.runMutation`), `crypto.subtle.digest`, or `Promise.all` of those patches/queries. Callees that touch Stripe, DNS, fetch, or Drive should return `ResultAsync`; compose those Results in services with `safeTry` generators and `yield*`."
 		}
 	},
 	createOnce(context) {

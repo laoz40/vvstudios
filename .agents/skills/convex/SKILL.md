@@ -36,16 +36,15 @@ Prefer `npx convex ai-files install` over copying rules by hand when possible.
 
 ## Route to the Right Skill
 
-After that, use the most specific Convex skill for the task:
+Choose the guidance or skill that matches the task:
 
-- New project or adding Convex to an app: `convex-quickstart`
-- Authentication setup: `convex-setup-auth`
-- Building a reusable Convex component: `convex-create-component`
-- Planning or running a migration: `convex-migration-helper`
-- Investigating performance issues: `convex-performance-audit`
+- Convex setup: read the [Convex guidelines](../../../convex/_generated/ai/guidelines.md), then the [project Convex guide](../../../docs/convex-three-layers.md), before implementing.
+- Authentication setup: read the [authentication guidelines](../../../convex/_generated/ai/guidelines.md#authentication-guidelines) and apply the [project layer rules](../../../docs/convex-three-layers.md).
+- Building a reusable Convex component: [convex-create-component](../convex-create-component/SKILL.md)
+- Planning or running a migration: [convex-migration-helper](../convex-migration-helper/SKILL.md)
+- Investigating performance issues: [convex-performance-audit](../convex-performance-audit/SKILL.md)
 
-If one of those clearly matches the user's goal, switch to it instead of staying
-in this skill.
+Read the linked guidance or use the matching skill before starting the task.
 
 ## When Not to Use
 
