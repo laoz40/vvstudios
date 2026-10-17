@@ -1,130 +1,87 @@
 ---
 name: tests
-description: Test conventions for this repo. Use when writing, adding, reviewing, or refactoring unit, integration, E2E, or Convex tests.
+description: Propose high-value tests for user approval; implement only approved tests through meaningful module interfaces. Use before proposing, adding, changing, reviewing, or refactoring unit, integration, E2E, or Convex tests.
 ---
 
 # Tests
 
+## Approval and proposals
+
+Add, modify, or delete test code only with explicit user approval for those changes. This includes cases, assertions, and test-only helpers in existing files. A feature request, bug fix, refactor, or instruction to verify is not approval to write tests.
+
+Without approval, append qualifying candidates to [test proposals](../../../docs/test-proposals.md) using that file's format. Extend an existing candidate when it covers the same failure. Continue the authorized implementation and mention the updated list in the handoff; leave approval to the user's periodic review rather than asking for each candidate. Running existing tests is allowed.
+
+The implementation rules below apply only to approved test work. Review findings can propose changes, but do not authorize them.
+
 ## When to add tests
 
-This rule applies to unit, integration, E2E, and Convex tests. Add tests selectively for critical application behavior. A new feature, changed function, refactor, or bug fix does not automatically require a new test. Adding no tests is a valid outcome.
+Default to no new tests. A feature, bug fix, refactor, new export, branch, or coverage gap does not by itself justify one. Routine rendering, copy, styling, simple CRUD, and trivial helpers normally need none.
 
-Before adding a test, identify:
+Before proposing a test, identify all four:
 
-- The specific plausible failure it catches.
-- The consequence for customers or studio operations.
-- Why existing tests or static checks do not already protect against it.
+1. A specific plausible failure in the current behavior or requested change.
+2. Its consequence for customers or studio operations.
+3. Why existing tests and static checks do not already catch it.
+4. The existing module interface and concrete observable result that would detect it.
 
-"This feature needs coverage" is not a sufficient reason. A precise behavioral assertion is necessary, but does not by itself justify a test.
+If any answer is missing, do not propose the test. Precise assertions alone do not establish value; "added coverage" is insufficient.
 
-Prioritize payment correctness, booking and scheduling integrity, authorization, duplicate processing, and recovery from partial failures. These are examples of consequential risks, not a coverage checklist.
+Prioritize risks such as incorrect payments, scheduling conflicts, unauthorized access, duplicate processing, and partial-failure recovery. These are examples, not a coverage checklist. Table relationships and compile-time tests must pass the same admission rule.
 
-Routine rendering, copy, styling, simple CRUD, trivial helpers, and implementation refactors normally need no new tests. Add one only when it protects a consequential invariant.
-
-Check existing coverage first and prefer extending an existing test that protects the same behavior. Do not duplicate coverage at multiple layers unless each test catches a distinct consequential failure.
-
-## How to write tests
-
-Tests verify behavior through public interfaces, not implementation details. A good test reads like a specification: "user can checkout with valid cart" tells you what capability exists and survives refactors.
-
-A public interface means a useful capability for the module's callers, not every exported function or only browser-facing endpoints.
-
-```typescript
-// GOOD: tests observable behavior
-test("user can checkout with valid cart", async () => {
-  const result = await checkout(cart, paymentMethod);
-  expect(result.status).toBe("confirmed");
-});
-
-// BAD: mocks internal collaborator
-test("checkout calls paymentService.process", async () => {
-  const mockPayment = jest.mock(paymentService);
-  await checkout(cart, payment);
-  expect(mockPayment.process).toHaveBeenCalledWith(cart.total);
-});
-```
+Check existing coverage first. Prefer extending a behavioral test over creating a new file or testing the same failure at multiple layers. Preserve distinct failure cases when consolidating tests.
 
 ## Module interfaces
 
-- For each added or changed behavioral test, identify the module's meaningful public interface and the consequential failure the test protects against. An exported helper is not automatically a public interface. Callers should use that interface for a useful capability without knowing its internal steps, flags, or database patches.
-- Push tests of workflow helpers, guards, and patch builders up to the existing module interface when that interface can exercise the same failure. Extend an existing behavioral test and remove equivalent lower-level coverage. Preserve distinct failure cases before deleting tests; moving a file or renaming a helper does not improve the test.
-- For Convex workflows, prefer registered queries, mutations, and actions through generated `api` or `internal` references. Internal entrypoints used by jobs, webhooks, or other Convex functions can be meaningful interfaces. Keep handlers → services → lib; a test can exercise the whole module through a handler without collapsing those layers.
-- Direct tests of meaningful pure modules, such as shared pricing calculations, remain valid when they protect a distinct consequential invariant. Module-interface tests do not require browser E2E. Stub external transport, time, or randomness rather than internal collaborators; use existing retrieval queries for read-back when they expose the state being checked.
-- Reject pass-through wrappers, barrel exports, and test-only production entrypoints introduced merely to make an implementation import look public. A deep module hides substantial behavior behind a small useful interface. If no useful interface exists, report the design problem rather than silently prescribing an architecture migration.
+Test a useful capability that callers use without knowing its internal steps. Being exported, pure, small, or branch-heavy does not make a helper a meaningful public interface. Module-interface tests can be unit or integration tests; they do not require browser E2E.
 
-## Good tests
+For workflow helpers, guards, patch builders, and mappers, exercise the consequential failure through the existing workflow interface. Keep direct tests of meaningful pure modules, such as shared pricing calculations, only for distinct consequential invariants.
 
-- Integration-style: test through real interfaces, not mocks of internal parts
-- Public API only; describe WHAT, not HOW
-- One behavior per test; use the assertions needed to prove it
-- Expected values are independent literals, not recomputed the same way the implementation computes them
+Ask: would renaming, splitting, or replacing internal helpers break this test while preserving the module's behavior? If yes, rewrite the test through the module interface. Renaming a helper or moving its test file does not fix the problem.
 
-## Bad tests
+For example:
 
-Red flags:
+- Reject a booking test that only asserts `buildConfirmationPatch` returns `{ status: "confirmed" }` or that an internal save helper was called.
+- Exercise booking confirmation through its registered mutation, then read the booking through an existing retrieval query and assert its expected state. A payment-replay test should prove the booking remains confirmed with one payment recorded after replay.
 
-- Mocking internal collaborators or your own modules
-- Testing private methods
-- Asserting call counts or order
-- Bypassing the public API to verify (e.g. raw DB read when a retrieval query exists)
-- Test name describes HOW not WHAT
-- Tautological: expected value restates the implementation
+Reject barrel exports, forwarding wrappers, and test-only production entrypoints introduced to make an implementation import look public. If no useful interface exists, report the design problem rather than inventing one or silently migrating the architecture.
 
-## Test behavior, not implementation
+## Assertions
 
-Apply these checks whenever you write, change, or keep a test. Call the code the way its users do, with one concrete input, inside the test body. Assert the result they observe against an independent literal expected value.
+Call the subject inside the test body with concrete input. Test one behavior and assert caller-visible results, persisted state, or external-boundary payloads against independent literal expectations.
 
-Before keeping a test, ask whether it would still pass if every function it imports returned `undefined`. If yes, rewrite the assertion or delete the test. Passing this check is necessary, not sufficient: `toBeDefined`, `toBeTruthy`, `toBeInstanceOf`, and `toBeGreaterThan(0)` can reject `undefined` while still failing to specify the expected behavior.
+Reject tests that only:
 
-Look for these low-value shapes:
+- Check existence, truthiness, type, non-throwing, or broad numeric bounds such as `toBeGreaterThan(0)`.
+- Assert internal collaborator calls, call counts, call order, or private methods.
+- Compare a function with itself, derive expectations with the same implementation helper, or pin a hand-maintained constant, config default, table row, or prompt string.
+- Assert fixture data without exercising the subject inside the test body.
+- Assert only `undefined`, an empty collection, or inequality with a wrong value. For absence behavior, also assert presence for another input in the same test.
 
-- Weak or no assertion: no `expect`, or only existence, truthiness, type, non-throwing, or broad numeric checks.
-- Mock or absence only: only checking calls, no calls, `undefined`, an empty collection, or inequality with a wrong value.
-- Self-referential expectations: `expect(f(a)).toBe(f(a))`, or deriving an expected URL using the same builder the subject uses.
-- Constant pins: restating a hand-maintained constant, config default, table row, or prompt string. A constant pin blocks edits without proving behavior. Only test the mechanism that reads the value when it meets the criteria in "When to add tests".
-- Fixture asserts fixture: asserting data the test constructed or computed in `beforeEach`, without exercising the subject inside the test body.
+If every imported function returned `undefined`, the test must fail. This is necessary but insufficient; existence assertions still do not specify behavior. For boundary mocks, assert the concrete payload or resulting observable state rather than merely that a call occurred. Test a mechanism reading a constant only when it passes the admission rule.
 
-For tests that meet the criteria in "When to add tests", assert concrete behavior, such as replaying a payment webhook and observing that the booking remains confirmed with one payment recorded. For an absence, assert the presence on another input in the same test. For a boundary mock, assert the concrete payload it received or the observable state after the call, rather than merely checking that it was called. This does not permit mocking internal collaborators.
+Rewrite or remove a test with no behavioral assertion. Preserve distinct consequential cases before removing equivalent lower-level coverage.
 
-When no behavioral assertion exists, delete the test. Such tests consume CI time and review attention without detecting the intended defects.
+## Mocks and boundaries
 
-Tests of relationships across table rows, such as shared keys or existing parents, and compile-time checks in `*.test-d.ts` files must also meet the criteria in "When to add tests". Their test shape alone does not justify keeping them.
+Keep internal collaborators real. Stub only external APIs, time, randomness, or database/filesystem access when a real test instance is impractical. Inject external dependencies at the system boundary and prefer one SDK-style operation per method over a generic fetcher with conditional mock logic.
 
-## When to mock
+Use an existing retrieval query for read-back when available. `ctx.db.get` in test helpers is allowed when no caller-facing query exposes the asserted state.
 
-Mock at system boundaries only:
+Lint rejects recognized module-mocking calls in `convex/tests/**` and imports of `convex/test.setup` from Convex lib test directories; it cannot establish test value or interface quality. Apply the admission and refactor checks even when lint passes.
 
-- External APIs (Stripe, email, Google)
-- Time and randomness
-- Database or file system when a real test instance is impractical
+## Placement and comments
 
-Dont mock internal collaborators or anything you control.
-
-## Boundary design
-
-- Pass external dependencies in (dependency injection), dont construct them inside the unit under test
-- Prefer SDK-style interfaces (one function per external operation) over a generic fetcher with conditional mock logic
-
-## Frontend unit tests
-
-- Put Vitest files under `src/sites/studio/features/<feature>/tests/`, not beside implementation files in `lib/`.
-
-## Test file comments
-
-- At top of every test file, maintain one file-level comment that describes each test
-- Format each test with short subheading, description on next line
-- Dont place comments immediately above individual tests
+- Put frontend Vitest files in `src/sites/studio/features/<feature>/tests/`, not implementation `lib/` directories.
+- Maintain one file-level comment describing each test, with a short subheading and a description on the next line. Keep these comments at the top of the file, rather than immediately above individual tests.
 
 ## E2E
 
-- Prioritize E2E for critical customer-facing flows that meet the criteria in "When to add tests"; do not add one for every feature
-- Create state through UI only; verify through UI (status/read-back). No seeding behind the app.
-- CI session and package E2E tests open Stripe checkout and close it without completing payment because of Stripe hCaptcha. Preserve both tests; local payment, reschedule, and package-scheduling specs protect distinct behavior.
+Add E2E only for critical customer-facing behavior that passes the admission rule. Create and verify state through the UI; do not seed behind the app.
+
+Preserve the CI session and package checkout tests, which open checkout without completing payment because of Stripe hCaptcha. Local payment, reschedule, and package-scheduling specs protect distinct behavior.
 
 ## Convex tests
 
-For Convex test placement or Stripe, Google SDK, PDF, and email boundary stubs, read [boundary-testing.md](references/boundary-testing.md) before choosing fixtures.
+Before choosing Convex test placement, fixtures, or Stripe, Google SDK, PDF, and email stubs, read [boundary-testing.md](references/boundary-testing.md).
 
-- Apply the global criteria in "When to add tests". Candidate risks include races, webhook replay, duplicate reminders or jobs, money calculations, expiry, scheduled Drive setup, orphan Calendar cleanup, retryable states, and partial Drive setup. These examples are not a requirement to cover every job or failure path.
-- Use `createConvexTest`; call registered queries, mutations, or actions through generated `api` or `internal` references as described in [Module interfaces](#module-interfaces).
-- `ctx.db.get` in test helpers is fine when no caller-facing query exposes the state you assert on.
+Use `createConvexTest` and call registered queries, mutations, or actions through generated `api` or `internal` references. Internal job, webhook, and function entrypoints can be meaningful interfaces. Keep handlers, services, and lib separate; tests can exercise those layers through an entrypoint without collapsing them.

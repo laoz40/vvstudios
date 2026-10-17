@@ -44,4 +44,4 @@ Before implementing, debugging, or reviewing code under `convex/`, including sch
 
 ## Tests
 
-Before deciding whether to add tests, or writing, changing, or reviewing tests, read the [tests skill](./.agents/skills/tests/SKILL.md) for test admission, module interfaces, and mocking conventions.
+Write or change tests only with explicit user approval. Otherwise record candidates in [test proposals](./docs/test-proposals.md) and continue implementation without test changes. Before proposing, writing, or reviewing tests, read the [tests skill](./.agents/skills/tests/SKILL.md) for proposal criteria and approved-test conventions.
