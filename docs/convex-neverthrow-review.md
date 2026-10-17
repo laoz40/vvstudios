@@ -1,6 +1,6 @@
 # Convex neverthrow review checklist
 
-Review-only companion for Convex layer migrations. Implementers: skim wrong/right pairs before opening a refactor PR; reviewers: run the litmus greps on touched handlers.
+For user-requested Convex code reviews, apply the [project Convex guide](./convex-three-layers.md), then use the examples and checks below on touched handlers, services, and lib. This checklist focuses on layer boundaries and neverthrow wrappers.
 
 ## Wrong / right
 
@@ -53,7 +53,7 @@ Also spot-check:
 git diff --name-only | xargs rg 'okOrThrow\(' 
 ```
 
-Every hit should be Convex I/O at the call site (oxlint `neverthrow/no-export-okorthrow-on-call` enforces this on `convex/*/services/**`, `convex/shared/services/**`, feature handlers under `convex/<feature>/*.ts`, and root `convex/*.ts`; lib paths under `convex/*/lib/**` and `convex/shared/lib/**` are warn until migration catches up).
+Use the [project error-handling rules](./convex-three-layers.md#neverthrow-and-errors) to judge each hit. The active lint scopes and exceptions live in [.oxlintrc.json](../.oxlintrc.json) and the rule implementation; `neverthrow/no-export-okorthrow-on-call` is enforced as an error in lib as well as handlers and services.
 
 ## Refactor scope
 

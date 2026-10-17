@@ -1,6 +1,6 @@
 # AGENTS.md
 
-Instructions for agents **implementing** work in this repository. Post-implementation standards for a review subagent live in [CODING_STANDARDS.md](./docs/CODING_STANDARDS.md); do not load that file during normal feature work. Only load and use review subagent when user asks for code review.
+These instructions apply during implementation. For user-requested code reviews, use the [code-review skill](./.agents/skills/code-review/SKILL.md) for the workflow and [CODING_STANDARDS.md](./docs/CODING_STANDARDS.md) for repository review rules. Load those review instructions and run review subagents only for requested reviews.
 
 ## Project
 
@@ -36,48 +36,8 @@ Operational priorities: accessibility, fast first paint on marketing pages, and 
 
 ## Convex
 
-### Workflow
-
-- For Convex code, read `convex/_generated/ai/guidelines.md` first.
-- Use `bun run verify --convex` to verify and sync changed functions to the configured dev deployment when no long-running `convex dev` is already up and no deploy key is set. If one is already running, omit `--convex` and wait for it to finish syncing before E2E.
-- Do not start a long-running `convex dev`.
-- Cloud agents doing Convex work: use the `convex-cloud-agents` skill under `.agents/skills/`.
-
-### Three-layer architecture
-
-Read **[docs/convex-three-layers.md](./docs/convex-three-layers.md)** first for handlers → services → lib (the project goal for every endpoint).
-
-Quick map:
-
-| Layer | Where | Calls | You should see |
-| --- | --- | --- | --- |
-| Handler | `convex/<feature>/*.ts` (plus root globals like `schema.ts`, `http.ts`, `crons.ts`) | services only | A short, flat list of steps (*what* happens) |
-| Service | `convex/<feature>/services/**`, `convex/shared/services/**` | lib (+ other services) | One abstraction per function; policy here |
-| Lib | `convex/<feature>/lib/**`, `convex/shared/lib/**` | — | Small DB/logic primitives; no policy |
-
-Feature folders (`booking`, `packages`, `sessions`, `stripe`, `drive`, …) hold handlers, services, and lib for that area. Cross-cutting code (auth, `result`, email send, admin search validators) lives under `convex/shared/`. Convex API paths follow folders: e.g. `convex/packages/scheduling.ts` → `api.packages.scheduling.*`.
-
-Handlers: neverthrow `safeTry` generators with `yield*` for service steps, no domain `if`s, `.match(tupleOk, tupleErr)` on tuple endpoints. Crons and internal mutations reuse the same service steps.
-
-### Conventions (while implementing)
-
-- Do not duplicate constants or defaults between the frontend and Convex; extract shared values to one importable source when possible.
-- Do not suffix internal Convex function names with `Internal` or similar; that is obvious from context.
-- Services whose handlers are exported in the same API module may need an explicit `ResultAsync<..., { reason: string }>` return type to break circular inference.
-- Let TypeScript infer service return types, callback parameters, and local values. Keep annotations needed for input contracts, intentional constraints, or circular inference; remove unused output aliases and imports.
-- New service **functions** are verb-first; do not bulk-rename existing symbols. Split a service that branches on which endpoint called it (mode flags, endpoint-only optional args).
-
-### Neverthrow
-
-- Return real domain `reason` codes from lib, email senders, and rate limiters. Do not `mapErr` into synthetic codes. Fire-and-forget success returns `null`.
-- Service and lib steps return `Result` / `ResultAsync`. Compose handler and service steps with neverthrow `safeTry` generators and `yield*`; return `ok(value)` on success. Use `function*` for synchronous Results and `async function*` for asynchronous steps. Keep error mapping/recovery and existing parallel or sequential collection semantics. Handlers keep their service step order and terminal tuple conversion; lib does not compose Result steps. Do not wrap a whole function in `okOrThrow`. `.andThen` and `.asyncAndThen` are prohibited by lint; use generators for Result composition.
-- Helpers in `convex/shared/lib/result.ts` only — do not call `fromSafePromise` / `fromPromise` directly.
-  - `okOrThrow` — single Convex I/O at that step: `ctx.db.*`, `ctx.scheduler.*`, `ctx.auth.getUserIdentity()`, or raw `runQuery` / `runMutation`. Infra throws; domain outcomes return `err(...)` from lib validation steps.
-  - `fromConvexTuple` — `runQuery` / `runMutation` whose handler uses `.match(tupleOk, tupleErr)`.
-  - `tryPromise` — external APIs (Stripe, Resend, Google, render); `catch` maps to domain `err`, never rethrows.
-- Lib exports returning `ResultAsync` build it from steps; no export-level `tryPromise` / `okOrThrow` around internal async helpers.
-- Paginated query handlers may return plain pagination at the boundary when tuples break Convex pagination; use `okOrThrow` on individual reads inside service/lib row-load steps.
+Before implementing, debugging, or reviewing code under `convex/`, including schemas, handlers, services, and lib, read the [Convex guidelines](./convex/_generated/ai/guidelines.md), then the [project Convex guide](./docs/convex-three-layers.md). The project guide defines deployment workflow, layer boundaries, naming, and error handling.
 
 ## Tests
 
-When writing tests, use the `tests` skill in `.agents/skills/tests/`.
+Before deciding whether to add tests, or writing, changing, or reviewing tests, read the [tests skill](./.agents/skills/tests/SKILL.md) for test admission, module interfaces, and mocking conventions.

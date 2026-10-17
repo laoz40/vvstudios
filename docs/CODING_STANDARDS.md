@@ -2,7 +2,7 @@
 
 Repository-specific rules for **reviewing** code (review subagent).
 
-When the diff touches `convex/`, review against the **Convex** section in [AGENTS.md](../AGENTS.md), [convex-three-layers.md](./convex-three-layers.md), and [convex-neverthrow-review.md](./convex-neverthrow-review.md).
+When the diff touches `convex/`, review against [convex-three-layers.md](./convex-three-layers.md) and [convex-neverthrow-review.md](./convex-neverthrow-review.md).
 
 ## Simplicity and structure
 
