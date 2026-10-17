@@ -53,11 +53,11 @@ Read [features/README.md](./features/README.md), then the feature file for the f
 | --- | --- | --- |
 | CI-safe smoke | `bun run test:e2e` | Always runs `home.spec.ts` and `book.spec.ts`; extra CLI args are appended, not a filter |
 | Home title only | `bunx playwright test e2e/home.spec.ts --workers=1` | Document title on `/` |
-| Single session pay + confirm | `bun run test:e2e:session-payment` | Local only; Stripe test card, hCaptcha |
-| Package pay + schedule session 1 | `bun run test:e2e:package-payment` | Needs `E2E_RESEND_API_KEY` or `RESEND_API_KEY` in `.env.local` |
-| Book, pay, reschedule | `bun run test:e2e:session-reschedule` | Same Resend key; Convex `STRIPE_CHECKOUT_RETURN_URL` origin must be `http://localhost:3000` |
+| Single session pay + confirm | `bun run test:e2e:session-payment --headed` | Local only; Stripe test card, hCaptcha |
+| Package pay + schedule session 1 | `bun run test:e2e:package-payment --headed` | Needs `E2E_RESEND_API_KEY` or `RESEND_API_KEY` in `.env.local` |
+| Book, pay, reschedule | `bun run test:e2e:session-reschedule --headed` | Same Resend key; Convex `STRIPE_CHECKOUT_RETURN_URL` origin must be `http://localhost:3000` |
 | Clerk login + admin dashboard | `bun .agents/skills/verify-vvstudios/drive-auth.ts` | Needs `E2E_ADMIN_EMAIL` and `E2E_CLERK_SECRET_KEY` or `CLERK_SECRET_KEY`. Admin role only. |
-| Editor dashboard | `bun .agents/skills/verify-vvstudios/drive-editor.ts` | Creates a temp Clerk editor (`+clerk_test` email), assigns a confirmed session as admin, asserts the customer on **Edits**, deletes the Clerk user |
+| Editor dashboard | `bun .agents/skills/verify-vvstudios/drive-editor.ts` | Creates a temp Clerk editor (`+clerk_test` email), assigns a confirmed session as admin, asserts the customer on **Edits**, restores assignment, retires the profile, deletes the Clerk user |
 
 Playwright uses `baseURL` `http://localhost:3000`, starts `bun run dev` via `webServer` when CI or when no server is reused. When you use this skill's launch helper, run doctor first so Playwright `reuseExistingServer` hits **our** pid file.
 
@@ -100,7 +100,7 @@ Kill only the pids in `state/dev.pid` (listener) and `state/dev.spawn.pid` (the 
 | `launch.ts` | Spawn `bun run dev` from repo root when port free; wait for title; write listener pid |
 | `cleanup.ts` | SIGTERM/SIGKILL recorded pid only; keep evidence |
 | `drive-auth.ts` | Unauthenticated `/login`, Clerk testing sign-in, admin tabs, sign-out |
-| `drive-editor.ts` | Temp Clerk editor, admin-assign confirmed session, editor sees that customer, delete Clerk user |
+| `drive-editor.ts` | Temp Clerk editor, admin-assign confirmed session, editor sees that customer, restore assignment, retire profile, delete Clerk user |
 | `clerk-temp-editor.ts` | Clerk Backend create/delete for verification-only editor users |
 | `lib.ts` | Shared paths, env load, port/title checks (not invoked directly) |
 

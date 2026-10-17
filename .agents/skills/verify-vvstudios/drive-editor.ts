@@ -1,6 +1,7 @@
 #!/usr/bin/env bun
 import fs from "node:fs";
 import path from "node:path";
+import { execFileSync } from "node:child_process";
 import { chromium, expect, type Page } from "@playwright/test";
 import {
 	prepareClerkTesting,
@@ -70,8 +71,6 @@ fs.mkdirSync(outDir, { recursive: true });
 
 await prepareClerkTesting();
 
-const tempEditor = await createTempClerkEditor();
-
 const browser = await chromium.launch();
 
 const page = await browser.newPage({
@@ -80,7 +79,23 @@ const page = await browser.newPage({
 	timezoneId: "Australia/Sydney"
 });
 
+let tempEditor: Awaited<ReturnType<typeof createTempClerkEditor>>;
+
+try {
+	tempEditor = await createTempClerkEditor();
+} catch (error) {
+	await browser.close();
+	throw error;
+}
+
 let runError: string | null = null;
+
+let assignment: { label: string; previousEditor: string } | null = null;
+
+fs.writeFileSync(
+	path.join(outDir, "cleanup.json"),
+	JSON.stringify({ tempEditor, assignment }, null, 2)
+);
 
 try {
 	await signInWithEmail(page, tempEditor.email);
@@ -99,14 +114,7 @@ try {
 	const assignLabel = await assignTrigger.getAttribute("aria-label");
 	const customerFromLabel = assignLabel?.replace(/^Editor assigned to /u, "").trim();
 
-	const customerFromRow = await page
-		.locator("tbody tr")
-		.first()
-		.locator("p.font-medium")
-		.first()
-		.textContent();
-
-	const customerName = customerFromLabel || customerFromRow?.trim();
+	const customerName = customerFromLabel;
 
 	if (!customerName) {
 		throw new Error("Could not read customer name from Editor assigned to combobox");
@@ -117,6 +125,16 @@ try {
 	if ((await editorOption.count()) === 0) {
 		throw new Error("Temp editor did not appear in the assign list after first sign-in");
 	}
+
+	if (!assignLabel) throw new Error("Assignment control has no accessible label");
+	const previousEditor = (await assignTrigger.textContent())?.trim();
+
+	if (!previousEditor) throw new Error("Could not read original editor assignment");
+	assignment = { label: assignLabel, previousEditor };
+	fs.writeFileSync(
+		path.join(outDir, "cleanup.json"),
+		JSON.stringify({ tempEditor, assignment }, null, 2)
+	);
 
 	await editorOption.click();
 	await expect(
@@ -145,19 +163,101 @@ try {
 			"entry: /dashboard (editor assigned sessions)",
 			`runId: ${runId}`,
 			`assignedCustomer: ${customerName}`,
-			"tempClerkUser: created and deleted"
+			"cleanup: see cleanup.txt for assignment restore, profile retirement, and Clerk deletion"
 		].join("\n") + "\n"
 	);
-
-	console.log(`OK: editor assigned-session proof written to ${outDir}`);
 } catch (error) {
 	await page.screenshot({ path: path.join(outDir, "failure.png"), fullPage: true }).catch(() => {});
 	runError = error instanceof Error ? error.message : String(error);
 } finally {
-	await browser.close();
-	await deleteTempClerkEditor(tempEditor.userId).catch(() => {});
+	const cleanupNotes: string[] = [];
+
+	try {
+		execFileSync("bun", [path.join(REPO_ROOT, ".agents/skills/verify-vvstudios/doctor.ts")], {
+			cwd: REPO_ROOT,
+			stdio: "pipe"
+		});
+
+		const cleanupPage = await browser.newPage({
+			baseURL: BASE_URL,
+			viewport: { width: 1280, height: 800 }
+		});
+
+		await signInAsAdmin(cleanupPage);
+		await expect(cleanupPage.getByRole("tab", { name: "Sessions", exact: true })).toBeVisible({
+			timeout: 30_000
+		});
+
+		if (assignment) {
+			await cleanupPage.getByRole("tab", { name: "All sessions", exact: true }).click();
+			await cleanupPage
+				.getByPlaceholder("Search sessions...")
+				.fill(assignment.label.replace(/^Editor assigned to /u, ""));
+			await cleanupPage
+				.getByRole("row")
+				.filter({ hasText: tempEditor.displayName })
+				.getByRole("button", { name: "Open session actions" })
+				.click();
+			const trigger = cleanupPage.getByRole("combobox", { name: assignment.label, exact: true });
+			await trigger.focus();
+			await cleanupPage.keyboard.press("Enter");
+			await cleanupPage
+				.getByRole("option", { name: assignment.previousEditor, exact: true })
+				.click();
+
+			const confirm =
+				assignment.previousEditor === "No editor assigned"
+					? "Confirm unassignment"
+					: "Confirm assignment";
+
+			await cleanupPage.getByRole("button", { name: confirm, exact: true }).click();
+			await expect(trigger).toHaveText(assignment.previousEditor, { timeout: 15_000 });
+			cleanupNotes.push("Original session assignment restored through admin UI.");
+			await cleanupPage.keyboard.press("Escape");
+		}
+
+		await cleanupPage.getByRole("tab", { name: "Contractors", exact: true }).click();
+		await expect(cleanupPage.getByText("Loading contractors", { exact: true })).toBeHidden({
+			timeout: 30_000
+		});
+
+		const editorRow = cleanupPage
+			.getByRole("row")
+			.filter({ has: cleanupPage.getByText(tempEditor.displayName, { exact: true }) });
+
+		if (await editorRow.count()) {
+			await editorRow.getByRole("button", { name: "Open contractor actions" }).click();
+			await cleanupPage.getByRole("menuitem", { name: "Retire contractor", exact: true }).click();
+			await expect(editorRow).toHaveCount(0);
+			await cleanupPage.getByRole("switch", { name: "Show retired" }).click();
+			await expect(editorRow).toBeVisible();
+			await cleanupPage.screenshot({ path: path.join(outDir, "editor-retired.png") });
+			cleanupNotes.push(
+				"Temporary editor profile retired through admin UI; inactive history remains."
+			);
+		}
+	} catch (error) {
+		const message = error instanceof Error ? error.message : String(error);
+		cleanupNotes.push(`UI cleanup failed: ${message}`);
+		runError = [runError, `UI cleanup failed: ${message}`].filter(Boolean).join("\n");
+	} finally {
+		await browser.close();
+
+		try {
+			await deleteTempClerkEditor(tempEditor.userId);
+			cleanupNotes.push("Temporary Clerk user deleted.");
+		} catch (error) {
+			const message = error instanceof Error ? error.message : String(error);
+			cleanupNotes.push(message);
+			runError = [runError, message].filter(Boolean).join("\n");
+		}
+
+		fs.writeFileSync(path.join(outDir, "cleanup.txt"), cleanupNotes.join("\n") + "\n");
+	}
 }
 
 if (runError !== null) {
 	fail(runError);
 }
+
+console.log(`OK: editor proof and cleanup written to ${outDir}`);

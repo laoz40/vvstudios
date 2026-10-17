@@ -21,9 +21,9 @@ Preconditions:
 
 - `E2E_RESEND_API_KEY` or `RESEND_API_KEY` in `.env.local`.
 - Convex `STRIPE_CHECKOUT_RETURN_URL` origin must be `http://localhost:3000` so invoice links open in Playwright.
-- `--workers=1` via `bun run test:e2e:session-reschedule`.
+- `--workers=1` via `bun run test:e2e:session-reschedule --headed`.
 
-- **End-to-end reschedule.** Run `bun run test:e2e:session-reschedule`. Exit code 0 on happy path.
+- **End-to-end reschedule.** Run `bun run test:e2e:session-reschedule --headed`. Exit code 0 on happy path.
 - **Pay and confirm first.** Spec runs `fillSingleSessionBookingForm`, terms, `completeStripePayment`, and **Your booking is confirmed!** before polling Resend.
 - **Reschedule page.** `page.goto(rescheduleUrl)` shows heading **Reschedule your booking**; `readExistingBookingSummary` captures prior date and time from **Existing booking**.
 - **Submit change.** `completeReschedule` picks a different slot (`startingDayIndex + 1`, `timeIndex` 1), clicks **UPDATE BOOKING**, then dialog button **Update Booking**.

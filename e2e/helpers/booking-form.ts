@@ -234,7 +234,8 @@ async function selectBookingRadio(page: Page, labelSelector: string, radioSelect
 
 	await expect(async () => {
 		await label.click();
-		await expect(page.locator(radioSelector)).toBeChecked();
+		// SSR labels can be clicked before hydration; leave time to retry the interaction.
+		await expect(page.locator(radioSelector)).toBeChecked({ timeout: 1_000 });
 	}).toPass({ timeout: 10_000 });
 }
 

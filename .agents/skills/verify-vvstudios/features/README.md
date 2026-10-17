@@ -55,4 +55,4 @@ The Playwright section starts with `Preconditions:` and uses labeled bullets tha
 
 ### Not yet mapped
 
-These areas exist in the app but do not have feature files yet: **legal** (`/terms-and-conditions`, `/privacy-policy`), **free tour** (modal via `VITE_FREE_TOUR_URL`), **booking-expired** (`/booking-expired`), contractor **Invite editor** / `__clerk_ticket` sign-up. Add a feature file before treating them as verified.
+These areas exist in the app but do not have feature files yet: **legal** (`/terms-and-conditions`, `/privacy-policy`), **free tour** (modal via `VITE_FREE_TOUR_URL`), **booking-expired** (`/booking-expired`), contractor **Invite editor** / `__clerk_ticket` sign-up. Add a feature file before treating them as verified. The booking confirmation map also does not yet cover [receipt downloads](../../../../src/sites/studio/features/booking-complete/components/BookingCompletePage.tsx) or the [Instagram repost prompt](../../../../src/sites/studio/features/booking-complete/components/InstagramRepostPrompt.tsx); its current recipe proves the paid result heading only.

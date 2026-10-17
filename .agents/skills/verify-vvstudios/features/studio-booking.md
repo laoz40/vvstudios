@@ -23,8 +23,8 @@ Preconditions:
 - Shared Convex calendar availability may take several seconds; helpers wait for `[data-slot="calendar"]` and enabled `button[data-day]` cells.
 - Run with `--workers=1` when combined with other booking specs in one session.
 
-- **Form shell.** Open `/book`. Run `bunx playwright test e2e/book.spec.ts --workers=1 -g "loads booking form sections"`. Heading **Studio Hire Booking** and labels **Booking Type \***, **Session Duration \***, **Contact Details**, **Session Date \*** are visible.
-- **Single session terms.** Run `bunx playwright test e2e/book.spec.ts --workers=1 -g "single session form opens terms dialog"`. After `fillSingleSessionBookingForm` and **COMPLETE BOOKING**, dialog shows **Terms & Conditions** and button **Agree & Book**.
+- **Form shell.** Open `/book`. In a browser session, verify heading **Studio Hire Booking** and labels **Booking Type \***, **Session Duration \***, **Contact Details**, **Session Date \*** are visible.
+- **Single session terms.** The existing `single session checkout opens payment modal` test covers this step. Run `bunx playwright test e2e/book.spec.ts --workers=1 -g "single session checkout opens payment modal"`. After `fillSingleSessionBookingForm` and **COMPLETE BOOKING**, dialog shows **Terms & Conditions** and button **Agree & Book**.
 - **Single session payment modal (no Pay).** Run `bunx playwright test e2e/book.spec.ts --workers=1 -g "single session checkout opens payment modal"`. After **Agree & Book**, button **Close payment modal** and payment dialog `iframe` are visible; modal is closed in `finally`.
 - **Package payment modal (no Pay).** Run `bunx playwright test e2e/book.spec.ts --workers=1 -g "package checkout opens payment modal"`. Package radios `#booking-mode-package` and package size labels appear before submit.
 - **Full CI bundle.** Run `bun run test:e2e`. Exit code 0 runs home plus all book specs serially within the file.

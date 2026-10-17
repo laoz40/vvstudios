@@ -46,6 +46,8 @@ fs.mkdirSync(outDir, { recursive: true });
 
 await prepareClerkTesting();
 
+let runError: string | null = null;
+
 const browser = await chromium.launch();
 
 const page = await browser.newPage({
@@ -74,6 +76,7 @@ try {
 	const signOut = page.getByRole("button", { name: "Sign out" }).first();
 	await expect(signOut).toBeVisible();
 	await expect(page.getByPlaceholder("Search sessions...")).toBeVisible();
+	await expect(page.getByText("Loading sessions", { exact: true })).toBeHidden({ timeout: 30_000 });
 	await page.screenshot({ path: path.join(outDir, "dashboard-sessions.png") });
 
 	await page.getByRole("tab", { name: "Packages", exact: true }).click();
@@ -81,6 +84,7 @@ try {
 		"data-state",
 		"active"
 	);
+	await expect(page.getByText("Loading packages", { exact: true })).toBeHidden({ timeout: 30_000 });
 	await page.screenshot({ path: path.join(outDir, "dashboard-packages.png") });
 
 	await page.getByRole("tab", { name: "Contractors", exact: true }).click();
@@ -88,6 +92,9 @@ try {
 		"data-state",
 		"active"
 	);
+	await expect(page.getByText("Loading contractors", { exact: true })).toBeHidden({
+		timeout: 30_000
+	});
 	await page.screenshot({ path: path.join(outDir, "dashboard-contractors.png") });
 
 	await signOut.click();
@@ -111,8 +118,9 @@ try {
 	console.log(`OK: auth proof written to ${outDir}`);
 } catch (error) {
 	await page.screenshot({ path: path.join(outDir, "failure.png"), fullPage: true }).catch(() => {});
-	const message = error instanceof Error ? error.message : String(error);
-	fail(message);
+	runError = error instanceof Error ? error.message : String(error);
 } finally {
 	await browser.close();
 }
+
+if (runError !== null) fail(runError);
