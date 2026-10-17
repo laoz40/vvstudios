@@ -1,6 +1,6 @@
 # AGENTS.md
 
-These instructions apply during implementation. For user-requested code reviews, use the [code-review skill](./.agents/skills/code-review/SKILL.md) for the workflow and [CODING_STANDARDS.md](./docs/CODING_STANDARDS.md) for repository review rules. Load those review instructions and run review subagents only for requested reviews.
+These instructions apply during implementation. For user-requested code reviews, use the installed global `code-review` skill for the workflow and [CODING_STANDARDS.md](./docs/CODING_STANDARDS.md) for repository review rules. Load those review instructions and run review subagents only for requested reviews.
 
 ## Project
 
