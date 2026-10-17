@@ -32,12 +32,9 @@ Writing code is cheap for you, which makes over-engineering easy. Counter it by 
 
 ## Verify changes
 
-- After code changes and before opening a PR, run `bun run verify`. [scripts/verify.sh](./scripts/verify.sh) installs dependencies and runs the local checks in order, stopping on failure.
-- Add `--convex` when Convex functions changed. Deployment finishes before any requested E2E tests start.
-- Run E2E only immediately before creating a PR, not during routine development verification. Run the relevant flows once against the final changes.
-- For pre-PR booking E2E coverage, run `bun run verify --e2e all`. It runs session reschedule (including payment) and package scheduling (including payment) sequentially, without smoke or duplicate payment-only runs.
-- Payment E2E runs headed. The runner checks display/browser availability before local checks and exits immediately if unavailable; complete pre-PR E2E on a machine with a usable display.
-- For changes limited to one flow, select `--e2e smoke`, `--e2e session-reschedule`, or `--e2e package-schedule`. For dashboard changes, use the related flow commands in [.agents/skills/verify-vvstudios/SKILL.md](./.agents/skills/verify-vvstudios/SKILL.md).
+- After code changes and before opening a PR, run `bun run verify`.
+- Add `--convex` when Convex functions changed, following the [Convex deployment workflow](./docs/convex-three-layers.md#workflow). Sync must finish before E2E.
+- Run E2E only immediately before creating a PR. Before selecting E2E flows, verifying browser behavior, or investigating failed CI checks, read the [verification skill](./.agents/skills/verify-vvstudios/SKILL.md) for commands, browser prerequisites, and evidence requirements.
 - Do not run `build` unless asked.
 - Do not start the dev server if one is already running.
 
