@@ -3,15 +3,34 @@ name: CI
 on:
   pull_request:
     branches:
+      - dev
       - production
   push:
     branches:
+      - dev
       - production
 
 permissions:
   contents: read
 
 jobs:
+  release-source:
+    name: Release source
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require production releases from this repository's dev branch
+        env:
+          BASE_BRANCH: ${{ github.base_ref }}
+          HEAD_BRANCH: ${{ github.head_ref }}
+          HEAD_REPOSITORY: ${{ github.event.pull_request.head.repo.full_name }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          if [[ "$BASE_BRANCH" == "production" && ( "$HEAD_BRANCH" != "dev" || "$HEAD_REPOSITORY" != "$REPOSITORY" ) ]]; then
+            echo "::error::Production releases must come from this repository's dev branch. Target dev for other changes."
+            exit 1
+          fi
+
   lint-and-test:
     name: Format, lint, typecheck, dead code, dupes, unit tests
     runs-on: ubuntu-latest

@@ -16,6 +16,7 @@ Operational priorities: accessibility, fast first paint on marketing pages, and 
 
 ## Behaviour
 
+- Start new work and feature branches from `dev`, and target `dev` with everyday PRs. Only release PRs from this repository's `dev` branch may target `production`. Merge releases with a merge commit and keep `dev`; pushes to `production` deploy the live site.
 - Ask before making assumptions that change behavior, UX, or architecture.
 - If a task would produce a very large commit, split into smaller commits per major change or file group.
 - Never use oxlint ignore comments to bypass the linter; fix or restructure instead.
