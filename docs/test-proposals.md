@@ -17,6 +17,10 @@ Check for an equivalent proposal before adding an item. Keep unapproved entries 
 
 ## Pending proposals
 
+- [ ] Count only confirmed bookings when assigning Drive session folder numbers.
+  - Failure and consequence: Earlier unpaid, expired, abandoned, or failed booking attempts can inflate the first real session's folder prefix, confusing clients and staff.
+  - Observable result: Call `internal.sessions.drive.allocateClientSessionNumber` and `internal.sessions.drive.allocatePackageSessionNumber` with earlier unconfirmed attempts and two confirmed sessions; the confirmed sessions receive numbers `1` and `2` in date order.
+  - Coverage gap: Existing Drive allocation tests cover date order, email linking, and cancellation cleanup, but do not cover earlier unconfirmed attempts. Static checks cannot detect an incorrect prefix.
 
 - [ ] Preserve and charge all selected editing and clip services together.
   - Failure and consequence: Selecting or saving a second editing or clip service could silently discard another service or its quantity, leaving the booking and invoice incomplete.
