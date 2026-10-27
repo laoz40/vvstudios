@@ -22,7 +22,11 @@ export function sendClientAssetsEmailWithHtml(
 }
 
 export function sendEditorAssignmentEmailWithHtml(
-	args: SendEditorAssignmentEmailArgs & { bookingId: Id<"bookings">; editorEmail: string },
+	args: SendEditorAssignmentEmailArgs & {
+		bookingId: Id<"bookings">;
+		editorEmail: string;
+		claimedAt: number;
+	},
 	sessionDate: string,
 
 	html: string
@@ -32,7 +36,7 @@ export function sendEditorAssignmentEmailWithHtml(
 		subject: `New editing job assigned: ${args.sessionName}, ${sessionDate}`,
 		html,
 		logContext: { operation: "email.sendEditorAssignment", bookingId: args.bookingId },
-		idempotencyKey: `editor-assignment:${args.editorEmail}:${args.sessionStartAt}`
+		idempotencyKey: `editor-assignment:${args.editorEmail}:${args.sessionStartAt}:${args.claimedAt}`
 	});
 }
 

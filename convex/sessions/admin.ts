@@ -14,6 +14,7 @@ import {
 } from "#convex/sessions/services/editor";
 import {
 	assignSessionEditorFromAdmin,
+	restartSessionEditingAfterDelivery,
 	archiveSessionFromAdmin,
 	cancelSessionAfterCalendarEventDeleted,
 	saveSessionInstagramHandleByStripeSessionId,
@@ -108,7 +109,8 @@ export const assignSessionEditor = mutation({
 	args: {
 		bookingId: v.id("bookings"),
 		editorTokenIdentifier: v.union(v.string(), v.null()),
-		adminNotes: v.string()
+		adminNotes: v.string(),
+		editorDueDate: v.optional(v.string())
 	},
 	handler: (ctx, args) => assignSessionEditorFromAdmin(ctx, args).match(tupleOk, tupleErr)
 });
@@ -161,4 +163,9 @@ export const markSessionCalendarEventDeleted = internalMutation({
 	args: { bookingId: v.id("bookings") },
 	handler: (ctx, args) =>
 		cancelSessionAfterCalendarEventDeleted(ctx, args.bookingId).match(tupleOk, tupleErr)
+});
+
+export const restartSessionEditing = mutation({
+	args: { bookingId: v.id("bookings"), editorDueDate: v.string() },
+	handler: (ctx, args) => restartSessionEditingAfterDelivery(ctx, args).match(tupleOk, tupleErr)
 });

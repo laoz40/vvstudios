@@ -1,6 +1,6 @@
 import type { UserIdentity } from "convex/server";
 import type { PaginationOptions } from "convex/server";
-import { err, ok, okAsync } from "neverthrow";
+import { err, errAsync, ok, okAsync } from "neverthrow";
 import type { Doc } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
 import { isAdminIdentity } from "#convex/shared/lib/auth";
@@ -149,6 +149,7 @@ export function buildEditorSessionProjection(
 		accountName: session.accountName,
 		notes: session.notes,
 		adminNotes: session.adminNotes,
+		editorDueDate: session.editorDueDate,
 		editorNotes: session.editorNotes,
 		deliverablesClientNotes: session.deliverablesClientNotes,
 		deliverablesDriveLink: session.deliverablesDriveLink,
@@ -164,4 +165,24 @@ export function buildEditorSessionProjection(
 		editStatus: session.editStatus,
 		driveFolders
 	};
+}
+
+export function resetSessionForNextDeliverables(
+	ctx: MutationCtx,
+	session: Doc<"bookings">,
+	editorDueDate: string
+) {
+	if (session.assignedEditorTokenIdentifier === undefined) {
+		return errAsync({ reason: "SESSION_NOT_ASSIGNED_TO_EDITOR" as const });
+	}
+
+	return okOrThrow(
+		ctx.db
+			.patch("bookings", session._id, {
+				editStatus: "to_edit",
+				editorDueDate,
+				deliverablesClientNotes: undefined
+			})
+			.then(() => null)
+	);
 }

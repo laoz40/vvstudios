@@ -159,6 +159,7 @@ export type SendEditorAssignmentEmailArgs = {
 	editorName: string;
 	sessionName: string;
 	sessionStartAt: number;
+	editorDueDate?: string;
 };
 
 export type SendSessionDeliverablesEmailArgs = {
@@ -426,7 +427,10 @@ export function renderClientAssetsEmailHtml(args: SendClientAssetsEmailArgs) {
 
 export function renderEditorAssignmentEmailHtml(args: SendEditorAssignmentEmailArgs) {
 	const sessionDate = formatTimestampDateLong(args.sessionStartAt);
-	const dueDateLabel = formatTimestampDateLong(getEditorEditDueAt(args.sessionStartAt));
+
+	const dueDateLabel = formatTimestampDateLong(
+		getEditorEditDueAt(args.sessionStartAt, args.editorDueDate)
+	);
 
 	return tryPromise({
 		try: () =>

@@ -1,3 +1,4 @@
+import { parseCalendarDate } from "#studio/lib/calendarDate";
 import { err, errAsync, ok, okAsync, type ResultAsync, type Result } from "neverthrow";
 import type { Doc } from "#convex/_generated/dataModel";
 import type { MutationCtx } from "#convex/_generated/server";
@@ -12,6 +13,14 @@ import {
 	scheduleEditorDriveAccessUpdate
 } from "#convex/editor/lib/editorAssignments";
 import { type BookingSearchBlobPatch } from "#convex/shared/lib/adminSearch/adminSearchBlob";
+
+export function validateEditorDueDate(editorDueDate: string | undefined) {
+	if (editorDueDate !== undefined && parseCalendarDate(editorDueDate) === null) {
+		return err({ reason: "INVALID_EDITOR_DUE_DATE" as const });
+	}
+
+	return ok(null);
+}
 
 export function isEditorAssignableSession(session: Doc<"bookings">): boolean {
 	return session.status === "confirmed" || session.status === "email_failed";
@@ -32,11 +41,12 @@ export function patchEditorAssignmentAfterSearch(
 	session: Doc<"bookings">,
 	editor: Doc<"editorProfiles"> | undefined,
 	adminNotes: string,
-
+	editorDueDate: string | undefined,
 	searchBlobPatch: BookingSearchBlobPatch
 ) {
 	return patchBookingEditorAssignment(ctx, session._id, {
 		adminNotes: adminNotes.trim() || undefined,
+		editorDueDate: editor === undefined ? undefined : editorDueDate,
 		assignedEditorTokenIdentifier: editor?.tokenIdentifier,
 		searchBlobPatch
 	});

@@ -26,7 +26,7 @@ export function sendClientAssetsEmail(args: SendClientAssetsEmailArgs & { email:
 }
 
 export function sendEditorAssignmentEmail(
-	args: SendEditorAssignmentEmailArgs & { editorEmail: string }
+	args: SendEditorAssignmentEmailArgs & { editorEmail: string; claimedAt: number }
 ) {
 	const sessionDate = formatTimestampDateLong(args.sessionStartAt);
 

@@ -257,6 +257,7 @@ export default defineSchema({
 
 		// Editor assignment and internal editing instructions
 		assignedEditorTokenIdentifier: v.optional(v.string()),
+		editorDueDate: v.optional(v.string()),
 		assignedEditorDisplayName: v.optional(v.string()),
 		adminNotes: v.optional(v.string()),
 		editorNotes: v.optional(v.string()),

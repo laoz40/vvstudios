@@ -1,3 +1,5 @@
+import { exhaustiveCheck } from "#/lib/result";
+import { DRIVE_EMAIL_CLAIM_TIMEOUT_MS } from "#convex/drive/lib/driveLookup";
 import { err, ok } from "neverthrow";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { DriveSetupInfo } from "#convex/drive/lib/driveLookup";
@@ -63,4 +65,36 @@ export function requireEditorAssignmentEmailSetup(
 	return ok({ ...setup, driveSession: setup.driveSession } satisfies DriveSetupInfo & {
 		driveSession: Doc<"driveSessions">;
 	});
+}
+
+export type ClaimEditorAssignmentEmailArgs = {
+	bookingId: Id<"bookings">;
+	editorTokenIdentifier: string;
+	now: number;
+};
+
+export function canClaimEditorAssignmentEmail(
+	driveSession: Doc<"driveSessions">,
+	args: ClaimEditorAssignmentEmailArgs
+) {
+	const emailMatchesEditor =
+		driveSession.assignmentEmailTokenIdentifier === args.editorTokenIdentifier;
+
+	if (!emailMatchesEditor) return true;
+
+	const claimedRecently =
+		driveSession.assignmentEmailClaimedAt !== undefined &&
+		args.now - driveSession.assignmentEmailClaimedAt < DRIVE_EMAIL_CLAIM_TIMEOUT_MS;
+
+	if (claimedRecently) return false;
+
+	switch (driveSession.assignmentEmailStatus) {
+		case "failed":
+		case undefined:
+			return true;
+		case "sent":
+			return false;
+		default:
+			return exhaustiveCheck(driveSession.assignmentEmailStatus);
+	}
 }

@@ -22,7 +22,9 @@ import {
 	SelectValue
 } from "#/components/ui/select";
 import { api } from "#convex/_generated/api";
-import { Field, FieldLabel } from "#/components/ui/field";
+import { Input } from "#/components/ui/input";
+import { formatShortMonthFullDate, getEditorEditDueAt } from "#studio/lib/bookingdatetime";
+import { Field, FieldDescription, FieldLabel } from "#/components/ui/field";
 import { Textarea } from "#/components/ui/textarea";
 import { exhaustiveCheck, tryCatch, type UnexpectedError } from "#/lib/result";
 import type { SessionRecord } from "#studio/features/admin/lib/admin-sessions";
@@ -59,6 +61,10 @@ function showAssignmentError(error: AssignmentError) {
 	switch (reason) {
 		case "BOOKING_NOT_FOUND":
 			toast.error("This session no longer exists.");
+
+			return;
+		case "INVALID_EDITOR_DUE_DATE":
+			toast.error("Choose a valid due date.");
 
 			return;
 		case "EDITOR_NOT_ACTIVE":
@@ -182,6 +188,7 @@ export function SessionEditorAssignment({ isMenuOpen, session }: SessionEditorAs
 	const activeEditors = activeEditorsFromResult(activeEditorsResult) ?? [];
 	const isLoadingEditors = isMenuOpen && activeEditorsResult === undefined;
 	const [isSaving, setIsSaving] = useState(false);
+	const [editorDueDate, setEditorDueDate] = useState("");
 	const [adminNotes, setAdminNotes] = useState(session.adminNotes ?? "");
 	const [confirmation, setConfirmation] = useState<AssignmentConfirmation>({ status: "closed" });
 
@@ -206,6 +213,7 @@ export function SessionEditorAssignment({ isMenuOpen, session }: SessionEditorAs
 			return;
 		}
 
+		setEditorDueDate(session.editorDueDate ?? "");
 		setConfirmation({ status: "open", nextEditor });
 	}
 
@@ -216,7 +224,12 @@ export function SessionEditorAssignment({ isMenuOpen, session }: SessionEditorAs
 		const editorTokenIdentifier = confirmation.nextEditor?.tokenIdentifier ?? null;
 
 		const [error] = await tryCatch(
-			assignSessionEditor({ bookingId: session._id, editorTokenIdentifier, adminNotes })
+			assignSessionEditor({
+				bookingId: session._id,
+				editorTokenIdentifier,
+				adminNotes,
+				editorDueDate: editorDueDate || undefined
+			})
 		);
 
 		setIsSaving(false);
@@ -278,6 +291,26 @@ export function SessionEditorAssignment({ isMenuOpen, session }: SessionEditorAs
 								This session will have no editor assigned.
 							</p>
 						)}
+						{nextEditor ? (
+							<Field>
+								<FieldLabel htmlFor={`assignment-due-date-${session._id}`}>
+									Due date (optional)
+								</FieldLabel>
+								<Input
+									id={`assignment-due-date-${session._id}`}
+									type="date"
+									value={editorDueDate}
+									disabled={isSaving}
+									aria-describedby={`assignment-due-date-help-${session._id}`}
+									onChange={(event) => setEditorDueDate(event.target.value)}
+								/>
+								<FieldDescription id={`assignment-due-date-help-${session._id}`}>
+									Leave blank to use{" "}
+									{formatShortMonthFullDate(getEditorEditDueAt(session.sessionStartAt))}, six days
+									after the session. Dates use Sydney time.
+								</FieldDescription>
+							</Field>
+						) : null}
 						<Field>
 							<FieldLabel htmlFor={`assignment-admin-notes-${session._id}`}>Admin notes</FieldLabel>
 							<Textarea

@@ -187,6 +187,10 @@ export function SessionActionsDialogs({
 				isFolderStatusLoading={deliverablesEmailAction.isFolderStatusLoading}
 				isSending={deliverablesEmailAction.isEmailingDeliverables}
 				markAsSentAfterSending={deliverablesEmailAction.markDeliverablesAsSentAfterSending}
+				editorDueDate={deliverablesEmailAction.editorDueDate}
+				onEditorDueDateChange={deliverablesEmailAction.setEditorDueDate}
+				isStatusRepair={deliverablesEmailAction.isStatusRepair}
+				hasAssignedEditor={session.assignedEditorTokenIdentifier !== undefined}
 				onEditorNotesChange={deliverablesEmailAction.setDeliverablesEditorNotesDraft}
 				onMarkAsSentAfterSendingChange={
 					deliverablesEmailAction.setMarkDeliverablesAsSentAfterSending

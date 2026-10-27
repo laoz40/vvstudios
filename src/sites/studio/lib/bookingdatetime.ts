@@ -18,7 +18,7 @@ import { getUtcDateForZonedParts } from "#studio/lib/zonedDateTime";
 
 const BOOKING_TIME_ZONE = "Australia/Sydney";
 
-const EDITOR_EDIT_DUE_DAYS_AFTER_SESSION = 6;
+export const EDITOR_EDIT_DUE_DAYS_AFTER_SESSION = 6;
 
 export interface BusyPeriod {
 	calendarId?: string;
@@ -187,7 +187,11 @@ export function getSydneyTimeValue(date: Date | number) {
 	return `${partValue("hour")}:${partValue("minute")}`;
 }
 
-export function getEditorEditDueAt(sessionStartAt: number) {
+export function getEditorEditDueAt(sessionStartAt: number, editorDueDate?: string) {
+	if (editorDueDate !== undefined && parseCalendarDate(editorDueDate) !== null) {
+		return getBookingStartTimestamp(editorDueDate, "12:00");
+	}
+
 	const { day, month, year } = getCalendarDateInSydney(new Date(sessionStartAt));
 
 	const dueCalendarDate = new Date(
@@ -207,8 +211,14 @@ export function getEditorEditDueAt(sessionStartAt: number) {
 	);
 }
 
-export function getEditorEditDueDayDifference(sessionStartAt: number, now = new Date()) {
-	const dueDateValue = getSydneyDateValue(new Date(getEditorEditDueAt(sessionStartAt)));
+export function getEditorEditDueDayDifference(
+	sessionStartAt: number,
+	now = new Date(),
+	editorDueDate?: string
+) {
+	const dueDateValue = getSydneyDateValue(
+		new Date(getEditorEditDueAt(sessionStartAt, editorDueDate))
+	);
 
 	return getBookingDayDifference(dueDateValue, now);
 }

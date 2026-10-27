@@ -96,13 +96,13 @@ export function missingEnvKeys(): string[] {
 export async function getPortListenerPid(port = DEV_PORT): Promise<number | null> {
 	try {
 		const { stdout } = await execFileAsync("ss", ["-H", "-tlnp", `sport = :${port}`]);
-		const match = stdout.match(/pid=(\d+)/u);
+		const pid = stdout.match(/pid=(\d+)/u)?.[1];
 
-		if (match === null) {
+		if (pid === undefined) {
 			return null;
 		}
 
-		return Number.parseInt(match[1], 10);
+		return Number.parseInt(pid, 10);
 	} catch {
 		return null;
 	}

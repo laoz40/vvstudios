@@ -22,3 +22,7 @@ Check for an equivalent proposal before adding an item. Keep unapproved entries 
   - Failure and consequence: Selecting or saving a second editing or clip service could silently discard another service or its quantity, leaving the booking and invoice incomplete.
   - Observable result: Submit a booking and save an admin session edit with Rough Cut, Complete Edit, Clip Volume Pack, and Handcrafted Clips at different quantities; all four services and their quantities persist and the invoice charges each selected quantity.
   - Coverage gap: Existing pricing cases cover individual editing selections, but do not cover combined selections surviving booking validation and admin editing. Static checks cannot detect silent deselection.
+- [ ] Delivering one part can restart the editor assignment without suppressing its notification.
+  - Failure and consequence: a session's previous sent assignment email suppresses the next round's email, leaving the editor unaware of more work.
+  - Observable result: call `api.sessions.admin.restartSessionEditing` after a prior sent assignment, then run the scheduled editor access job. The booking has `to_edit` and the new due date, and the outgoing assignment email carries that date with a distinct idempotency key.
+  - Coverage gap: current Drive tests cover initial assignment and stale email results, but do not exercise a new delivery round after a sent notification. Static checks cannot detect email-provider deduplication.
