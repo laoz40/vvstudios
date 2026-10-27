@@ -180,17 +180,19 @@ function ActiveJobsContent({ editor, open }: { editor: ManagedEditor; open: bool
 							<TableCell className="align-top">
 								<div className="flex flex-col gap-1 whitespace-normal">
 									<p className="font-medium">{formatShortMonthFullDate(dueAt)}</p>
-									<p
-										className={cn(
-											"text-sm",
-											daysUntilDue === null
-												? "text-muted-foreground"
-												: getEditorEditDueSubtitleClassName(daysUntilDue, "edits")
-										)}>
-										{daysUntilDue === null
-											? "Due timing unavailable"
-											: formatEditorEditDueLabel(daysUntilDue)}
-									</p>
+									{status !== "review" || daysUntilDue === null || daysUntilDue > 0 ? (
+										<p
+											className={cn(
+												"text-sm",
+												daysUntilDue === null
+													? "text-muted-foreground"
+													: getEditorEditDueSubtitleClassName(daysUntilDue, "edits")
+											)}>
+											{daysUntilDue === null
+												? "Due timing unavailable"
+												: formatEditorEditDueLabel(daysUntilDue)}
+										</p>
+									) : null}
 								</div>
 							</TableCell>
 							<TableCell className="align-top [overflow-wrap:anywhere] whitespace-pre-wrap text-muted-foreground">

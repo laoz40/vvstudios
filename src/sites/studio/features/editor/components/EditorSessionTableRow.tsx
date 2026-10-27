@@ -25,6 +25,7 @@ function getSessionDateSubtitle(
 	date: string,
 	time: string,
 	view: EditorSessionsView,
+	editStatus: EditorSession["editStatus"],
 	editorDueDate?: string
 ) {
 	const dayDifference = getBookingDayDifference(date);
@@ -39,6 +40,8 @@ function getSessionDateSubtitle(
 	if (daysUntilDue === null) {
 		return { label: formatBookingTimeLabel(time), className: "text-muted-foreground" };
 	}
+
+	if (editStatus === "review" && daysUntilDue <= 0) return null;
 
 	return {
 		label: formatEditorEditDueLabel(daysUntilDue),
@@ -59,6 +62,7 @@ export function EditorSessionTableRow({
 		session.date,
 		session.time,
 		view,
+		session.editStatus,
 		session.editorDueDate
 	);
 
@@ -83,7 +87,9 @@ export function EditorSessionTableRow({
 				<TableCell>
 					<div className="flex flex-col gap-1 whitespace-normal">
 						<p className="font-medium">{formatBookingDateMedium(session.date)}</p>
-						<p className={cn("text-sm", dateSubtitle.className)}>{dateSubtitle.label}</p>
+						{dateSubtitle !== null ? (
+							<p className={cn("text-sm", dateSubtitle.className)}>{dateSubtitle.label}</p>
+						) : null}
 					</div>
 				</TableCell>
 				<TableCell>
