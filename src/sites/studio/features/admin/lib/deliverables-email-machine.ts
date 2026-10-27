@@ -2,6 +2,7 @@ type DeliverablesEmailState = {
 	isDeliverablesEmailDialogOpen: boolean;
 	deliverablesEditorNotesDraft: string;
 	markDeliverablesAsSentAfterSending: boolean;
+	editorDueDate: string;
 	kind: "ready" | "sending" | "repairingStatus" | "statusRepair";
 };
 
@@ -9,6 +10,7 @@ type DeliverablesEmailEvent =
 	| { type: "dialogOpenChanged"; open: boolean }
 	| { type: "notesChanged"; notes: string }
 	| { type: "markAsSentChanged"; checked: boolean }
+	| { type: "dueDateChanged"; date: string }
 	| { type: "sendStarted" }
 	| { type: "emailFailed" }
 	| { type: "statusUpdateStarted" }
@@ -19,7 +21,8 @@ export function createDeliverablesEmailState(editorNotes: string): DeliverablesE
 	return {
 		isDeliverablesEmailDialogOpen: false,
 		deliverablesEditorNotesDraft: editorNotes,
-		markDeliverablesAsSentAfterSending: false,
+		markDeliverablesAsSentAfterSending: true,
+		editorDueDate: "",
 		kind: "ready"
 	};
 }
@@ -33,6 +36,8 @@ export function reduceDeliverablesEmail(
 			return { ...state, isDeliverablesEmailDialogOpen: event.open };
 		case "notesChanged":
 			return { ...state, deliverablesEditorNotesDraft: event.notes };
+		case "dueDateChanged":
+			return { ...state, editorDueDate: event.date };
 		case "markAsSentChanged":
 			return { ...state, markDeliverablesAsSentAfterSending: event.checked };
 		case "sendStarted":

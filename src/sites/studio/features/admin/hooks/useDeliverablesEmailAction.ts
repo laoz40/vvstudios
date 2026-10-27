@@ -10,7 +10,9 @@ import {
 } from "#studio/features/admin/lib/deliverables-email-machine";
 import {
 	formatDriveSessionMediaFolderName,
-	getBookingStartTimestamp
+	getBookingStartTimestamp,
+	getEditorEditDueAt,
+	getSydneyDateValue
 } from "#studio/lib/bookingdatetime";
 
 function deliverablesEmailErrorToast(reason: string) {
@@ -68,6 +70,7 @@ export function useDeliverablesEmailAction(session: SessionRecord) {
 		api.editor.deliverablesEmail.sendSessionDeliverablesEmail
 	);
 
+	const restartSessionEditing = useMutation(api.sessions.admin.restartSessionEditing);
 	const updateSessionEditStatus = useMutation(api.sessions.admin.updateSessionEditStatus);
 
 	const [email, dispatch] = useReducer(
@@ -79,12 +82,20 @@ export function useDeliverablesEmailAction(session: SessionRecord) {
 	const {
 		isDeliverablesEmailDialogOpen,
 		deliverablesEditorNotesDraft,
-		markDeliverablesAsSentAfterSending
+		markDeliverablesAsSentAfterSending,
+		editorDueDate
 	} = email;
 
 	const isEmailingDeliverables = email.kind === "sending" || email.kind === "repairingStatus";
 
 	function setIsDeliverablesEmailDialogOpen(open: boolean) {
+		if (open && email.kind === "ready") {
+			dispatch({
+				type: "dueDateChanged",
+				date: getSydneyDateValue(new Date(getEditorEditDueAt(Date.now())))
+			});
+		}
+
 		dispatch({ type: "dialogOpenChanged", open });
 	}
 
@@ -116,6 +127,7 @@ export function useDeliverablesEmailAction(session: SessionRecord) {
 	}, [isDeliverablesEmailDialogOpen, session.deliverablesClientNotes]);
 
 	async function handleEmailDeliverables() {
+		if (!markDeliverablesAsSentAfterSending && !editorDueDate) return;
 		dispatch({ type: "sendStarted" });
 
 		if (email.kind === "statusRepair" || email.kind === "repairingStatus") {
@@ -138,13 +150,6 @@ export function useDeliverablesEmailAction(session: SessionRecord) {
 			return;
 		}
 
-		if (!markDeliverablesAsSentAfterSending) {
-			resetDeliverablesEmailDialog();
-			toast.success(`Deliverables email sent to ${session.email}.`);
-
-			return;
-		}
-
 		await repairDeliverablesStatusAfterEmailSent(`Deliverables email sent to ${session.email}.`);
 	}
 
@@ -152,18 +157,26 @@ export function useDeliverablesEmailAction(session: SessionRecord) {
 		dispatch({ type: "statusUpdateStarted" });
 
 		const [statusError] = await tryCatch(
-			updateSessionEditStatus({ bookingId: session._id, editStatus: "completed" })
+			markDeliverablesAsSentAfterSending
+				? updateSessionEditStatus({ bookingId: session._id, editStatus: "completed" })
+				: restartSessionEditing({ bookingId: session._id, editorDueDate })
 		);
 
 		if (statusError !== null) {
-			toast.error("Deliverables email sent, but status couldn't be updated. Please let us know.");
+			toast.error(
+				"Client email sent, but the assignment update failed. Retry to finish without resending the client email."
+			);
 			dispatch({ type: "statusUpdateFailed" });
 
 			return;
 		}
 
 		resetDeliverablesEmailDialog();
-		toast.success(successMessage);
+		toast.success(
+			markDeliverablesAsSentAfterSending
+				? successMessage
+				: "Deliverables sent. Assignment reset to Not started with the new due date. Editor notification queued."
+		);
 	}
 
 	function resetDeliverablesEmailDialog() {
@@ -171,6 +184,9 @@ export function useDeliverablesEmailAction(session: SessionRecord) {
 	}
 
 	return {
+		editorDueDate,
+		setEditorDueDate: (date: string) => dispatch({ type: "dueDateChanged", date }),
+		isStatusRepair: email.kind === "statusRepair" || email.kind === "repairingStatus",
 		deliverablesEditorNotesDraft,
 		deliverablesFolderName,
 		deliverablesFolderUrl,

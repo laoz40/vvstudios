@@ -1,3 +1,8 @@
+import { validateEditorDueDate } from "#convex/sessions/lib/editorAssignmentSteps";
+import { resetSessionForNextDeliverables } from "#convex/editor/lib/editorSessions";
+import { resetEditorAssignmentEmail } from "#convex/drive/lib/driveEditor";
+import { loadDriveSessionRowByBookingId } from "#convex/drive/lib/driveBookingDriveClient";
+import { scheduleEditorDriveAccessSetup } from "#convex/editor/lib/editorAssignments";
 import { ok, safeTry, type ResultAsync } from "neverthrow";
 import type { UserIdentity } from "convex/server";
 import type { Doc, Id } from "#convex/_generated/dataModel";
@@ -157,5 +162,39 @@ export function cancelSessionAfterCalendarEventDeleted(
 				status: "cancelled"
 			})
 		);
+	});
+}
+
+export function restartSessionEditingAfterDelivery(
+	ctx: MutationCtx,
+	args: { bookingId: Id<"bookings">; editorDueDate: string }
+): ResultAsync<
+	null,
+	{
+		reason:
+			| "NOT_AUTHENTICATED"
+			| "NOT_AUTHORIZED"
+			| "BOOKING_NOT_FOUND"
+			| "SESSION_NOT_ASSIGNED_TO_EDITOR"
+			| "SESSION_NOT_CONFIRMED"
+			| "SESSION_NOT_IN_PAST"
+			| "INVALID_EDITOR_DUE_DATE";
+	}
+> {
+	return safeTry(async function* () {
+		const identity = yield* requirePermission(ctx, "update:deliverables");
+		const access = yield* loadDeliverablesAccessStep(ctx, args.bookingId, identity);
+		const ownedAccess = yield* requireDeliverablesOwnership(access);
+		const session = yield* requireDeliverablesEligibility(ownedAccess);
+
+		yield* validateEditorDueDate(args.editorDueDate);
+		yield* resetSessionForNextDeliverables(ctx, session, args.editorDueDate);
+
+		const driveSession = yield* loadDriveSessionRowByBookingId(ctx, session._id);
+
+		yield* resetEditorAssignmentEmail(ctx, driveSession);
+		yield* scheduleEditorDriveAccessSetup(ctx, session._id);
+
+		return ok(null);
 	});
 }

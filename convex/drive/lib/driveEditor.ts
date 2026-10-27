@@ -1,8 +1,11 @@
 import { err, errAsync, ok, okAsync, type ResultAsync } from "neverthrow";
-import { exhaustiveCheck } from "#/lib/result";
+import {
+	canClaimEditorAssignmentEmail,
+	type ClaimEditorAssignmentEmailArgs
+} from "#convex/drive/lib/editorPermissionSteps";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
-import { DRIVE_EMAIL_CLAIM_TIMEOUT_MS, type DriveSetupInfo } from "#convex/drive/lib/driveLookup";
+import { type DriveSetupInfo } from "#convex/drive/lib/driveLookup";
 import type { SavedDrivePermission } from "#convex/drive/lib/googleDrive";
 import { okOrThrow } from "#convex/shared/lib/result";
 
@@ -564,38 +567,6 @@ export function writeEditorDrivePermissionsStatus(
 	);
 }
 
-type ClaimEditorAssignmentEmailArgs = {
-	bookingId: Id<"bookings">;
-	editorTokenIdentifier: string;
-	now: number;
-};
-
-function canClaimEditorAssignmentEmail(
-	driveSession: Doc<"driveSessions">,
-	args: ClaimEditorAssignmentEmailArgs
-) {
-	const emailMatchesEditor =
-		driveSession.assignmentEmailTokenIdentifier === args.editorTokenIdentifier;
-
-	if (!emailMatchesEditor) return true;
-
-	const claimedRecently =
-		driveSession.assignmentEmailClaimedAt !== undefined &&
-		args.now - driveSession.assignmentEmailClaimedAt < DRIVE_EMAIL_CLAIM_TIMEOUT_MS;
-
-	if (claimedRecently) return false;
-
-	switch (driveSession.assignmentEmailStatus) {
-		case "failed":
-		case undefined:
-			return true;
-		case "sent":
-			return false;
-		default:
-			return exhaustiveCheck(driveSession.assignmentEmailStatus);
-	}
-}
-
 export type EditorAssignmentEmailClaim = {
 	bookingId: Id<"bookings">;
 	claimedAt: number;
@@ -663,6 +634,24 @@ export function saveEditorAssignmentEmailResultForSession(
 			.patch("driveSessions", driveSession._id, {
 				assignmentEmailClaimedAt: undefined,
 				assignmentEmailStatus: args.status,
+				updatedAt: Date.now()
+			})
+			.then(() => null)
+	);
+}
+
+export function resetEditorAssignmentEmail(
+	ctx: MutationCtx,
+	driveSession: Doc<"driveSessions"> | null
+) {
+	if (driveSession === null) return okAsync(null);
+
+	return okOrThrow(
+		ctx.db
+			.patch("driveSessions", driveSession._id, {
+				assignmentEmailClaimedAt: undefined,
+				assignmentEmailStatus: undefined,
+				assignmentEmailTokenIdentifier: undefined,
 				updatedAt: Date.now()
 			})
 			.then(() => null)

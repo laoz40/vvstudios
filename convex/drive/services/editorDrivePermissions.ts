@@ -210,6 +210,7 @@ function sendClaimedEditorAssignmentEmail(ctx: ActionCtx, claim: EditorAssignmen
 		yield* sendEditorAssignmentEmail({
 			bookingId: claim.bookingId,
 			editorEmail: claim.editorEmail,
+			claimedAt: claim.claimedAt,
 			editorName: claim.editorName,
 			sessionName: claim.sessionName,
 			editorDueDate: claim.editorDueDate,

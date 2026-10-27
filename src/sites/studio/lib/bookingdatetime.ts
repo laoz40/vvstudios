@@ -18,7 +18,7 @@ import { getUtcDateForZonedParts } from "#studio/lib/zonedDateTime";
 
 const BOOKING_TIME_ZONE = "Australia/Sydney";
 
-const EDITOR_EDIT_DUE_DAYS_AFTER_SESSION = 6;
+export const EDITOR_EDIT_DUE_DAYS_AFTER_SESSION = 6;
 
 export interface BusyPeriod {
 	calendarId?: string;
