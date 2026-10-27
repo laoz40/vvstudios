@@ -17,3 +17,8 @@ Check for an equivalent proposal before adding an item. Keep unapproved entries 
 
 ## Pending proposals
 
+
+- [ ] Preserve and charge all selected editing and clip services together.
+  - Failure and consequence: Selecting or saving a second editing or clip service could silently discard another service or its quantity, leaving the booking and invoice incomplete.
+  - Observable result: Submit a booking and save an admin session edit with Rough Cut, Complete Edit, Clip Volume Pack, and Handcrafted Clips at different quantities; all four services and their quantities persist and the invoice charges each selected quantity.
+  - Coverage gap: Existing pricing cases cover individual editing selections, but do not cover combined selections surviving booking validation and admin editing. Static checks cannot detect silent deselection.

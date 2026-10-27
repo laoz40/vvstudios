@@ -2,13 +2,10 @@ import {
 	ADDON_OPTIONS,
 	DELIVERABLE_COUNT_OPTIONS,
 	isDeliverableCountOption,
-	resolveExclusiveAddonSelection,
+	resolveAddonSelection,
 	type BookingAddon
 } from "#/domain/booking/catalog";
-import {
-	ADDON_SECTIONS,
-	BOOKING_ADDON_QUANTITY_FIELD_CONFIG
-} from "#studio/features/booking-form/lib/booking-form-model";
+import { BOOKING_ADDON_QUANTITY_FIELD_CONFIG } from "#studio/features/booking-form/lib/booking-form-model";
 import {
 	getClearedAddonQuantityUpdates,
 	isQuantityTrackedAddon,
@@ -20,16 +17,6 @@ export type AdminAddonLineItemDraft = { id: string; addon: BookingAddon | ""; qu
 
 export function createAdminAddonLineItemDraft(): AdminAddonLineItemDraft {
 	return { id: crypto.randomUUID(), addon: "", quantity: "" };
-}
-
-function getExclusiveAddonSiblings(addon: BookingAddon): readonly BookingAddon[] {
-	for (const section of ADDON_SECTIONS.slice(1)) {
-		if (section.addons.some((sectionAddon) => sectionAddon === addon)) {
-			return section.addons.filter((sectionAddon) => sectionAddon !== addon);
-		}
-	}
-
-	return [];
 }
 
 export function adminAddonLineItemsFromState(
@@ -64,7 +51,7 @@ export function adminAddonStateFromLineItems(
 			continue;
 		}
 
-		addons = resolveExclusiveAddonSelection(addons, draft.addon, true);
+		addons = resolveAddonSelection(addons, draft.addon, true);
 
 		if (!isQuantityTrackedAddon(draft.addon)) {
 			continue;
@@ -90,8 +77,10 @@ export function getAdminAddonLineItemOptions(
 ) {
 	const currentDraft = drafts.find((draft) => draft.id === currentDraftId);
 
-	const otherSelectedAddons = drafts.flatMap((draft) =>
-		draft.id !== currentDraftId && draft.addon !== "" ? [draft.addon] : []
+	const otherSelectedAddons = new Set(
+		drafts.flatMap((draft) =>
+			draft.id !== currentDraftId && draft.addon !== "" ? [draft.addon] : []
+		)
 	);
 
 	return ADDON_OPTIONS.filter((addon) => {
@@ -99,13 +88,7 @@ export function getAdminAddonLineItemOptions(
 			return true;
 		}
 
-		if (otherSelectedAddons.includes(addon)) {
-			return false;
-		}
-
-		return !otherSelectedAddons.some((selectedAddon) =>
-			getExclusiveAddonSiblings(addon).includes(selectedAddon)
-		);
+		return !otherSelectedAddons.has(addon);
 	});
 }
 
