@@ -149,6 +149,7 @@ export function buildEditorSessionProjection(
 		accountName: session.accountName,
 		notes: session.notes,
 		adminNotes: session.adminNotes,
+		editorDueDate: session.editorDueDate,
 		editorNotes: session.editorNotes,
 		deliverablesClientNotes: session.deliverablesClientNotes,
 		deliverablesDriveLink: session.deliverablesDriveLink,

@@ -100,6 +100,7 @@ export function patchBookingEditorAssignment(
 	bookingId: Id<"bookings">,
 	patch: {
 		adminNotes?: string;
+		editorDueDate?: string;
 		assignedEditorDisplayName?: string;
 		assignedEditorTokenIdentifier?: string;
 		searchBlobPatch: BookingSearchBlobPatch;
@@ -109,6 +110,7 @@ export function patchBookingEditorAssignment(
 		ctx.db
 			.patch("bookings", bookingId, {
 				adminNotes: patch.adminNotes,
+				editorDueDate: patch.editorDueDate,
 				assignedEditorDisplayName: patch.assignedEditorDisplayName,
 				assignedEditorTokenIdentifier: patch.assignedEditorTokenIdentifier,
 				...patch.searchBlobPatch

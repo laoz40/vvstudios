@@ -108,7 +108,8 @@ export const assignSessionEditor = mutation({
 	args: {
 		bookingId: v.id("bookings"),
 		editorTokenIdentifier: v.union(v.string(), v.null()),
-		adminNotes: v.string()
+		adminNotes: v.string(),
+		editorDueDate: v.optional(v.string())
 	},
 	handler: (ctx, args) => assignSessionEditorFromAdmin(ctx, args).match(tupleOk, tupleErr)
 });

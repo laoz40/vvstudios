@@ -39,6 +39,7 @@ type EditorAssignmentEmailClaim = {
 	editorTokenIdentifier: string;
 	sessionName: string;
 	sessionStartAt: number;
+	editorDueDate?: string;
 };
 
 export function loadEditorDriveSetup(

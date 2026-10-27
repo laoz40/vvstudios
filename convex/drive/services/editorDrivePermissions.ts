@@ -202,6 +202,7 @@ type EditorAssignmentEmailClaim = {
 	editorTokenIdentifier: string;
 	sessionName: string;
 	sessionStartAt: number;
+	editorDueDate?: string;
 };
 
 function sendClaimedEditorAssignmentEmail(ctx: ActionCtx, claim: EditorAssignmentEmailClaim) {
@@ -211,6 +212,7 @@ function sendClaimedEditorAssignmentEmail(ctx: ActionCtx, claim: EditorAssignmen
 			editorEmail: claim.editorEmail,
 			editorName: claim.editorName,
 			sessionName: claim.sessionName,
+			editorDueDate: claim.editorDueDate,
 			sessionStartAt: claim.sessionStartAt
 		});
 

@@ -21,7 +21,12 @@ import {
 
 type EditorSessionsView = "edits" | "history";
 
-function getSessionDateSubtitle(date: string, time: string, view: EditorSessionsView) {
+function getSessionDateSubtitle(
+	date: string,
+	time: string,
+	view: EditorSessionsView,
+	editorDueDate?: string
+) {
 	const dayDifference = getBookingDayDifference(date);
 
 	if (dayDifference === null || dayDifference >= 0) {
@@ -29,7 +34,7 @@ function getSessionDateSubtitle(date: string, time: string, view: EditorSessions
 	}
 
 	const sessionStartAt = getBookingStartTimestamp(date, time);
-	const daysUntilDue = getEditorEditDueDayDifference(sessionStartAt);
+	const daysUntilDue = getEditorEditDueDayDifference(sessionStartAt, new Date(), editorDueDate);
 
 	if (daysUntilDue === null) {
 		return { label: formatBookingTimeLabel(time), className: "text-muted-foreground" };
@@ -49,7 +54,14 @@ export function EditorSessionTableRow({
 	view: EditorSessionsView;
 }) {
 	const [isEditorNotesOpen, setIsEditorNotesOpen] = useState(false);
-	const dateSubtitle = getSessionDateSubtitle(session.date, session.time, view);
+
+	const dateSubtitle = getSessionDateSubtitle(
+		session.date,
+		session.time,
+		view,
+		session.editorDueDate
+	);
+
 	const isPastSession = !isUpcomingBooking(session.date, session.time);
 	const editorNotesText = session.editorNotes?.trim() ?? "";
 

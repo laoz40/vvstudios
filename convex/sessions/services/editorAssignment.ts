@@ -8,6 +8,7 @@ import {
 	editorAssignmentAccessState,
 	editorAssignmentSearchInput,
 	loadEditorForSessionAssignment,
+	validateEditorDueDate,
 	requireSelectedAssignmentEditor,
 	patchEditorAssignmentAfterSearch,
 	patchLastAssignedIfEditor,
@@ -19,13 +20,21 @@ function saveSessionEditorAssignment(
 	ctx: MutationCtx,
 	session: Doc<"bookings">,
 	editor: Doc<"editorProfiles"> | undefined,
-	adminNotes: string
+	adminNotes: string,
+	editorDueDate: string | undefined
 ): ResultAsync<null, never> {
 	return safeTry(async function* () {
 		const driveSession = yield* loadDriveSessionRowByBookingId(ctx, session._id);
 
 		return ok(
-			yield* saveSessionEditorAssignmentWithAccess(ctx, session, editor, adminNotes, driveSession)
+			yield* saveSessionEditorAssignmentWithAccess(
+				ctx,
+				session,
+				editor,
+				adminNotes,
+				editorDueDate,
+				driveSession
+			)
 		);
 	});
 }
@@ -35,6 +44,7 @@ function saveSessionEditorAssignmentWithAccess(
 	session: Doc<"bookings">,
 	editor: Doc<"editorProfiles"> | undefined,
 	adminNotes: string,
+	editorDueDate: string | undefined,
 	driveSession: Doc<"driveSessions"> | null
 ): ResultAsync<null, never> {
 	const {
@@ -50,7 +60,14 @@ function saveSessionEditorAssignmentWithAccess(
 			editorAssignmentSearchInput(session, editor, assignedEditorDisplayName)
 		);
 
-		yield* patchEditorAssignmentAfterSearch(ctx, session, editor, adminNotes, searchBlobPatch);
+		yield* patchEditorAssignmentAfterSearch(
+			ctx,
+			session,
+			editor,
+			adminNotes,
+			editorDueDate,
+			searchBlobPatch
+		);
 		yield* patchLastAssignedIfEditor(ctx, editor);
 		yield* scheduleAdminNotesEmail(ctx, session, adminNotes, editor);
 		yield* scheduleDriveAccessRemovalIfNeeded(
@@ -68,12 +85,14 @@ export function updateSessionEditorAssignment(
 	ctx: MutationCtx,
 	session: Doc<"bookings">,
 	editorTokenIdentifier: string | null,
-	adminNotes: string
+	adminNotes: string,
+	editorDueDate: string | undefined
 ): ResultAsync<
 	null,
 	{
 		reason:
 			| "BOOKING_NOT_FOUND"
+			| "INVALID_EDITOR_DUE_DATE"
 			| "EDITOR_NOT_ACTIVE"
 			| "SESSION_NOT_ASSIGNABLE"
 			| "NOT_AUTHENTICATED"
@@ -81,6 +100,8 @@ export function updateSessionEditorAssignment(
 	}
 > {
 	return safeTry(async function* () {
+		yield* validateEditorDueDate(editorDueDate);
+
 		const selectedEditor = yield* loadEditorForSessionAssignment(
 			ctx,
 			session,
@@ -89,6 +110,6 @@ export function updateSessionEditorAssignment(
 
 		const editor = yield* requireSelectedAssignmentEditor(selectedEditor);
 
-		return ok(yield* saveSessionEditorAssignment(ctx, session, editor, adminNotes));
+		return ok(yield* saveSessionEditorAssignment(ctx, session, editor, adminNotes, editorDueDate));
 	});
 }

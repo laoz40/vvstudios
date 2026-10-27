@@ -639,6 +639,7 @@ export function claimEditorAssignmentEmailForEditor(
 				editorName: editor.displayName,
 				editorTokenIdentifier: args.editorTokenIdentifier,
 				sessionName: setup.booking.accountName.trim() || setup.booking.name,
+				editorDueDate: setup.booking.editorDueDate,
 				sessionStartAt: setup.booking.sessionStartAt
 			}))
 	);

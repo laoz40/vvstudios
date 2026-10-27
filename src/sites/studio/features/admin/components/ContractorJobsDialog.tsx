@@ -123,8 +123,14 @@ function ActiveJobsContent({ editor, open }: { editor: ManagedEditor; open: bool
 				]}>
 				{jobs.map((job) => {
 					const status: DeliverableStatus = job.editStatus ?? "to_edit";
-					const daysUntilDue = getEditorEditDueDayDifference(job.sessionStartAt);
-					const dueAt = getEditorEditDueAt(job.sessionStartAt);
+
+					const daysUntilDue = getEditorEditDueDayDifference(
+						job.sessionStartAt,
+						new Date(),
+						job.editorDueDate
+					);
+
+					const dueAt = getEditorEditDueAt(job.sessionStartAt, job.editorDueDate);
 
 					return (
 						<TableRow key={job._id}>

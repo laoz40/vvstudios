@@ -47,12 +47,18 @@ export function saveSessionInstagramHandleByStripeSessionId(
 
 export function assignSessionEditorFromAdmin(
 	ctx: MutationCtx,
-	args: { bookingId: Id<"bookings">; editorTokenIdentifier: string | null; adminNotes: string }
+	args: {
+		bookingId: Id<"bookings">;
+		editorTokenIdentifier: string | null;
+		adminNotes: string;
+		editorDueDate?: string;
+	}
 ): ResultAsync<
 	null,
 	{
 		reason:
 			| "BOOKING_NOT_FOUND"
+			| "INVALID_EDITOR_DUE_DATE"
 			| "EDITOR_NOT_ACTIVE"
 			| "SESSION_NOT_ASSIGNABLE"
 			| "NOT_AUTHENTICATED"
@@ -68,7 +74,8 @@ export function assignSessionEditorFromAdmin(
 				ctx,
 				session,
 				args.editorTokenIdentifier,
-				args.adminNotes
+				args.adminNotes,
+				args.editorDueDate
 			)
 		);
 	});
