@@ -2,7 +2,7 @@ import type { BookingFormApi } from "#studio/features/booking-form/lib/booking-f
 import { forEachClearedAddonQuantityField } from "#/domain/booking/addon-quantities";
 import {
 	isClipVolumePackEditAddon,
-	resolveExclusiveAddonSelection,
+	resolveAddonSelection,
 	satisfiesClipVolumePackEditRequirement,
 	type BookingAddon
 } from "#/domain/booking/catalog";
@@ -28,7 +28,7 @@ export function toggleBookingAddon(
 		return;
 	}
 
-	const nextAddons = resolveExclusiveAddonSelection(selectedAddons, addon, checked);
+	const nextAddons = resolveAddonSelection(selectedAddons, addon, checked);
 
 	const shouldNotifyClipsPackageDeselected =
 		!checked &&

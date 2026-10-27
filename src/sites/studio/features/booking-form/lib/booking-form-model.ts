@@ -6,7 +6,6 @@ import {
 	BOOKING_MODES,
 	DELIVERABLE_COUNT_OPTIONS,
 	DURATION_OPTIONS,
-	EXCLUSIVE_ADDON_GROUPS,
 	SERVICES,
 	isPackageUnavailableAddon,
 	satisfiesClipVolumePackEditRequirement,
@@ -181,23 +180,6 @@ function validatePackageAddonAvailability(
 	}
 }
 
-function validateExclusiveAddonGroups(
-	values: { addons: readonly BookingAddon[] },
-	ctx: z.RefinementCtx
-) {
-	for (const group of EXCLUSIVE_ADDON_GROUPS) {
-		const selectedInGroup = group.filter((groupAddon) => values.addons.includes(groupAddon));
-
-		if (selectedInGroup.length > 1) {
-			ctx.addIssue({
-				code: "custom",
-				message: `Select only one of: ${group.join(" or ")}.`,
-				path: ["addons"]
-			});
-		}
-	}
-}
-
 function validateEditingAddonQuantities(
 	values: { addons: readonly BookingAddon[] } & BookingAddonQuantities,
 	ctx: z.RefinementCtx
@@ -234,7 +216,6 @@ export const bookingSchema = z
 		time: z.string()
 	})
 	.superRefine((values, ctx) => {
-		validateExclusiveAddonGroups(values, ctx);
 		validateEditingAddonQuantities(values, ctx);
 
 		if (values.bookingMode === "package" && !values.packageSize) {
@@ -291,7 +272,6 @@ export function bookingFieldBlurValidator(fieldName: keyof BookingFormValues) {
 export const packageFormSchema = z
 	.object({ ...sharedBookingFields, packageSize: requiredPackageSize })
 	.superRefine((values, ctx) => {
-		validateExclusiveAddonGroups(values, ctx);
 		validateEditingAddonQuantities(values, ctx);
 		validatePackageAddonAvailability(values, ctx);
 	});

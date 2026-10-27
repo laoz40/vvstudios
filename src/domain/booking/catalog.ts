@@ -26,8 +26,6 @@ export const ADDON_GROUPS = [
 	["Clip Volume Pack", "Handcrafted Clips"]
 ] as const satisfies ReadonlyArray<readonly BookingAddon[]>;
 
-export const EXCLUSIVE_ADDON_GROUPS = ADDON_GROUPS.slice(1);
-
 const CLIP_VOLUME_PACK_EDIT_ADDONS = ["Essential Edit", "Complete Edit"] as const;
 
 // Customer-facing name for Essential Edit is Rough Cut. Internal addon key stays "Essential Edit".
@@ -81,7 +79,7 @@ export function isClipVolumePackEditAddon(
 	return CLIP_VOLUME_PACK_EDIT_ADDONS.some((editAddon) => editAddon === addon);
 }
 
-export function resolveExclusiveAddonSelection(
+export function resolveAddonSelection(
 	selectedAddons: readonly BookingAddon[],
 	addon: BookingAddon,
 	checked: boolean
@@ -90,13 +88,7 @@ export function resolveExclusiveAddonSelection(
 		return selectedAddons.filter((value) => value !== addon);
 	}
 
-	const group = EXCLUSIVE_ADDON_GROUPS.find((exclusiveGroup) =>
-		exclusiveGroup.some((groupAddon) => groupAddon === addon)
-	);
-
-	const siblings = group?.filter((groupAddon) => groupAddon !== addon) ?? [];
-
-	return [...selectedAddons.filter((value) => value !== addon && !siblings.includes(value)), addon];
+	return [...selectedAddons.filter((value) => value !== addon), addon];
 }
 
 export function isDurationOption(value: string): value is (typeof DURATION_OPTIONS)[number] {
