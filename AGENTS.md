@@ -16,14 +16,13 @@ Operational priorities: accessibility, fast first paint on marketing pages, and 
 
 ## Behaviour
 
-- Start new work and feature branches from `dev`, and target `dev` with everyday PRs. Only release PRs from this repository's `dev` branch may target `production`. Merge releases with a merge commit and keep `dev`; pushes to `production` deploy the live site.
 - Ask before making assumptions that change behavior, UX, or architecture.
 - If a task would produce a very large commit, split into smaller commits per major change or file group.
 - Never use oxlint ignore comments to bypass the linter; fix or restructure instead.
 
 - When adding a new feature, always avoid feature creep and over-engineering
     - Reach for the simplest thing that works
-    - Suggest issues from edge cases before you implement fixes for them or build for hypothetical futures.
+    - Before adding complexity for a speculative or vanishingly unlikely race or security edge case, explain the concrete failure mode, likelihood, and complexity cost to the user and get their buy-in. Do not silently expand scope for theoretical robustness.
     - Do not assume backwards compatibility, migrations, or backfills are needed. Check if the feature is actually in the main branch already
     - Make sure not to write low value tests that don't relate to the core behaviour
     - Make sure not to add unecessary fields to the db schema
