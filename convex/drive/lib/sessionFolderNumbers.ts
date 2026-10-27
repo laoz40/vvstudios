@@ -20,7 +20,7 @@ export type DriveFolderNumberCtx = Pick<QueryCtx, "db">;
 
 export function sortScheduledSessions(bookings: Doc<"bookings">[]) {
 	return bookings
-		.filter((booking) => booking.status !== "cancelled")
+		.filter((booking) => booking.status === "confirmed")
 		.toSorted((a, b) => a.sessionStartAt - b.sessionStartAt);
 }
 
