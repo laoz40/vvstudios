@@ -44,7 +44,7 @@ export function EditorSessionsTable({
 			<FixedDataTable
 				minWidthClassName="min-w-5xl"
 				columns={[
-					{ key: "deliverables", colClassName: "w-32 md:w-28", header: "Deliverables" },
+					{ key: "deliverables", colClassName: "w-48", header: "Deliverables" },
 					{ key: "customer", colClassName: "w-64", header: "Customer" },
 					{ key: "session", colClassName: "w-32 md:w-24", header: "Session" },
 					{ key: "service", colClassName: "w-60 md:w-48", header: "Service" },
