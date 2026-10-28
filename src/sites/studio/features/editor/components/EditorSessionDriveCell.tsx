@@ -1,11 +1,17 @@
-import { useState } from "react";
 import { Button } from "#/components/ui/button";
 import BrandGoogleIcon from "#/components/ui/brand-google-icon";
 import { EditorDriveFoldersDialog } from "#studio/features/editor/components/EditorDriveFoldersDialog";
 import type { EditorSession } from "#studio/features/editor/lib/editor-sessions";
 
-export function EditorSessionDriveCell({ session }: { session: EditorSession }) {
-	const [isDriveDialogOpen, setIsDriveDialogOpen] = useState(false);
+export function EditorSessionDriveCell({
+	session,
+	isDriveDialogOpen,
+	onDriveDialogOpenChange
+}: {
+	session: EditorSession;
+	isDriveDialogOpen: boolean;
+	onDriveDialogOpenChange: (open: boolean) => void;
+}) {
 	const editStatus = session.editStatus ?? "to_edit";
 
 	if (editStatus === "to_edit") {
@@ -18,7 +24,7 @@ export function EditorSessionDriveCell({ session }: { session: EditorSession }) 
 				type="button"
 				variant="ghost"
 				size="icon-sm"
-				onClick={() => setIsDriveDialogOpen(true)}>
+				onClick={() => onDriveDialogOpenChange(true)}>
 				<BrandGoogleIcon
 					size={16}
 					aria-hidden
@@ -28,7 +34,7 @@ export function EditorSessionDriveCell({ session }: { session: EditorSession }) 
 			<EditorDriveFoldersDialog
 				session={session}
 				open={isDriveDialogOpen}
-				onOpenChange={setIsDriveDialogOpen}
+				onOpenChange={onDriveDialogOpenChange}
 			/>
 		</>
 	);

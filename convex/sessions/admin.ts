@@ -151,10 +151,13 @@ export const updateSessionEditStatus = mutation({
 		bookingId: v.id("bookings"),
 		editStatus: v.union(
 			v.literal("to_edit"),
+			v.literal("downloading"),
 			v.literal("editing"),
+			v.literal("uploading"),
 			v.literal("review"),
 			v.literal("completed")
-		)
+		),
+		deliverablesClientNotes: v.optional(v.string())
 	},
 	handler: (ctx, args) => writeSessionEditStatusFromEditor(ctx, args).match(tupleOk, tupleErr)
 });

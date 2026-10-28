@@ -6,7 +6,7 @@ import { lookupEditorProfileByToken } from "#convex/editor/lib/editorAssignments
 export function loadEditorForCompletedTransition(
 	ctx: MutationCtx,
 	session: Doc<"bookings">,
-	editStatus: "to_edit" | "editing" | "review" | "completed"
+	editStatus: NonNullable<Doc<"bookings">["editStatus"]>
 ): ResultAsync<Doc<"editorProfiles"> | null, never> {
 	const token = session.assignedEditorTokenIdentifier;
 

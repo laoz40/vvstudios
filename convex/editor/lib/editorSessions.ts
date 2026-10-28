@@ -113,9 +113,15 @@ export function saveSessionAdminNotes(
 export function patchSessionEditStatus(
 	ctx: MutationCtx,
 	bookingId: Doc<"bookings">["_id"],
-	editStatus: "to_edit" | "editing" | "review" | "completed"
+	editStatus: NonNullable<Doc<"bookings">["editStatus"]>,
+	deliverablesClientNotes?: string
 ) {
-	return okOrThrow(ctx.db.patch("bookings", bookingId, { editStatus }).then(() => null));
+	const patch =
+		deliverablesClientNotes === undefined
+			? { editStatus }
+			: { editStatus, deliverablesClientNotes: deliverablesClientNotes.trim() || undefined };
+
+	return okOrThrow(ctx.db.patch("bookings", bookingId, patch).then(() => null));
 }
 
 export function incrementEditorTotalEdits(

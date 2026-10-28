@@ -69,18 +69,18 @@ export function EditorAssignmentEmail({
 					<Section style={workflow}>
 						<Text style={sectionTitle}>What to do</Text>
 						<Text style={step}>
+							Each session in the dashboard shows its current status, with a button under it that
+							moves it to the next one. Press it as you go so the team can see where the job is.
+						</Text>
+						<Text style={step}>
 							<strong>1. Sign in.</strong> Open the editor dashboard and sign in so you can see your
 							assigned sessions.
 						</Text>
 						<Text style={step}>
-							<strong>2. Find the session to edit.</strong> In the dashboard, find your assigned
-							session and change it from &quot;Not Started&quot; to &quot;Start editing&quot; before
-							working on the files. This lets the team know editing has begun.
-						</Text>
-						<Text style={step}>
-							<strong>3. Get the files.</strong> You will now see a Google Drive button on the right
-							side of the dashboard. Click it to open the folders, then open &quot;
-							{rawMediaFolderName}&quot; and download the recorded footage you need for the edit.
+							<strong>2. Download the footage.</strong> Find your assigned session and press
+							&quot;Set to Downloading&quot;. A Google Drive button appears on the right side of the
+							dashboard. Click it to open the folders, then open &quot;{rawMediaFolderName}&quot;
+							and download the recorded footage you need for the edit.
 						</Text>
 						<Text style={lastSubstep}>
 							<strong>Note:</strong> Only if the Service column shows &quot;Full Edit&quot; or
@@ -88,17 +88,20 @@ export function EditorAssignmentEmail({
 							folder for brand guidelines, logos, and other supporting files.
 						</Text>
 						<Text style={step}>
-							<strong>4. Make the edit.</strong> This is the fun part. Take your time and make it
-							good.
+							<strong>3. Make the edit.</strong> Once the download finishes, press &quot;Set to
+							Editing&quot;. This is the fun part. Take your time and make it good.
 						</Text>
 						<Text style={step}>
-							<strong>5. Upload the finished edit.</strong> Put every edited file the client needs
-							in &quot;{deliverablesFolderName}&quot;.
+							<strong>4. Upload the finished edit.</strong> Press &quot;Set to Uploading&quot;, then
+							put every edited file the client needs in &quot;{deliverablesFolderName}&quot;.
 						</Text>
 						<Text style={step}>
-							<strong>6. Send it for review.</strong> Return to the session in the dashboard and
-							change it to &quot;Ready to review&quot; only after the finished files are in &quot;
-							{deliverablesFolderName}&quot;.
+							<strong>5. Send it for review.</strong> Press &quot;Send for review&quot; only after
+							every finished file is in &quot;{deliverablesFolderName}&quot;. You can add notes for
+							the client before you confirm. This emails the team, so it can&apos;t be undone.
+						</Text>
+						<Text style={step}>
+							Pressed a button by mistake? Click &quot;Undo&quot; in the message that pops up.
 						</Text>
 						<Text style={lastStep}>That&apos;s it. Thanks for taking this one.</Text>
 					</Section>

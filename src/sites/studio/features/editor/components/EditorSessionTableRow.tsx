@@ -57,6 +57,7 @@ export function EditorSessionTableRow({
 	view: EditorSessionsView;
 }) {
 	const [isEditorNotesOpen, setIsEditorNotesOpen] = useState(false);
+	const [isDriveDialogOpen, setIsDriveDialogOpen] = useState(false);
 
 	const dateSubtitle = getSessionDateSubtitle(
 		session.date,
@@ -76,6 +77,7 @@ export function EditorSessionTableRow({
 					<EditorDeliverableStatusBadge
 						session={session}
 						canManageDeliverables={isPastSession}
+						onDownloadingStarted={() => setIsDriveDialogOpen(true)}
 					/>
 				</TableCell>
 				<TableCell>
@@ -124,7 +126,11 @@ export function EditorSessionTableRow({
 					</div>
 				</TableCell>
 				<TableCell className="text-right">
-					<EditorSessionDriveCell session={session} />
+					<EditorSessionDriveCell
+						session={session}
+						isDriveDialogOpen={isDriveDialogOpen}
+						onDriveDialogOpenChange={setIsDriveDialogOpen}
+					/>
 				</TableCell>
 			</TableRow>
 			{isEditorNotesOpen ? (

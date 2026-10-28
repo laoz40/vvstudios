@@ -273,7 +273,9 @@ export default defineSchema({
 		editStatus: v.optional(
 			v.union(
 				v.literal("to_edit"),
+				v.literal("downloading"),
 				v.literal("editing"),
+				v.literal("uploading"),
 				v.literal("review"),
 				v.literal("completed")
 			)
