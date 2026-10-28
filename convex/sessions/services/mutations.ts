@@ -130,7 +130,11 @@ export function writeSessionEditorNotesFromEditor(
 
 export function writeSessionEditStatusFromEditor(
 	ctx: MutationCtx,
-	args: { bookingId: Id<"bookings">; editStatus: NonNullable<Doc<"bookings">["editStatus"]> }
+	args: {
+		bookingId: Id<"bookings">;
+		editStatus: NonNullable<Doc<"bookings">["editStatus"]>;
+		deliverablesClientNotes?: string;
+	}
 ) {
 	return safeTry(async function* () {
 		const identity = yield* requirePermission(ctx, "update:deliverables");
@@ -142,7 +146,12 @@ export function writeSessionEditStatusFromEditor(
 		);
 
 		return ok(
-			yield* writeSessionEditStatusWithHostNotification(ctx, eligibleAccess, args.editStatus)
+			yield* writeSessionEditStatusWithHostNotification(
+				ctx,
+				eligibleAccess,
+				args.editStatus,
+				args.deliverablesClientNotes
+			)
 		);
 	});
 }

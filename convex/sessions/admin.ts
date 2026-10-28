@@ -156,7 +156,8 @@ export const updateSessionEditStatus = mutation({
 			v.literal("uploading"),
 			v.literal("review"),
 			v.literal("completed")
-		)
+		),
+		deliverablesClientNotes: v.optional(v.string())
 	},
 	handler: (ctx, args) => writeSessionEditStatusFromEditor(ctx, args).match(tupleOk, tupleErr)
 });

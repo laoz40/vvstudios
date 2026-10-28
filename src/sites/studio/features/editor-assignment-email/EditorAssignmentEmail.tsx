@@ -96,9 +96,9 @@ export function EditorAssignmentEmail({
 							put every edited file the client needs in &quot;{deliverablesFolderName}&quot;.
 						</Text>
 						<Text style={step}>
-							<strong>5. Send it for review.</strong> Press &quot;Set to Ready for review&quot; only
-							after every finished file is in &quot;{deliverablesFolderName}&quot;. This emails the
-							team, so it can&apos;t be undone.
+							<strong>5. Send it for review.</strong> Press &quot;Send for review&quot; only after
+							every finished file is in &quot;{deliverablesFolderName}&quot;. You can add notes for
+							the client before you confirm. This emails the team, so it can&apos;t be undone.
 						</Text>
 						<Text style={step}>
 							Pressed a button by mistake? Click &quot;Undo&quot; in the message that pops up.

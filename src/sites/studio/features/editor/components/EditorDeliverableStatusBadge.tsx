@@ -15,6 +15,7 @@ import {
 	deliverableStatusLabelMap,
 	type DeliverableStatus
 } from "#studio/features/admin/lib/session-edit-status";
+import { EditorSendForReviewDialog } from "#studio/features/editor/components/EditorSendForReviewDialog";
 import type { EditorSession } from "#studio/features/editor/lib/editor-sessions";
 
 const editorSteps = ["to_edit", "downloading", "editing", "uploading", "review"] as const;
@@ -23,7 +24,7 @@ const deliverableBadgeClassName = "px-1.5 text-sm leading-tight [&>svg]:size-4";
 
 function getDeliverableStatusLabel(status: DeliverableStatus) {
 	if (status === "review") {
-		return "Ready for review";
+		return "Sent for review";
 	}
 
 	if (status === "to_edit") {
@@ -67,9 +68,19 @@ export function EditorDeliverableStatusBadge({
 	const stepIndex = editorSteps.findIndex((step) => step === deliverableStatus);
 	const nextStatus = canManageDeliverables ? editorSteps[stepIndex + 1] : undefined;
 
-	async function changeStatus(editStatus: DeliverableStatus, previousStatus?: DeliverableStatus) {
+	const [isReviewDialogOpen, setIsReviewDialogOpen] = useState(false);
+
+	async function changeStatus(
+		editStatus: DeliverableStatus,
+		previousStatus?: DeliverableStatus,
+		deliverablesClientNotes?: string
+	) {
 		setIsUpdating(true);
-		const [error] = await tryCatch(updateSessionEditStatus({ bookingId: session._id, editStatus }));
+
+		const [error] = await tryCatch(
+			updateSessionEditStatus({ bookingId: session._id, editStatus, deliverablesClientNotes })
+		);
+
 		setIsUpdating(false);
 
 		if (error !== null) {
@@ -81,6 +92,8 @@ export function EditorDeliverableStatusBadge({
 		if (editStatus === "downloading" && previousStatus === "to_edit") {
 			onDownloadingStarted();
 		}
+
+		setIsReviewDialogOpen(false);
 
 		toast.success(`${session.name} set to ${getDeliverableStatusLabel(editStatus)}`, {
 			action:
@@ -112,18 +125,33 @@ export function EditorDeliverableStatusBadge({
 					variant="outline"
 					size="xs"
 					disabled={isUpdating}
-					onClick={() => void changeStatus(nextStatus, deliverableStatus)}>
+					onClick={() =>
+						nextStatus === "review"
+							? setIsReviewDialogOpen(true)
+							: void changeStatus(nextStatus, deliverableStatus)
+					}>
 					{isUpdating ? (
 						<LoaderCircle
 							className="animate-spin"
 							aria-hidden
 						/>
 					) : null}
-					Set to {getDeliverableStatusLabel(nextStatus)}
+					{nextStatus === "review"
+						? "Send for review"
+						: `Set to ${getDeliverableStatusLabel(nextStatus)}`}
 					<ArrowRight aria-hidden />
 					<span className="sr-only">for {session.name}</span>
 				</Button>
 			)}
+			{isReviewDialogOpen ? (
+				<EditorSendForReviewDialog
+					session={session}
+					isSending={isUpdating}
+					open
+					onOpenChange={setIsReviewDialogOpen}
+					onSend={(notes) => void changeStatus("review", deliverableStatus, notes)}
+				/>
+			) : null}
 		</div>
 	);
 }

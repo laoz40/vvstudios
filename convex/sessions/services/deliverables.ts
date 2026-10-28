@@ -15,12 +15,13 @@ type DeliverablesEditAccess = { identity: UserIdentity; session: Doc<"bookings">
 export function writeSessionEditStatusWithHostNotification(
 	ctx: MutationCtx,
 	access: DeliverablesEditAccess,
-	editStatus: NonNullable<Doc<"bookings">["editStatus"]>
+	editStatus: NonNullable<Doc<"bookings">["editStatus"]>,
+	deliverablesClientNotes?: string
 ) {
 	const { identity, session } = access;
 
 	return safeTry(async function* () {
-		yield* saveSessionEditStatus(ctx, session, editStatus);
+		yield* saveSessionEditStatus(ctx, session, editStatus, deliverablesClientNotes);
 
 		const emailArgs = yield* loadDeliverablesReviewHostEmailArgs(
 			ctx,
