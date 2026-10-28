@@ -52,7 +52,8 @@ export function EditorSendForReviewDialog({
 						value={notes}
 						onChange={(event) => setNotes(event.target.value)}
 						disabled={isSending}
-					/>				</Field>
+					/>{" "}
+				</Field>
 
 				<DialogFooter>
 					<Button
