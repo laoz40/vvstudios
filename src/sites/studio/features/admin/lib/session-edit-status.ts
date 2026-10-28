@@ -57,7 +57,9 @@ export const sessionStatusIconClassNameMap: Record<SessionStatus, string> = {
 
 export const deliverableStatusLabelMap: Record<DeliverableStatus, string> = {
 	to_edit: "Not Started",
+	downloading: "Downloading",
 	editing: "Editing",
+	uploading: "Uploading",
 	review: "Review",
 	completed: "Sent"
 };
@@ -69,7 +71,9 @@ export const deliverableStatusTabLabelMap: Record<DeliverableStatusAction, strin
 
 export const deliverableStatusBadgeClassNameMap: Record<DeliverableStatus, string> = {
 	to_edit: "bg-destructive text-primary-foreground",
+	downloading: "bg-primary text-primary-foreground",
 	editing: "bg-primary text-primary-foreground",
+	uploading: "bg-primary text-primary-foreground",
 	review: "bg-blue-400 text-primary-foreground",
 	completed: "bg-green text-primary-foreground"
 };
@@ -92,7 +96,14 @@ export const deliverableStatusTabClassNameMap: Record<DeliverableStatusAction, s
 export const deliverableStatusBadgeVariantMap: Record<
 	DeliverableStatus,
 	ComponentProps<typeof Badge>["variant"]
-> = { to_edit: "destructive", editing: "default", review: "default", completed: "default" };
+> = {
+	to_edit: "destructive",
+	downloading: "default",
+	editing: "default",
+	uploading: "default",
+	review: "default",
+	completed: "default"
+};
 
 export function getDeliverableStatus(session: SessionRecord): DeliverableStatus {
 	return session.editStatus ?? "to_edit";

@@ -15,7 +15,7 @@ type DeliverablesEditAccess = { identity: UserIdentity; session: Doc<"bookings">
 export function writeSessionEditStatusWithHostNotification(
 	ctx: MutationCtx,
 	access: DeliverablesEditAccess,
-	editStatus: "to_edit" | "editing" | "review" | "completed"
+	editStatus: NonNullable<Doc<"bookings">["editStatus"]>
 ) {
 	const { identity, session } = access;
 

@@ -69,7 +69,12 @@ function getEditorWorkStatusFromBookings(bookings: Doc<"bookings">[]): EditorWor
 		if (!isCurrentAssignedSession(booking)) continue;
 		hasAssignedSession = true;
 
-		if (booking.editStatus === "editing") return "editing";
+		if (
+			booking.editStatus === "downloading" ||
+			booking.editStatus === "editing" ||
+			booking.editStatus === "uploading"
+		)
+			return "editing";
 	}
 
 	return hasAssignedSession ? "assigned" : "unassigned";

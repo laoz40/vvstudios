@@ -130,7 +130,7 @@ export function writeSessionEditorNotesFromEditor(
 
 export function writeSessionEditStatusFromEditor(
 	ctx: MutationCtx,
-	args: { bookingId: Id<"bookings">; editStatus: "to_edit" | "editing" | "review" | "completed" }
+	args: { bookingId: Id<"bookings">; editStatus: NonNullable<Doc<"bookings">["editStatus"]> }
 ) {
 	return safeTry(async function* () {
 		const identity = yield* requirePermission(ctx, "update:deliverables");

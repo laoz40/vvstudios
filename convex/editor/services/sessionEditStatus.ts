@@ -10,7 +10,7 @@ import { incrementEditorTotalEdits } from "#convex/editor/lib/editorSessions";
 export function saveSessionEditStatus(
 	ctx: MutationCtx,
 	session: Doc<"bookings">,
-	editStatus: "to_edit" | "editing" | "review" | "completed"
+	editStatus: NonNullable<Doc<"bookings">["editStatus"]>
 ) {
 	return safeTry(async function* () {
 		const editor = yield* loadEditorForCompletedTransition(ctx, session, editStatus);

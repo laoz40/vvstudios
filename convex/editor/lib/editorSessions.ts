@@ -113,7 +113,7 @@ export function saveSessionAdminNotes(
 export function patchSessionEditStatus(
 	ctx: MutationCtx,
 	bookingId: Doc<"bookings">["_id"],
-	editStatus: "to_edit" | "editing" | "review" | "completed"
+	editStatus: NonNullable<Doc<"bookings">["editStatus"]>
 ) {
 	return okOrThrow(ctx.db.patch("bookings", bookingId, { editStatus }).then(() => null));
 }
