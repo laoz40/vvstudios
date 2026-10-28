@@ -54,10 +54,12 @@ function DeliverableStatusIcon({ status }: { status: DeliverableStatus }) {
 
 export function EditorDeliverableStatusBadge({
 	session,
-	canManageDeliverables
+	canManageDeliverables,
+	onDownloadingStarted
 }: {
 	session: EditorSession;
 	canManageDeliverables: boolean;
+	onDownloadingStarted: () => void;
 }) {
 	const updateSessionEditStatus = useMutation(api.sessions.admin.updateSessionEditStatus);
 	const [isUpdating, setIsUpdating] = useState(false);
@@ -74,6 +76,10 @@ export function EditorDeliverableStatusBadge({
 			toast.error("Unable to update this session's deliverables status.");
 
 			return;
+		}
+
+		if (editStatus === "downloading" && previousStatus === "to_edit") {
+			onDownloadingStarted();
 		}
 
 		toast.success(`${session.name} set to ${getDeliverableStatusLabel(editStatus)}`, {
