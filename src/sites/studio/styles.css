@@ -417,6 +417,9 @@
 .login-page .cl-formButtonPrimary {
 	background: var(--primary);
 	color: var(--primary-foreground);
+}
+
+.login-page .cl-formButtonPrimary[data-variant="solid"]:not(:focus-visible) {
 	box-shadow: none;
 }
 
