@@ -4,6 +4,7 @@ import { Button } from "#/components/ui/button";
 import { TableCell, TableRow } from "#/components/ui/table";
 import { cn } from "#/lib/utils";
 import { EditorDeliverableStatusBadge } from "#studio/features/editor/components/EditorDeliverableStatusBadge";
+import { EditorSessionNotesPreview } from "#studio/features/editor/components/EditorSessionNotesPreview";
 import { EditorSessionDriveCell } from "#studio/features/editor/components/EditorSessionDriveCell";
 import { SessionEditorNotesDialog } from "#studio/features/editor/components/SessionEditorNotesDialog";
 import type { EditorSession } from "#studio/features/editor/lib/editor-sessions";
@@ -67,7 +68,6 @@ export function EditorSessionTableRow({
 	);
 
 	const isPastSession = !isUpcomingBooking(session.date, session.time);
-	const editorNotesText = session.editorNotes?.trim() ?? "";
 
 	return (
 		<>
@@ -99,21 +99,24 @@ export function EditorSessionTableRow({
 					/>
 				</TableCell>
 				<TableCell>
-					<p className="text-sm [overflow-wrap:anywhere] whitespace-pre-wrap text-muted-foreground">
-						{session.adminNotes?.trim() || "-"}
-					</p>
+					<EditorSessionNotesPreview
+						bookingName={session.name}
+						label="Admin notes"
+						notes={session.adminNotes}
+					/>
 				</TableCell>
 				<TableCell>
-					<div className="text-sm [overflow-wrap:anywhere] whitespace-pre-wrap text-muted-foreground">
-						{editorNotesText ? <span>{editorNotesText}</span> : null}
+					<div className="flex min-w-0 items-center gap-1">
+						<EditorSessionNotesPreview
+							bookingName={session.name}
+							label="Editor notes"
+							notes={session.editorNotes}
+						/>
 						<Button
 							type="button"
 							variant="ghost"
 							size="icon-sm"
-							className={cn(
-								"inline-flex h-5 w-5 align-text-bottom text-muted-foreground",
-								editorNotesText && "ml-1"
-							)}
+							className="size-5 shrink-0 text-muted-foreground"
 							onClick={() => setIsEditorNotesOpen(true)}>
 							<Pencil
 								size={14}
