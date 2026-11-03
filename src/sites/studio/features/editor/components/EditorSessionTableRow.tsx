@@ -102,6 +102,7 @@ export function EditorSessionTableRow({
 					<EditorSessionNotesPreview
 						bookingName={session.name}
 						label="Admin notes"
+						summary="Admin has sent you notes"
 						notes={session.adminNotes}
 					/>
 				</TableCell>

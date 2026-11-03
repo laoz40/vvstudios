@@ -245,6 +245,8 @@ function SessionNotesCell({
 		getDefaultSessionNotesView(isPastSession)
 	);
 
+	const [isCollapsed, setIsCollapsed] = useState(false);
+
 	// Upcoming sessions default to client notes; past sessions default to editor notes.
 	useEffect(() => {
 		setNotesView(getDefaultSessionNotesView(isPastSession));
@@ -257,13 +259,17 @@ function SessionNotesCell({
 	const notesViews: SessionNotesView[] = ["client", "editor", "admin"];
 
 	return (
-		<div className="w-full text-left text-sm [overflow-wrap:anywhere] whitespace-pre-wrap text-muted-foreground select-text">
+		<div
+			className={cn(
+				"w-full text-left text-sm [overflow-wrap:anywhere] whitespace-pre-wrap text-muted-foreground select-text",
+				isCollapsed && "flex items-baseline gap-1"
+			)}>
 			<DropdownMenu>
 				<DropdownMenuTrigger asChild>
 					<button
 						type="button"
 						aria-label={`Select notes view, currently ${notesLabel}`}
-						className="inline cursor-pointer rounded-sm p-0 font-medium text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none">
+						className="inline shrink-0 cursor-pointer rounded-sm p-0 font-medium text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none">
 						{notesLabel}:
 					</button>
 				</DropdownMenuTrigger>
@@ -280,7 +286,19 @@ function SessionNotesCell({
 					</DropdownMenuRadioGroup>
 				</DropdownMenuContent>
 			</DropdownMenu>{" "}
-			{notesText}
+			<span className={cn(isCollapsed && "min-w-0 flex-1 truncate")}>{notesText}</span>
+			{visibleNotes ? (
+				<>
+					{" "}
+					<button
+						type="button"
+						aria-expanded={!isCollapsed}
+						className="shrink-0 cursor-pointer rounded-sm text-foreground underline underline-offset-4 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+						onClick={() => setIsCollapsed(!isCollapsed)}>
+						{isCollapsed ? "Show more" : "Show less"}
+					</button>
+				</>
+			) : null}
 		</div>
 	);
 }

@@ -15,12 +15,14 @@ type EditorSessionNotesPreviewProps = {
 	bookingName: string;
 	label: string;
 	notes: string | undefined;
+	summary?: string;
 };
 
 export function EditorSessionNotesPreview({
 	bookingName,
 	label,
-	notes
+	notes,
+	summary
 }: EditorSessionNotesPreviewProps) {
 	const text = notes?.trim() || "-";
 	const previewRef = useRef<HTMLParagraphElement>(null);
@@ -29,7 +31,7 @@ export function EditorSessionNotesPreview({
 	useEffect(() => {
 		const preview = previewRef.current;
 
-		if (!preview) return undefined;
+		if (!preview || summary) return undefined;
 
 		const measureOverflow = () => {
 			setIsTruncated(
@@ -42,23 +44,23 @@ export function EditorSessionNotesPreview({
 		observer.observe(preview);
 
 		return () => observer.disconnect();
-	}, [text]);
+	}, [text, summary]);
 
 	return (
 		<div className="flex min-w-0 flex-1 items-baseline gap-1 text-sm text-muted-foreground">
 			<p
 				ref={previewRef}
 				className="line-clamp-1 min-w-0 flex-1 [overflow-wrap:anywhere] whitespace-pre-wrap">
-				{text}
+				{notes?.trim() && summary ? summary : text}
 			</p>
-			{isTruncated ? (
+			{notes?.trim() && (summary || isTruncated) ? (
 				<Dialog>
 					<DialogTrigger asChild>
 						<button
 							type="button"
-							aria-label={`Show more ${label.toLowerCase()} for ${bookingName}`}
+							aria-label={`View ${label.toLowerCase()} for ${bookingName}`}
 							className="shrink-0 cursor-pointer rounded-sm text-foreground underline underline-offset-4 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none">
-							Show more
+							{summary ? "View notes" : "Show more"}
 						</button>
 					</DialogTrigger>
 					<DialogContent className="max-h-[calc(100dvh-2rem)] grid-rows-[auto_minmax(0,1fr)_auto] sm:max-w-3xl">
