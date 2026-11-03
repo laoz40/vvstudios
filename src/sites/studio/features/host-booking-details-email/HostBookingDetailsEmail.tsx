@@ -237,7 +237,7 @@ export function HostBookingDetailsEmail({
 
 					<Section style={sectionLast}>
 						<Text style={quote}>“{selectedQuote.text}”</Text>
-						<Text style={quoteAttribution}>— {selectedQuote.attribution}</Text>
+						<Text style={quoteAttribution}>{selectedQuote.attribution}</Text>
 					</Section>
 					<EmailFooter />
 				</Container>

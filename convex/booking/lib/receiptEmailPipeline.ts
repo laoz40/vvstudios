@@ -114,7 +114,7 @@ export function sendPackageReceiptCustomerEmail(
 		subject:
 			"Your " +
 			packageRecord.packageSize +
-			"-Session Package confirmed — schedule your sessions (" +
+			"-Session Package confirmed. Schedule your sessions (" +
 			formatTimestampDateShort(paidAt) +
 			")",
 		html: receipt.artifacts.emailHtml,

@@ -3,7 +3,7 @@
  * Uses live Stripe, Convex, Google Calendar, and Resend (no seeding).
  *
  * Prerequisites
- * Stripe test keys in `.env.local` (same as dev Convex deployment). Not run in CI — Stripe hCaptcha
+ * Stripe test keys in `.env.local` (same as dev Convex deployment). Not run in CI. Stripe hCaptcha
  * blocks headless Pay in GitHub Actions.
  * `E2E_RESEND_API_KEY` or `RESEND_API_KEY` in `.env.local` (same Resend account Convex uses to send).
  *

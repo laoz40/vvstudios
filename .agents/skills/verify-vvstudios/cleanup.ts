@@ -10,7 +10,7 @@ import {
 	readSpawnPid
 } from "./lib.ts";
 
-const HELP = `verify-vvstudios cleanup — stop dev server started by this skill only
+const HELP = `verify-vvstudios cleanup. Stop dev server started by this skill only
 
 Usage:
   bun .agents/skills/verify-vvstudios/cleanup.ts

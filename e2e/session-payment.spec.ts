@@ -3,7 +3,7 @@
  * Uses live Stripe, Convex, and Google Calendar (no seeding).
  *
  * Prerequisites
- * Stripe test keys in `.env.local` (same as dev Convex deployment). Not run in CI — Stripe hCaptcha
+ * Stripe test keys in `.env.local` (same as dev Convex deployment). Not run in CI. Stripe hCaptcha
  * blocks headless Pay in GitHub Actions.
  *
  * 1. Single session payment completes booking

@@ -8,7 +8,7 @@ import {
 	titleMatches
 } from "./lib.ts";
 
-const HELP = `verify-vvstudios doctor — read-only preflight for driving VV Studios at localhost:3000
+const HELP = `verify-vvstudios doctor. Read-only preflight for driving VV Studios at localhost:3000
 
 Usage:
   bun .agents/skills/verify-vvstudios/doctor.ts

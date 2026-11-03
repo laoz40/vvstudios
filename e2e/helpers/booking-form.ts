@@ -412,8 +412,8 @@ export async function expectBookingConfirmed(
 	if (await paymentReceivedHeading.isVisible()) {
 		throw new Error(
 			"Checkout finished but the slot was taken (Google Calendar still busy). " +
-				"Delete test events from calendars in GOOGLE_CALENDAR_AVAILABILITY_IDS, or rerun — " +
-				"the test rotates startingDayIndex to spread bookings."
+				"Delete test events from calendars in GOOGLE_CALENDAR_AVAILABILITY_IDS, or rerun. " +
+				"The test rotates startingDayIndex to spread bookings."
 		);
 	}
 

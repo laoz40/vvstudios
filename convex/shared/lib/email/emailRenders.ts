@@ -506,7 +506,7 @@ export function bookingRescheduledCustomerEmailSubject(args: { date: string }) {
 }
 
 export function packageExpiryReminderEmailSubject(args: { expiresAt: number }) {
-	return `Reminder: Schedule Your Remaining Package Sessions — Expires ${formatTimestampDateShort(args.expiresAt)}`;
+	return `Reminder: Schedule Your Remaining Package Sessions. Expires ${formatTimestampDateShort(args.expiresAt)}`;
 }
 
 export function sessionReminderEmailSubject(args: { date: string }) {
