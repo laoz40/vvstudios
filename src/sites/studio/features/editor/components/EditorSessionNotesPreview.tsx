@@ -53,7 +53,7 @@ export function EditorSessionNotesPreview({
 				ref={previewRef}
 				className={cn(
 					"line-clamp-1 min-w-0 [overflow-wrap:anywhere] whitespace-pre-wrap",
-					summary && notes?.trim() ? "text-primary" : "flex-1"
+					!summary && "flex-1"
 				)}>
 				{notes?.trim() && summary ? summary : text}
 			</p>
@@ -63,7 +63,10 @@ export function EditorSessionNotesPreview({
 						<button
 							type="button"
 							aria-label={`View ${label.toLowerCase()} for ${bookingName}`}
-							className="shrink-0 cursor-pointer rounded-sm text-foreground underline underline-offset-4 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none">
+							className={cn(
+								"shrink-0 cursor-pointer rounded-sm underline underline-offset-4 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
+								summary ? "text-primary" : "text-foreground"
+							)}>
 							{summary ? "View notes" : "Show more"}
 						</button>
 					</DialogTrigger>

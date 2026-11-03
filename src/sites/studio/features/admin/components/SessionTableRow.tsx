@@ -269,7 +269,7 @@ function SessionNotesCell({
 					<button
 						type="button"
 						aria-label={`Select notes view, currently ${notesLabel}`}
-						className="inline shrink-0 cursor-pointer rounded-sm p-0 font-medium text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none">
+						className="inline shrink-0 cursor-pointer rounded-sm p-0 font-bold text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none">
 						{notesLabel}:
 					</button>
 				</DropdownMenuTrigger>
