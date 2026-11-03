@@ -27,16 +27,14 @@ export function SessionEditorNotesDialog({
 			savedNotes={savedNotes}
 			onOpenChange={onOpenChange}
 			fieldIdPrefix="session-editor-notes"
-			title="Write editor notes"
+			title="Notes for admin"
+			fieldLabel="Notes"
 			description={
-				<>
-					Write any notes about editing {bookingName}&lsquo;s session. These notes will not be sent
-					to the client.
-				</>
+				<>Share updates or context with the admin about editing {bookingName}&apos;s session.</>
 			}
 			notificationMessage="Saving new or changed notes emails the admin."
-			saveErrorMessage="Unable to save editor notes for this session."
-			saveSuccessMessage="Editor notes saved."
+			saveErrorMessage="Unable to save your notes for the admin."
+			saveSuccessMessage="Notes for admin saved."
 			onSave={(notes) => updateSessionNotes({ bookingId, editorNotes: notes })}
 		/>
 	);

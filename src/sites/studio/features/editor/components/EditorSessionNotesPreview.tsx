@@ -50,13 +50,13 @@ export function EditorSessionNotesPreview({
 							"shrink-0 cursor-pointer rounded-sm underline underline-offset-4 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
 							summary ? "text-primary" : "text-foreground"
 						)}>
-						View notes
+						View message
 					</button>
 				</DialogTrigger>
 				<DialogContent className="max-h-[calc(100dvh-2rem)] grid-rows-[auto_minmax(0,1fr)_auto] sm:max-w-3xl">
 					<DialogHeader>
 						<DialogTitle>{label}</DialogTitle>
-						<DialogDescription>Notes for {bookingName}&apos;s session.</DialogDescription>
+						<DialogDescription>Message about {bookingName}&apos;s session.</DialogDescription>
 					</DialogHeader>
 					<div className="min-h-0 min-w-0 overflow-y-auto text-sm leading-relaxed [overflow-wrap:anywhere] whitespace-pre-wrap select-text">
 						{text}

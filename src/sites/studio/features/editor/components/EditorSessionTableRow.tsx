@@ -101,18 +101,16 @@ export function EditorSessionTableRow({
 				<TableCell>
 					<EditorSessionNotesPreview
 						bookingName={session.name}
-						label="Admin notes"
-						summary="Admin has sent you notes"
+						label="Message from admin"
+						summary="Admin sent you a message!"
 						notes={session.adminNotes}
 					/>
 				</TableCell>
 				<TableCell>
 					<div className="flex min-w-0 items-center gap-1">
-						<EditorSessionNotesPreview
-							bookingName={session.name}
-							label="Editor notes"
-							notes={session.editorNotes}
-						/>
+						<p className="min-w-0 truncate text-sm text-muted-foreground">
+							{session.editorNotes?.trim() || "-"}
+						</p>
 						<Button
 							type="button"
 							variant="ghost"
@@ -123,7 +121,10 @@ export function EditorSessionTableRow({
 								size={14}
 								aria-hidden
 							/>
-							<span className="sr-only">Edit editor notes for {session.name}</span>
+							<span className="sr-only">
+								{session.editorNotes?.trim() ? "Edit notes" : "Add notes"} for admin for{" "}
+								{session.name}
+							</span>
 						</Button>
 					</div>
 				</TableCell>
