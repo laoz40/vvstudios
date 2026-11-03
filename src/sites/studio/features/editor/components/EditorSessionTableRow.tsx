@@ -108,9 +108,11 @@ export function EditorSessionTableRow({
 				</TableCell>
 				<TableCell>
 					<div className="flex min-w-0 items-center gap-1">
-						<p className="min-w-0 truncate text-sm text-muted-foreground">
-							{session.editorNotes?.trim() || "-"}
-						</p>
+						{session.editorNotes?.trim() ? (
+							<p className="min-w-0 truncate text-sm text-muted-foreground">
+								{session.editorNotes.trim()}
+							</p>
+						) : null}
 						<Button
 							type="button"
 							variant="ghost"
