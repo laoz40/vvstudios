@@ -50,7 +50,6 @@ jobs:
 
   build:
     name: Build
-    needs: lint-and-test
     runs-on: ubuntu-latest
 
     steps:
@@ -75,7 +74,6 @@ jobs:
 
   e2e:
     name: E2E Tests
-    needs: lint-and-test
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     # Hold this lock through provisioning, deployment and tests. A running job
@@ -98,15 +96,24 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
+      - name: Get installed Playwright version
+        id: playwright-version
+        run: echo "version=$(bun -p 'require("@playwright/test/package.json").version')" >> "$GITHUB_OUTPUT"
+
       - name: Cache Playwright browsers
         uses: actions/cache@v4
         id: playwright-cache
         with:
           path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-${{ hashFiles('bun.lock') }}
+          key: playwright-${{ runner.os }}-${{ runner.arch }}-${{ steps.playwright-version.outputs.version }}
 
       - name: Install Playwright browsers
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
         run: bunx playwright install --with-deps chromium
+
+      - name: Install Playwright system dependencies
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        run: bunx playwright install-deps chromium
 
       - name: Create empty Convex preview and deploy
         id: preview
