@@ -18,7 +18,7 @@ import {
 	writeSpawnPid
 } from "./lib.ts";
 
-const HELP = `verify-vvstudios launch — start bun run dev when port 3000 is free or already ours
+const HELP = `verify-vvstudios launch. Start bun run dev when port 3000 is free or already ours
 
 Usage:
   bun .agents/skills/verify-vvstudios/launch.ts

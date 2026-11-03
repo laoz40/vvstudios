@@ -75,7 +75,7 @@ export function DeliverablesReviewReadyEmail({
 					</Section>
 					<Section style={quoteSection}>
 						<Text style={quote}>“{selectedQuote.text}”</Text>
-						<Text style={quoteAttribution}>— {selectedQuote.attribution}</Text>
+						<Text style={quoteAttribution}>{selectedQuote.attribution}</Text>
 					</Section>
 					<EmailFooter />
 				</Container>

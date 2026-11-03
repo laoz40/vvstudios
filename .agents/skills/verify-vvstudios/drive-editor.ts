@@ -11,7 +11,7 @@ import {
 import { createTempClerkEditor, deleteTempClerkEditor } from "./clerk-temp-editor.ts";
 import { BASE_URL, REPO_ROOT, missingEnvKeys } from "./lib.ts";
 
-const HELP = `verify-vvstudios drive-editor — create a temp Clerk editor, assign a confirmed session, prove the row, delete the Clerk user
+const HELP = `verify-vvstudios drive-editor. Create a temp Clerk editor, assign a confirmed session, prove the row, delete the Clerk user
 
 Usage:
   bun .agents/skills/verify-vvstudios/drive-editor.ts

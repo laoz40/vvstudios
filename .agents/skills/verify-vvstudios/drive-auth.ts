@@ -5,7 +5,7 @@ import { chromium, expect } from "@playwright/test";
 import { prepareClerkTesting, signInAsAdmin } from "../../../e2e/helpers/admin-auth.ts";
 import { BASE_URL, REPO_ROOT, missingEnvKeys } from "./lib.ts";
 
-const HELP = `verify-vvstudios drive-auth — Clerk /login then admin /dashboard
+const HELP = `verify-vvstudios drive-auth. Clerk /login then admin /dashboard
 
 Usage:
   bun .agents/skills/verify-vvstudios/drive-auth.ts

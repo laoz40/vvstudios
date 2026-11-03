@@ -5,7 +5,7 @@ const BOOKING_RECEIPT_SUBJECT_PREFIX = "Studio booking confirmed - ";
 
 const PACKAGE_PAID_EMAIL_SUBJECT_PREFIX = "Your ";
 
-const PACKAGE_PAID_EMAIL_SUBJECT_SUFFIX = "-Session Package confirmed — schedule your sessions";
+const PACKAGE_PAID_EMAIL_SUBJECT_SUFFIX = "-Session Package confirmed. Schedule your sessions";
 
 const RESCHEDULE_URL_PATTERN = /https?:\/\/[^\s"'<>]+\/reschedule\/[a-f0-9]{64}/i;
 
