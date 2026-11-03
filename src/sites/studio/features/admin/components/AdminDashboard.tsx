@@ -1,8 +1,10 @@
+import type { FunctionReturnType } from "convex/server";
+import { BackendAuthErrorPage } from "#studio/features/auth/components/BackendAuthErrorPage";
+import { DashboardForbiddenPage } from "#studio/features/auth/components/DashboardForbiddenPage";
 import { useUser } from "@clerk/clerk-react";
 import { exhaustiveCheck, tryCatch, type Result } from "#/lib/result";
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, usePaginatedQuery, useQuery, type ReactMutation } from "convex/react";
-import type { FunctionReturnType } from "convex/server";
 import { api } from "#convex/_generated/api";
 import { DashboardLoadingState } from "#studio/features/auth/components/DashboardLoadingState";
 import type { DashboardRole } from "#studio/features/auth/lib/dashboard-loading-labels";
@@ -13,8 +15,6 @@ import { EmployeesTable } from "#studio/features/admin/components/EmployeesTable
 import type { AdminEditorProfile } from "#studio/features/admin/lib/editor-management";
 import { PackagesTable } from "#studio/features/admin/components/PackagesTable";
 import { SessionsTable } from "#studio/features/admin/components/SessionsTable";
-import { BackendAuthErrorPage } from "#studio/features/auth/components/BackendAuthErrorPage";
-import { DashboardForbiddenPage } from "#studio/features/auth/components/DashboardForbiddenPage";
 import {
 	toPackageListQuerySort,
 	type AdminPackageSort,
@@ -74,10 +74,6 @@ async function archivePastDeadCheckoutSessionsUntilDone(
 	}
 }
 
-type EmployeeListResult = FunctionReturnType<typeof api.employees.admin.listEmployees>;
-
-type EmployeeListError = NonNullable<EmployeeListResult[0]>;
-
 function useDisplayedWhileRefetching<T>(results: T[], isLoadingFirstPage: boolean) {
 	const displayedResultsRef = useRef(results);
 
@@ -96,7 +92,9 @@ function useDisplayedWhileRefetching<T>(results: T[], isLoadingFirstPage: boolea
 	return displayedResults;
 }
 
-function renderEmployeeListError(error: EmployeeListError) {
+function renderEmployeeListError(
+	error: NonNullable<FunctionReturnType<typeof api.shared.auth.getCurrentUserAccess>[0]>
+) {
 	const reason = error.reason;
 
 	switch (reason) {
@@ -310,21 +308,24 @@ function EmployeesDashboardView({
 }: {
 	adminEditorProfile: AdminEditorProfile | null;
 }) {
-	const editorsResult = useQuery(api.employees.admin.listEmployees, {});
+	const [showRetired, setShowRetired] = useState(false);
 
-	if (editorsResult !== undefined) {
-		const [editorsError] = editorsResult;
-
-		if (editorsError !== null) {
-			return renderEmployeeListError(editorsError);
-		}
-	}
+	const editors = usePaginatedQuery(
+		api.employees.admin.listEmployees,
+		{ isActive: !showRetired },
+		{ initialNumItems: 25 }
+	);
 
 	return (
 		<EmployeesTable
 			adminEditorProfile={adminEditorProfile}
-			editors={editorsResult?.[1] ?? []}
-			isLoadingEmployees={editorsResult === undefined}
+			editors={editors.results}
+			isLoadingEmployees={editors.status === "LoadingFirstPage"}
+			showRetired={showRetired}
+			onShowRetiredChange={setShowRetired}
+			canLoadMore={editors.status === "CanLoadMore"}
+			isLoadingMore={editors.status === "LoadingMore"}
+			onLoadMore={() => editors.loadMore(25)}
 		/>
 	);
 }

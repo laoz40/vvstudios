@@ -1,10 +1,9 @@
+import type { PaginationOptions } from "convex/server";
 import { err, ok, type ResultAsync } from "neverthrow";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
 import { okOrThrow } from "#convex/shared/lib/result";
 import { listActiveEditorJobs } from "#convex/editor/lib/activeJobs";
-
-const EDITOR_LIMIT = 200;
 
 export function assertEditorProfileFound(editor: Doc<"editorProfiles"> | null) {
 	if (editor === null) {
@@ -18,8 +17,16 @@ const ASSIGNED_SESSION_LIMIT = 500;
 
 type EditorWorkStatus = "assigned" | "editing" | "unassigned";
 
-export function listEditorProfiles(ctx: QueryCtx) {
-	return okOrThrow(ctx.db.query("editorProfiles").take(EDITOR_LIMIT));
+export function listEditorProfiles(
+	ctx: QueryCtx,
+	args: { isActive: boolean; paginationOpts: PaginationOptions }
+) {
+	return okOrThrow(
+		ctx.db
+			.query("editorProfiles")
+			.withIndex("by_isActive", (query) => query.eq("isActive", args.isActive))
+			.paginate(args.paginationOpts)
+	);
 }
 
 function isCurrentAssignedSession(booking: Doc<"bookings">) {

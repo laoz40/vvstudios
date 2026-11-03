@@ -1,6 +1,8 @@
+import type { PaginationOptions } from "convex/server";
 import { ok, ResultAsync, safeTry } from "neverthrow";
 import type { Doc } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
+import { requirePermission } from "#convex/shared/services/auth";
 
 import {
 	assertEditorProfileFound,
@@ -40,12 +42,17 @@ export function loadEditorActiveJobs(ctx: QueryCtx, tokenIdentifier: string) {
 	return getEditorWorkload(ctx, tokenIdentifier).map(({ activeJobs }) => activeJobs);
 }
 
-export function loadEmployeeRoster(ctx: QueryCtx) {
+export function loadEmployeeRoster(
+	ctx: QueryCtx,
+	args: { isActive: boolean; paginationOpts: PaginationOptions }
+) {
 	return safeTry(async function* () {
-		const editors = yield* listEditorProfiles(ctx);
-		const roster = yield* combineEditorWorkStatuses(ctx, editors);
+		yield* requirePermission(ctx, "update:editor-access");
 
-		return ok(roster);
+		const editors = yield* listEditorProfiles(ctx, args);
+		const roster = yield* combineEditorWorkStatuses(ctx, editors.page);
+
+		return ok({ ...editors, page: roster });
 	});
 }
 

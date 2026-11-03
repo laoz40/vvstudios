@@ -76,10 +76,10 @@ describe("employee retirement", () => {
 			.filter((booking) => bookingIds.includes(booking._id))
 			.toSorted((left, right) => left.sessionStartAt - right.sessionStartAt);
 
-		const [employeeError, retiredEmployees] = await admin.query(
-			api.employees.admin.listEmployees,
-			{}
-		);
+		const retiredEmployees = await admin.query(api.employees.admin.listEmployees, {
+			isActive: false,
+			paginationOpts: { cursor: null, numItems: 20 }
+		});
 
 		expect(
 			retiredRows.map(
@@ -127,8 +127,7 @@ describe("employee retirement", () => {
 				editorNotes: "Session-specific editor note"
 			}
 		]);
-		expect(employeeError).toBeNull();
-		expect(retiredEmployees).toMatchObject([
+		expect(retiredEmployees.page).toMatchObject([
 			{
 				tokenIdentifier: editorTokenIdentifier,
 				isActive: false,
