@@ -3,8 +3,13 @@ import { CircleAlert } from "lucide-react";
 import { Badge } from "#/components/ui/badge";
 import { Button } from "#/components/ui/button";
 import { TableCell, TableRow } from "#/components/ui/table";
-import { toast } from "sonner";
-import { exhaustiveCheck } from "#/lib/result";
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuRadioGroup,
+	DropdownMenuRadioItem,
+	DropdownMenuTrigger
+} from "#/components/ui/dropdown-menu";
 import { cn } from "#/lib/utils";
 import { AdminTableInfoPopover } from "#studio/features/admin/components/AdminTableInfoPopover";
 import { SessionAmountPopover } from "#studio/features/admin/components/SessionAmountPopover";
@@ -229,19 +234,6 @@ function getSessionNotesForView(session: SessionRecord, notesView: SessionNotesV
 	return session.adminNotes?.trim();
 }
 
-function getNextSessionNotesView(notesView: SessionNotesView): SessionNotesView {
-	switch (notesView) {
-		case "client":
-			return "editor";
-		case "editor":
-			return "admin";
-		case "admin":
-			return "client";
-		default:
-			return exhaustiveCheck(notesView);
-	}
-}
-
 function SessionNotesCell({
 	session,
 	isPastSession
@@ -262,20 +254,34 @@ function SessionNotesCell({
 	const visibleNotes = getSessionNotesForView(session, notesView);
 	const notesText = visibleNotes || "-";
 
-	function toggleNotesView() {
-		const nextNotesView = getNextSessionNotesView(notesView);
-		setNotesView(nextNotesView);
-		toast.info(`${sessionNotesViewLabelMap[nextNotesView]} notes displayed.`);
-	}
+	const notesViews: SessionNotesView[] = ["client", "editor", "admin"];
 
 	return (
-		<button
-			type="button"
-			className="w-full text-left text-sm [overflow-wrap:anywhere] whitespace-pre-wrap text-muted-foreground select-text"
-			onClick={toggleNotesView}>
-			<span className="font-medium text-foreground">{notesLabel}: </span>
+		<div className="w-full text-left text-sm [overflow-wrap:anywhere] whitespace-pre-wrap text-muted-foreground select-text">
+			<DropdownMenu>
+				<DropdownMenuTrigger asChild>
+					<button
+						type="button"
+						aria-label={`Select notes view, currently ${notesLabel}`}
+						className="inline cursor-pointer rounded-sm p-0 font-medium text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none">
+						{notesLabel}:
+					</button>
+				</DropdownMenuTrigger>
+				<DropdownMenuContent align="start">
+					<DropdownMenuRadioGroup value={notesView}>
+						{notesViews.map((view) => (
+							<DropdownMenuRadioItem
+								key={view}
+								value={view}
+								onSelect={() => setNotesView(view)}>
+								{sessionNotesViewLabelMap[view]}
+							</DropdownMenuRadioItem>
+						))}
+					</DropdownMenuRadioGroup>
+				</DropdownMenuContent>
+			</DropdownMenu>{" "}
 			{notesText}
-		</button>
+		</div>
 	);
 }
 
