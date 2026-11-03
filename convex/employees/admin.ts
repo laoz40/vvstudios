@@ -1,5 +1,6 @@
 import { ok, safeTry } from "neverthrow";
-import { v } from "convex/values";
+import { paginationOptsValidator } from "convex/server";
+import { ConvexError, v } from "convex/values";
 import { tupleErr, tupleOk } from "#/lib/result";
 import { mutation, query } from "#convex/_generated/server";
 import { requirePermission } from "#convex/shared/services/auth";
@@ -11,14 +12,14 @@ import {
 } from "#convex/employees/services/employeeManagement";
 
 export const listEmployees = query({
-	args: {},
-	handler: (ctx) =>
-		safeTry(async function* () {
-			yield* requirePermission(ctx, "update:editor-access");
-			const employees = yield* loadEmployeeRoster(ctx);
+	args: { isActive: v.boolean(), paginationOpts: paginationOptsValidator },
+	handler: async (ctx, args) => {
+		const result = await loadEmployeeRoster(ctx, args);
 
-			return ok(employees);
-		}).match(tupleOk, tupleErr)
+		if (result.isErr()) throw new ConvexError(result.error);
+
+		return result.value;
+	}
 });
 
 export const listActiveJobs = query({

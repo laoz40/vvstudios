@@ -1,3 +1,4 @@
+import { InfiniteScrollSentinel } from "#studio/components/InfiniteScrollSentinel";
 import { useRef, useState } from "react";
 import {
 	CheckIcon,
@@ -50,6 +51,11 @@ type EmployeesTableProps = {
 	adminEditorProfile: AdminEditorProfile | null;
 	editors: ManagedEditor[];
 	isLoadingEmployees: boolean;
+	showRetired: boolean;
+	onShowRetiredChange: (showRetired: boolean) => void;
+	canLoadMore: boolean;
+	isLoadingMore: boolean;
+	onLoadMore: () => void;
 };
 
 type NotesDialogState = { status: "closed" } | { status: "open"; editor: ManagedEditor };
@@ -88,11 +94,15 @@ function showEnrollAdminAsEditorError(error: EnrollAdminAsEditorError) {
 export function EmployeesTable({
 	adminEditorProfile,
 	editors,
-	isLoadingEmployees
+	isLoadingEmployees,
+	showRetired,
+	onShowRetiredChange,
+	canLoadMore,
+	isLoadingMore,
+	onLoadMore
 }: EmployeesTableProps) {
 	const enrollAdminAsEditor = useMutation(api.shared.auth.enrollAdminAsEditor);
 	const updateEmployeeAccess = useMutation(api.employees.admin.updateEmployeeAccess);
-	const [showRetired, setShowRetired] = useState(false);
 	const [openActionsEditorToken, setOpenActionsEditorToken] = useState<string | null>(null);
 	const [updatingEditorToken, setUpdatingEditorToken] = useState<string | null>(null);
 	const [isEnrolling, setIsEnrolling] = useState(false);
@@ -101,7 +111,6 @@ export function EmployeesTable({
 	const jobsEditor = editors.find((editor) => editor.tokenIdentifier === jobsEditorToken);
 	const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
 	const inviteIconRef = useRef<AnimatedIconHandle | null>(null);
-	const visibleEditors = editors.filter((editor) => editor.isActive !== showRetired);
 
 	async function handleEnrollAsEditor() {
 		setIsEnrolling(true);
@@ -202,7 +211,7 @@ export function EmployeesTable({
 						<Switch
 							id="show-retired-employees"
 							checked={showRetired}
-							onCheckedChange={setShowRetired}
+							onCheckedChange={onShowRetiredChange}
 						/>
 					</div>
 				</div>
@@ -232,8 +241,8 @@ export function EmployeesTable({
 							</TableRow>
 						</TableHeader>
 						<TableBody>
-							{visibleEditors.length > 0
-								? visibleEditors.map((editor) => {
+							{editors.length > 0
+								? editors.map((editor) => {
 										const isUpdatingThisEditor = updatingEditorToken === editor.tokenIdentifier;
 										let accessActionIcon = editor.isActive ? <UserRoundXIcon /> : <CheckIcon />;
 
@@ -340,6 +349,11 @@ export function EmployeesTable({
 						</TableBody>
 					</Table>
 				</div>
+				<InfiniteScrollSentinel
+					canLoadMore={canLoadMore}
+					isLoadingMore={isLoadingMore}
+					onLoadMore={onLoadMore}
+				/>
 			</section>
 			{jobsEditor ? (
 				<ContractorJobsDialog

@@ -30,3 +30,8 @@ Check for an equivalent proposal before adding an item. Keep unapproved entries 
   - Failure and consequence: a session's previous sent assignment email suppresses the next round's email, leaving the editor unaware of more work.
   - Observable result: call `api.sessions.admin.restartSessionEditing` after a prior sent assignment, then run the scheduled editor access job. The booking has `to_edit` and the new due date, and the outgoing assignment email carries that date with a distinct idempotency key.
   - Coverage gap: current Drive tests cover initial assignment and stale email results, but do not exercise a new delivery round after a sent notification. Static checks cannot detect email-provider deduplication.
+
+- [ ] Browse every active or retired contractor beyond the former 200-profile cap.
+  - Failure and consequence: Retired verification profiles can consume an unfiltered limit and hide active editors from admins, or pagination can omit matching contractors.
+  - Observable result: Query `api.employees.admin.listEmployees` across cursors with mixed active and retired profiles exceeding 200 records. Each status returns all matching profiles exactly once and excludes the other status.
+  - Coverage gap: The existing retirement test checks access changes and workload, but does not cover capped roster reads or pagination. Static checks cannot detect missing records.
