@@ -44,12 +44,8 @@ async function waitForCalendarAvailability(page: Page) {
 	const loadingAvailability = page.getByText("Loading availability...");
 	const calendar = page.locator('[data-slot="calendar"]');
 
-	// Busy-window fetch starts after mount once the rate-limit key is set in useEffect.
-	await loadingAvailability.waitFor({ state: "visible", timeout: 8_000 }).catch(() => {});
-
-	if (await loadingAvailability.isVisible()) {
-		await loadingAvailability.waitFor({ state: "hidden", timeout: 15_000 });
-	}
+	// Availability may already be cached, so the loading message need not appear.
+	await expect(loadingAvailability).toBeHidden({ timeout: 15_000 });
 
 	await expect
 		.poll(async () => calendar.locator("button[data-day]:not([disabled])").count(), {
