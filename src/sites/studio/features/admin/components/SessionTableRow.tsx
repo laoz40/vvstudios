@@ -271,7 +271,7 @@ function SessionNotesCell({
 	return (
 		<button
 			type="button"
-			className="w-full text-left text-sm whitespace-normal text-muted-foreground select-text"
+			className="w-full text-left text-sm [overflow-wrap:anywhere] whitespace-pre-wrap text-muted-foreground select-text"
 			onClick={toggleNotesView}>
 			<span className="font-medium text-foreground">{notesLabel}: </span>
 			{notesText}

@@ -99,12 +99,12 @@ export function EditorSessionTableRow({
 					/>
 				</TableCell>
 				<TableCell>
-					<p className="text-sm whitespace-normal text-muted-foreground">
+					<p className="text-sm [overflow-wrap:anywhere] whitespace-pre-wrap text-muted-foreground">
 						{session.adminNotes?.trim() || "-"}
 					</p>
 				</TableCell>
 				<TableCell>
-					<div className="text-sm whitespace-normal text-muted-foreground">
+					<div className="text-sm [overflow-wrap:anywhere] whitespace-pre-wrap text-muted-foreground">
 						{editorNotesText ? <span>{editorNotesText}</span> : null}
 						<Button
 							type="button"
