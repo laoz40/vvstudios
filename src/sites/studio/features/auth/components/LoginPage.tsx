@@ -12,7 +12,7 @@ const clerkAppearance = {
 		colorTextSecondary: "#d0d0d0",
 		colorInputBackground: "#1a1a1a",
 		colorInputText: "#fafafa",
-		colorPrimary: "#f5c400",
+		colorPrimary: "var(--muted-foreground)",
 		borderRadius: "0.5rem"
 	},
 	elements: {
@@ -29,9 +29,7 @@ const clerkAppearance = {
 		formFieldLabel: "text-sm text-foreground",
 		footer: "hidden",
 		dividerLine: "bg-border",
-		dividerText: "text-muted-foreground",
-		formFieldAction: "text-primary hover:text-primary/90",
-		identityPreviewEditButton: "text-primary hover:text-primary/90"
+		dividerText: "text-muted-foreground"
 	}
 };
 
