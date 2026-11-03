@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { cn } from "#/lib/utils";
 import { Button } from "#/components/ui/button";
 import {
 	Dialog,
@@ -50,7 +51,10 @@ export function EditorSessionNotesPreview({
 		<div className="flex min-w-0 flex-1 items-baseline gap-1 text-sm text-muted-foreground">
 			<p
 				ref={previewRef}
-				className="line-clamp-1 min-w-0 flex-1 [overflow-wrap:anywhere] whitespace-pre-wrap">
+				className={cn(
+					"line-clamp-1 min-w-0 [overflow-wrap:anywhere] whitespace-pre-wrap",
+					summary && notes?.trim() ? "text-primary" : "flex-1"
+				)}>
 				{notes?.trim() && summary ? summary : text}
 			</p>
 			{notes?.trim() && (summary || isTruncated) ? (
