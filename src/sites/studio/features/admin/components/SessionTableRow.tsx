@@ -10,6 +10,7 @@ import {
 	DropdownMenuRadioItem,
 	DropdownMenuTrigger
 } from "#/components/ui/dropdown-menu";
+import { useTextOverflow } from "#studio/hooks/useTextOverflow";
 import { cn } from "#/lib/utils";
 import { AdminTableInfoPopover } from "#studio/features/admin/components/AdminTableInfoPopover";
 import { SessionAmountPopover } from "#studio/features/admin/components/SessionAmountPopover";
@@ -256,14 +257,25 @@ function SessionNotesCell({
 	const visibleNotes = getSessionNotesForView(session, notesView);
 	const notesText = visibleNotes || "-";
 
+	const { previewRef, isTruncated } = useTextOverflow<HTMLSpanElement>(
+		`${notesLabel}: ${notesText}`
+	);
+
 	const notesViews: SessionNotesView[] = ["client", "editor", "admin"];
 
 	return (
 		<div
 			className={cn(
-				"w-full text-left text-sm [overflow-wrap:anywhere] whitespace-pre-wrap text-muted-foreground select-text",
-				isCollapsed && "flex items-baseline gap-1"
+				"relative w-full text-left text-sm [overflow-wrap:anywhere] whitespace-pre-wrap text-muted-foreground select-text",
+				isCollapsed && isTruncated && "flex items-baseline gap-1"
 			)}>
+			{/* Measure without the toggle so it cannot cause its own overflow. */}
+			<span
+				ref={previewRef}
+				aria-hidden
+				className="pointer-events-none invisible absolute inset-x-0 top-0 line-clamp-1">
+				<span className="font-bold">{notesLabel}:</span> {notesText}
+			</span>
 			<DropdownMenu>
 				<DropdownMenuTrigger asChild>
 					<button
@@ -286,8 +298,10 @@ function SessionNotesCell({
 					</DropdownMenuRadioGroup>
 				</DropdownMenuContent>
 			</DropdownMenu>{" "}
-			<span className={cn(isCollapsed && "min-w-0 flex-1 truncate")}>{notesText}</span>
-			{visibleNotes ? (
+			<span className={cn(isCollapsed && isTruncated && "min-w-0 flex-1 truncate")}>
+				{notesText}
+			</span>
+			{visibleNotes && isTruncated ? (
 				<>
 					{" "}
 					<button

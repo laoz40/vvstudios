@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useTextOverflow } from "#studio/hooks/useTextOverflow";
 import { Button } from "#/components/ui/button";
 import {
 	Dialog,
@@ -23,26 +23,7 @@ export function EditorSessionNotesPreview({
 	notes
 }: EditorSessionNotesPreviewProps) {
 	const text = notes?.trim();
-	const previewRef = useRef<HTMLParagraphElement>(null);
-	const [isTruncated, setIsTruncated] = useState(false);
-
-	useEffect(() => {
-		const preview = previewRef.current;
-
-		if (!preview) return undefined;
-
-		const measureOverflow = () => {
-			setIsTruncated(
-				preview.scrollHeight > preview.clientHeight || preview.scrollWidth > preview.clientWidth
-			);
-		};
-
-		measureOverflow();
-		const observer = new ResizeObserver(measureOverflow);
-		observer.observe(preview);
-
-		return () => observer.disconnect();
-	}, [text]);
+	const { previewRef, isTruncated } = useTextOverflow<HTMLParagraphElement>(text);
 
 	if (!text) {
 		return <span className="text-sm text-muted-foreground">-</span>;
