@@ -48,8 +48,8 @@ export function EditorSessionsTable({
 					{ key: "customer", colClassName: "w-64", header: "Customer" },
 					{ key: "session", colClassName: "w-32 md:w-24", header: "Session" },
 					{ key: "service", colClassName: "w-60 md:w-48", header: "Service" },
-					{ key: "admin-notes", colClassName: "w-84", header: "Admin Notes" },
-					{ key: "editor-notes", colClassName: "w-84", header: "Editor Notes" },
+					{ key: "admin-notes", colClassName: "w-84", header: "Admin notes" },
+					{ key: "editor-notes", colClassName: "w-84", header: "Editor notes" },
 					{ key: "drive", colClassName: "md:w-12", header: "Drive", headerClassName: "text-right" }
 				]}>
 				{sessions.map((session) => (

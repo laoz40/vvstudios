@@ -74,10 +74,11 @@ function SessionNotesDialogForm({
 				<DialogTitle>{title}</DialogTitle>
 				<DialogDescription>{description}</DialogDescription>
 			</DialogHeader>
-			<Field>
+			<Field className="min-h-0 min-w-0">
 				{fieldLabel ? <FieldLabel htmlFor={fieldId}>{fieldLabel}</FieldLabel> : null}
 				<Textarea
 					id={fieldId}
+					className="field-sizing-fixed h-[min(40dvh,20rem)] min-h-0 max-w-full min-w-0 resize-none overflow-y-auto [overflow-wrap:anywhere] whitespace-pre-wrap"
 					aria-describedby={`${fieldId}-notification`}
 					value={notes}
 					disabled={isSaving}
@@ -133,7 +134,7 @@ export function SessionNotesDialog({
 			onOpenChange={(nextOpen) => {
 				if (!isSaving) onOpenChange(nextOpen);
 			}}>
-			<DialogContent className="sm:max-w-lg">
+			<DialogContent className="max-h-[calc(100dvh-2rem)] grid-rows-[auto_minmax(0,1fr)_auto] overflow-y-auto sm:max-w-3xl">
 				{open ? (
 					<SessionNotesDialogForm
 						key={bookingId}
