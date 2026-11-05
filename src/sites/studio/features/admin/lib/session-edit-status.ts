@@ -21,6 +21,8 @@ type DeliverableStatusAction = (typeof EDIT_STATUS_OPTIONS)[number];
 
 export type DeliverableStatus = NonNullable<Doc<"bookings">["editStatus"]>;
 
+type DeliverableDisplayStatus = DeliverableStatus | "unassigned";
+
 type SessionRecord = Doc<"bookings">;
 
 type SessionStatus = SessionRecord["status"];
@@ -55,7 +57,8 @@ export const sessionStatusIconClassNameMap: Record<SessionStatus, string> = {
 	pending_payment: "size-5 text-primary"
 };
 
-export const deliverableStatusLabelMap: Record<DeliverableStatus, string> = {
+export const deliverableStatusLabelMap: Record<DeliverableDisplayStatus, string> = {
+	unassigned: "Unassigned",
 	to_edit: "Not Started",
 	downloading: "Downloading",
 	editing: "Editing",
@@ -69,8 +72,9 @@ export const deliverableStatusTabLabelMap: Record<DeliverableStatusAction, strin
 	completed: "Deliver"
 };
 
-export const deliverableStatusBadgeClassNameMap: Record<DeliverableStatus, string> = {
-	to_edit: "bg-destructive text-primary-foreground",
+export const deliverableStatusBadgeClassNameMap: Record<DeliverableDisplayStatus, string> = {
+	unassigned: "bg-destructive text-primary-foreground",
+	to_edit: "bg-not-started text-primary-foreground",
 	downloading: "bg-primary text-primary-foreground",
 	editing: "bg-primary text-primary-foreground",
 	uploading: "bg-primary text-primary-foreground",
@@ -86,7 +90,7 @@ export const deliverableStatusIconMap: Record<DeliverableStatusAction, LucideIco
 
 export const deliverableStatusTabClassNameMap: Record<DeliverableStatusAction, string> = {
 	to_edit:
-		"hover:border-input hover:bg-input/30 hover:text-destructive hover:shadow-sm focus-visible:text-destructive disabled:opacity-100 data-[state=active]:text-destructive dark:hover:text-destructive dark:focus-visible:text-destructive dark:data-[state=active]:text-destructive",
+		"hover:border-input hover:bg-input/30 hover:text-foreground hover:shadow-sm focus-visible:text-foreground disabled:opacity-100 data-[state=active]:text-foreground dark:hover:text-foreground dark:focus-visible:text-foreground dark:data-[state=active]:text-foreground",
 	editing:
 		"hover:border-input hover:bg-input/30 hover:text-primary hover:shadow-sm focus-visible:text-primary disabled:opacity-100 data-[state=active]:text-primary dark:hover:text-primary dark:focus-visible:text-primary dark:data-[state=active]:text-primary",
 	completed:
@@ -94,10 +98,11 @@ export const deliverableStatusTabClassNameMap: Record<DeliverableStatusAction, s
 };
 
 export const deliverableStatusBadgeVariantMap: Record<
-	DeliverableStatus,
+	DeliverableDisplayStatus,
 	ComponentProps<typeof Badge>["variant"]
 > = {
-	to_edit: "destructive",
+	unassigned: "destructive",
+	to_edit: "default",
 	downloading: "default",
 	editing: "default",
 	uploading: "default",
