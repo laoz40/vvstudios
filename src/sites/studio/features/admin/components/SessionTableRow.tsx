@@ -3,8 +3,14 @@ import { CircleAlert } from "lucide-react";
 import { Badge } from "#/components/ui/badge";
 import { Button } from "#/components/ui/button";
 import { TableCell, TableRow } from "#/components/ui/table";
-import { toast } from "sonner";
-import { exhaustiveCheck } from "#/lib/result";
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuRadioGroup,
+	DropdownMenuRadioItem,
+	DropdownMenuTrigger
+} from "#/components/ui/dropdown-menu";
+import { useTextOverflow } from "#studio/hooks/useTextOverflow";
 import { cn } from "#/lib/utils";
 import { AdminTableInfoPopover } from "#studio/features/admin/components/AdminTableInfoPopover";
 import { SessionAmountPopover } from "#studio/features/admin/components/SessionAmountPopover";
@@ -229,19 +235,6 @@ function getSessionNotesForView(session: SessionRecord, notesView: SessionNotesV
 	return session.adminNotes?.trim();
 }
 
-function getNextSessionNotesView(notesView: SessionNotesView): SessionNotesView {
-	switch (notesView) {
-		case "client":
-			return "editor";
-		case "editor":
-			return "admin";
-		case "admin":
-			return "client";
-		default:
-			return exhaustiveCheck(notesView);
-	}
-}
-
 function SessionNotesCell({
 	session,
 	isPastSession
@@ -253,6 +246,8 @@ function SessionNotesCell({
 		getDefaultSessionNotesView(isPastSession)
 	);
 
+	const [isCollapsed, setIsCollapsed] = useState(false);
+
 	// Upcoming sessions default to client notes; past sessions default to editor notes.
 	useEffect(() => {
 		setNotesView(getDefaultSessionNotesView(isPastSession));
@@ -262,20 +257,63 @@ function SessionNotesCell({
 	const visibleNotes = getSessionNotesForView(session, notesView);
 	const notesText = visibleNotes || "-";
 
-	function toggleNotesView() {
-		const nextNotesView = getNextSessionNotesView(notesView);
-		setNotesView(nextNotesView);
-		toast.info(`${sessionNotesViewLabelMap[nextNotesView]} notes displayed.`);
-	}
+	const { previewRef, isTruncated } = useTextOverflow<HTMLSpanElement>(
+		`${notesLabel}: ${notesText}`
+	);
+
+	const notesViews: SessionNotesView[] = ["client", "editor", "admin"];
 
 	return (
-		<button
-			type="button"
-			className="w-full text-left text-sm whitespace-normal text-muted-foreground select-text"
-			onClick={toggleNotesView}>
-			<span className="font-medium text-foreground">{notesLabel}: </span>
-			{notesText}
-		</button>
+		<div
+			className={cn(
+				"relative w-full text-left text-sm [overflow-wrap:anywhere] whitespace-pre-wrap text-muted-foreground select-text",
+				isCollapsed && isTruncated && "flex items-baseline gap-1"
+			)}>
+			{/* Measure without the toggle so it cannot cause its own overflow. */}
+			<span
+				ref={previewRef}
+				aria-hidden
+				className="pointer-events-none invisible absolute inset-x-0 top-0 line-clamp-1">
+				<span className="font-bold">{notesLabel}:</span> {notesText}
+			</span>
+			<DropdownMenu>
+				<DropdownMenuTrigger asChild>
+					<button
+						type="button"
+						aria-label={`Select notes view, currently ${notesLabel}`}
+						className="inline shrink-0 cursor-pointer rounded-sm p-0 font-bold text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none">
+						{notesLabel}:
+					</button>
+				</DropdownMenuTrigger>
+				<DropdownMenuContent align="start">
+					<DropdownMenuRadioGroup value={notesView}>
+						{notesViews.map((view) => (
+							<DropdownMenuRadioItem
+								key={view}
+								value={view}
+								onSelect={() => setNotesView(view)}>
+								{sessionNotesViewLabelMap[view]}
+							</DropdownMenuRadioItem>
+						))}
+					</DropdownMenuRadioGroup>
+				</DropdownMenuContent>
+			</DropdownMenu>{" "}
+			<span className={cn(isCollapsed && isTruncated && "min-w-0 flex-1 truncate")}>
+				{notesText}
+			</span>
+			{visibleNotes && isTruncated ? (
+				<>
+					{" "}
+					<button
+						type="button"
+						aria-expanded={!isCollapsed}
+						className="shrink-0 cursor-pointer rounded-sm text-foreground underline underline-offset-4 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+						onClick={() => setIsCollapsed(!isCollapsed)}>
+						{isCollapsed ? "Show more" : "Show less"}
+					</button>
+				</>
+			) : null}
+		</div>
 	);
 }
 

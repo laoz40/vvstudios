@@ -109,6 +109,9 @@ jobs:
       - name: Create empty Convex preview and deploy
         id: preview
         env:
+          # Timestamped request-size/compression diagnostics. Avoid --verbose,
+          # which also prints the start_push response containing backend env vars.
+          CONVEX_VERBOSE: "1"
           CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_E2E_PREVIEW_DEPLOY_KEY }}
           CONVEX_PREVIEW_NAME: e2e-pr-${{ github.event.pull_request.number }}
           E2E_GOOGLE_CALENDAR_ID: ${{ vars.E2E_GOOGLE_CALENDAR_ID }}
