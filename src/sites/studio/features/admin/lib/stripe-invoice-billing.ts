@@ -1,5 +1,5 @@
 import type { Doc } from "#convex/_generated/dataModel";
-import { formatCustomInvoiceCurrency } from "#studio/features/admin/lib/custom-invoices";
+import { formatAud } from "#studio/features/booking-invoice/lib/money";
 
 export type StripeInvoiceBillingLink = "invoicePdf" | "receipt";
 
@@ -14,7 +14,7 @@ export function formatStripeInvoiceKindLabel(kind: Doc<"stripeInvoices">["kind"]
 }
 
 export function formatStripeInvoiceAmount(invoice: Pick<Doc<"stripeInvoices">, "totalAmount">) {
-	return formatCustomInvoiceCurrency(invoice.totalAmount);
+	return formatAud(invoice.totalAmount);
 }
 
 export function getStripeInvoiceAmountClassName(
