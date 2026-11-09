@@ -384,7 +384,13 @@ export function SessionTableRow({ onReceiptSearch, session }: SessionTableRowPro
 	const packageReceiptNumber = session.receiptNumber;
 	const assignedEditorDisplayName = session.assignedEditorDisplayName ?? null;
 	const deliverablesEmailAction = useDeliverablesEmailAction(session);
-	const deliverableStatus = isDeliverableSession(session) ? getDeliverableStatus(session) : null;
+	const editStatus = isDeliverableSession(session) ? getDeliverableStatus(session) : null;
+
+	const deliverableStatus =
+		editStatus === "to_edit" && session.assignedEditorTokenIdentifier === undefined
+			? "unassigned"
+			: editStatus;
+
 	const pastCellClassName = isPastSession ? "opacity-70" : undefined;
 	let deliverableStatusContent: ReactNode = null;
 
