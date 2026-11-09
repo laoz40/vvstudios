@@ -92,6 +92,27 @@ function showEnrollAdminAsEditorError(error: EnrollAdminAsEditorError) {
 	}
 }
 
+function ContractorName({ editor }: { editor: ManagedEditor }) {
+	return (
+		<div className="flex items-center gap-1.5">
+			<PrivacySensitiveText
+				rowId={editor.tokenIdentifier}
+				value={editor.displayName || "Unnamed contractor"}
+				label="contractor name"
+				copyable={false}>
+				{editor.displayName || "Unnamed contractor"}
+			</PrivacySensitiveText>
+			{editor.canSendDeliverables ? (
+				<ShieldCheckIcon
+					className="size-4 shrink-0 text-primary"
+					role="img"
+					aria-label="Client sending enabled"
+				/>
+			) : null}
+		</div>
+	);
+}
+
 export function EmployeesTable({
 	adminEditorProfile,
 	editors,
@@ -312,13 +333,7 @@ export function EmployeesTable({
 													</Badge>
 												</TableCell>
 												<TableCell className="font-medium">
-													<PrivacySensitiveText
-														rowId={editor.tokenIdentifier}
-														value={editor.displayName || "Unnamed contractor"}
-														label="contractor name"
-														copyable={false}>
-														{editor.displayName || "Unnamed contractor"}
-													</PrivacySensitiveText>
+													<ContractorName editor={editor} />
 												</TableCell>
 												<TableCell>
 													<PrivacySensitiveText
