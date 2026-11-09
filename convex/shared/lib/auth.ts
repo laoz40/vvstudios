@@ -59,7 +59,11 @@ export function editorUserAccessFromProfile(
 		return err({ reason: "NOT_AUTHORIZED" as const });
 	}
 
-	return ok({ role: "editor" as const, permissions: ROLE_PERMISSIONS.editor });
+	const permissions: readonly Permission[] = editor.canSendDeliverables
+		? [...ROLE_PERMISSIONS.editor, "send:deliverables-email"]
+		: ROLE_PERMISSIONS.editor;
+
+	return ok({ role: "editor" as const, permissions });
 }
 
 export function verifyUserPermission(permission: Permission, access: UserAccess) {

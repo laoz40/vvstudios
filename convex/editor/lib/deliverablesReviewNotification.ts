@@ -8,27 +8,7 @@ import { okOrThrow } from "#convex/shared/lib/result";
 
 type EditStatus = NonNullable<Doc<"bookings">["editStatus"]>;
 
-export function shouldNotifyHostOfDeliverablesReview(args: {
-	identity: UserIdentity;
-	previousEditStatus: EditStatus | undefined;
-	nextEditStatus: EditStatus;
-}) {
-	return (
-		args.nextEditStatus === "review" &&
-		args.previousEditStatus !== "review" &&
-		!isAdminIdentity(args.identity)
-	);
-}
-
-export function shouldNotifyHostOfSessionEditStatus(
-	identity: UserIdentity,
-	previousEditStatus: EditStatus | undefined,
-	nextEditStatus: EditStatus
-) {
-	return shouldNotifyHostOfDeliverablesReview({ identity, previousEditStatus, nextEditStatus });
-}
-
-export function buildDeliverablesReviewHostEmailArgs(
+function buildDeliverablesReviewHostEmailArgs(
 	session: Doc<"bookings">,
 	editor: Doc<"editorProfiles"> | null,
 	identity: UserIdentity
@@ -50,12 +30,14 @@ export function loadDeliverablesReviewHostEmailArgs(
 	identity: UserIdentity,
 	editStatus: EditStatus
 ) {
-	if (!shouldNotifyHostOfSessionEditStatus(identity, session.editStatus, editStatus)) {
+	if (editStatus !== "review" || session.editStatus === "review" || isAdminIdentity(identity)) {
 		return okAsync(null);
 	}
 
 	return getEditorByToken(ctx, identity.tokenIdentifier).map((editor) =>
-		buildDeliverablesReviewHostEmailArgs(session, editor, identity)
+		editor?.canSendDeliverables
+			? null
+			: buildDeliverablesReviewHostEmailArgs(session, editor, identity)
 	);
 }
 
