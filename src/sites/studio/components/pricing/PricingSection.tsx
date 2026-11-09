@@ -1,4 +1,4 @@
-import { useState, type ComponentProps, type ComponentType } from "react";
+import type { ComponentProps, ComponentType } from "react";
 import { Link } from "@tanstack/react-router";
 import { motion } from "motion/react";
 import {
@@ -14,7 +14,11 @@ import { AnimatedIconButton } from "#/components/AnimatedIconButton";
 import ArrowNarrowRightIcon from "#/components/ui/arrow-narrow-right-icon";
 import { studioSite } from "#/config/sites";
 import { cn } from "#/lib/utils";
-import { ImageViewer, ImageViewerTrigger } from "#studio/components/photos/ImageViewer";
+import {
+	ImageViewer,
+	ImageViewerTrigger,
+	useImageViewer
+} from "#studio/components/photos/ImageViewer";
 import { manAndWomanPhoto, timelinePhoto, type PhotoGalleryImage } from "#studio/content/photos";
 import { ADDON_PRICES } from "#/domain/booking/price-constants";
 import { formatBookingPrice } from "#studio/features/booking-form/lib/booking-pricing";
@@ -222,7 +226,7 @@ export function PricingSection({
 	compact = false,
 	fadeIn = false
 }: PricingSectionProps) {
-	const [previewImage, setPreviewImage] = useState<PhotoGalleryImage | null>(null);
+	const { selectImage, viewerProps } = useImageViewer();
 	const HeadingTag = headingLevel;
 	const fadeInAnimation = useFadeInAnimation(fadeIn);
 
@@ -309,7 +313,7 @@ export function PricingSection({
 					addOns={productionAddOns}
 					image={manAndWomanPhoto}
 					imageSide="left"
-					onSelectImage={setPreviewImage}
+					onSelectImage={selectImage}
 				/>
 				<PricingAddonFeatureSection
 					fadeInAnimation={fadeInAnimation}
@@ -317,16 +321,11 @@ export function PricingSection({
 					addOns={editingAddOns}
 					image={timelinePhoto}
 					imageSide="right"
-					onSelectImage={setPreviewImage}
+					onSelectImage={selectImage}
 					sectionId="editing-services"
 				/>
 			</div>
-			<ImageViewer
-				image={previewImage}
-				onClose={() => {
-					setPreviewImage(null);
-				}}
-			/>
+			<ImageViewer {...viewerProps} />
 		</section>
 	);
 }
