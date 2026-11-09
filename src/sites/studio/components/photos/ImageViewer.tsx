@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { Image } from "@unpic/react";
 import { Maximize2, X } from "lucide-react";
 import { Button } from "#/components/ui/button";
@@ -83,6 +83,12 @@ export function ImageViewerTrigger({
 export interface ImageViewerProps {
 	image: PhotoGalleryImage | null;
 	onClose: () => void;
+}
+
+export function useImageViewer() {
+	const [image, selectImage] = useState<PhotoGalleryImage | null>(null);
+
+	return { selectImage, viewerProps: { image, onClose: () => selectImage(null) } };
 }
 
 export function ImageViewer({ image, onClose }: ImageViewerProps) {

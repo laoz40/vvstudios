@@ -5,8 +5,12 @@ import { Button } from "#/components/ui/button";
 import { Card, CardContent, CardFooter } from "#/components/ui/card";
 import { cn } from "#/lib/utils";
 import { ContactActions } from "#studio/components/contact/ContactActions";
-import { ImageViewer, ImageViewerTrigger } from "#studio/components/photos/ImageViewer";
-import { girlSingingPhoto, type PhotoGalleryImage } from "#studio/content/photos";
+import {
+	ImageViewer,
+	ImageViewerTrigger,
+	useImageViewer
+} from "#studio/components/photos/ImageViewer";
+import { girlSingingPhoto } from "#studio/content/photos";
 import {
 	landingSectionHeadingClassName,
 	landingSectionIntroGapClassName,
@@ -84,7 +88,7 @@ function TestimonialReviewCard({
 }
 
 export function LandingTestimonials() {
-	const [previewImage, setPreviewImage] = useState<PhotoGalleryImage | null>(null);
+	const { selectImage, viewerProps } = useImageViewer();
 	const [showAllReviews, setShowAllReviews] = useState(false);
 	const fadeInAnimation = useFadeInAnimation(true);
 	const [featuredReview, ...remainingReviews] = testimonialCopy.reviews;
@@ -112,7 +116,7 @@ export function LandingTestimonials() {
 					<div className="grid gap-4 md:grid-cols-2 md:items-stretch md:gap-6">
 						<ImageViewerTrigger
 							image={girlSingingPhoto}
-							onSelect={setPreviewImage}
+							onSelect={selectImage}
 							className="relative h-72 w-full overflow-hidden rounded-lg bg-card shadow-xl shadow-background/40 md:h-full"
 							imageClassName="h-full w-full object-cover"
 						/>
@@ -158,12 +162,7 @@ export function LandingTestimonials() {
 					</div>
 				</div>
 			</motion.div>
-			<ImageViewer
-				image={previewImage}
-				onClose={() => {
-					setPreviewImage(null);
-				}}
-			/>
+			<ImageViewer {...viewerProps} />
 		</section>
 	);
 }

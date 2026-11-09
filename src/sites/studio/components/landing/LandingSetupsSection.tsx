@@ -1,9 +1,13 @@
-import { useRef, useState } from "react";
+import { useRef } from "react";
 import { Image } from "@unpic/react";
 import { motion, useReducedMotion, useScroll, useTransform } from "motion/react";
 import { cn } from "#/lib/utils";
 import { ContactActions } from "#studio/components/contact/ContactActions";
-import { ImageViewer, ImageViewerOpenButton } from "#studio/components/photos/ImageViewer";
+import {
+	ImageViewer,
+	ImageViewerOpenButton,
+	useImageViewer
+} from "#studio/components/photos/ImageViewer";
 import {
 	landingSetupImages,
 	photosPageContent,
@@ -100,7 +104,7 @@ function SetupShowcasePanel({
 }
 
 export function LandingSetupsSection() {
-	const [previewImage, setPreviewImage] = useState<PhotoGalleryImage | null>(null);
+	const { selectImage, viewerProps } = useImageViewer();
 	const fadeInAnimation = useFadeInAnimation(true);
 
 	return (
@@ -126,7 +130,7 @@ export function LandingSetupsSection() {
 						fadeInAnimation={fadeInAnimation}
 						image={image}
 						loading={index === 0 ? "eager" : "lazy"}
-						onPreview={setPreviewImage}
+						onPreview={selectImage}
 					/>
 				))}
 			</div>
@@ -143,12 +147,7 @@ export function LandingSetupsSection() {
 				/>
 			</motion.div>
 
-			<ImageViewer
-				image={previewImage}
-				onClose={() => {
-					setPreviewImage(null);
-				}}
-			/>
+			<ImageViewer {...viewerProps} />
 		</section>
 	);
 }
