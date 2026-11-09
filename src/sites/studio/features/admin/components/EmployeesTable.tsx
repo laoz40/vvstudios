@@ -5,6 +5,7 @@ import {
 	LoaderCircleIcon,
 	MoreHorizontalIcon,
 	NotebookPenIcon,
+	ShieldCheckIcon,
 	UserRoundPlusIcon,
 	UserRoundXIcon
 } from "lucide-react";
@@ -91,6 +92,27 @@ function showEnrollAdminAsEditorError(error: EnrollAdminAsEditorError) {
 	}
 }
 
+function ContractorName({ editor }: { editor: ManagedEditor }) {
+	return (
+		<div className="flex items-center gap-1.5">
+			<PrivacySensitiveText
+				rowId={editor.tokenIdentifier}
+				value={editor.displayName || "Unnamed contractor"}
+				label="contractor name"
+				copyable={false}>
+				{editor.displayName || "Unnamed contractor"}
+			</PrivacySensitiveText>
+			{editor.canSendDeliverables ? (
+				<ShieldCheckIcon
+					className="size-4 shrink-0 text-primary"
+					role="img"
+					aria-label="Client sending enabled"
+				/>
+			) : null}
+		</div>
+	);
+}
+
 export function EmployeesTable({
 	adminEditorProfile,
 	editors,
@@ -103,8 +125,18 @@ export function EmployeesTable({
 }: EmployeesTableProps) {
 	const enrollAdminAsEditor = useMutation(api.shared.auth.enrollAdminAsEditor);
 	const updateEmployeeAccess = useMutation(api.employees.admin.updateEmployeeAccess);
+
+	const updateDeliveryPermission = useMutation(
+		api.employees.admin.updateEmployeeDeliveryPermission
+	);
+
 	const [openActionsEditorToken, setOpenActionsEditorToken] = useState<string | null>(null);
-	const [updatingEditorToken, setUpdatingEditorToken] = useState<string | null>(null);
+
+	const [updatingEditor, setUpdatingEditor] = useState<{
+		tokenIdentifier: string;
+		action: "access" | "delivery";
+	} | null>(null);
+
 	const [isEnrolling, setIsEnrolling] = useState(false);
 	const [notesDialog, setNotesDialog] = useState<NotesDialogState>({ status: "closed" });
 	const [jobsEditorToken, setJobsEditorToken] = useState<string | null>(null);
@@ -127,13 +159,13 @@ export function EmployeesTable({
 	}
 
 	async function handleAccessChange(editor: ManagedEditor) {
-		setUpdatingEditorToken(editor.tokenIdentifier);
+		setUpdatingEditor({ tokenIdentifier: editor.tokenIdentifier, action: "access" });
 
 		const [error] = await tryCatch(
 			updateEmployeeAccess({ tokenIdentifier: editor.tokenIdentifier, isActive: !editor.isActive })
 		);
 
-		setUpdatingEditorToken(null);
+		setUpdatingEditor(null);
 		setOpenActionsEditorToken(null);
 
 		if (error !== null) {
@@ -143,6 +175,28 @@ export function EmployeesTable({
 		}
 
 		toast.success(editor.isActive ? "Contractor retired" : "Contractor reactivated");
+	}
+
+	async function handleDeliveryPermissionChange(editor: ManagedEditor, checked: boolean) {
+		setUpdatingEditor({ tokenIdentifier: editor.tokenIdentifier, action: "delivery" });
+
+		const [error] = await tryCatch(
+			updateDeliveryPermission({
+				tokenIdentifier: editor.tokenIdentifier,
+				canSendDeliverables: checked
+			})
+		);
+
+		setUpdatingEditor(null);
+		setOpenActionsEditorToken(null);
+
+		if (error !== null) {
+			toast.error(getEditorAccessErrorMessage(error.reason));
+
+			return;
+		}
+
+		toast.success(checked ? "Client delivery enabled" : "Client delivery disabled");
 	}
 
 	let emptyEmployeeRows = (
@@ -243,14 +297,30 @@ export function EmployeesTable({
 						<TableBody>
 							{editors.length > 0
 								? editors.map((editor) => {
-										const isUpdatingThisEditor = updatingEditorToken === editor.tokenIdentifier;
+										const isUpdatingThisEditor =
+											updatingEditor?.tokenIdentifier === editor.tokenIdentifier;
+
+										const isUpdatingDelivery =
+											isUpdatingThisEditor && updatingEditor.action === "delivery";
+
+										let deliveryActionLabel = editor.canSendDeliverables
+											? "Disable client sending"
+											: "Enable client sending";
+
+										let deliveryActionIcon = <ShieldCheckIcon />;
+
+										if (isUpdatingDelivery) {
+											deliveryActionIcon = <LoaderCircleIcon className="animate-spin" />;
+											deliveryActionLabel = "Updating";
+										}
+
 										let accessActionIcon = editor.isActive ? <UserRoundXIcon /> : <CheckIcon />;
 
 										let accessActionLabel = editor.isActive
 											? "Retire contractor"
 											: "Reactivate contractor";
 
-										if (isUpdatingThisEditor) {
+										if (isUpdatingThisEditor && updatingEditor.action === "access") {
 											accessActionIcon = <LoaderCircleIcon className="animate-spin" />;
 											accessActionLabel = editor.isActive ? "Retiring" : "Reactivating";
 										}
@@ -263,13 +333,7 @@ export function EmployeesTable({
 													</Badge>
 												</TableCell>
 												<TableCell className="font-medium">
-													<PrivacySensitiveText
-														rowId={editor.tokenIdentifier}
-														value={editor.displayName || "Unnamed contractor"}
-														label="contractor name"
-														copyable={false}>
-														{editor.displayName || "Unnamed contractor"}
-													</PrivacySensitiveText>
+													<ContractorName editor={editor} />
 												</TableCell>
 												<TableCell>
 													<PrivacySensitiveText
@@ -313,13 +377,26 @@ export function EmployeesTable({
 															<Button
 																variant="ghost"
 																size="icon-sm"
-																disabled={updatingEditorToken !== null}>
+																disabled={updatingEditor !== null}>
 																<span className="sr-only">Open contractor actions</span>
 																<MoreHorizontalIcon aria-hidden />
 															</Button>
 														</DropdownMenuTrigger>
 														<DropdownMenuContent align="end">
 															<DropdownMenuGroup>
+																<DropdownMenuItem
+																	className="cursor-pointer"
+																	disabled={isUpdatingThisEditor}
+																	onSelect={(event) => {
+																		event.preventDefault();
+																		void handleDeliveryPermissionChange(
+																			editor,
+																			!editor.canSendDeliverables
+																		);
+																	}}>
+																	{deliveryActionIcon}
+																	{deliveryActionLabel}
+																</DropdownMenuItem>
 																<DropdownMenuItem
 																	className="cursor-pointer"
 																	disabled={isUpdatingThisEditor}

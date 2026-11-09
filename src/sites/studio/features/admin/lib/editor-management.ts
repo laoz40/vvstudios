@@ -21,6 +21,7 @@ export type ManagedEditor = {
 	displayName: string;
 	email: string;
 	isActive: boolean;
+	canSendDeliverables: boolean;
 	lastAssignedAt: number | null;
 	notes?: string;
 	totalEdits: number;

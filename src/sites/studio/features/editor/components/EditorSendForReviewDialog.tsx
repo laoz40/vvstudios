@@ -9,18 +9,20 @@ import {
 	DialogHeader,
 	DialogTitle
 } from "#/components/ui/dialog";
-import { Field, FieldLabel } from "#/components/ui/field";
+import { Field, FieldDescription } from "#/components/ui/field";
 import { Textarea } from "#/components/ui/textarea";
 import type { EditorSession } from "#studio/features/editor/lib/editor-sessions";
 
 export function EditorSendForReviewDialog({
 	session,
+	canSendToClient,
 	isSending,
 	open,
 	onOpenChange,
 	onSend
 }: {
 	session: EditorSession;
+	canSendToClient: boolean;
 	isSending: boolean;
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
@@ -28,6 +30,7 @@ export function EditorSendForReviewDialog({
 }) {
 	const [notes, setNotes] = useState(session.deliverablesClientNotes ?? "");
 	const notesId = `send-for-review-notes-${session._id}`;
+	const sendLabel = canSendToClient ? "Send to client" : "Send for review";
 
 	return (
 		<Dialog
@@ -37,23 +40,34 @@ export function EditorSendForReviewDialog({
 			}}>
 			<DialogContent className="sm:max-w-lg">
 				<DialogHeader className="text-left">
-					<DialogTitle>Send deliverables for review?</DialogTitle>
+					<DialogTitle>
+						{canSendToClient ? "Send deliverables to client?" : "Send deliverables for review?"}
+					</DialogTitle>
 					<DialogDescription>
-						Check every finished file is in the Deliverables folder. Sending emails the admin and
-						can&apos;t be undone.
+						Check every finished file is in the Deliverables folder.
+						{canSendToClient ? null : <> This notifies the admin to review your work.</>}
 					</DialogDescription>
 				</DialogHeader>
 
-				<Field>
-					<FieldLabel htmlFor={notesId}>Notes to the client (optional)</FieldLabel>
-					<Textarea
-						id={notesId}
-						placeholder="Add any notes for the customer..."
-						value={notes}
-						onChange={(event) => setNotes(event.target.value)}
-						disabled={isSending}
-					/>{" "}
-				</Field>
+				{canSendToClient ? (
+					<Field>
+						<Textarea
+							id={notesId}
+							aria-describedby={`${notesId}-guidance`}
+							aria-label="Notes to the client (optional)"
+							placeholder="Add a note for the customer (optional)..."
+							value={notes}
+							onChange={(event) => setNotes(event.target.value)}
+							disabled={isSending}
+						/>
+						<FieldDescription
+							id={`${notesId}-guidance`}
+							className="text-primary">
+							You&apos;re sending on behalf of VV Studios. Keep your message professional and
+							consistent with the VV Studios brand.
+						</FieldDescription>
+					</Field>
+				) : null}
 
 				<DialogFooter>
 					<Button
@@ -73,7 +87,7 @@ export function EditorSendForReviewDialog({
 								aria-hidden
 							/>
 						) : null}
-						Send for review
+						{isSending ? "Sending" : sendLabel}
 					</Button>
 				</DialogFooter>
 			</DialogContent>

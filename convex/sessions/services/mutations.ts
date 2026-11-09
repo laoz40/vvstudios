@@ -10,16 +10,17 @@ import type { MutationCtx } from "#convex/_generated/server";
 import { setBookingArchived } from "#convex/shared/lib/archiveState";
 import { updateSessionEditorAssignment } from "#convex/sessions/services/editorAssignment";
 import {
+	getSessionEditStatusPermission,
 	requireDeliverablesEligibility,
 	requireDeliverablesOwnership,
 	saveSessionAdminNotes,
 	saveSessionEditorNotes
 } from "#convex/editor/lib/editorSessions";
 import { archiveDeadCheckoutBooking } from "#convex/sessions/services/archive";
+import { writeSessionEditStatusWithHostNotification } from "#convex/sessions/services/deliverables";
 import { getSessionByStripeSessionId, getSessionFromDb } from "#convex/sessions/services/lookup";
 import { requirePermission } from "#convex/shared/services/auth";
 import { requireConfirmedBookingSession } from "#convex/sessions/lib/adminList";
-import { writeSessionEditStatusWithHostNotification } from "#convex/sessions/services/deliverables";
 import { writeSessionInstagramHandle } from "#convex/sessions/services/adminList";
 import {
 	loadEditorForAdminNotesNotification,
@@ -137,18 +138,16 @@ export function writeSessionEditStatusFromEditor(
 	}
 ) {
 	return safeTry(async function* () {
-		const identity = yield* requirePermission(ctx, "update:deliverables");
+		const identity = yield* requirePermission(ctx, getSessionEditStatusPermission(args.editStatus));
 		const access = yield* loadDeliverablesAccessStep(ctx, args.bookingId, identity);
 		const ownedAccess = yield* requireDeliverablesOwnership(access);
 
-		const eligibleAccess = yield* requireDeliverablesEligibility(ownedAccess).map(
-			() => ownedAccess
-		);
+		yield* requireDeliverablesEligibility(ownedAccess);
 
 		return ok(
 			yield* writeSessionEditStatusWithHostNotification(
 				ctx,
-				eligibleAccess,
+				ownedAccess,
 				args.editStatus,
 				args.deliverablesClientNotes
 			)
