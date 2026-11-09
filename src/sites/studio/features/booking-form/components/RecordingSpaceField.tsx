@@ -1,17 +1,12 @@
 import { Image } from "@unpic/react";
 import { Maximize2, Users } from "lucide-react";
-import { useState, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import { BookingSelectionCheck } from "#studio/features/booking-form/components/BookingSelectionCheck";
 import { Button } from "#/components/ui/button";
 import { FieldLegend, FieldSet } from "#/components/ui/field";
 import { RadioGroup, RadioGroupItem } from "#/components/ui/radio-group";
-import { ImageViewer } from "#studio/components/photos/ImageViewer";
-import {
-	armchairSetupPhoto,
-	musicSetupPhoto,
-	tableSetupPhoto,
-	type PhotoGalleryImage
-} from "#studio/content/photos";
+import { ImageViewer, useImageViewer } from "#studio/components/photos/ImageViewer";
+import { armchairSetupPhoto, musicSetupPhoto, tableSetupPhoto } from "#studio/content/photos";
 import {
 	recordingSpaceSchema,
 	type BookingFormValues
@@ -60,7 +55,7 @@ export function RecordingSpaceField({
 	value,
 	onChange
 }: RecordingSpaceFieldProps) {
-	const [previewImage, setPreviewImage] = useState<PhotoGalleryImage | null>(null);
+	const { selectImage, viewerProps } = useImageViewer();
 
 	return (
 		<>
@@ -158,7 +153,7 @@ export function RecordingSpaceField({
 										onClick={(event) => {
 											event.preventDefault();
 											event.stopPropagation();
-											setPreviewImage({ ...option.photo, caption: option.title });
+											selectImage({ ...option.photo, caption: option.title });
 										}}>
 										<Maximize2
 											aria-hidden="true"
@@ -172,12 +167,7 @@ export function RecordingSpaceField({
 					{children}
 				</FieldSet>
 			</section>
-			<ImageViewer
-				image={previewImage}
-				onClose={() => {
-					setPreviewImage(null);
-				}}
-			/>
+			<ImageViewer {...viewerProps} />
 		</>
 	);
 }

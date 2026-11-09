@@ -2,7 +2,11 @@ import { useEffect, useState } from "react";
 import { motion } from "motion/react";
 import { cn } from "#/lib/utils";
 import { ContactActions } from "#studio/components/contact/ContactActions";
-import { ImageViewer, ImageViewerTrigger } from "#studio/components/photos/ImageViewer";
+import {
+	ImageViewer,
+	ImageViewerTrigger,
+	useImageViewer
+} from "#studio/components/photos/ImageViewer";
 import { photosPageContent, type PhotoGalleryImage } from "#studio/content/photos";
 import {
 	landingSectionHeadingClassName,
@@ -31,7 +35,7 @@ export function PhotosSection({
 	layout = "masonry"
 }: PhotosSectionProps) {
 	const [isMobile, setIsMobile] = useState(false);
-	const [previewImage, setPreviewImage] = useState<PhotoGalleryImage | null>(null);
+	const { selectImage, viewerProps } = useImageViewer();
 	const fadeInAnimation = useFadeInAnimation(fadeIn);
 
 	useEffect(() => {
@@ -81,7 +85,7 @@ export function PhotosSection({
 									loading={index < 3 ? "eager" : "lazy"}
 									imageClassName="block h-auto w-full"
 									className={cn(layout === "threeFeature" && "shadow-xl shadow-background/40")}
-									onSelect={setPreviewImage}
+									onSelect={selectImage}
 								/>
 								{layout === "threeFeature" && image.caption ? (
 									<figcaption className="pt-3 text-center text-base text-foreground md:text-lg">
@@ -94,12 +98,7 @@ export function PhotosSection({
 				</div>
 				<ContactActions className={cn("max-w-3xl", contactActionsClassName)} />
 			</motion.div>
-			<ImageViewer
-				image={previewImage}
-				onClose={() => {
-					setPreviewImage(null);
-				}}
-			/>
+			<ImageViewer {...viewerProps} />
 		</section>
 	);
 }
