@@ -52,6 +52,7 @@ export default defineSchema({
 		displayName: v.string(),
 		email: v.string(),
 		isActive: v.boolean(),
+		canSendDeliverables: v.optional(v.boolean()),
 		lastAssignedAt: v.union(v.number(), v.null()),
 		totalEdits: v.number(),
 		notes: v.optional(v.string())

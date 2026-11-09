@@ -1,3 +1,4 @@
+import type { Permission } from "#/lib/permissions";
 import type { UserIdentity } from "convex/server";
 import type { PaginationOptions } from "convex/server";
 import { err, errAsync, ok, okAsync } from "neverthrow";
@@ -191,4 +192,11 @@ export function resetSessionForNextDeliverables(
 			})
 			.then(() => null)
 	);
+}
+
+// Editors can request admin review, but completing delivery requires client-send permission.
+export function getSessionEditStatusPermission(
+	editStatus: NonNullable<Doc<"bookings">["editStatus"]>
+): Permission {
+	return editStatus === "completed" ? "send:deliverables-email" : "update:deliverables";
 }

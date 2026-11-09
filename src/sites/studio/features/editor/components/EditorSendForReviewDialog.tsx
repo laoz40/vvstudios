@@ -15,12 +15,14 @@ import type { EditorSession } from "#studio/features/editor/lib/editor-sessions"
 
 export function EditorSendForReviewDialog({
 	session,
+	canSendToClient,
 	isSending,
 	open,
 	onOpenChange,
 	onSend
 }: {
 	session: EditorSession;
+	canSendToClient: boolean;
 	isSending: boolean;
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
@@ -28,6 +30,7 @@ export function EditorSendForReviewDialog({
 }) {
 	const [notes, setNotes] = useState(session.deliverablesClientNotes ?? "");
 	const notesId = `send-for-review-notes-${session._id}`;
+	const sendLabel = canSendToClient ? "Send to client" : "Send for review";
 
 	return (
 		<Dialog
@@ -37,10 +40,14 @@ export function EditorSendForReviewDialog({
 			}}>
 			<DialogContent className="sm:max-w-lg">
 				<DialogHeader className="text-left">
-					<DialogTitle>Send deliverables for review?</DialogTitle>
+					<DialogTitle>
+						{canSendToClient ? "Send deliverables to client?" : "Send deliverables for review?"}
+					</DialogTitle>
 					<DialogDescription>
-						Check every finished file is in the Deliverables folder. Sending emails the admin and
-						can&apos;t be undone.
+						Check every finished file is in the Deliverables folder.{" "}
+						{canSendToClient
+							? "This emails the client their Deliverables folder link and any notes below."
+							: "This notifies the admin to review your work. It does not email the client."}
 					</DialogDescription>
 				</DialogHeader>
 
@@ -73,7 +80,7 @@ export function EditorSendForReviewDialog({
 								aria-hidden
 							/>
 						) : null}
-						Send for review
+						{isSending ? "Sending" : sendLabel}
 					</Button>
 				</DialogFooter>
 			</DialogContent>

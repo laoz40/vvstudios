@@ -1,11 +1,12 @@
 import { useState } from "react";
-import { useMutation } from "convex/react";
+import { useAction, useMutation, useQuery } from "convex/react";
 import { ArrowRight, CircleX, Download, LoaderCircle, Send, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "#/components/ui/badge";
 import { Button } from "#/components/ui/button";
 import CheckedIcon from "#/components/ui/checked-icon";
 import KeyframesIcon from "#/components/ui/keyframes-icon";
+import { hasPermission } from "#/lib/permissions";
 import { cn } from "#/lib/utils";
 import { api } from "#convex/_generated/api";
 import { tryCatch } from "#/lib/result";
@@ -15,6 +16,7 @@ import {
 	deliverableStatusLabelMap,
 	type DeliverableStatus
 } from "#studio/features/admin/lib/session-edit-status";
+import { deliverablesEmailErrorToast } from "#studio/features/editor/lib/deliverables-email-errors";
 import { EditorSendForReviewDialog } from "#studio/features/editor/components/EditorSendForReviewDialog";
 import type { EditorSession } from "#studio/features/editor/lib/editor-sessions";
 
@@ -63,12 +65,49 @@ export function EditorDeliverableStatusBadge({
 	onDownloadingStarted: () => void;
 }) {
 	const updateSessionEditStatus = useMutation(api.sessions.admin.updateSessionEditStatus);
+
+	const sendDeliverablesEmail = useAction(
+		api.editor.deliverablesEmail.sendSessionDeliverablesEmail
+	);
+
+	const accessResult = useQuery(api.shared.auth.getCurrentUserAccess, {});
+
+	const canSendToClient =
+		accessResult?.[1] !== undefined &&
+		accessResult[1] !== null &&
+		hasPermission(accessResult[1].permissions, "send:deliverables-email");
+
 	const [isUpdating, setIsUpdating] = useState(false);
 	const deliverableStatus: DeliverableStatus = session.editStatus ?? "to_edit";
 	const stepIndex = editorSteps.findIndex((step) => step === deliverableStatus);
 	const nextStatus = canManageDeliverables ? editorSteps[stepIndex + 1] : undefined;
 
 	const [isReviewDialogOpen, setIsReviewDialogOpen] = useState(false);
+	const reviewActionLabel = canSendToClient ? "Send to client" : "Send for review";
+
+	async function sendForReview(notes: string) {
+		if (!canSendToClient) {
+			await changeStatus("review", undefined, notes);
+
+			return;
+		}
+
+		setIsUpdating(true);
+
+		const [emailError] = await tryCatch(
+			sendDeliverablesEmail({ bookingId: session._id, editorNotes: notes })
+		);
+
+		if (emailError !== null) {
+			setIsUpdating(false);
+			toast.error(deliverablesEmailErrorToast(emailError.reason));
+
+			return;
+		}
+
+		setIsReviewDialogOpen(false);
+		await changeStatus("review", undefined, notes);
+	}
 
 	async function changeStatus(
 		editStatus: DeliverableStatus,
@@ -84,7 +123,11 @@ export function EditorDeliverableStatusBadge({
 		setIsUpdating(false);
 
 		if (error !== null) {
-			toast.error("Unable to update this session's deliverables status.");
+			toast.error(
+				editStatus === "review" && canSendToClient
+					? "Deliverables email sent, but the status update failed."
+					: "Unable to update this session's deliverables status."
+			);
 
 			return;
 		}
@@ -95,12 +138,17 @@ export function EditorDeliverableStatusBadge({
 
 		setIsReviewDialogOpen(false);
 
-		toast.success(`${session.name} set to ${getDeliverableStatusLabel(editStatus)}`, {
-			action:
-				previousStatus === undefined || editStatus === "review"
-					? undefined
-					: { label: "Undo", onClick: () => void changeStatus(previousStatus) }
-		});
+		toast.success(
+			editStatus === "review" && canSendToClient
+				? `Deliverables email sent to ${session.name}.`
+				: `${session.name} set to ${getDeliverableStatusLabel(editStatus)}`,
+			{
+				action:
+					previousStatus === undefined || editStatus === "review"
+						? undefined
+						: { label: "Undo", onClick: () => void changeStatus(previousStatus) }
+			}
+		);
 	}
 
 	return (
@@ -124,7 +172,7 @@ export function EditorDeliverableStatusBadge({
 					type="button"
 					variant="outline"
 					size="xs"
-					disabled={isUpdating}
+					disabled={isUpdating || (nextStatus === "review" && !accessResult?.[1])}
 					onClick={() =>
 						nextStatus === "review"
 							? setIsReviewDialogOpen(true)
@@ -137,7 +185,7 @@ export function EditorDeliverableStatusBadge({
 						/>
 					) : null}
 					{nextStatus === "review"
-						? "Send for review"
+						? reviewActionLabel
 						: `Set to ${getDeliverableStatusLabel(nextStatus)}`}
 					<ArrowRight aria-hidden />
 					<span className="sr-only">for {session.name}</span>
@@ -146,10 +194,11 @@ export function EditorDeliverableStatusBadge({
 			{isReviewDialogOpen ? (
 				<EditorSendForReviewDialog
 					session={session}
+					canSendToClient={canSendToClient}
 					isSending={isUpdating}
 					open
 					onOpenChange={setIsReviewDialogOpen}
-					onSend={(notes) => void changeStatus("review", deliverableStatus, notes)}
+					onSend={(notes) => void sendForReview(notes)}
 				/>
 			) : null}
 		</div>
