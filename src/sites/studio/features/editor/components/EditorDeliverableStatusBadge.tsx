@@ -87,7 +87,7 @@ export function EditorDeliverableStatusBadge({
 
 	async function sendForReview(notes: string) {
 		if (!canSendToClient) {
-			await changeStatus("review", undefined, notes);
+			await changeStatus("review");
 
 			return;
 		}

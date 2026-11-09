@@ -9,7 +9,7 @@ import {
 	DialogHeader,
 	DialogTitle
 } from "#/components/ui/dialog";
-import { Field, FieldLabel } from "#/components/ui/field";
+import { Field, FieldDescription } from "#/components/ui/field";
 import { Textarea } from "#/components/ui/textarea";
 import type { EditorSession } from "#studio/features/editor/lib/editor-sessions";
 
@@ -44,23 +44,30 @@ export function EditorSendForReviewDialog({
 						{canSendToClient ? "Send deliverables to client?" : "Send deliverables for review?"}
 					</DialogTitle>
 					<DialogDescription>
-						Check every finished file is in the Deliverables folder.{" "}
-						{canSendToClient
-							? "This emails the client their Deliverables folder link and any notes below."
-							: "This notifies the admin to review your work. It does not email the client."}
+						Check every finished file is in the Deliverables folder.
+						{canSendToClient ? null : <> This notifies the admin to review your work.</>}
 					</DialogDescription>
 				</DialogHeader>
 
-				<Field>
-					<FieldLabel htmlFor={notesId}>Notes to the client (optional)</FieldLabel>
-					<Textarea
-						id={notesId}
-						placeholder="Add any notes for the customer..."
-						value={notes}
-						onChange={(event) => setNotes(event.target.value)}
-						disabled={isSending}
-					/>{" "}
-				</Field>
+				{canSendToClient ? (
+					<Field>
+						<Textarea
+							id={notesId}
+							aria-describedby={`${notesId}-guidance`}
+							aria-label="Notes to the client (optional)"
+							placeholder="Add a note for the customer (optional)..."
+							value={notes}
+							onChange={(event) => setNotes(event.target.value)}
+							disabled={isSending}
+						/>
+						<FieldDescription
+							id={`${notesId}-guidance`}
+							className="text-primary">
+							You&apos;re sending on behalf of VV Studios. Keep your message professional and
+							consistent with the VV Studios brand.
+						</FieldDescription>
+					</Field>
+				) : null}
 
 				<DialogFooter>
 					<Button
