@@ -8,6 +8,7 @@ import {
 	loadEditorActiveJobs,
 	loadEmployeeRoster,
 	saveEmployeeAccess,
+	saveEmployeeDeliveryPermission,
 	saveEmployeeNotes
 } from "#convex/employees/services/employeeManagement";
 
@@ -52,5 +53,21 @@ export const updateEmployeeAccess = mutation({
 			const access = yield* saveEmployeeAccess(ctx, args.tokenIdentifier, args.isActive);
 
 			return ok(access);
+		}).match(tupleOk, tupleErr)
+});
+
+export const updateEmployeeDeliveryPermission = mutation({
+	args: { tokenIdentifier: v.string(), canSendDeliverables: v.boolean() },
+	handler: (ctx, args) =>
+		safeTry(async function* () {
+			yield* requirePermission(ctx, "update:editor-access");
+
+			const result = yield* saveEmployeeDeliveryPermission(
+				ctx,
+				args.tokenIdentifier,
+				args.canSendDeliverables
+			);
+
+			return ok(result);
 		}).match(tupleOk, tupleErr)
 });

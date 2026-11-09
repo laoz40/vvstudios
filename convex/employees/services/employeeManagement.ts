@@ -10,6 +10,7 @@ import {
 	lookupEditorProfileByToken,
 	getEditorWorkload,
 	patchEditorAccess,
+	patchEditorDeliveryPermission,
 	patchEditorNotes
 } from "#convex/editor/lib/editorAccess";
 import { patchBookingEditorAssignment } from "#convex/editor/lib/editorAssignments";
@@ -28,6 +29,7 @@ function combineEditorWorkStatuses(ctx: QueryCtx, editors: Doc<"editorProfiles">
 				displayName: editor.displayName,
 				email: editor.email,
 				isActive: editor.isActive,
+				canSendDeliverables: editor.canSendDeliverables ?? false,
 				lastAssignedAt: editor.lastAssignedAt,
 				notes: editor.notes,
 				totalEdits: editor.totalEdits,
@@ -126,5 +128,17 @@ export function saveEmployeeNotes(ctx: MutationCtx, tokenIdentifier: string, not
 		const result = yield* patchEditorNotes(ctx, editor._id, notes);
 
 		return ok(result);
+	});
+}
+
+export function saveEmployeeDeliveryPermission(
+	ctx: MutationCtx,
+	tokenIdentifier: string,
+	canSendDeliverables: boolean
+) {
+	return safeTry(async function* () {
+		const editor = yield* requireEditorProfileByToken(ctx, tokenIdentifier);
+
+		return ok(yield* patchEditorDeliveryPermission(ctx, editor._id, canSendDeliverables));
 	});
 }

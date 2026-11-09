@@ -109,3 +109,13 @@ export function patchEditorNotes(ctx: MutationCtx, editorId: Id<"editorProfiles"
 		ctx.db.patch("editorProfiles", editorId, { notes: notes.trim() || undefined }).then(() => null)
 	);
 }
+
+export function patchEditorDeliveryPermission(
+	ctx: MutationCtx,
+	editorId: Id<"editorProfiles">,
+	canSendDeliverables: boolean
+) {
+	return okOrThrow(
+		ctx.db.patch("editorProfiles", editorId, { canSendDeliverables }).then(() => null)
+	);
+}
