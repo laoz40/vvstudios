@@ -154,9 +154,15 @@ export function EditorDeliverableStatusBadge({
 	return (
 		<div className="flex flex-col items-start gap-1.5">
 			<Badge
-				variant={deliverableStatusBadgeVariantMap[deliverableStatus]}
+				variant={
+					deliverableStatus === "to_edit"
+						? "destructive"
+						: deliverableStatusBadgeVariantMap[deliverableStatus]
+				}
 				className={cn(
-					deliverableStatusBadgeClassNameMap[deliverableStatus],
+					deliverableStatus === "to_edit"
+						? "bg-destructive text-primary-foreground"
+						: deliverableStatusBadgeClassNameMap[deliverableStatus],
 					deliverableBadgeClassName
 				)}>
 				<DeliverableStatusIcon status={deliverableStatus} />
