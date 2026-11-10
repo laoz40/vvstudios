@@ -17,6 +17,11 @@ Check for an equivalent proposal before adding an item. Keep unapproved entries 
 
 ## Pending proposals
 
+- [ ] Convex dependency lint rejects aliases and re-export bypasses without blocking type-only imports.
+  - Failure and consequence: a renamed import, barrel, or namespace export can hide a reversed layer dependency or misplaced endpoint registration, allowing architectural violations back into booking and payment code despite a passing lint check.
+  - Observable result: `checkConvexLayers` reports handler-to-lib, lib-to-service, lib/service-to-endpoint, service lib re-export, and misplaced registrar dependencies through aliased and re-exported bindings; type-only imports and generated API references produce no dependency diagnostics.
+  - Coverage gap: the existing Oxlint handler-import and service-re-export cases cover direct imports and simple exports only. No existing cases exercise the standalone dependency check or resolved provenance through barrels, dynamic imports, and registrar aliases.
+
 - [ ] Update delivery permission coverage for the restored admin-review path.
   - Failure and consequence: permission routing could notify the admin after direct client delivery, or leave an editor without permission unable to request admin review.
   - Observable result: through the existing delivery action and status mutation, an editor without client-send permission can enter review and schedule the admin notification but cannot email the client; an enabled editor can send to the client and enter review without scheduling an admin notification. Repeating the review status must not schedule a second notification.
