@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type ComponentProps } from "react";
 import { useAction, useMutation, useQuery } from "convex/react";
 import { ArrowRight, CircleX, Download, LoaderCircle, Send, Upload } from "lucide-react";
 import { toast } from "sonner";
@@ -34,6 +34,20 @@ function getDeliverableStatusLabel(status: DeliverableStatus) {
 	}
 
 	return deliverableStatusLabelMap[status];
+}
+
+function getEditorDeliverableBadgeStyles(status: DeliverableStatus) {
+	if (status === "to_edit") {
+		return {
+			variant: "destructive",
+			className: "bg-destructive text-primary-foreground"
+		} satisfies Pick<ComponentProps<typeof Badge>, "variant" | "className">;
+	}
+
+	return {
+		variant: deliverableStatusBadgeVariantMap[status],
+		className: deliverableStatusBadgeClassNameMap[status]
+	};
 }
 
 function DeliverableStatusIcon({ status }: { status: DeliverableStatus }) {
@@ -79,6 +93,7 @@ export function EditorDeliverableStatusBadge({
 
 	const [isUpdating, setIsUpdating] = useState(false);
 	const deliverableStatus: DeliverableStatus = session.editStatus ?? "to_edit";
+	const badgeStyles = getEditorDeliverableBadgeStyles(deliverableStatus);
 	const stepIndex = editorSteps.findIndex((step) => step === deliverableStatus);
 	const nextStatus = canManageDeliverables ? editorSteps[stepIndex + 1] : undefined;
 
@@ -154,11 +169,8 @@ export function EditorDeliverableStatusBadge({
 	return (
 		<div className="flex flex-col items-start gap-1.5">
 			<Badge
-				variant={deliverableStatusBadgeVariantMap[deliverableStatus]}
-				className={cn(
-					deliverableStatusBadgeClassNameMap[deliverableStatus],
-					deliverableBadgeClassName
-				)}>
+				variant={badgeStyles.variant}
+				className={cn(badgeStyles.className, deliverableBadgeClassName)}>
 				<DeliverableStatusIcon status={deliverableStatus} />
 				{stepIndex === -1 ? null : (
 					<span className="tabular-nums opacity-70">
