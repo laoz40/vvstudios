@@ -23,9 +23,13 @@ Operational priorities: accessibility, fast first paint on marketing pages, SEO,
 
 ## Verify changes
 
-- Match verification to risk: skip checks for non-functional edits (comments, docs, wording); use relevant checks for small, low-risk code changes (lint, format, typecheck). Run `bun run verify` after substantive changes and before PRs containing functional changes.
-- Add `--convex` when Convex functions changed. Sync must finish before E2E.
-- Run E2E immediately before creating a PR. Before selecting E2E flows, verifying browser behavior, or investigating failed CI checks, read the [verification skill](./.agents/skills/verify-vvstudios/SKILL.md) for commands, browser prerequisites, and evidence requirements.
+- Match verification to risk:
+    - skip checks for non-functional edits (comments, docs, wording)
+    - use relevant project checks for small, low-risk code changes (lint:fix, format, typecheck).
+    - Run `bun run verify` after substantive changes and before creating PRs containing functional changes.
+    - Add `--convex` when Convex functions changed. Sync must finish before E2E.
+- Before creating a PR containing functional changes, verifying browser behaviour or investigating failed CI, read the [verification skill](./.agents/skills/verify-vvstudios/SKILL.md)
+- Payment E2E requires headed Chromium, a usable display, and enough available RAM.
 
 ## IMPORTANT: Code maintainability
 
