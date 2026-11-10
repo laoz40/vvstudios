@@ -2,56 +2,68 @@
 
 Candidates for periodic user review. Entries are proposals, not approval to write tests. The user chooses which items to implement.
 
-Append one checklist item per distinct failure using this format. Describe behavior, not a proposed helper test:
+Use a short descriptive heading for each distinct failure:
 
 ```markdown
-- [ ] <Behavior or risk>
-  - Failure and consequence: <plausible bug and impact on customers or operations>.
-  - Observable result: <existing module entrypoint and exact outcome to assert>.
-  - Coverage gap: <why existing tests and static checks miss this failure>.
+### <Short descriptive heading>
+
+- Behavior: <application behavior protected and observable outcome>.
+- Regression: <realistic failure the test would catch>.
+- Risk: <1–10 consequence score and brief justification; score impact, not likelihood>.
+- Gap: <why existing coverage is insufficient; identify relevant tests or state that none exist>.
+- Level: <simplest effective test level and why; for unit or integration tests, explain why E2E cannot adequately or practically verify the behavior>.
 ```
 
-For a proposed rewrite or removal, name the existing test, explain its defect or implementation coupling, and identify meaningful coverage to preserve.
+E2E is the default. Proposals do not authorize new tests or new test levels. For a proposed rewrite or removal, name the existing test, explain its defect or implementation coupling, and identify meaningful coverage to preserve.
 
-Check for an equivalent proposal before adding an item. Keep unapproved entries pending. Check an item only after the user approves it and the approved change is completed.
+Check for an equivalent proposal before adding an entry. Keep unapproved entries pending. Remove a proposal after the user approves it and the approved change is completed.
 
 ## Pending proposals
 
-- [ ] Convex dependency lint rejects aliases and re-export bypasses without blocking type-only imports.
-  - Failure and consequence: a renamed import, barrel, or namespace export can hide a reversed layer dependency or misplaced endpoint registration, allowing architectural violations back into booking and payment code despite a passing lint check.
-  - Observable result: `checkConvexLayers` reports handler-to-lib, lib-to-service, lib/service-to-endpoint, service lib re-export, and misplaced registrar dependencies through aliased and re-exported bindings; type-only imports and generated API references produce no dependency diagnostics.
-  - Coverage gap: the existing Oxlint handler-import and service-re-export cases cover direct imports and simple exports only. No existing cases exercise the standalone dependency check or resolved provenance through barrels, dynamic imports, and registrar aliases.
+### Detect Convex dependency lint bypasses
 
-- [ ] Update delivery permission coverage for the restored admin-review path.
-  - Failure and consequence: permission routing could notify the admin after direct client delivery, or leave an editor without permission unable to request admin review.
-  - Observable result: through the existing delivery action and status mutation, an editor without client-send permission can enter review and schedule the admin notification but cannot email the client; an enabled editor can send to the client and enter review without scheduling an admin notification. Repeating the review status must not schedule a second notification.
-  - Coverage gap: the user-approved correction in `convex/tests/deliverablesEmail.test.ts` now permits review without client-send permission while preserving direct-send and completed-status denial. Admin notification scheduling and repeat-review deduplication remain unapproved coverage candidates. Do not restore the redundant Drive-link variants or helper-only tests.
+- Behavior: `checkConvexLayers` reports reversed layer dependencies and misplaced endpoint registration through aliases, barrels, namespace exports, dynamic imports, and registrar aliases, while allowing type-only imports and generated API references.
+- Regression: a renamed import or re-export hides an architectural violation from the dependency check.
+- Risk: 4/10. Undetected violations weaken maintainability and enforcement of backend boundaries, but do not themselves demonstrate customer data loss or incorrect charges.
+- Gap: existing Oxlint handler-import and service-re-export cases cover direct imports and simple exports only. No existing cases exercise the standalone dependency check or resolved provenance through these bypasses.
+- Level: unit tests of the dependency check with representative source inputs. Browser E2E cannot verify source-level lint diagnostics or distinguish allowed imports from forbidden dependencies.
 
-- [ ] Count only confirmed bookings when assigning Drive session folder numbers.
-  - Failure and consequence: Earlier unpaid, expired, abandoned, or failed booking attempts can inflate the first real session's folder prefix, confusing clients and staff.
-  - Observable result: Call `internal.sessions.drive.allocateClientSessionNumber` and `internal.sessions.drive.allocatePackageSessionNumber` with earlier unconfirmed attempts and two confirmed sessions; the confirmed sessions receive numbers `1` and `2` in date order.
-  - Coverage gap: Existing Drive allocation tests cover date order, email linking, and cancellation cleanup, but do not cover earlier unconfirmed attempts. Static checks cannot detect an incorrect prefix.
+### Preserve delivery permissions and admin-review notifications
 
-- [ ] Preserve and charge all selected editing and clip services together.
-  - Failure and consequence: Selecting or saving a second editing or clip service could silently discard another service or its quantity, leaving the booking and invoice incomplete.
-  - Observable result: Submit a booking and save an admin session edit with Rough Cut, Complete Edit, Clip Volume Pack, and Handcrafted Clips at different quantities; all four services and their quantities persist and the invoice charges each selected quantity.
-  - Coverage gap: Existing pricing cases cover individual editing selections, but do not cover combined selections surviving booking validation and admin editing. Static checks cannot detect silent deselection.
-- [ ] Delivering one part can restart the editor assignment without suppressing its notification.
-  - Failure and consequence: a session's previous sent assignment email suppresses the next round's email, leaving the editor unaware of more work.
-  - Observable result: call `api.sessions.admin.restartSessionEditing` after a prior sent assignment, then run the scheduled editor access job. The booking has `to_edit` and the new due date, and the outgoing assignment email carries that date with a distinct idempotency key.
-  - Coverage gap: current Drive tests cover initial assignment and stale email results, but do not exercise a new delivery round after a sent notification. Static checks cannot detect email-provider deduplication.
+- Behavior: an editor without client-send permission can request admin review and trigger its notification but cannot email the client. An enabled editor can deliver directly without an admin notification. Repeating the review status does not send another notification.
+- Regression: permission routing blocks a legitimate review request, notifies the admin after direct delivery, or sends duplicate review notifications.
+- Risk: 6/10. Editors can be blocked from handing off work, and incorrect or repeated notifications can disrupt studio review and delivery.
+- Gap: the approved correction in `convex/tests/deliverablesEmail.test.ts` permits review without client-send permission while preserving direct-send and completed-status denial. Admin notification scheduling and repeat-review deduplication remain uncovered. Do not restore redundant Drive-link variants or helper-only tests.
+- Level: extend existing Convex endpoint integration coverage through the delivery action and status mutation, with external email transport stubbed. UI-only E2E cannot reliably establish the absence of duplicate external notifications without observing email delivery outside the app.
 
-- [ ] Browse every active or retired contractor beyond the former 200-profile cap.
-  - Failure and consequence: Retired verification profiles can consume an unfiltered limit and hide active editors from admins, or pagination can omit matching contractors.
-  - Observable result: Query `api.employees.admin.listEmployees` across cursors with mixed active and retired profiles exceeding 200 records. Each status returns all matching profiles exactly once and excludes the other status.
-  - Coverage gap: The existing retirement test checks access changes and workload, but does not cover capped roster reads or pagination. Static checks cannot detect missing records.
+### Number Drive folders using confirmed bookings only
 
-- [x] Replace obsolete admin review notification coverage with direct client delivery coverage.
-  - Failure and consequence: editor delivery could update the session to review after an email failure, making staff believe the client received files when they did not.
-  - Observable result: call the deliverables email action with client notes, then the existing status mutation; the email includes the notes and Drive link, the session becomes review without an admin notification, and a failed email action returns its reason while preserving status and saved notes.
-  - Coverage gap: `convex/tests/deliverablesReviewEmail.test.ts` and `convex/shared/lib/tests/deliverablesReviewNotification.test.ts` assert the replaced host notification behavior. Approved replacement coverage in `convex/tests/deliverablesEmail.test.ts` exercises the real actions, mutations and email rendering with external transport stubs. Browser sequencing remains outside these tests.
+- Behavior: confirmed client and package sessions receive folder numbers `1` and `2` in date order despite earlier unpaid, expired, abandoned, or failed booking attempts.
+- Regression: unconfirmed attempts inflate the first real session's folder prefix.
+- Risk: 3/10. Incorrect numbering confuses clients and staff organizing session files, but does not itself lose files or bookings.
+- Gap: existing Drive allocation tests cover date order, email linking, and cancellation cleanup, but not earlier unconfirmed attempts. Static checks cannot detect an incorrect prefix.
+- Level: extend existing Convex integration coverage through `internal.sessions.drive.allocateClientSessionNumber` and `internal.sessions.drive.allocatePackageSessionNumber`. The folder-numbering result belongs to an external Drive workflow; verifying every failed-booking variant through browser checkout and live Drive would be impractical.
 
-- [x] Enforce per-editor client delivery permission and revocation.
-  - Failure and consequence: a default or revoked editor could email clients or mark delivery complete via a status mutation without admin authorization.
-  - Observable result: the approved delivery endpoint tests prove default denial, admin-only enable/revoke, rejection of direct-send and completed status updates without permission, and continued access to editing and admin-review status updates.
-  - Coverage gap: prior delivery tests assumed all editors could send and did not exercise per-editor permission changes. Approved cases now exercise the existing access query and registered permission, send and status endpoints.
+### Preserve combined editing and clip selections
+
+- Behavior: a booking and a subsequent admin session edit retain Rough Cut, Complete Edit, Clip Volume Pack, and Handcrafted Clips at different quantities, and the invoice charges each selected quantity.
+- Regression: selecting or saving a second service silently discards another service or its quantity, leaving the booking and invoice incomplete.
+- Risk: 7/10. Missing selections can produce incorrect charges and leave customers without purchased editing services.
+- Gap: existing pricing cases cover individual editing selections, but not combined selections surviving booking validation and admin editing. Static checks cannot detect silent deselection.
+- Level: E2E, preferably extending an existing booking and admin-edit journey. Select the services through the UI, read back the saved selections after each save, and verify the resulting invoice quantities and charges through the UI.
+
+### Notify editors when an assignment restarts
+
+- Behavior: restarting editing after a prior sent assignment restores the session to `to_edit`, saves the new due date, and sends an assignment email with that date and a distinct idempotency key.
+- Regression: the prior assignment email suppresses the next round's notification, leaving the editor unaware of more work.
+- Risk: 6/10. Missed assignments can delay editing and cause delivery deadlines to be missed.
+- Gap: current Drive tests cover initial assignment and stale email results, but not a new delivery round after a sent notification. Static checks cannot detect email-provider deduplication.
+- Level: extend existing Convex integration coverage through `api.sessions.admin.restartSessionEditing` and the scheduled editor access job, with external email transport stubbed. Browser E2E cannot adequately verify provider deduplication or the outgoing idempotency key through app UI alone.
+
+### Browse all active and retired contractors
+
+- Behavior: admins can browse every contractor matching the selected status, without omissions, duplicates, or contractors from the other status, even when the mixed roster exceeds 200 profiles.
+- Regression: retired profiles consume an unfiltered limit and hide active editors, or pagination skips matching contractors.
+- Risk: 5/10. Missing editors can prevent admins from finding available staff and assigning work.
+- Gap: the existing retirement test checks access changes and workload, but not capped roster reads or pagination. Static checks cannot detect missing records.
+- Level: E2E through the contractor roster and its status filters. A mixed roster exceeding 200 profiles must be created through the UI, so the setup cost should be considered during approval rather than bypassed with backend seeding.
