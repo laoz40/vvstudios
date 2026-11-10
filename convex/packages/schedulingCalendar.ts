@@ -15,7 +15,21 @@ import {
 	removePackageSessionGoogleCalendarEvent,
 	syncPackageSessionGoogleCalendarEvent
 } from "#convex/googleCalendar/services/packageScheduling";
-import { packageCalendarDetailsValidator } from "#convex/googleCalendar/services/packageDetails";
+import { DURATION_OPTIONS, SERVICES } from "#/domain/booking/catalog";
+import { bookingAddonQuantitiesValidator } from "#convex/sessions/checkout";
+import { bookingAddonsValidator } from "#convex/schema";
+
+export const packageCalendarDetailsValidator = v.object({
+	addons: bookingAddonsValidator,
+	...bookingAddonQuantitiesValidator,
+	date: v.string(),
+	duration: v.union(...DURATION_OPTIONS.map((duration) => v.literal(duration))),
+	email: v.string(),
+	eventBufferMinutes: v.number(),
+	name: v.string(),
+	service: v.union(...SERVICES.map((service) => v.literal(service))),
+	time: v.string()
+});
 
 const packageCalendarBookingValidator = v.object({
 	date: v.string(),

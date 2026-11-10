@@ -20,7 +20,6 @@ import type * as booking_lib_confirmationSave from "../booking/lib/confirmationS
 import type * as booking_lib_confirmationSessionPatches from "../booking/lib/confirmationSessionPatches.js";
 import type * as booking_lib_confirmationSteps from "../booking/lib/confirmationSteps.js";
 import type * as booking_lib_confirmationWorkflowSteps from "../booking/lib/confirmationWorkflowSteps.js";
-import type * as booking_lib_formFields from "../booking/lib/formFields.js";
 import type * as booking_lib_invoicePdfRender from "../booking/lib/invoicePdfRender.js";
 import type * as booking_lib_receipt from "../booking/lib/receipt.js";
 import type * as booking_lib_receiptEmailPipeline from "../booking/lib/receiptEmailPipeline.js";
@@ -35,7 +34,6 @@ import type * as booking_services_claimedSession from "../booking/services/claim
 import type * as booking_services_confirmation from "../booking/services/confirmation.js";
 import type * as booking_services_confirmationMutations from "../booking/services/confirmationMutations.js";
 import type * as booking_services_confirmationWorkflow from "../booking/services/confirmationWorkflow.js";
-import type * as booking_services_formValidators from "../booking/services/formValidators.js";
 import type * as booking_services_receiptEmails from "../booking/services/receiptEmails.js";
 import type * as booking_services_receiptResend from "../booking/services/receiptResend.js";
 import type * as booking_services_sessionReminderEmail from "../booking/services/sessionReminderEmail.js";
@@ -159,7 +157,6 @@ import type * as googleCalendar_services_calendarTime from "../googleCalendar/se
 import type * as googleCalendar_services_calendarTimingSync from "../googleCalendar/services/calendarTimingSync.js";
 import type * as googleCalendar_services_cancelBookingFromAdmin from "../googleCalendar/services/cancelBookingFromAdmin.js";
 import type * as googleCalendar_services_packageAvailability from "../googleCalendar/services/packageAvailability.js";
-import type * as googleCalendar_services_packageDetails from "../googleCalendar/services/packageDetails.js";
 import type * as googleCalendar_services_packageScheduling from "../googleCalendar/services/packageScheduling.js";
 import type * as http from "../http.js";
 import type * as packages_adjustmentInvoices from "../packages/adjustmentInvoices.js";
@@ -278,7 +275,6 @@ import type * as sessions_services_reminderCron from "../sessions/services/remin
 import type * as sessions_services_reminderMutations from "../sessions/services/reminderMutations.js";
 import type * as sessions_services_reschedule from "../sessions/services/reschedule.js";
 import type * as sessions_services_rescheduleEmails from "../sessions/services/rescheduleEmails.js";
-import type * as sessions_services_reservationValidators from "../sessions/services/reservationValidators.js";
 import type * as sessions_services_reservations from "../sessions/services/reservations.js";
 import type * as sessions_services_schedulingSave from "../sessions/services/schedulingSave.js";
 import type * as shared_auth from "../shared/auth.js";
@@ -375,7 +371,6 @@ declare const fullApi: ApiFromModules<{
   "booking/lib/confirmationSessionPatches": typeof booking_lib_confirmationSessionPatches;
   "booking/lib/confirmationSteps": typeof booking_lib_confirmationSteps;
   "booking/lib/confirmationWorkflowSteps": typeof booking_lib_confirmationWorkflowSteps;
-  "booking/lib/formFields": typeof booking_lib_formFields;
   "booking/lib/invoicePdfRender": typeof booking_lib_invoicePdfRender;
   "booking/lib/receipt": typeof booking_lib_receipt;
   "booking/lib/receiptEmailPipeline": typeof booking_lib_receiptEmailPipeline;
@@ -390,7 +385,6 @@ declare const fullApi: ApiFromModules<{
   "booking/services/confirmation": typeof booking_services_confirmation;
   "booking/services/confirmationMutations": typeof booking_services_confirmationMutations;
   "booking/services/confirmationWorkflow": typeof booking_services_confirmationWorkflow;
-  "booking/services/formValidators": typeof booking_services_formValidators;
   "booking/services/receiptEmails": typeof booking_services_receiptEmails;
   "booking/services/receiptResend": typeof booking_services_receiptResend;
   "booking/services/sessionReminderEmail": typeof booking_services_sessionReminderEmail;
@@ -514,7 +508,6 @@ declare const fullApi: ApiFromModules<{
   "googleCalendar/services/calendarTimingSync": typeof googleCalendar_services_calendarTimingSync;
   "googleCalendar/services/cancelBookingFromAdmin": typeof googleCalendar_services_cancelBookingFromAdmin;
   "googleCalendar/services/packageAvailability": typeof googleCalendar_services_packageAvailability;
-  "googleCalendar/services/packageDetails": typeof googleCalendar_services_packageDetails;
   "googleCalendar/services/packageScheduling": typeof googleCalendar_services_packageScheduling;
   http: typeof http;
   "packages/adjustmentInvoices": typeof packages_adjustmentInvoices;
@@ -633,7 +626,6 @@ declare const fullApi: ApiFromModules<{
   "sessions/services/reminderMutations": typeof sessions_services_reminderMutations;
   "sessions/services/reschedule": typeof sessions_services_reschedule;
   "sessions/services/rescheduleEmails": typeof sessions_services_rescheduleEmails;
-  "sessions/services/reservationValidators": typeof sessions_services_reservationValidators;
   "sessions/services/reservations": typeof sessions_services_reservations;
   "sessions/services/schedulingSave": typeof sessions_services_schedulingSave;
   "shared/auth": typeof shared_auth;

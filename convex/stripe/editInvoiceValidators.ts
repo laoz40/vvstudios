@@ -1,5 +1,5 @@
 import { v, type Infer } from "convex/values";
-import { bookingDetailsFieldsValidator } from "#convex/booking/services/formValidators";
+import { bookingDetailsFieldsValidator } from "#convex/sessions/checkout";
 
 export const editInvoiceDraftValidator = v.union(
 	v.object({

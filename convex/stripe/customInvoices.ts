@@ -1,10 +1,8 @@
 import { v } from "convex/values";
 import { tupleErr, tupleOk } from "#/lib/result";
 import { internalQuery, mutation, query } from "#convex/_generated/server";
-import {
-	bookingAddonQuantitiesValidator,
-	bookingAddonsValidator
-} from "#convex/booking/services/formValidators";
+import { bookingAddonQuantitiesValidator } from "#convex/sessions/checkout";
+import { bookingAddonsValidator } from "#convex/schema";
 import {
 	createBookingCustomInvoiceFromAdmin,
 	listCustomInvoicesForBooking as listCustomInvoicesForBookingStep,

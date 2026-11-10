@@ -2,12 +2,9 @@ import { v } from "convex/values";
 import { ok, safeTry } from "neverthrow";
 import { tupleErr, tupleOk } from "#/lib/result";
 import { internalMutation } from "#convex/_generated/server";
-import { sessionReservationValidator } from "#convex/sessions/services/reservationValidators";
 import { reserveSessionTime, unreserveSessionTime } from "#convex/sessions/services/reservations";
-import {
-	bookingAddonQuantitiesValidator,
-	bookingAddonsValidator
-} from "#convex/booking/services/formValidators";
+import { bookingAddonQuantitiesValidator } from "#convex/sessions/checkout";
+import { bookingAddonsValidator } from "#convex/schema";
 import {
 	writeAdminSessionUpdateWithDriveSetup,
 	patchClientSessionReschedule,
@@ -15,6 +12,12 @@ import {
 	schedulePackageAdjustmentAfterReschedule,
 	validateClientSessionReschedule
 } from "#convex/sessions/services/schedulingSave";
+
+export const sessionReservationValidator = v.object({
+	reservedAt: v.number(),
+	sessionStartAt: v.number(),
+	duration: v.string()
+});
 
 // Reserve a target before any Calendar write. The shared helper checks confirmed
 // bookings and reservations from every session workflow in the same transaction.

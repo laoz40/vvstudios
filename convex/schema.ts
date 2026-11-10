@@ -1,8 +1,11 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
-import { bookingAddonsValidator } from "#convex/booking/lib/addonQuantities";
 import { drivePermissionValidator } from "#convex/shared/lib/driveValidators";
-import { SERVICES } from "#/domain/booking/catalog";
+import { ADDON_OPTIONS, SERVICES } from "#/domain/booking/catalog";
+
+const bookingAddonValidator = v.union(...ADDON_OPTIONS.map((addon) => v.literal(addon)));
+
+export const bookingAddonsValidator = v.array(bookingAddonValidator);
 
 const bookingInvoiceLineItemsValidator = v.array(
 	v.object({ amount: v.number(), description: v.string(), quantity: v.number(), rate: v.number() })

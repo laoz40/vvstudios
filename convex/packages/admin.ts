@@ -3,7 +3,7 @@ import { ConvexError, v } from "convex/values";
 import { ok, safeTry } from "neverthrow";
 import { tupleErr, tupleOk } from "#/lib/result";
 import { internalMutation, internalQuery, mutation, query } from "#convex/_generated/server";
-import { bookingDetailsFieldsValidator } from "#convex/booking/services/formValidators";
+import { bookingDetailsFieldsValidator } from "#convex/sessions/checkout";
 import {
 	archivePackageFromAdmin,
 	loadAdminPackageUpdateValidation,
