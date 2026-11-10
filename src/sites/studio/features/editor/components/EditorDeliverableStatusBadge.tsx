@@ -146,11 +146,16 @@ export function EditorDeliverableStatusBadge({
 	const statusLabel = getDeliverableStatusLabel(deliverableStatus);
 
 	const badgeClassName = cn(
-		deliverableStatusBadgeClassNameMap[deliverableStatus],
+		deliverableStatus === "to_edit"
+			? "bg-destructive text-primary-foreground"
+			: deliverableStatusBadgeClassNameMap[deliverableStatus],
 		deliverableBadgeClassName
 	);
 
-	const badgeVariant = deliverableStatusBadgeVariantMap[deliverableStatus];
+	const badgeVariant =
+		deliverableStatus === "to_edit"
+			? "destructive"
+			: deliverableStatusBadgeVariantMap[deliverableStatus];
 
 	async function handleStatusChange(editStatus: DeliverableStatus) {
 		setIsUpdating(true);
