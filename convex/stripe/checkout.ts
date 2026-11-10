@@ -6,10 +6,8 @@ import { action } from "#convex/_generated/server";
 import { tupleErr, tupleOk, type Result } from "#/lib/result";
 import type { Id } from "#convex/_generated/dataModel";
 import type { CreateEmbeddedCheckoutSessionError } from "#convex/stripe/services/checkoutSession";
-import {
-	bookingAddonQuantitiesValidator,
-	bookingAddonsValidator
-} from "#convex/booking/services/formValidators";
+import { bookingAddonQuantitiesValidator } from "#convex/sessions/checkout";
+import { bookingAddonsValidator } from "#convex/schema";
 import {
 	closeAbandonedBookingStripeCheckout,
 	createPendingBookingForStripeCheckout,

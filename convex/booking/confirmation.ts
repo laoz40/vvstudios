@@ -2,7 +2,7 @@ import { v } from "convex/values";
 import { ok, safeTry } from "neverthrow";
 import { tupleErr, tupleOk } from "#/lib/result";
 import { internalMutation } from "#convex/_generated/server";
-import { sessionReservationValidator } from "#convex/sessions/services/reservationValidators";
+import { sessionReservationValidator } from "#convex/sessions/scheduling";
 import {
 	clearBookingInvoiceEmailFailureOnSession,
 	confirmBookingAfterPaymentClaim,

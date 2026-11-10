@@ -37,10 +37,8 @@ import {
 	syncCalendar
 } from "#convex/googleCalendar/services/calendarReschedule";
 import type { CancelBookingFromAdminError } from "#convex/googleCalendar/services/calendar";
-import {
-	bookingAddonQuantitiesValidator,
-	bookingAddonsValidator
-} from "#convex/booking/services/formValidators";
+import { bookingAddonQuantitiesValidator } from "#convex/sessions/checkout";
+import { bookingAddonsValidator } from "#convex/schema";
 import {
 	loadValidatedDriveSetup,
 	markDriveSetupSuccessful,

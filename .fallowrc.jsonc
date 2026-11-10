@@ -15,7 +15,9 @@
 		"scripts/*.mjs",
 		// Invoked by convex deploy --cmd in GitHub Actions
 		"scripts/prepare-convex-preview.ts",
-		"tools/type-contract/neverthrow-endpoints.ts"
+		"tools/type-contract/neverthrow-endpoints.ts",
+		// Discovered and executed by scripts/lint.ts
+		"tools/checks/*.ts"
 	],
 	"ignoreExports": [
 		// shadcn/ui barrels export more than the app uses today

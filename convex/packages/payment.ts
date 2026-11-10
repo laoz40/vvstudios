@@ -4,7 +4,7 @@ import { v } from "convex/values";
 import { ok, safeTry } from "neverthrow";
 import { action } from "#convex/_generated/server";
 import { tupleErr, tupleOk } from "#/lib/result";
-import { bookingDetailsFieldsValidator } from "#convex/booking/services/formValidators";
+import { bookingDetailsFieldsValidator } from "#convex/sessions/checkout";
 import {
 	closeAbandonedPackageStripeCheckout,
 	createPendingPackageForStripeCheckout,

@@ -1,13 +1,6 @@
-import { v } from "convex/values";
 import type { Doc } from "#convex/_generated/dataModel";
 
 export const SLOT_RESERVATION_TTL_MS = 10 * 60 * 1000;
-
-export const sessionReservationValidator = v.object({
-	reservedAt: v.number(),
-	sessionStartAt: v.number(),
-	duration: v.string()
-});
 
 export type SessionReservation = { reservedAt: number; sessionStartAt: number; duration: string };
 
