@@ -39,6 +39,8 @@
 @import "tw-animate-css";
 
 @theme inline {
+	--animate-spin: spin 0.4s linear infinite;
+
 	--color-background: var(--background);
 	--color-foreground: var(--foreground);
 	--color-card: var(--card);
