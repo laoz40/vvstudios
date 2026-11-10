@@ -1,6 +1,6 @@
 # Boundary testing
 
-Choose the test interface using the [module-interface rules](../SKILL.md#module-interfaces) before choosing a folder. Put justified pure-module tests in `convex/<feature>/lib/tests/` or `convex/shared/lib/tests/`. Put tests using `createConvexTest` or registered endpoints in `convex/tests/` (cross-feature flows and shared fixtures like `insertDocumentDefaults.ts`). Call the real endpoint and stub only the external transport. Keep SDK request construction, domain logic, and rendering real.
+Use this reference only for explicitly approved unit or integration tests, or updates to existing tests. Choose the test interface using the [approved unit and integration test guidance](../SKILL.md#approved-unit-and-integration-tests) before choosing a folder. Put justified pure-module tests in `convex/<feature>/lib/tests/` or `convex/shared/lib/tests/`. Put tests using `createConvexTest` or registered endpoints in `convex/tests/` (cross-feature flows and shared fixtures like `insertDocumentDefaults.ts`). Call the real endpoint and stub only the external transport. Keep SDK request construction, domain logic, and rendering real.
 
 Use these existing examples instead of copying fixtures:
 

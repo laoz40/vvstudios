@@ -72,6 +72,8 @@ Operational priorities: accessibility, fast first paint on marketing pages, SEO,
 
 Before implementing, debugging, or reviewing code under `convex/`, including schemas, handlers, services, and lib, read the [project Convex guide](./docs/convex-three-layers.md). Before reviewing Convex changes, read the [error-handling checks](./docs/convex-neverthrow-review.md).
 
-## Tests
+### Testing
 
-Write or change tests only with explicit user approval. Otherwise record candidates in [test proposals](./docs/test-proposals.md) and continue implementation without test changes. Before proposing, writing, or reviewing tests, read the [tests skill](./.agents/skills/tests/SKILL.md) for proposal criteria, module interfaces, mocking conventions, and approved-test conventions. Focus tests on core behavior only.
+- Read the [tests skill](./.agents/skills/tests/SKILL.md) before proposing new tests or updating existing tests.
+- Don't write new tests. Instead record candidates in [test proposals](./docs/test-proposals.md) and continue implementation.
+
