@@ -234,7 +234,8 @@ function DeliveryOutcomeFields({
 						<div className="flex flex-col gap-1">
 							<FieldLabel htmlFor={`deliverables-sent-${bookingId}`}>Mark as sent</FieldLabel>
 							<FieldDescription id={`deliverables-sent-help-${bookingId}`}>
-								Send the client email and mark this session as Sent. No further editing is assigned.
+								Send deliverables email to the client, and mark this session as &quot;Sent&quot;. No
+								further editing is needed.
 							</FieldDescription>
 						</div>
 					</Field>
@@ -250,9 +251,8 @@ function DeliveryOutcomeFields({
 								Keep editing another part
 							</FieldLabel>
 							<FieldDescription id={`deliverables-keep-editing-help-${bookingId}`}>
-								Send the current deliverables to the client, reset the assignment to Not started,
-								replace its due date, and resend the assignment email to the editor for the next
-								part.
+								Send deliverables email to the client, reset session to &quot;Not started&quot;,
+								replace its due date, and send assignment email to the editor for the next part.
 								{!hasAssignedEditor ? " Assign an editor first to use this option." : null}
 							</FieldDescription>
 						</div>
