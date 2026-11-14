@@ -20,6 +20,14 @@ Check for an equivalent proposal before adding an entry. Keep unapproved entries
 
 ## Pending proposals
 
+### Invalidate stale booking and reschedule selections
+
+- Behavior: after a customer selects a slot, advancing the clock past its lead-time cutoff or refreshing availability to mark it busy clears the selected time. Rescheduling cannot proceed with that stale slot, including from an already-open confirmation dialog. Browsing another calendar month does not clear a valid selection, and pending availability does not erase it.
+- Regression: the available-times list updates while an old selection still enables submission, or a loading state is mistaken for a fully booked date.
+- Risk: 5/10. Customers can attempt unavailable times and encounter failed booking changes, though the backend still validates the requested slot.
+- Gap: `e2e/session-reschedule.spec.ts` covers a successful immediate reschedule, and `e2e/book.spec.ts` covers booking smoke behavior. Neither exercises clock advancement or availability refresh after selecting a slot.
+- Level: extend the existing E2E journeys with controlled browser clock advancement and observable selection, submit-button, and confirmation behavior. No separate unit tests are needed.
+
 ### Detect Convex dependency lint bypasses
 
 - Behavior: `checkConvexLayers` reports reversed layer dependencies and misplaced endpoint registration through aliases, barrels, namespace exports, dynamic imports, and registrar aliases, while allowing type-only imports and generated API references.

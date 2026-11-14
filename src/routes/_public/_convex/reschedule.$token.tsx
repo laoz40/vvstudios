@@ -128,7 +128,7 @@ function ReschedulePage() {
 	}
 
 	function handleRequestUpdateBooking(): void {
-		if (!selectedDateValue || !selectedTime) {
+		if (!hasCompleteSelection) {
 			toast.error("Please choose a new date and time first.");
 
 			return;
@@ -147,6 +147,17 @@ function ReschedulePage() {
 		const confirmation = useBookingModalStore.getState();
 
 		if (confirmation.modal !== "rescheduleConfirmation") {
+			return;
+		}
+
+		if (
+			!hasCompleteSelection ||
+			confirmation.date !== selectedDateValue ||
+			confirmation.time !== selectedTime
+		) {
+			closeBookingModal();
+			toast.error("Please choose an available date and time again.");
+
 			return;
 		}
 
