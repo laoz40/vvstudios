@@ -273,9 +273,7 @@ function DeliveryOutcomeFields({
 							aria-describedby={`deliverables-due-date-help-${bookingId}`}
 						/>
 						<FieldDescription id={`deliverables-due-date-help-${bookingId}`}>
-							Defaults to {EDITOR_EDIT_DUE_DAYS_AFTER_SESSION} days after assigning the next part.
-							You can choose a different date. Replaces the previous due date and appears in the
-							editor&apos;s assignment email. Dates use Sydney time.
+							Default is {EDITOR_EDIT_DUE_DAYS_AFTER_SESSION} days after assigning the next part.
 						</FieldDescription>
 					</Field>
 				) : null}
