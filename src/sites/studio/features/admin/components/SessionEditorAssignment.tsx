@@ -1,6 +1,6 @@
 import type { FunctionReturnType } from "convex/server";
 import { ConvexError } from "convex/values";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { LoaderCircle } from "lucide-react";
 import { toast } from "sonner";
@@ -8,7 +8,6 @@ import { Button } from "#/components/ui/button";
 import {
 	Dialog,
 	DialogContent,
-	DialogDescription,
 	DialogFooter,
 	DialogHeader,
 	DialogTitle
@@ -23,7 +22,11 @@ import {
 } from "#/components/ui/select";
 import { api } from "#convex/_generated/api";
 import { Input } from "#/components/ui/input";
-import { formatShortMonthFullDate, getEditorEditDueAt } from "#studio/lib/bookingdatetime";
+import {
+	EDITOR_EDIT_DUE_DAYS_AFTER_SESSION,
+	getEditorEditDueAt,
+	getSydneyDateValue
+} from "#studio/lib/bookingdatetime";
 import { Field, FieldDescription, FieldLabel } from "#/components/ui/field";
 import { Textarea } from "#/components/ui/textarea";
 import { exhaustiveCheck, tryCatch, type UnexpectedError } from "#/lib/result";
@@ -188,6 +191,7 @@ export function SessionEditorAssignment({ isMenuOpen, session }: SessionEditorAs
 	const activeEditors = activeEditorsFromResult(activeEditorsResult) ?? [];
 	const isLoadingEditors = isMenuOpen && activeEditorsResult === undefined;
 	const [isSaving, setIsSaving] = useState(false);
+	const dialogTitleRef = useRef<HTMLHeadingElement>(null);
 	const [editorDueDate, setEditorDueDate] = useState("");
 	const [adminNotes, setAdminNotes] = useState(session.adminNotes ?? "");
 	const [confirmation, setConfirmation] = useState<AssignmentConfirmation>({ status: "closed" });
@@ -213,7 +217,10 @@ export function SessionEditorAssignment({ isMenuOpen, session }: SessionEditorAs
 			return;
 		}
 
-		setEditorDueDate(session.editorDueDate ?? "");
+		setEditorDueDate(
+			session.editorDueDate ??
+				getSydneyDateValue(new Date(getEditorEditDueAt(session.sessionStartAt)))
+		);
 		setConfirmation({ status: "open", nextEditor });
 	}
 
@@ -266,12 +273,18 @@ export function SessionEditorAssignment({ isMenuOpen, session }: SessionEditorAs
 				onOpenChange={(open) => {
 					if (!open && !isSaving) setConfirmation({ status: "closed" });
 				}}>
-				<DialogContent className="sm:max-w-md">
+				<DialogContent
+					className="sm:max-w-md"
+					onOpenAutoFocus={(event) => {
+						event.preventDefault();
+						dialogTitleRef.current?.focus();
+					}}>
 					<DialogHeader>
-						<DialogTitle>{dialogTitle}</DialogTitle>
-						<DialogDescription>
-							Review the assignment details before confirming this change.
-						</DialogDescription>
+						<DialogTitle
+							ref={dialogTitleRef}
+							tabIndex={-1}>
+							{dialogTitle}
+						</DialogTitle>
 					</DialogHeader>
 
 					<div className="flex flex-col gap-3">
@@ -293,9 +306,7 @@ export function SessionEditorAssignment({ isMenuOpen, session }: SessionEditorAs
 						)}
 						{nextEditor ? (
 							<Field>
-								<FieldLabel htmlFor={`assignment-due-date-${session._id}`}>
-									Due date (optional)
-								</FieldLabel>
+								<FieldLabel htmlFor={`assignment-due-date-${session._id}`}>Due date</FieldLabel>
 								<Input
 									id={`assignment-due-date-${session._id}`}
 									type="date"
@@ -305,9 +316,7 @@ export function SessionEditorAssignment({ isMenuOpen, session }: SessionEditorAs
 									onChange={(event) => setEditorDueDate(event.target.value)}
 								/>
 								<FieldDescription id={`assignment-due-date-help-${session._id}`}>
-									Leave blank to use{" "}
-									{formatShortMonthFullDate(getEditorEditDueAt(session.sessionStartAt))}, six days
-									after the session. Dates use Sydney time.
+									Default is {EDITOR_EDIT_DUE_DAYS_AFTER_SESSION} days after the session.
 								</FieldDescription>
 							</Field>
 						) : null}
@@ -315,6 +324,7 @@ export function SessionEditorAssignment({ isMenuOpen, session }: SessionEditorAs
 							<FieldLabel htmlFor={`assignment-admin-notes-${session._id}`}>Admin notes</FieldLabel>
 							<Textarea
 								id={`assignment-admin-notes-${session._id}`}
+								className="min-h-40"
 								value={adminNotes}
 								disabled={isSaving}
 								placeholder="Add instructions for the editor..."
