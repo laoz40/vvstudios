@@ -12,7 +12,7 @@ import {
 } from "#studio/features/booking-form/lib/booking-form-styles";
 import { BookingSelectionCheck } from "#studio/features/booking-form/components/BookingSelectionCheck";
 import type { BookingTimeSelectionMessage } from "#studio/features/booking-form/lib/booking-form-model";
-import type { BookingAvailabilityPickerState } from "#studio/features/booking-form/hooks/useBookingAvailability";
+import type { AvailabilityPickerState } from "#studio/features/booking-form/hooks/useBookingCalendar";
 import {
 	formatBookingTimeRange,
 	formatDateValue,
@@ -35,7 +35,7 @@ const copy = {
 } as const;
 
 export interface BookingDateTimePickerProps {
-	availability: BookingAvailabilityPickerState;
+	availability: AvailabilityPickerState;
 	dateError?: React.ReactNode;
 	disabled?: boolean;
 	duration: string;
@@ -145,7 +145,7 @@ interface TimeSelectionFieldProps {
 	disabled: boolean;
 	duration: string;
 	isLoadingMonthAvailability: boolean;
-	selectedBusyPeriods: BookingAvailabilityPickerState["selectedBusyPeriods"];
+	selectedBusyPeriods: AvailabilityPickerState["selectedBusyPeriods"];
 	isSelectedDateInPast: boolean;
 	isViewingSelectedMonth: boolean;
 	onTimeChange: (time: string) => void;

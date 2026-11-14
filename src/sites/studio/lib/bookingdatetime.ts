@@ -27,12 +27,6 @@ export interface BusyPeriod {
 	start: string;
 }
 
-export function getCurrentMonthKey() {
-	const today = new Date();
-
-	return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}`;
-}
-
 function getAvailableTimesForBusyPeriods({
 	busyPeriods,
 	duration,
