@@ -3,7 +3,7 @@ import { useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { api } from "#convex/_generated/api";
 import type { Id } from "#convex/_generated/dataModel";
-import type { BookingAvailabilityPickerState } from "#studio/features/booking-form/hooks/useBookingAvailability";
+import type { AvailabilityPickerState } from "#studio/features/booking-form/hooks/useBookingCalendar";
 import { usePackageCalendarBusyWindows } from "#studio/features/booking-form/hooks/usePackageCalendarBusyWindows";
 import {
 	getBookingTimeSelectionMessage,
@@ -64,7 +64,7 @@ interface PackageDatePickerOptions {
 
 export interface PackageScheduleState extends SessionSelectionState {
 	activeBooking: PackageSession | undefined;
-	availability: BookingAvailabilityPickerState;
+	availability: AvailabilityPickerState;
 	availabilitySettings: BookingAvailabilitySettings;
 	clearSessionSelection: () => void;
 	currentTimestamp: number;

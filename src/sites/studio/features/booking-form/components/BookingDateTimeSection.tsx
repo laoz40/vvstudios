@@ -2,7 +2,7 @@ import { useEffect, type RefObject } from "react";
 import { useSelector } from "@tanstack/react-store";
 import { FieldError } from "#/components/ui/field";
 import { BookingDateTimePicker } from "#studio/features/booking-form/components/BookingDateTimePicker";
-import { useBookingAvailability } from "#studio/features/booking-form/hooks/useBookingAvailability";
+import { useBookingCalendar } from "#studio/features/booking-form/hooks/useBookingCalendar";
 import { useBookingFormContext } from "#studio/features/booking-form/lib/booking-form-context";
 import {
 	bookingFieldBlurValidator,
@@ -31,11 +31,9 @@ export function BookingDateTimeSection({
 		formApi.setFieldValue("time", "");
 	}
 
-	const availability = useBookingAvailability({
-		date,
-		duration,
-		onSelectedTimeInvalidated: handleSelectedTimeInvalidated,
-		selectedTime: time
+	const availability = useBookingCalendar({
+		source: { kind: "booking" },
+		selection: { date, time, duration, onTimeInvalidated: handleSelectedTimeInvalidated }
 	});
 
 	// Wire dev tooling without rerendering the page shell.
