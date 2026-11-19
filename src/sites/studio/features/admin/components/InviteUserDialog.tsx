@@ -108,7 +108,7 @@ export function InviteUserDialog({ onOpenChange, open }: InviteUserDialogProps) 
 		<Dialog
 			open={open}
 			onOpenChange={onOpenChange}>
-			<DialogContent className="sm:max-w-lg">
+			<DialogContent>
 				{open ? (
 					<InviteUserDialogForm
 						key="invite-user"

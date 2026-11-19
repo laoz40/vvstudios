@@ -55,7 +55,6 @@ export function PackageEmailConfirmationDialog({
 			open={open}
 			onOpenChange={handleOpenChange}>
 			<DialogContent
-				className="sm:max-w-lg"
 				onInteractOutside={preventDismissWhileSending}
 				onEscapeKeyDown={preventDismissWhileSending}>
 				<DialogClose asChild>

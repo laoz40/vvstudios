@@ -274,7 +274,6 @@ export function SessionEditorAssignment({ isMenuOpen, session }: SessionEditorAs
 					if (!open && !isSaving) setConfirmation({ status: "closed" });
 				}}>
 				<DialogContent
-					className="sm:max-w-md"
 					onOpenAutoFocus={(event) => {
 						event.preventDefault();
 						dialogTitleRef.current?.focus();

@@ -85,7 +85,7 @@ export function DeliverablesEmailDialog({
 				onOpenChange(nextOpen);
 			}}>
 			<DialogContent
-				className="max-h-[90dvh] overflow-y-auto sm:max-w-lg"
+				className="max-h-[90dvh] overflow-y-auto"
 				onInteractOutside={(event) => {
 					if (isSending) {
 						event.preventDefault();

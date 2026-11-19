@@ -66,7 +66,7 @@ export function EditorDriveFoldersDialog({
 		<Dialog
 			open={open}
 			onOpenChange={onOpenChange}>
-			<DialogContent className="sm:max-w-xl">
+			<DialogContent>
 				<DialogHeader>
 					<DialogTitle>Google Drive folders</DialogTitle>
 					<DialogDescription>Use these folders for {clientLabel}.</DialogDescription>

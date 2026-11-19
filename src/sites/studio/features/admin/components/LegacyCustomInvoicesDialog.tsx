@@ -46,7 +46,7 @@ export function LegacyCustomInvoicesDialog({
 				onOpenChange(nextOpen);
 			}}>
 			<DialogContent
-				className="overflow-y-auto sm:max-w-lg"
+				className="overflow-y-auto"
 				data-lenis-prevent
 				onInteractOutside={(event) => {
 					if (downloadingInvoiceId !== null) {
