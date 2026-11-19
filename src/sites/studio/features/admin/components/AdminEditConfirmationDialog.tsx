@@ -93,7 +93,7 @@ export function AdminEditConfirmationDialog({
 					onOpenChange(nextOpen);
 				}
 			}}>
-			<DialogContent className="sm:max-w-md">
+			<DialogContent>
 				<DialogHeader>
 					<DialogTitle>{title}</DialogTitle>
 					<DialogDescription>{description}</DialogDescription>

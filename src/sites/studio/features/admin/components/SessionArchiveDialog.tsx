@@ -43,7 +43,6 @@ export function SessionArchiveDialog({
 				onOpenChange(nextOpen);
 			}}>
 			<DialogContent
-				className="sm:max-w-lg"
 				onInteractOutside={(event) => {
 					if (isArchiving) {
 						event.preventDefault();

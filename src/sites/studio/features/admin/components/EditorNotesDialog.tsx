@@ -97,7 +97,7 @@ export function EditorNotesDialog({ editor, onOpenChange, open }: EditorNotesDia
 		<Dialog
 			open={open}
 			onOpenChange={onOpenChange}>
-			<DialogContent className="sm:max-w-lg">
+			<DialogContent>
 				{open ? (
 					<EditorNotesDialogForm
 						key={editor.tokenIdentifier}

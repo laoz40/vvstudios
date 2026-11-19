@@ -53,7 +53,7 @@ function RescheduleLinkDialog({
 		<Dialog
 			open={rescheduleAction.isRescheduleLinkDialogOpen}
 			onOpenChange={rescheduleAction.setIsRescheduleLinkDialogOpen}>
-			<DialogContent className="sm:max-w-md">
+			<DialogContent>
 				<DialogHeader>
 					<DialogTitle>Generate reschedule link?</DialogTitle>
 					<DialogDescription>
@@ -129,7 +129,7 @@ function ReplacementEventDialog({ editAction }: { editAction: ReturnType<typeof 
 		<Dialog
 			open={editAction.isReplacementEventDialogOpen && !editAction.invoice.open}
 			onOpenChange={editAction.setIsReplacementEventDialogOpen}>
-			<DialogContent className="sm:max-w-md">
+			<DialogContent>
 				<DialogHeader>
 					<DialogTitle>Google Calendar event repaired</DialogTitle>
 					<DialogDescription>

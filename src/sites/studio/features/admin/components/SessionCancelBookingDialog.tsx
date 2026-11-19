@@ -43,7 +43,6 @@ export function SessionCancelBookingDialog({
 				onOpenChange(nextOpen);
 			}}>
 			<DialogContent
-				className="sm:max-w-lg"
 				onInteractOutside={(event) => {
 					if (isCancelling) {
 						event.preventDefault();
