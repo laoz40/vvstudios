@@ -86,12 +86,7 @@ const name = z
 	.string()
 	.trim()
 	.min(1, "Full name is required.")
-	.pipe(
-		z
-			.string()
-			.max(50, "Name must be 50 characters or fewer.")
-			.regex(/^[\p{L}\p{M}' ,-]+$/u, "Name contains invalid characters.")
-	);
+	.max(100, "Name must be 100 characters or fewer.");
 
 const phone = bookingPhoneSchema;
 
@@ -99,12 +94,7 @@ const accountName = z
 	.string()
 	.trim()
 	.min(1, "Account name is required.")
-	.pipe(
-		z
-			.string()
-			.max(50, "Account name must be 50 characters or fewer.")
-			.regex(/^[\p{L}\p{M}' ,.()-]+$/u, "Account name contains invalid characters.")
-	);
+	.max(200, "Account name must be 200 characters or fewer.");
 
 const abn = z
 	.string()
