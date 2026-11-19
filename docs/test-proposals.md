@@ -22,6 +22,11 @@ Check for an equivalent proposal before adding an item. Keep unapproved entries 
   - Observable result: Session and package checkout accept full names up to 100 characters and account names up to 200 characters, including `O’Brien`, `Job4Online`, and `Thompson & Wells`. Blank and over-limit names still show validation errors.
   - Coverage gap: `e2e/book.spec.ts` covers session and package checkout, but does not exercise longer names or names containing these characters.
 
+- [ ] Keep long assignment dialogs scrollable while the background stays locked.
+  - Failure and consequence: Long notes can hide the confirmation button, or Lenis can move the page behind an open dialog. Risk 4/10 because admins cannot reliably complete assignments.
+  - Observable result: In a dashboard E2E flow, enter long assignment notes, scroll the dialog to reach confirmation, and scroll over the backdrop. The page stays at its original position until the dialog closes, including when opened during smooth scrolling and with nested dialogs.
+  - Coverage gap: Existing booking smoke tests and dashboard auth checks do not exercise dialog overflow or Lenis background scrolling. E2E is needed to observe actual wheel handling and scroll positions.
+
 - [ ] Count only confirmed bookings when assigning Drive session folder numbers.
   - Failure and consequence: Earlier unpaid, expired, abandoned, or failed booking attempts can inflate the first real session's folder prefix, confusing clients and staff.
   - Observable result: Call `internal.sessions.drive.allocateClientSessionNumber` and `internal.sessions.drive.allocatePackageSessionNumber` with earlier unconfirmed attempts and two confirmed sessions; the confirmed sessions receive numbers `1` and `2` in date order.

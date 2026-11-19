@@ -26,6 +26,15 @@ export function SmoothScroll() {
 
 		let isMounted = true;
 		let lenis: LenisInstance | null = null;
+		const scrollLockObserver = new MutationObserver(syncScrollLock);
+
+		function syncScrollLock() {
+			if (window.getComputedStyle(document.body).overflow === "hidden") {
+				lenis?.stop();
+			} else {
+				lenis?.start();
+			}
+		}
 
 		void import("lenis").then(({ default: Lenis }) => {
 			if (!isMounted) {
@@ -34,10 +43,17 @@ export function SmoothScroll() {
 
 			lenis = new Lenis({ autoRaf: true, anchors: true });
 			lenisRef.current = lenis;
+			// Body scroll locks do not stop Lenis from scrolling the page programmatically.
+			scrollLockObserver.observe(document.body, {
+				attributes: true,
+				attributeFilter: ["data-scroll-locked", "style"]
+			});
+			syncScrollLock();
 		});
 
 		return () => {
 			isMounted = false;
+			scrollLockObserver.disconnect();
 			lenis?.destroy();
 			lenisRef.current = null;
 		};
