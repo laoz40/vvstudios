@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { toast } from "sonner";
 import { AnimatedIconButton } from "#/components/AnimatedIconButton";
@@ -54,18 +54,29 @@ function TimeSelect({ value, onChange }: TimeSelectProps) {
 export function AdminAvailabilitySettings() {
 	const bookingSettings = useQuery(api.booking.settings.get, {});
 	const updateBookingSettings = useMutation(api.booking.settings.update);
-	const [draft, setDraft] = useState<BookingSettings>(DEFAULT_BOOKING_AVAILABILITY_SETTINGS);
+
+	const [draft, setDraft] = useState<BookingSettings>(() =>
+		bookingSettings
+			? toBookingSettingsDraft(bookingSettings)
+			: DEFAULT_BOOKING_AVAILABILITY_SETTINGS
+	);
+
 	const [isOpen, setIsOpen] = useState(false);
 	const [isSaving, setIsSaving] = useState(false);
 
-	useEffect(() => {
+	const [previousSettings, setPreviousSettings] = useState(bookingSettings);
+
+	if (previousSettings !== bookingSettings) {
+		setPreviousSettings(bookingSettings);
+
 		if (bookingSettings) {
 			setDraft(toBookingSettingsDraft(bookingSettings));
 		}
-	}, [bookingSettings]);
+	}
 
 	async function handleSaveSettings() {
 		setIsSaving(true);
+
 		const [error] = await tryCatch(updateBookingSettings(toBookingSettingsDraft(draft)));
 
 		if (error !== null) {
@@ -128,12 +139,8 @@ export function AdminAvailabilitySettings() {
 					variant="ghost"
 					size="sm"
 					iconPosition="before"
-					renderIcon={(iconRef) => (
-						<ClockIcon
-							ref={iconRef}
-							aria-hidden
-						/>
-					)}>
+					icon={ClockIcon}
+					iconProps={{ "aria-hidden": true }}>
 					<button type="button">Availability settings</button>
 				</AnimatedIconButton>
 			</DialogTrigger>

@@ -16,12 +16,8 @@ export function DashboardForbiddenPage() {
 					<AnimatedIconButton
 						size="lg"
 						iconPosition="before"
-						renderIcon={(iconRef) => (
-							<HomeIcon
-								ref={iconRef}
-								aria-hidden
-							/>
-						)}>
+						icon={HomeIcon}
+						iconProps={{ "aria-hidden": true }}>
 						<Link to={studioSite.routes.home}>Home</Link>
 					</AnimatedIconButton>
 					<SignOutButton redirectUrl={studioSite.routes.login}>
@@ -29,12 +25,8 @@ export function DashboardForbiddenPage() {
 							variant="outline"
 							size="lg"
 							iconPosition="before"
-							renderIcon={(iconRef) => (
-								<LogoutIcon
-									ref={iconRef}
-									aria-hidden
-								/>
-							)}>
+							icon={LogoutIcon}
+							iconProps={{ "aria-hidden": true }}>
 							<button type="button">Sign out</button>
 						</AnimatedIconButton>
 					</SignOutButton>

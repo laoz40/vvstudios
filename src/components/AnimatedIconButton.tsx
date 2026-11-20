@@ -1,95 +1,67 @@
 import {
-	cloneElement,
-	isValidElement,
 	useRef,
-	type FocusEventHandler,
 	type ComponentProps,
-	type PointerEventHandler,
+	type ComponentType,
 	type ReactElement,
-	type ReactNode,
-	type RefObject
+	type Ref
 } from "react";
 import type { VariantProps } from "class-variance-authority";
+import { Slot } from "radix-ui";
 
 import { Button, buttonVariants } from "#/components/ui/button";
-import type { AnimatedIconHandle } from "#/components/ui/types";
-
-type AnimatedIconButtonChildProps = {
-	children?: ReactNode;
-	onBlur?: FocusEventHandler;
-	onFocus?: FocusEventHandler;
-	onPointerEnter?: PointerEventHandler;
-	onPointerLeave?: PointerEventHandler;
-};
+import type { AnimatedIconHandle, AnimatedIconProps } from "#/components/ui/types";
 
 export type AnimatedIconButtonProps = VariantProps<typeof buttonVariants> &
-	Omit<ComponentProps<"button">, "children" | "className"> & {
-		children: ReactElement<AnimatedIconButtonChildProps>;
-		className?: string;
+	Omit<ComponentProps<"button">, "children"> & {
+		children: ReactElement;
+		icon: ComponentType<AnimatedIconProps & { ref?: Ref<AnimatedIconHandle> }>;
 		iconPosition?: "before" | "after";
-		renderIcon: (ref: RefObject<AnimatedIconHandle | null>) => ReactNode;
+		iconProps?: AnimatedIconProps;
 	};
 
 export function AnimatedIconButton({
 	children,
-	className,
+	icon: Icon,
 	iconPosition = "after",
-	renderIcon,
-	size,
-	variant,
+	iconProps,
+	onBlur,
+	onFocus,
+	onPointerEnter,
+	onPointerLeave,
 	...props
 }: AnimatedIconButtonProps) {
 	const iconRef = useRef<AnimatedIconHandle | null>(null);
 
-	const startIconAnimation = () => {
-		iconRef.current?.startAnimation();
-	};
-
-	const stopIconAnimation = () => {
-		iconRef.current?.stopAnimation();
-	};
-
-	if (!isValidElement<AnimatedIconButtonChildProps>(children)) {
-		return null;
-	}
-
-	const icon = renderIcon(iconRef);
-
-	// Clone the child element so its hover and focus events can control the icon ref.
-	const child = cloneElement(children, {
-		onPointerEnter: (event) => {
-			children.props.onPointerEnter?.(event);
-			startIconAnimation();
-		},
-		onPointerLeave: (event) => {
-			children.props.onPointerLeave?.(event);
-			stopIconAnimation();
-		},
-		onFocus: (event) => {
-			children.props.onFocus?.(event);
-			startIconAnimation();
-		},
-		onBlur: (event) => {
-			children.props.onBlur?.(event);
-			stopIconAnimation();
-		},
-		children: (
-			<>
-				{iconPosition === "before" ? icon : null}
-				{children.props.children}
-				{iconPosition === "after" ? icon : null}
-			</>
-		)
-	});
+	const icon = (
+		<Icon
+			{...iconProps}
+			ref={iconRef}
+		/>
+	);
 
 	return (
 		<Button
 			asChild
-			size={size}
-			variant={variant}
-			className={className}
-			{...props}>
-			{child}
+			{...props}
+			onPointerEnter={(event) => {
+				iconRef.current?.startAnimation();
+				onPointerEnter?.(event);
+			}}
+			onPointerLeave={(event) => {
+				iconRef.current?.stopAnimation();
+				onPointerLeave?.(event);
+			}}
+			onFocus={(event) => {
+				iconRef.current?.startAnimation();
+				onFocus?.(event);
+			}}
+			onBlur={(event) => {
+				iconRef.current?.stopAnimation();
+				onBlur?.(event);
+			}}>
+			{iconPosition === "before" ? icon : null}
+			<Slot.Slottable>{children}</Slot.Slottable>
+			{iconPosition === "after" ? icon : null}
 		</Button>
 	);
 }

@@ -30,13 +30,8 @@ export function AdminDropdownReceiptRow({
 				variant="ghost"
 				aria-label={`Copy ${copyLabel}`}
 				className="size-7 shrink-0 text-muted-foreground hover:text-foreground"
-				renderIcon={(iconRef) => (
-					<CopyIcon
-						ref={iconRef}
-						size={14}
-						aria-hidden
-					/>
-				)}>
+				icon={CopyIcon}
+				iconProps={{ size: 14, "aria-hidden": true }}>
 				<button
 					type="button"
 					aria-label={`Copy ${copyLabel}`}
@@ -49,13 +44,8 @@ export function AdminDropdownReceiptRow({
 				variant="ghost"
 				aria-label="Search by receipt"
 				className="size-7 shrink-0 text-muted-foreground hover:text-foreground"
-				renderIcon={(iconRef) => (
-					<MagnifierIcon
-						ref={iconRef}
-						size={14}
-						aria-hidden
-					/>
-				)}>
+				icon={MagnifierIcon}
+				iconProps={{ size: 14, "aria-hidden": true }}>
 				<button
 					type="button"
 					aria-label="Search by receipt"

@@ -19,12 +19,8 @@ export function FreeTourModalButton({ className, label }: FreeTourModalButtonPro
 			size="lg"
 			className={className}
 			iconPosition="before"
-			renderIcon={(iconRef) => (
-				<MagnifierIcon
-					ref={iconRef}
-					strokeWidth={3}
-				/>
-			)}>
+			icon={MagnifierIcon}
+			iconProps={{ strokeWidth: 3 }}>
 			<button
 				type="button"
 				aria-haspopup="dialog"

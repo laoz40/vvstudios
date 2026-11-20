@@ -287,16 +287,14 @@ export function PricingSection({
 								<div className="mt-auto pt-6 sm:pt-8">
 									<AnimatedIconButton
 										className="w-full justify-center gap-1.5 py-5 text-base font-medium shadow-lg shadow-primary/45"
-										renderIcon={(iconRef) => (
-											<ArrowNarrowRightIcon
-												ref={iconRef}
-												aria-hidden="true"
-												focusable="false"
-												size={24}
-												strokeWidth={3}
-												className="translate-y-px"
-											/>
-										)}>
+										icon={ArrowNarrowRightIcon}
+										iconProps={{
+											"aria-hidden": "true",
+											focusable: "false",
+											size: 24,
+											strokeWidth: 3,
+											className: "translate-y-px"
+										}}>
 										<Link to={studioSite.routes.book}>{pricingPageCopy.bookSessionLabel}</Link>
 									</AnimatedIconButton>
 								</div>

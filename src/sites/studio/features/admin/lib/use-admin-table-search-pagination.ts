@@ -144,26 +144,22 @@ export function useAdminTableSearchPagination(
 
 	const canLoadMore = status === "CanLoadMore";
 
-	// Reset search batch state when the debounced query changes.
-	useEffect(() => {
+	const [previousSearchKey, setPreviousSearchKey] = useState(searchKey);
+
+	if (previousSearchKey !== searchKey) {
+		setPreviousSearchKey(searchKey);
 		setLoadAllConfirmed(false);
 		setBatchLoadingStopped(false);
 		setHeavySearchGate(false);
 		setFirstSearchPageReady(false);
-	}, [searchKey]);
-
-	// First search page with more list pages than one batch → show refine banner until opt-in.
-	useEffect(() => {
-		if (!hasActiveSearch || isLoadingFirstPage || firstSearchPageReady) {
-			return;
-		}
-
+	} else if (hasActiveSearch && !isLoadingFirstPage && !firstSearchPageReady) {
+		// The first completed page determines whether the search needs confirmation.
 		setFirstSearchPageReady(true);
 
 		if (canLoadMore) {
 			setHeavySearchGate(true);
 		}
-	}, [canLoadMore, firstSearchPageReady, hasActiveSearch, isLoadingFirstPage, searchKey]);
+	}
 
 	const {
 		isSearchBatchLoading,

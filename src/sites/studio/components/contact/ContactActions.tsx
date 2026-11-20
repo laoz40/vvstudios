@@ -26,14 +26,8 @@ export function ContactActions({ className, layout = "default" }: ContactActions
 					"h-auto min-w-56 justify-center gap-1.5 px-8 py-3 text-base font-medium shadow-lg shadow-primary/45",
 					isInline ? "shrink-0" : "flex-1 basis-full md:basis-0"
 				)}
-				renderIcon={(iconRef) => (
-					<ArrowNarrowRightIcon
-						ref={iconRef}
-						size={24}
-						strokeWidth={3}
-						className="translate-y-px"
-					/>
-				)}>
+				icon={ArrowNarrowRightIcon}
+				iconProps={{ size: 24, strokeWidth: 3, className: "translate-y-px" }}>
 				<Link to={studioSite.routes.book}>{contactActionCopy.bookCta}</Link>
 			</AnimatedIconButton>
 			<FreeTourModalButton

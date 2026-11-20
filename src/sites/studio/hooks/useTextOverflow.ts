@@ -1,12 +1,9 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useState } from "react";
 
-export function useTextOverflow<T extends HTMLElement>(text: string | undefined) {
-	const previewRef = useRef<T>(null);
+export function useTextOverflow() {
 	const [isTruncated, setIsTruncated] = useState(false);
 
-	useEffect(() => {
-		const preview = previewRef.current;
-
+	const previewRef = useCallback((preview: HTMLElement | null) => {
 		if (!preview) return undefined;
 
 		const measureOverflow = () => {
@@ -16,11 +13,16 @@ export function useTextOverflow<T extends HTMLElement>(text: string | undefined)
 		};
 
 		measureOverflow();
-		const observer = new ResizeObserver(measureOverflow);
-		observer.observe(preview);
+		const resizeObserver = new ResizeObserver(measureOverflow);
+		resizeObserver.observe(preview);
+		const textObserver = new MutationObserver(measureOverflow);
+		textObserver.observe(preview, { characterData: true, childList: true, subtree: true });
 
-		return () => observer.disconnect();
-	}, [text]);
+		return () => {
+			resizeObserver.disconnect();
+			textObserver.disconnect();
+		};
+	}, []);
 
 	return { previewRef, isTruncated };
 }
