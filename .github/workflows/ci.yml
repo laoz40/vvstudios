@@ -77,7 +77,7 @@ jobs:
     if: github.event_name == 'pull_request' || github.ref == 'refs/heads/dev'
     runs-on: ubuntu-latest
     # Hold this lock through provisioning, deployment and tests. A running job
-    # must finish before another attempt can replace its backend.
+    # must finish before another attempt can deploy to the same preview.
     concurrency:
       group: ${{ github.event_name == 'pull_request' && format('convex-e2e-pr-{0}', github.event.pull_request.number) || 'playwright-cache-dev' }}
       cancel-in-progress: false
@@ -113,7 +113,7 @@ jobs:
         if: steps.playwright-cache.outputs.cache-hit != 'true'
         run: bunx playwright install --only-shell chromium
 
-      - name: Create empty Convex preview and deploy
+      - name: Deploy to the PR's Convex preview
         if: github.event_name == 'pull_request'
         id: preview
         env:
@@ -129,7 +129,7 @@ jobs:
           VITE_STRIPE_PUBLISHABLE_KEY: ${{ vars.E2E_VITE_STRIPE_PUBLISHABLE_KEY }}
         run: |
           bun -e 'import { validatePreviewKey } from "./scripts/convex-preview-safety.ts"; validatePreviewKey(process.env.CONVEX_DEPLOY_KEY)'
-          bunx convex deploy --preview-create "$CONVEX_PREVIEW_NAME" --typecheck enable \
+          bunx convex deploy --preview-name "$CONVEX_PREVIEW_NAME" --typecheck enable \
             --cmd "bun scripts/prepare-convex-preview.ts" --cmd-url-env-var-name VITE_CONVEX_URL
 
       - name: Type-check regenerated Convex API and frontend
@@ -142,7 +142,7 @@ jobs:
           PREVIEW_URL: ${{ steps.preview.outputs.url }}
           PREVIEW_NAME: e2e-pr-${{ github.event.pull_request.number }}
         run: |
-          printf 'Convex smoke-test preview: `%s` at %s. Empty DB for this attempt; automatic Convex expiration.\n' \
+          printf 'Convex smoke-test preview: `%s` at %s. Reused across runs of this PR until it expires.\n' \
             "$PREVIEW_NAME" "$PREVIEW_URL" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Run E2E
