@@ -1,6 +1,6 @@
 import type { FunctionReturnType } from "convex/server";
 import { ConvexError } from "convex/values";
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { LoaderCircle } from "lucide-react";
 import { toast } from "sonner";
@@ -180,6 +180,18 @@ function EditorSelect({
 	);
 }
 
+function useAdminNotesDraft(notes: string | undefined) {
+	const [adminNotes, setAdminNotes] = useState(notes ?? "");
+	const [previousNotes, setPreviousNotes] = useState(notes);
+
+	if (previousNotes !== notes) {
+		setPreviousNotes(notes);
+		setAdminNotes(notes ?? "");
+	}
+
+	return [adminNotes, setAdminNotes] as const;
+}
+
 export function SessionEditorAssignment({ isMenuOpen, session }: SessionEditorAssignmentProps) {
 	const assignSessionEditor = useMutation(api.sessions.admin.assignSessionEditor);
 
@@ -193,17 +205,13 @@ export function SessionEditorAssignment({ isMenuOpen, session }: SessionEditorAs
 	const [isSaving, setIsSaving] = useState(false);
 	const dialogTitleRef = useRef<HTMLHeadingElement>(null);
 	const [editorDueDate, setEditorDueDate] = useState("");
-	const [adminNotes, setAdminNotes] = useState(session.adminNotes ?? "");
+	const [adminNotes, setAdminNotes] = useAdminNotesDraft(session.adminNotes);
+
 	const [confirmation, setConfirmation] = useState<AssignmentConfirmation>({ status: "closed" });
 
 	const currentEditor = activeEditors.find(
 		(editor) => editor.tokenIdentifier === session.assignedEditorTokenIdentifier
 	);
-
-	// Keep the draft current when notes are changed from the separate admin-notes action.
-	useEffect(() => {
-		setAdminNotes(session.adminNotes ?? "");
-	}, [session.adminNotes]);
 
 	function requestAssignment(selectedValue: string) {
 		const nextEditor =
@@ -228,6 +236,7 @@ export function SessionEditorAssignment({ isMenuOpen, session }: SessionEditorAs
 		if (confirmation.status !== "open") return;
 
 		setIsSaving(true);
+
 		const editorTokenIdentifier = confirmation.nextEditor?.tokenIdentifier ?? null;
 
 		const [error] = await tryCatch(
@@ -252,10 +261,12 @@ export function SessionEditorAssignment({ isMenuOpen, session }: SessionEditorAs
 	}
 
 	const nextEditor = confirmation.status === "open" ? confirmation.nextEditor : null;
+
 	const isReassignment = currentEditor !== undefined;
 	let dialogTitle = "Assign editor?";
 
 	if (isReassignment) dialogTitle = nextEditor === null ? "Unassign editor?" : "Reassign editor?";
+
 	const confirmButtonLabel = nextEditor === null ? "Confirm unassignment" : "Confirm assignment";
 
 	return (

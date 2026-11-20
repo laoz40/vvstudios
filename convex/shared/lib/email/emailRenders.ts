@@ -2,7 +2,10 @@ import { createElement } from "react";
 import { render } from "@react-email/render";
 import { BOOKING_INVOICE_BUSINESS } from "#studio/features/booking-invoice/lib/constants";
 import { DeliverablesReviewReadyEmail } from "#studio/features/deliverables-review-ready-email/DeliverablesReviewReadyEmail";
-import { HostBookingDetailsEmail } from "#studio/features/host-booking-details-email/HostBookingDetailsEmail";
+import {
+	hostBookingQuotes,
+	HostBookingDetailsEmail
+} from "#studio/features/host-booking-details-email/HostBookingDetailsEmail";
 import { PackageExpiryReminderEmail } from "#studio/features/package-reminder-email/PackageExpiryReminderEmail";
 import { ReminderEmail } from "#studio/features/reminder-email/ReminderEmail";
 import { RescheduledBookingEmail } from "#studio/features/rescheduled-booking-email/RescheduledBookingEmail";
@@ -179,6 +182,7 @@ export function renderSessionHostDetailsEmailHtml(args: SendSessionHostDetailsEm
 	const addonsLine = formatAddonsLine({ addons: args.addons, ...pickBookingAddonQuantities(args) });
 
 	const bookingDetails = {
+		quoteIndex: Math.floor(Math.random() * hostBookingQuotes.length),
 		invoiceNumber: args.invoiceNumber,
 		name: args.name,
 		email: args.email,
@@ -226,6 +230,7 @@ export function renderPackageHostDetailsEmailHtml(args: SendPackageHostDetailsEm
 		try: () =>
 			render(
 				createElement(HostBookingDetailsEmail, {
+					quoteIndex: Math.floor(Math.random() * hostBookingQuotes.length),
 					kind: "package",
 					invoiceNumber: args.invoiceNumber,
 					name: args.name,
@@ -274,6 +279,7 @@ export function renderDeliverablesReviewReadyHostEmailHtml(
 		try: () =>
 			render(
 				createElement(DeliverablesReviewReadyEmail, {
+					quoteIndex: Math.floor(Math.random() * hostBookingQuotes.length),
 					clientName: args.clientName,
 					deliverablesFolderUrl: args.deliverablesFolderUrl,
 					editorName: args.editorName,

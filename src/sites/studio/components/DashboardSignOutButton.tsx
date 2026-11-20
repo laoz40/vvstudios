@@ -11,12 +11,8 @@ export function DashboardSignOutButton() {
 				variant="ghost"
 				size="sm"
 				iconPosition="before"
-				renderIcon={(iconRef) => (
-					<LogoutIcon
-						ref={iconRef}
-						aria-hidden
-					/>
-				)}>
+				icon={LogoutIcon}
+				iconProps={{ "aria-hidden": true }}>
 				<button type="button">Sign out</button>
 			</AnimatedIconButton>
 		</SignOutButton>

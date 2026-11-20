@@ -1,6 +1,7 @@
 import { HostBookingDetailsEmail } from "#studio/features/host-booking-details-email/HostBookingDetailsEmail";
 
 const previewProps = {
+	quoteIndex: 0,
 	kind: "package" as const,
 	invoiceNumber: "VV-260502-PKG123",
 	name: "Jordan Lee",

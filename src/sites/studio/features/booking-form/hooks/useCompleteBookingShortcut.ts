@@ -17,8 +17,6 @@ export function useCompleteBookingShortcut({
 	// Track whether the submit section is visible only while the scroll cue is shown.
 	useEffect(() => {
 		if (!showScrollToCompleteBooking) {
-			setHasReachedCompleteBooking(false);
-
 			return undefined;
 		}
 
@@ -59,7 +57,7 @@ export function useCompleteBookingShortcut({
 
 	return {
 		handleScrollToCompleteBooking,
-		hasReachedCompleteBooking,
+		hasReachedCompleteBooking: showScrollToCompleteBooking && hasReachedCompleteBooking,
 		setShowScrollToCompleteBooking,
 		showScrollToCompleteBooking
 	};

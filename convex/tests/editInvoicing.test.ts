@@ -14,7 +14,7 @@
  * 12. Cached checkout payments remain fixed while dashboard paid and unpaid totals follow invoices.
  * 13. Failed Calendar event cleanup keeps the original booking save error after invoicing.
  */
-import Stripe from "stripe";
+import StripeSdk from "stripe";
 import { google } from "googleapis";
 import { z } from "zod";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
@@ -95,7 +95,7 @@ async function fetchCalendar(input: RequestInfo | URL, init?: RequestInit) {
 function createStripeResponse(
 	method: string,
 	path: string,
-	params: Parameters<typeof Stripe.StripeResource.prototype._makeRequest>[2]
+	params: Parameters<typeof StripeSdk.StripeResource.prototype._makeRequest>[2]
 ) {
 	if (path === "/v1/invoices" && method === "POST") return { id: "in_" + responses.size };
 
@@ -160,7 +160,7 @@ beforeEach(() => {
 
 		return Promise.resolve(Response.json({ id: "email_sent" }));
 	});
-	vi.spyOn(Stripe.StripeResource.prototype, "_makeRequest").mockImplementation(
+	vi.spyOn(StripeSdk.StripeResource.prototype, "_makeRequest").mockImplementation(
 		(method, path, params, options) => {
 			if (path.startsWith("/v1/customers/"))
 				return Promise.resolve({ id: "cus_original", email: "stripe-recipient@example.com" });

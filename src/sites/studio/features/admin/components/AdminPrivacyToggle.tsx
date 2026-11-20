@@ -14,23 +14,8 @@ export function AdminPrivacyToggle() {
 			iconPosition="before"
 			aria-pressed={isPrivacyModeEnabled}
 			onClick={() => setPrivacyModeEnabled(!isPrivacyModeEnabled)}
-			renderIcon={(iconRef) =>
-				isPrivacyModeEnabled ? (
-					<EyeOffIcon
-						ref={iconRef}
-						size={16}
-						aria-hidden
-						className="shrink-0 text-current"
-					/>
-				) : (
-					<EyeIcon
-						ref={iconRef}
-						size={16}
-						aria-hidden
-						className="shrink-0 text-current"
-					/>
-				)
-			}>
+			icon={isPrivacyModeEnabled ? EyeOffIcon : EyeIcon}
+			iconProps={{ size: 16, "aria-hidden": true, className: "shrink-0 text-current" }}>
 			<button type="button">{isPrivacyModeEnabled ? "Privacy on" : "Privacy off"}</button>
 		</AnimatedIconButton>
 	);

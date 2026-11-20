@@ -1,5 +1,4 @@
 import type { ReactElement } from "react";
-import { exhaustiveCheck } from "#/lib/result";
 import { AnimatedIconButton, type AnimatedIconButtonProps } from "#/components/AnimatedIconButton";
 import ArrowNarrowRightIcon from "#/components/ui/arrow-narrow-right-icon";
 import HomeIcon from "#/components/ui/home-icon";
@@ -17,41 +16,11 @@ type BookingActionButtonProps = {
 
 const bookingActionButtonClassName = "h-auto w-full sm:w-auto px-8 py-3 text-base font-medium";
 
-function renderBookingActionIcon(
-	icon: BookingActionButtonProps["icon"],
-	iconRef: Parameters<AnimatedIconButtonProps["renderIcon"]>[0]
-): ReactElement {
-	switch (icon) {
-		case "arrow":
-			return (
-				<ArrowNarrowRightIcon
-					ref={iconRef}
-					strokeWidth={3}
-					className="translate-y-px"
-					aria-hidden
-				/>
-			);
-
-		case "home":
-			return (
-				<HomeIcon
-					ref={iconRef}
-					aria-hidden
-				/>
-			);
-
-		case "phone":
-			return (
-				<PhoneVolume
-					ref={iconRef}
-					aria-hidden
-					strokeWidth={3}
-				/>
-			);
-		default:
-			return exhaustiveCheck(icon);
-	}
-}
+const bookingActionIcons = {
+	arrow: { icon: ArrowNarrowRightIcon, iconProps: { strokeWidth: 3, className: "translate-y-px" } },
+	home: { icon: HomeIcon, iconProps: {} },
+	phone: { icon: PhoneVolume, iconProps: { strokeWidth: 3 } }
+};
 
 export function BookingActionButton({
 	children,
@@ -60,6 +29,7 @@ export function BookingActionButton({
 	icon
 }: BookingActionButtonProps): ReactElement {
 	const isSecondary = emphasis === "secondary";
+	const actionIcon = bookingActionIcons[icon];
 
 	return (
 		<AnimatedIconButton
@@ -71,7 +41,8 @@ export function BookingActionButton({
 				bookingActionButtonClassName,
 				isSecondary ? "border-none shadow-md shadow-background/25" : "shadow-lg shadow-primary/45"
 			)}
-			renderIcon={(iconRef) => renderBookingActionIcon(icon, iconRef)}>
+			icon={actionIcon.icon}
+			iconProps={{ "aria-hidden": true, ...actionIcon.iconProps }}>
 			{children}
 		</AnimatedIconButton>
 	);

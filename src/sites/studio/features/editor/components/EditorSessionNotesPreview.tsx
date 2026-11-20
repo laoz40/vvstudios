@@ -23,7 +23,7 @@ export function EditorSessionNotesPreview({
 	notes
 }: EditorSessionNotesPreviewProps) {
 	const text = notes?.trim();
-	const { previewRef, isTruncated } = useTextOverflow<HTMLParagraphElement>(text);
+	const { previewRef, isTruncated } = useTextOverflow();
 
 	if (!text) {
 		return <span className="text-sm text-muted-foreground">-</span>;

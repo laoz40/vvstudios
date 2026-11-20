@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useReducer, useState } from "react";
+import { useCallback, useEffect, useReducer, useRef } from "react";
 import { useAction } from "convex/react";
 import { api } from "#convex/_generated/api";
 import { tryCatch } from "#/lib/result";
@@ -28,19 +28,16 @@ export function usePackageCalendarBusyWindows({
 }: UsePackageCalendarBusyWindowsOptions): PackageCalendarBusyWindowsState {
 	const getPackageBusyWindows = useAction(api.packages.schedulingCalendar.getPackageBusyWindows);
 
-	const [rateLimitKey, setRateLimitKey] = useState<string | null>(null);
-
+	const rateLimitKey = useRef<string | null>(null);
 	const [calendar, dispatch] = useReducer(reducePackageCalendar, initialPackageCalendarState);
 	const { busyWindowsByMonth } = calendar;
 	const calendarLoadError = calendar.kind === "error" ? calendar.message : "";
 	const isLoadingCalendar = calendar.kind === "loading";
 
 	useEffect(() => {
-		setRateLimitKey(getAvailabilityRateLimitKey());
-	}, []);
+		const activeRateLimitKey = (rateLimitKey.current ??= getAvailabilityRateLimitKey());
 
-	useEffect(() => {
-		if (!rateLimitKey || calendarLoadError) {
+		if (!activeRateLimitKey || calendarLoadError) {
 			return undefined;
 		}
 
@@ -54,7 +51,6 @@ export function usePackageCalendarBusyWindows({
 
 		let isCancelled = false;
 		dispatch({ type: "loadStarted" });
-		const activeRateLimitKey = rateLimitKey;
 
 		async function loadBusyWindows() {
 			const [busyWindowsError, result] = await tryCatch(
@@ -82,14 +78,7 @@ export function usePackageCalendarBusyWindows({
 		return () => {
 			isCancelled = true;
 		};
-	}, [
-		bookableMonthKeys,
-		busyWindowsByMonth,
-		calendarLoadError,
-		getPackageBusyWindows,
-		rateLimitKey,
-		token
-	]);
+	}, [bookableMonthKeys, busyWindowsByMonth, calendarLoadError, getPackageBusyWindows, token]);
 
 	const invalidateCalendarCache = useCallback(() => {
 		dispatch({ type: "cacheCleared" });

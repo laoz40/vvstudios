@@ -16,6 +16,7 @@ import { EmailFooter } from "#studio/components/email/EmailFooter";
 import { hostBookingQuotes } from "#studio/features/host-booking-details-email/HostBookingDetailsEmail";
 
 export type DeliverablesReviewReadyEmailProps = {
+	quoteIndex: number;
 	clientName: string;
 	deliverablesFolderUrl?: string;
 	editorName: string;
@@ -23,12 +24,12 @@ export type DeliverablesReviewReadyEmailProps = {
 };
 
 export function DeliverablesReviewReadyEmail({
+	quoteIndex,
 	clientName,
 	deliverablesFolderUrl,
 	editorName,
 	sessionDateLabel
 }: DeliverablesReviewReadyEmailProps) {
-	const quoteIndex = Math.floor(Math.random() * hostBookingQuotes.length);
 	const selectedQuote = hostBookingQuotes[quoteIndex];
 
 	if (selectedQuote === undefined) {

@@ -111,14 +111,8 @@ export function LandingHero() {
 							<div className="mt-6 flex w-full flex-wrap gap-3">
 								<AnimatedIconButton
 									className="h-auto flex-1 gap-1.5 px-6! py-3 text-base font-medium shadow-lg shadow-primary/45 md:flex-none"
-									renderIcon={(iconRef) => (
-										<ArrowNarrowRightIcon
-											ref={iconRef}
-											size={24}
-											strokeWidth={3}
-											className="translate-y-px"
-										/>
-									)}>
+									icon={ArrowNarrowRightIcon}
+									iconProps={{ size: 24, strokeWidth: 3, className: "translate-y-px" }}>
 									<Link to={studioSite.routes.book}>{heroCopy.bookCta}</Link>
 								</AnimatedIconButton>
 

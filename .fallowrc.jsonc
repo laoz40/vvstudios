@@ -38,7 +38,9 @@
 		// used by react-email dev preview, not imported from app code
 		"@react-email/ui",
 		// only imported from convex tests
-		"convex-test"
+		"convex-test",
+		// Oxlint discovers and runs the tsrs-lint binary.
+		"tsrs"
 	],
 	"rules": {
 		"unused-files": "error",

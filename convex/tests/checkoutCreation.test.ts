@@ -8,7 +8,7 @@
  *    Both public checkout actions return the client secret after saving the Stripe link.
  */
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
-import Stripe from "stripe";
+import StripeSdk from "stripe";
 import dns from "node:dns/promises";
 import { syncBuiltinESMExports } from "node:module";
 import { api, internal } from "#convex/_generated/api";
@@ -37,17 +37,19 @@ beforeEach(() => {
 	vi.spyOn(Date, "now").mockReturnValue(now);
 	vi.spyOn(dns, "resolveMx").mockResolvedValue([{ exchange: "mail.example.com", priority: 10 }]);
 	syncBuiltinESMExports();
-	vi.spyOn(Stripe.StripeResource.prototype, "_makeRequest").mockImplementation((_method, path) => {
-		if (path === "/v1/customers") return Promise.resolve({ id: "cus_checkout" });
+	vi.spyOn(StripeSdk.StripeResource.prototype, "_makeRequest").mockImplementation(
+		(_method, path) => {
+			if (path === "/v1/customers") return Promise.resolve({ id: "cus_checkout" });
 
-		if (path === "/v1/coupons") return Promise.resolve({ id: "coupon_checkout" });
+			if (path === "/v1/coupons") return Promise.resolve({ id: "coupon_checkout" });
 
-		if (path === "/v1/checkout/sessions") {
-			return Promise.resolve({ id: "cs_checkout", client_secret: "checkout_secret" });
+			if (path === "/v1/checkout/sessions") {
+				return Promise.resolve({ id: "cs_checkout", client_secret: "checkout_secret" });
+			}
+
+			throw new Error(`Unexpected Stripe request: ${path}`);
 		}
-
-		throw new Error(`Unexpected Stripe request: ${path}`);
-	});
+	);
 });
 
 afterEach(() => {

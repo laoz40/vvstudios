@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { CircleAlert } from "lucide-react";
 import { Badge } from "#/components/ui/badge";
 import { Button } from "#/components/ui/button";
@@ -248,18 +248,18 @@ function SessionNotesCell({
 
 	const [isCollapsed, setIsCollapsed] = useState(false);
 
-	// Upcoming sessions default to client notes; past sessions default to editor notes.
-	useEffect(() => {
+	const [previousIsPastSession, setPreviousIsPastSession] = useState(isPastSession);
+
+	if (previousIsPastSession !== isPastSession) {
+		setPreviousIsPastSession(isPastSession);
 		setNotesView(getDefaultSessionNotesView(isPastSession));
-	}, [isPastSession]);
+	}
 
 	const notesLabel = sessionNotesViewLabelMap[notesView];
 	const visibleNotes = getSessionNotesForView(session, notesView);
 	const notesText = visibleNotes || "-";
 
-	const { previewRef, isTruncated } = useTextOverflow<HTMLSpanElement>(
-		`${notesLabel}: ${notesText}`
-	);
+	const { previewRef, isTruncated } = useTextOverflow();
 
 	const notesViews: SessionNotesView[] = ["client", "editor", "admin"];
 
@@ -384,6 +384,7 @@ export function SessionTableRow({ onReceiptSearch, session }: SessionTableRowPro
 	const packageReceiptNumber = session.receiptNumber;
 	const assignedEditorDisplayName = session.assignedEditorDisplayName ?? null;
 	const deliverablesEmailAction = useDeliverablesEmailAction(session);
+
 	const editStatus = isDeliverableSession(session) ? getDeliverableStatus(session) : null;
 
 	const deliverableStatus =

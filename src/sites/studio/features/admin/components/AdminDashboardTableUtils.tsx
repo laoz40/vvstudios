@@ -5,7 +5,6 @@ import { AnimatedIconButton } from "#/components/AnimatedIconButton";
 import { Button } from "#/components/ui/button";
 import CopyIcon from "#/components/ui/copy-icon";
 import { TableCell, TableRow } from "#/components/ui/table";
-import { cn } from "#/lib/utils";
 
 export function formatInstagramHandle(instagramHandle: string) {
 	const trimmedHandle = instagramHandle.trim();
@@ -47,14 +46,6 @@ type SortHeaderButtonProps = {
 	onClick: () => void;
 };
 
-function getSortHeaderIcon(isActive: boolean, isDescending: boolean) {
-	if (!isActive) {
-		return ArrowUpDown;
-	}
-
-	return isDescending ? ArrowDown : ArrowUp;
-}
-
 export function SortHeaderButton({
 	isActive,
 	isDescending,
@@ -62,7 +53,26 @@ export function SortHeaderButton({
 	label,
 	onClick
 }: SortHeaderButtonProps) {
-	const SortIcon = getSortHeaderIcon(isActive, isDescending);
+	let icon = (
+		<ArrowUpDown
+			data-icon="inline-end"
+			className="opacity-60"
+		/>
+	);
+
+	if (isLoading) {
+		icon = (
+			<LoaderCircle
+				data-icon="inline-end"
+				className="size-4 animate-spin"
+				aria-hidden
+			/>
+		);
+	} else if (isActive && isDescending) {
+		icon = <ArrowDown data-icon="inline-end" />;
+	} else if (isActive) {
+		icon = <ArrowUp data-icon="inline-end" />;
+	}
 
 	return (
 		<Button
@@ -71,18 +81,7 @@ export function SortHeaderButton({
 			disabled={isLoading}
 			onClick={onClick}>
 			<span>{label}</span>
-			{isLoading ? (
-				<LoaderCircle
-					data-icon="inline-end"
-					className="size-4 animate-spin"
-					aria-hidden
-				/>
-			) : (
-				<SortIcon
-					data-icon="inline-end"
-					className={cn(isActive ? "opacity-100" : "opacity-60")}
-				/>
-			)}
+			{icon}
 		</Button>
 	);
 }
@@ -125,13 +124,8 @@ export function CopyableText({ value, label, children, onTextClick }: CopyableTe
 				variant="ghost"
 				aria-label={`Copy ${label}`}
 				className="inline-flex size-5 shrink-0 items-center justify-center rounded-sm text-muted-foreground hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-				renderIcon={(iconRef) => (
-					<CopyIcon
-						ref={iconRef}
-						size={12}
-						aria-hidden
-					/>
-				)}>
+				icon={CopyIcon}
+				iconProps={{ size: 12, "aria-hidden": true }}>
 				<button
 					aria-label={`Copy ${label}`}
 					onClick={() => void copyText(value, label)}

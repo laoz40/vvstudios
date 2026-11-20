@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
 import { Image } from "@unpic/react";
 import { Menu, X } from "lucide-react";
@@ -115,15 +115,8 @@ function NavCta({
 		return (
 			<AnimatedIconButton
 				className="site-nav-cta gap-1.5 leading-0 shadow-lg shadow-primary/45"
-				renderIcon={(iconRef) => (
-					<ArrowNarrowRightIcon
-						ref={iconRef}
-						aria-hidden="true"
-						focusable="false"
-						size={24}
-						strokeWidth={2}
-					/>
-				)}>
+				icon={ArrowNarrowRightIcon}
+				iconProps={{ "aria-hidden": "true", focusable: "false", size: 24, strokeWidth: 2 }}>
 				<Link to={studioSite.routes.book}>{label}</Link>
 			</AnimatedIconButton>
 		);
@@ -190,13 +183,15 @@ function DesktopNavbar({ pathname }: { pathname: string }) {
 
 function MobileNavbar({ pathname }: { pathname: string }) {
 	const [isOpen, setIsOpen] = useState(false);
+	const [previousPathname, setPreviousPathname] = useState(pathname);
 	const isBookPage = pathname === studioSite.routes.book;
 	const shouldPlayIntro = pathname === studioSite.routes.home;
 
 	// Close the sheet after in-app navigation (e.g. book/home CTAs lack per-link handlers).
-	useEffect(() => {
+	if (previousPathname !== pathname) {
+		setPreviousPathname(pathname);
 		setIsOpen(false);
-	}, [pathname]);
+	}
 
 	return (
 		<>

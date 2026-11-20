@@ -3,7 +3,7 @@ import { BackendAuthErrorPage } from "#studio/features/auth/components/BackendAu
 import { DashboardForbiddenPage } from "#studio/features/auth/components/DashboardForbiddenPage";
 import { useUser } from "@clerk/clerk-react";
 import { exhaustiveCheck, tryCatch, type Result } from "#/lib/result";
-import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useCallback, useMemo, useState } from "react";
 import { useMutation, usePaginatedQuery, useQuery, type ReactMutation } from "convex/react";
 import { api } from "#convex/_generated/api";
 import { DashboardLoadingState } from "#studio/features/auth/components/DashboardLoadingState";
@@ -75,21 +75,13 @@ async function archivePastDeadCheckoutSessionsUntilDone(
 }
 
 function useDisplayedWhileRefetching<T>(results: T[], isLoadingFirstPage: boolean) {
-	const displayedResultsRef = useRef(results);
+	const [displayedResults, setDisplayedResults] = useState(results);
 
-	const displayedResults =
-		isLoadingFirstPage && displayedResultsRef.current.length > 0
-			? displayedResultsRef.current
-			: results;
+	if (!isLoadingFirstPage && displayedResults !== results) {
+		setDisplayedResults(results);
+	}
 
-	// Keep the previous page visible while a refetch is in flight.
-	useEffect(() => {
-		if (!isLoadingFirstPage) {
-			displayedResultsRef.current = results;
-		}
-	}, [isLoadingFirstPage, results]);
-
-	return displayedResults;
+	return isLoadingFirstPage && displayedResults.length > 0 ? displayedResults : results;
 }
 
 function renderEmployeeListError(
@@ -334,7 +326,6 @@ export function AdminDashboard({ dashboardRole }: { dashboardRole: DashboardRole
 	const accessResult = useQuery(api.shared.auth.getCurrentUserAccess, {});
 	const { user } = useUser();
 	const [activeView, setActiveView] = useState<AdminDashboardView>("bookings");
-	const [initialSessionSearchQuery, setInitialSessionSearchQuery] = useState<string | null>(null);
 
 	const initialTablePreferences = useMemo(
 		() => ({
@@ -378,19 +369,9 @@ export function AdminDashboard({ dashboardRole }: { dashboardRole: DashboardRole
 	const email = user?.primaryEmailAddress?.emailAddress ?? user?.emailAddresses[0]?.emailAddress;
 
 	function viewPackageSessions(receiptNumber: string) {
-		setInitialSessionSearchQuery(formatAdminSearchNarrowQuery("receipt", receiptNumber));
+		setSessionSearchQuery(formatAdminSearchNarrowQuery("receipt", receiptNumber));
 		setActiveView("bookings");
 	}
-
-	// Apply cross-tab search when navigating from a package row.
-	useEffect(() => {
-		if (!initialSessionSearchQuery) {
-			return;
-		}
-
-		setSessionSearchQuery(initialSessionSearchQuery);
-		setInitialSessionSearchQuery(null);
-	}, [initialSessionSearchQuery]);
 
 	if (accessResult === undefined) {
 		return (

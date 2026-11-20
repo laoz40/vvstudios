@@ -1,6 +1,7 @@
 import { HostBookingDetailsEmail } from "#studio/features/host-booking-details-email/HostBookingDetailsEmail";
 
 const previewProps = {
+	quoteIndex: 0,
 	invoiceNumber: "VV-260502-ABC123",
 	name: "Alex Carter",
 	email: "alex@example.com",

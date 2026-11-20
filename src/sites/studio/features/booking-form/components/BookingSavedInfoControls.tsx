@@ -1,5 +1,5 @@
 import { createPortal } from "react-dom";
-import type { RefObject } from "react";
+import { useEffect, type RefObject } from "react";
 import { Label } from "#/components/ui/label";
 import { Checkbox } from "#/components/ui/checkbox";
 import { Field, FieldContent } from "#/components/ui/field";
@@ -23,7 +23,9 @@ export function BookingSavedInfoControls({
 }: BookingSavedInfoControlsProps) {
 	const savedBookingInfo = useSavedBookingInfo({ formApi, onReuseSavedBookingInfo });
 
-	persistBookingInfoRef.current = savedBookingInfo.persistBookingInfoFromForm;
+	useEffect(() => {
+		persistBookingInfoRef.current = savedBookingInfo.persistBookingInfoFromForm;
+	}, [persistBookingInfoRef, savedBookingInfo.persistBookingInfoFromForm]);
 
 	const banner =
 		savedBookingInfo.savedBookingInfo && bannerMount

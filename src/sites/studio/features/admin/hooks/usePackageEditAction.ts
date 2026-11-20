@@ -115,12 +115,13 @@ export function usePackageEditAction(packageRow: AdminPackageRow) {
 	const updatePackage = useMutation(api.packages.admin.updatePackageFromAdmin);
 	const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 
+	const [isEditConfirmationDialogOpen, setIsEditConfirmationDialogOpen] = useState(false);
+
 	const invoice = useEditInvoice({ kind: "package", packageId: packageRow.id }, () => {
 		setIsEditDialogOpen(false);
 		setIsEditConfirmationDialogOpen(false);
 	});
 
-	const [isEditConfirmationDialogOpen, setIsEditConfirmationDialogOpen] = useState(false);
 	const [pendingEditDraft, setPendingEditDraft] = useState<PackageEditDraft | null>(null);
 
 	const [pendingEditWarningState, setPendingEditWarningState] = useState<ReturnType<

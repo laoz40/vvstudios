@@ -228,8 +228,9 @@ export function PackageScheduleContent({
 				<div className="mt-8 text-left sm:text-center">
 					<p className="text-xl font-semibold">{schedulingProgressMessage}</p>
 					<p className="mt-2 text-muted-foreground">
-						Scheduling expires {formatBookingTimestampTime(packageData.expiresAt ?? Date.now())},{" "}
-						{formatBookingTimestampDateLong(packageData.expiresAt ?? Date.now())}.
+						Scheduling expires{" "}
+						{formatBookingTimestampTime(packageData.expiresAt ?? scheduling.currentTimestamp)},{" "}
+						{formatBookingTimestampDateLong(packageData.expiresAt ?? scheduling.currentTimestamp)}.
 					</p>
 				</div>
 

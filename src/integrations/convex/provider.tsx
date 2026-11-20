@@ -25,11 +25,13 @@ function useConvexClerkAuth() {
 	return { fetchAccessToken, isAuthenticated: isSignedIn ?? false, isLoading: !isLoaded };
 }
 
+const clerkAuth = { useAuth: useConvexClerkAuth };
+
 export default function AppConvexProvider({ children }: { children: React.ReactNode }) {
 	return (
 		<ConvexProviderWithAuth
 			client={convex}
-			useAuth={useConvexClerkAuth}>
+			{...clerkAuth}>
 			<QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
 		</ConvexProviderWithAuth>
 	);

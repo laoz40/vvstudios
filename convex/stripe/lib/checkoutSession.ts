@@ -1,7 +1,7 @@
 "use node";
 
 import { errAsync, type ResultAsync } from "neverthrow";
-import Stripe from "stripe";
+import type Stripe from "stripe";
 import { internal } from "#convex/_generated/api";
 import type { Id } from "#convex/_generated/dataModel";
 import type { ActionCtx } from "#convex/_generated/server";

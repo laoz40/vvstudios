@@ -2,7 +2,7 @@ import { httpRouter } from "convex/server";
 import { exhaustiveCheck } from "#/lib/result";
 import { httpAction, type ActionCtx } from "#convex/_generated/server";
 import { internal } from "#convex/_generated/api";
-import Stripe from "stripe";
+import StripeSdk from "stripe";
 import { z } from "zod";
 import { env } from "#convex/env";
 import { completeSessionCheckoutService } from "#convex/booking/services/confirmation";
@@ -13,12 +13,12 @@ import { logError } from "#convex/shared/lib/logger";
 
 const http = httpRouter();
 
-const stripe = new Stripe(env.STRIPE_SECRET_KEY, { apiVersion: "2026-03-25.dahlia" });
+const stripe = new StripeSdk(env.STRIPE_SECRET_KEY, { apiVersion: "2026-03-25.dahlia" });
 
 const stripePaymentIntentIdSchema = z.union([z.string(), z.object({ id: z.string() })]);
 
 function getStripePaymentIntentId(
-	paymentIntent: Stripe.Checkout.Session["payment_intent"]
+	paymentIntent: StripeSdk.Checkout.Session["payment_intent"]
 ): string | undefined {
 	const parsedPaymentIntent = stripePaymentIntentIdSchema.safeParse(paymentIntent);
 
@@ -37,7 +37,7 @@ function getStripePaymentIntentId(
 	return objectPaymentIntent.success ? objectPaymentIntent.data.id : undefined;
 }
 
-function getCheckoutPaidAmount(session: Stripe.Checkout.Session) {
+function getCheckoutPaidAmount(session: StripeSdk.Checkout.Session) {
 	return session.payment_status === "paid" &&
 		session.currency === "aud" &&
 		session.amount_total !== null
@@ -47,7 +47,7 @@ function getCheckoutPaidAmount(session: Stripe.Checkout.Session) {
 
 async function handleCompletedPackageCheckout(
 	ctx: ActionCtx,
-	event: Stripe.CheckoutSessionCompletedEvent,
+	event: StripeSdk.CheckoutSessionCompletedEvent,
 	packageId: string
 ) {
 	const session = event.data.object;
@@ -106,7 +106,7 @@ async function handleCompletedPackageCheckout(
 
 async function handleCompletedSessionCheckout(
 	ctx: ActionCtx,
-	event: Stripe.CheckoutSessionCompletedEvent,
+	event: StripeSdk.CheckoutSessionCompletedEvent,
 	bookingId: string
 ) {
 	const session = event.data.object;
@@ -174,7 +174,7 @@ async function handleCompletedSessionCheckout(
 
 async function handleCompletedCheckout(
 	ctx: ActionCtx,
-	event: Stripe.CheckoutSessionCompletedEvent
+	event: StripeSdk.CheckoutSessionCompletedEvent
 ) {
 	const session = event.data.object;
 	const packageId = session.metadata?.packageId;
@@ -197,7 +197,7 @@ async function handleCompletedCheckout(
 	return handleCompletedSessionCheckout(ctx, event, bookingId);
 }
 
-function isManagedStripeInvoice(invoice: Stripe.Invoice) {
+function isManagedStripeInvoice(invoice: StripeSdk.Invoice) {
 	const metadata = invoice.metadata;
 
 	return (
@@ -208,7 +208,7 @@ function isManagedStripeInvoice(invoice: Stripe.Invoice) {
 }
 
 function shouldRetryStripeInvoicePaymentWebhook(
-	invoice: Stripe.Invoice,
+	invoice: StripeSdk.Invoice,
 	failure:
 		| { kind: "not_found" }
 		| { kind: "claim_failed"; error: PackageAdjustmentInvoicePaymentClaimError }
@@ -224,7 +224,7 @@ function shouldRetryStripeInvoicePaymentWebhook(
 	return failure.error.reason === "PACKAGE_ADJUSTMENT_INVOICE_NOT_SENT";
 }
 
-async function handlePaidInvoice(ctx: ActionCtx, event: Stripe.InvoicePaidEvent) {
+async function handlePaidInvoice(ctx: ActionCtx, event: StripeSdk.InvoicePaidEvent) {
 	const invoice = event.data.object;
 	const stripeInvoiceId = invoice.id;
 	const adjustmentId = invoice.metadata?.adjustmentId;
@@ -280,7 +280,7 @@ async function handlePaidInvoice(ctx: ActionCtx, event: Stripe.InvoicePaidEvent)
 	}
 }
 
-async function handleStripeEvent(ctx: ActionCtx, event: Stripe.Event) {
+async function handleStripeEvent(ctx: ActionCtx, event: StripeSdk.Event) {
 	if (event.type === "checkout.session.completed") {
 		return handleCompletedCheckout(ctx, event);
 	}
@@ -316,7 +316,7 @@ http.route({
 		}
 
 		const body = await req.text();
-		let event: Stripe.Event;
+		let event: StripeSdk.Event;
 
 		try {
 			event = await stripe.webhooks.constructEventAsync(body, signature, env.STRIPE_WEBHOOK_SECRET);

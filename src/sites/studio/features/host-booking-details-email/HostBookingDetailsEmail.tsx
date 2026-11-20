@@ -55,6 +55,7 @@ export const hostBookingQuotes = [
 ] as const;
 
 interface HostBookingBaseDetailsEmailProps {
+	quoteIndex: number;
 	invoiceNumber: string;
 	name: string;
 	email: string;
@@ -129,6 +130,7 @@ function getHostBookingEmailCopy(
 }
 
 export function HostBookingDetailsEmail({
+	quoteIndex,
 	invoiceNumber,
 	name,
 	email,
@@ -141,7 +143,6 @@ export function HostBookingDetailsEmail({
 	notes,
 	...bookingDetails
 }: HostBookingDetailsEmailProps) {
-	const quoteIndex = Math.floor(Math.random() * hostBookingQuotes.length);
 	const selectedQuote = hostBookingQuotes[quoteIndex];
 
 	if (selectedQuote === undefined) {

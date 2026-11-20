@@ -47,13 +47,8 @@ function AdminSearchFieldPopoverSection({
 					size="sm"
 					iconPosition="before"
 					className="text-foreground"
-					renderIcon={(iconRef) => (
-						<CopyIcon
-							ref={iconRef}
-							size={14}
-							aria-hidden
-						/>
-					)}>
+					icon={CopyIcon}
+					iconProps={{ size: 14, "aria-hidden": true }}>
 					<button
 						type="button"
 						aria-label={`Copy ${fieldLabel}`}
@@ -67,13 +62,8 @@ function AdminSearchFieldPopoverSection({
 					size="sm"
 					iconPosition="before"
 					className="text-foreground"
-					renderIcon={(iconRef) => (
-						<MagnifierIcon
-							ref={iconRef}
-							size={14}
-							aria-hidden
-						/>
-					)}>
+					icon={MagnifierIcon}
+					iconProps={{ size: 14, "aria-hidden": true }}>
 					<button
 						type="button"
 						aria-label={`Search by ${fieldLabel}`}
