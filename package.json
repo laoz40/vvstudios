@@ -2,7 +2,7 @@
 	"name": "test",
 	"private": true,
 	"type": "module",
-	"packageManager": "bun@1.3.14",
+	"packageManager": "bun@1.4.5",
 	"engines": {
 		"node": "22.x"
 	},
@@ -15,8 +15,8 @@
 		"dev": "vite dev --port 3000",
 		"build": "vite build",
 		"preview": "vite preview",
-		"format": "oxfmt .",
-		"format:check": "oxfmt --check .",
+		"format": "bun fmt .",
+		"format:check": "bun fmt --check .",
 		"lint": "bun scripts/lint.ts",
 		"lint:fix": "bun scripts/lint.ts --fix",
 		"typecheck": "tsc --noEmit",
@@ -92,7 +92,6 @@
 		"convex-test": "^0.0.54",
 		"fallow": "^3.33.1",
 		"nitro": "^3.0.260522-beta",
-		"oxfmt": "^0.53.0",
 		"oxlint": "^1.68.0",
 		"oxlint-tsgolint": "^0.25.0",
 		"react-email": "^6.5.0",

@@ -25,7 +25,7 @@ jobs:
       - name: Set up Bun
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: 1.3.14
+          bun-version: 1.4.5
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
@@ -37,7 +37,7 @@ jobs:
         run: bun run lint
 
       - name: Type-check
-        run: bun run typecheck
+        run: bun check --no-script
 
       - name: Check dead code
         run: bun run dead-code
@@ -59,7 +59,7 @@ jobs:
       - name: Set up Bun
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: 1.3.14
+          bun-version: 1.4.5
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
@@ -73,13 +73,13 @@ jobs:
         run: bun run build
 
   e2e:
-    name: E2E Tests
-    if: github.event_name == 'pull_request'
+    name: ${{ github.event_name == 'pull_request' && 'E2E Tests' || 'Warm Playwright cache' }}
+    if: github.event_name == 'pull_request' || github.ref == 'refs/heads/dev'
     runs-on: ubuntu-latest
     # Hold this lock through provisioning, deployment and tests. A running job
-    # must finish before another attempt can replace its backend.
+    # must finish before another attempt can deploy to the same preview.
     concurrency:
-      group: convex-e2e-pr-${{ github.event.pull_request.number }}
+      group: ${{ github.event_name == 'pull_request' && format('convex-e2e-pr-{0}', github.event.pull_request.number) || 'playwright-cache-dev' }}
       cancel-in-progress: false
     permissions:
       contents: read
@@ -91,7 +91,7 @@ jobs:
       - name: Set up Bun
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: 1.3.14
+          bun-version: 1.4.5
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
@@ -100,22 +100,21 @@ jobs:
         id: playwright-version
         run: echo "version=$(bun -p 'require("@playwright/test/package.json").version')" >> "$GITHUB_OUTPUT"
 
-      - name: Cache Playwright browsers
+      # A cache saved by a dev push is available to other PRs.
+      - name: Cache Playwright headless Chromium
         uses: actions/cache@v4
         id: playwright-cache
         with:
           path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-${{ runner.arch }}-${{ steps.playwright-version.outputs.version }}
+          key: playwright-headless-chromium-${{ runner.os }}-${{ runner.arch }}-${{ steps.playwright-version.outputs.version }}
+          lookup-only: ${{ github.event_name == 'push' }}
 
-      - name: Install Playwright browsers
+      - name: Install Playwright headless Chromium
         if: steps.playwright-cache.outputs.cache-hit != 'true'
-        run: bunx playwright install --with-deps chromium
+        run: bunx playwright install --only-shell chromium
 
-      - name: Install Playwright system dependencies
-        if: steps.playwright-cache.outputs.cache-hit == 'true'
-        run: bunx playwright install-deps chromium
-
-      - name: Create empty Convex preview and deploy
+      - name: Deploy to the PR's Convex preview
+        if: github.event_name == 'pull_request'
         id: preview
         env:
           # Timestamped request-size/compression diagnostics. Avoid --verbose,
@@ -130,21 +129,24 @@ jobs:
           VITE_STRIPE_PUBLISHABLE_KEY: ${{ vars.E2E_VITE_STRIPE_PUBLISHABLE_KEY }}
         run: |
           bun -e 'import { validatePreviewKey } from "./scripts/convex-preview-safety.ts"; validatePreviewKey(process.env.CONVEX_DEPLOY_KEY)'
-          bunx convex deploy --preview-create "$CONVEX_PREVIEW_NAME" --typecheck enable \
+          bunx convex deploy --preview-name "$CONVEX_PREVIEW_NAME" --typecheck enable \
             --cmd "bun scripts/prepare-convex-preview.ts" --cmd-url-env-var-name VITE_CONVEX_URL
 
       - name: Type-check regenerated Convex API and frontend
-        run: bun run typecheck
+        if: github.event_name == 'pull_request'
+        run: bun check --no-script
 
       - name: Record preview
+        if: github.event_name == 'pull_request'
         env:
           PREVIEW_URL: ${{ steps.preview.outputs.url }}
           PREVIEW_NAME: e2e-pr-${{ github.event.pull_request.number }}
         run: |
-          printf 'Convex smoke-test preview: `%s` at %s. Empty DB for this attempt; automatic Convex expiration.\n' \
+          printf 'Convex smoke-test preview: `%s` at %s. Reused across runs of this PR until it expires.\n' \
             "$PREVIEW_NAME" "$PREVIEW_URL" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Run E2E
+        if: github.event_name == 'pull_request'
         env:
           VITE_CONVEX_URL: ${{ steps.preview.outputs.url }}
           VITE_CLERK_PUBLISHABLE_KEY: ${{ vars.E2E_VITE_CLERK_PUBLISHABLE_KEY }}
@@ -156,7 +158,7 @@ jobs:
         run: bun run test:e2e
 
       - name: Upload Playwright report
-        if: failure()
+        if: failure() && github.event_name == 'pull_request'
         uses: actions/upload-artifact@v4
         with:
           name: playwright-report-pr-${{ github.event.pull_request.number }}-${{ github.run_attempt }}
@@ -178,7 +180,7 @@ jobs:
       - name: Set up Bun
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: 1.3.14
+          bun-version: 1.4.5
 
       - name: Install dependencies
         run: bun install --frozen-lockfile

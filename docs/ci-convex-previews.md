@@ -1,8 +1,8 @@
 # CI Convex previews
 
-PR smoke tests use one Convex preview named `e2e-pr-<PR number>`. Every attempt uses `convex deploy --preview-create`, which deletes any previous preview with that name and provisions an empty database. Different PRs do not share a backend.
+PR smoke tests use one Convex preview named `e2e-pr-<PR number>`. Each attempt uses `convex deploy --preview-name`, which creates a preview if needed and reuses its database on later runs. Each PR gets its own backend.
 
-The E2E job holds a per-PR GitHub concurrency lock through provisioning, deployment, regenerated API typechecking, and tests. `cancel-in-progress: false` lets an active attempt finish before another attempt replaces its backend. GitHub may replace a pending attempt with a newer pending attempt. It does not promise to execute every queued revision. Do not add workflow-level cancellation that interrupts these jobs.
+The E2E job holds a per-PR GitHub concurrency lock through provisioning, deployment, regenerated API typechecking, and tests. `cancel-in-progress: false` lets an active attempt finish before another attempt deploys to the same preview. GitHub may replace a pending attempt with a newer pending attempt. Do not add workflow-level cancellation that interrupts these jobs.
 
 ## One-time setup
 
@@ -21,15 +21,15 @@ The smoke tests stop at the embedded payment modal. They do not complete payment
 
 CI rejects absent keys or keys that are not project preview keys before provisioning. It never falls back to production or the shared E2E deployment.
 
-Convex invokes `--cmd` after provisioning but before deploying application code. `scripts/prepare-convex-preview.ts` uses that command only to inspect the newly provisioned preview's default environment variables and capture its actual URL. It does not run E2E. Credential-bearing CLI output stays in memory and never enters CI logs or artifacts. Safety failures print field names, not values.
+Convex invokes `--cmd` after selecting or creating the preview but before deploying application code. `scripts/prepare-convex-preview.ts` checks the preview's environment variables and captures its URL. Credential-bearing CLI output stays in memory and never enters CI logs or artifacts. Safety failures print field names, not values.
 
 The safety check validates required backend variables, test Stripe and Clerk key prefixes, the local return URL, approved Calendar/Drive IDs, and the external-account audit flag. Prefix/ID checks cannot prove OAuth permissions, email recipient safety, account pairing, or webhook destinations. The one-time account audit is still necessary.
 
-Only after the check succeeds does Convex deploy functions and regenerate the API. CI then runs the full repository typecheck, including the endpoint return-type contract guard, and launches Playwright with the captured preview URL. An empty DB already uses the application's default booking settings. No booking seed or table wipe is needed. Customer state comes through the UI.
+Only after the check succeeds does Convex deploy functions and regenerate the API. CI then runs the full repository typecheck, including the endpoint return-type contract guard, and launches Playwright with the captured preview URL. A new preview uses the application's default booking settings. Playwright creates customer state through the UI, and any records left behind carry over to the next run.
 
 ## Expiration and failures
 
-Convex automatically deletes previews after 5 days on Free/Starter and 14 days on Professional/Business/Enterprise. The final preview remains until expiration after a PR closes. There is no PR-close cleanup job or management token. Each CI attempt replaces its named preview, so retention starts with the new deployment.
+Convex automatically deletes previews after 5 days on Free/Starter and 14 days on Professional/Business/Enterprise. Once a preview expires, the next CI attempt creates a new one. Closing a PR leaves its preview in place until expiration.
 
 Closed-PR previews consume deployment quota until they expire. A quota or provisioning failure fails E2E explicitly. Do not recover by switching to a shared backend. If retention causes quota pressure, revisit early cleanup as a separate change.
 
