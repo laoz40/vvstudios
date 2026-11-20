@@ -19,7 +19,7 @@
 		"format:check": "bun fmt --check .",
 		"lint": "bun scripts/lint.ts",
 		"lint:fix": "bun scripts/lint.ts --fix",
-		"typecheck": "tsc --noEmit",
+		"typecheck": "bun check --no-script",
 		"verify": "bash scripts/verify.sh",
 		"test": "vitest run",
 		"dead-code": "fallow dead-code",
