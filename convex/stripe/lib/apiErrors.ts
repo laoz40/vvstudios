@@ -1,13 +1,13 @@
-import Stripe from "stripe";
+import StripeSdk from "stripe";
 
 export type StripeApiFailure = { reason: string };
 
 export function isExpectedStripeError(cause: unknown) {
-	return cause instanceof Stripe.errors.StripeCardError;
+	return cause instanceof StripeSdk.errors.StripeCardError;
 }
 
 export function stripeApiFailureReason(cause: unknown): StripeApiFailure {
-	if (!(cause instanceof Stripe.errors.StripeError)) return { reason: "STRIPE_API_FAILED" };
+	if (!(cause instanceof StripeSdk.errors.StripeError)) return { reason: "STRIPE_API_FAILED" };
 
 	const code = cause.code?.trim();
 

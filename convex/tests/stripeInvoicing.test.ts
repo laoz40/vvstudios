@@ -7,7 +7,7 @@
  * 2. Package invoice
  *    Missing package customers are rejected; a valid customer produces a persisted invoice.
  */
-import Stripe from "stripe";
+import StripeSdk from "stripe";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { bookingDocument, packageDocument } from "#convex/tests/insertDocumentDefaults";
 import { api } from "#convex/_generated/api";
@@ -23,21 +23,23 @@ type TestClient = ReturnType<typeof createConvexTest>;
 beforeEach(() => {
 	vi.useFakeTimers();
 	vi.setSystemTime(now);
-	vi.spyOn(Stripe.StripeResource.prototype, "_makeRequest").mockImplementation((method, path) => {
-		if (path === "/v1/invoices") return Promise.resolve({ id: "in_admin_draft" });
+	vi.spyOn(StripeSdk.StripeResource.prototype, "_makeRequest").mockImplementation(
+		(method, path) => {
+			if (path === "/v1/invoices") return Promise.resolve({ id: "in_admin_draft" });
 
-		if (path === "/v1/invoiceitems") return Promise.resolve({ id: "ii_admin_1" });
+			if (path === "/v1/invoiceitems") return Promise.resolve({ id: "ii_admin_1" });
 
-		if (path === "/v1/invoices/in_admin_draft/finalize") {
-			return Promise.resolve({ id: "in_admin_finalized" });
+			if (path === "/v1/invoices/in_admin_draft/finalize") {
+				return Promise.resolve({ id: "in_admin_finalized" });
+			}
+
+			if (path === "/v1/invoices/in_admin_finalized/send") {
+				return Promise.resolve({ id: "in_admin_finalized" });
+			}
+
+			throw new Error(`Unexpected Stripe request: ${method} ${path}`);
 		}
-
-		if (path === "/v1/invoices/in_admin_finalized/send") {
-			return Promise.resolve({ id: "in_admin_finalized" });
-		}
-
-		throw new Error(`Unexpected Stripe request: ${method} ${path}`);
-	});
+	);
 });
 
 afterEach(() => {

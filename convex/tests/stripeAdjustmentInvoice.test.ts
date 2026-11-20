@@ -10,7 +10,7 @@
  *    Unexpected SDK failures return the existing fallback reason without sending an invoice.
  *    Missing Stripe customers fail before any invoice is created.
  */
-import Stripe from "stripe";
+import StripeSdk from "stripe";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { api, internal } from "#convex/_generated/api";
 import type { Id } from "#convex/_generated/dataModel";
@@ -43,13 +43,13 @@ beforeEach(() => {
 	noExistingProduct = false;
 	vi.useFakeTimers();
 	vi.setSystemTime(now);
-	vi.spyOn(Stripe.StripeResource.prototype, "_makeRequest").mockImplementation(
+	vi.spyOn(StripeSdk.StripeResource.prototype, "_makeRequest").mockImplementation(
 		(method, path, params, options) => {
 			requests.push({ method, path, params, options });
 
 			if (path === rejectPath) {
 				return Promise.reject(
-					new Stripe.errors.StripeInvalidRequestError({
+					new StripeSdk.errors.StripeInvalidRequestError({
 						message: "Rejected",
 						code: "resource_missing"
 					})
