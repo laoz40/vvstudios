@@ -49,14 +49,17 @@ export function useBookingCalendar({
 		selection
 	});
 
-	const { date, time, onTimeInvalidated } = selection;
+	const { onTimeInvalidated } = selection;
+
+	const invalidSelection =
+		picker.validity.kind === "invalid" ? `${selection.date}:${selection.time}` : null;
 
 	// The form owns the selection. Availability and clock changes can invalidate it.
 	useEffect(() => {
-		if (picker.validity.kind === "invalid") {
+		if (invalidSelection !== null) {
 			onTimeInvalidated();
 		}
-	}, [date, time, onTimeInvalidated, picker.validity.kind]);
+	}, [invalidSelection, onTimeInvalidated]);
 
 	return {
 		...picker,

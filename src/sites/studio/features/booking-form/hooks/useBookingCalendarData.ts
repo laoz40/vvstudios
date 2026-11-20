@@ -64,14 +64,14 @@ export function useBookingCalendarData({
 
 	const availability = getCalendarAvailability({ source, query });
 
-	const errorMessage =
-		source.kind === "booking" && availability.kind === "error" ? availability.error.message : "";
+	const bookingError = source.kind === "booking" ? query.error : null;
+	const errorMessage = availability.kind === "error" ? availability.error.message : "";
 
 	useEffect(() => {
-		if (errorMessage) {
+		if (bookingError && errorMessage) {
 			toast.error(errorMessage);
 		}
-	}, [query.error, errorMessage]);
+	}, [bookingError, errorMessage]);
 
 	return { availability, dateRange };
 }
