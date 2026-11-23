@@ -44,6 +44,14 @@ Check for an equivalent proposal before adding an entry. Keep unapproved entries
 - Gap: the approved correction in `convex/tests/deliverablesEmail.test.ts` permits review without client-send permission while preserving direct-send and completed-status denial. Admin notification scheduling and repeat-review deduplication remain uncovered. Do not restore redundant Drive-link variants or helper-only tests.
 - Level: extend existing Convex endpoint integration coverage through the delivery action and status mutation, with external email transport stubbed. UI-only E2E cannot reliably establish the absence of duplicate external notifications without observing email delivery outside the app.
 
+### Deliver purchased edits independently
+
+- Behavior: a new assignment with repeated edit and Clip Volume Pack units shows one edit per unit. The next-step button advances each edit through Downloading, Editing and Uploading. Entering Downloading opens the session's Drive folders. A failed client email leaves the selected edit available for retry. A successful email marks just that edit Sent, and repeating initial send cannot email the client again. A studio handoff shows Review for the selected edit and emails the studio.
+- Regression: a missing or duplicate edit, a skipped status or missing Drive dialog, a retry blocked after an email failure, or delivery recorded against another edit or package session.
+- Risk: 8/10. An edit may never reach the client, or a client may be told that the wrong edit is ready.
+- Gap: existing editor dashboard and deliverables email coverage exercises the session-level flow.
+- Level: E2E through assignment and both editor permission paths with controlled studio and client inboxes. Keep the failure and duplicate-send checks at the email boundary if the provider cannot reproduce those conditions reliably from the browser.
+
 ### Number Drive folders using confirmed bookings only
 
 - Behavior: confirmed client and package sessions receive folder numbers `1` and `2` in date order despite earlier unpaid, expired, abandoned, or failed booking attempts.

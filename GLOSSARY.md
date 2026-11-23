@@ -86,10 +86,22 @@ The dashboard view of unarchived sessions or packages that staff can work throug
 A session or package removed from the Inbox and retained in the corresponding All view.
 
 **Editor assignment**:
-The designation of the editor responsible for a session's post-production.
+Assigning one editor to a session's post-production, including all of its edits.
 
 **Edit status**:
-The stage of post-production for a session, such as editing, review, or completed. A session can finish recording while its edit is still in progress.
+The stage of post-production for a session or an individual edit. The session's overall edit status shows whether work has started, is still underway, or is complete.
+
+**Edit**:
+The post-production work for one purchased item of an editing add-on. For example, when a client buys Complete Edit for two episodes in one session, each episode has its own edit status and delivery.
+
+**Legacy edit**:
+An edit for a session that already had an editor and unfinished editing work when per-edit delivery rolled out. The editor sends it to the studio for review, an admin delivers it to the client, and the client receives no revision allowance.
+
+**Studio review**:
+The stage after an editor hands off an edit for studio approval and before an admin sends it to the client.
+
+**Client review**:
+The status of a delivered edit while the client's revision window is open and no revision requests are outstanding.
 
 **Raw media**:
 The original recordings from a session that editors use as source material.

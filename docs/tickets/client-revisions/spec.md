@@ -6,7 +6,7 @@ The studio passes feedback between clients and editors over email, texts and cal
 
 ## Solution
 
-Track each purchased edit as its own job within the session. Send the client a Drive link when the edit is delivered and include a private feedback link when the edit is eligible for revisions. The client can submit timestamped feedback, and their assigned editor receives the request and sees it on the dashboard. Additional rounds go through Stripe Checkout. Editors upload files to Drive and send the revision from the dashboard. The studio reviews legacy edits and edits from editors who lack client-send permission.
+Track each purchased edit separately within the session. Send the client a Drive link when the edit is delivered and include a private feedback link when the edit is eligible for revisions. The client can submit timestamped feedback, and their assigned editor receives the request and sees it on the dashboard. Additional rounds go through Stripe Checkout. Editors upload files to Drive and send the revision from the dashboard. The studio reviews legacy edits and edits from editors who lack client-send permission.
 
 ## User stories
 
@@ -15,7 +15,7 @@ Track each purchased edit as its own job within the session. Send the client a D
 3. As an editor, I want all purchased edits to appear when I receive a session assignment, so that I can plan the work.
 4. As an editor, I want one expandable row per session, so that I can scan my queue and open the details I need.
 5. As an editor, I want the session date, time, Admin Notes, Editor Notes and Drive link on the session row, so that I can find the shared context.
-6. As an editor, I want repeated add-on units labelled by episode, so that I can tell jobs of the same type apart.
+6. As an editor, I want repeated add-on units labelled by episode, so that I can tell edits of the same type apart.
 7. As an editor, I want a count of edits still due and a separate revision count, so that I can spot outstanding work.
 8. As an editor, I want a sortable Due column with a relative date and urgency colours, so that I can prioritise my work.
 9. As an editor, I want to see each edit's status, due date and client revisions, so that I know what to do next.
@@ -29,7 +29,7 @@ Track each purchased edit as its own job within the session. Send the client a D
 17. As an editor or admin, I want a failed email to leave delivery pending, so that I can retry it.
 18. As a client, I want the email to name the edit and include its Drive link and revision rules, so that I know what arrived and how to review it.
 19. As a client, I want to open the private feedback link from my email without logging in, so that I can send changes directly.
-20. As a client, I want to see the edits I bought for that session, so that I can find the right job.
+20. As a client, I want to see the edits I bought for that session, so that I can find the right edit.
 21. As a client, I want to see which edit has arrived and when its feedback is due, so that I can review each delivery in time.
 22. As a client with several package sessions, I want a separate allowance and deadline for each edit in each session, so that one delivery does not use another's allowance.
 23. As a client, I want to see whether the next round is Free, $50 or Closed, so that I know my options before filling in the form.
@@ -42,7 +42,7 @@ Track each purchased edit as its own job within the session. Send the client a D
 30. As a client, I want to pay the disclosed $50 AUD including GST in Stripe Checkout, so that I can request another round after using my free allowance.
 31. As a client, I want an abandoned checkout to leave my allowance intact, so that I can return before my deadline.
 32. As an editor, I want an email when a client submits a free round or pays for an extra round, so that I can start the work.
-33. As an editor, I want the request email to name the client, session and edit and include timestamped feedback and a dashboard link, so that I can open the right job.
+33. As an editor, I want the request email to name the client, session and edit and include timestamped feedback and a dashboard link, so that I can open the right edit.
 34. As an editor, I want the due date to reflect the revision turnaround, so that I can prioritise it against original edits.
 35. As an editor or admin, I want to read feedback grouped by round, so that I can see the history and which requests are still open.
 36. As an editor, I want to open feedback without changing the edit's status, so that I can refer to it as I work.
@@ -63,20 +63,20 @@ The session-level workflow lets an approved editor choose **Send to client** to 
 
 ### Rollout for existing assignments
 
-- At rollout, create one job per purchased editing add-on unit for sessions with a saved editor assignment and unfinished editing work. Use the same expandable editor row and per-edit arrow controls as for new assignments. Apply this per session, including sessions within a package.
-- Start each legacy job at **Not started**. Carry over the session's assigned editor and due date, using the normal default if no due date is saved. Leave completed sessions in **History**. Keep the existing single-status flow for sessions without editing add-ons.
-- Legacy jobs always go through **Send for review**. Each handoff notifies the studio for that edit and shows **Studio review**. An admin sends that edit to the client, after which it shows **Sent**. The server enforces the studio handoff even when the assigned editor has client-send permission.
+- At rollout, create one edit per purchased editing add-on unit for sessions with a saved editor assignment and unfinished editing work. Use the same expandable editor row and per-edit arrow controls as for new assignments. Apply this per session, including sessions within a package.
+- Start each legacy edit at **Not started**. Carry over the session's assigned editor and due date, using the normal default if no due date is saved. Leave completed sessions in **History**. Keep the existing single-status flow for sessions without editing add-ons.
+- Legacy edits always go through **Send for review**. Each handoff notifies the studio for that edit and shows **Studio review**. An admin sends that edit to the client, after which it shows **Sent**. The server enforces the studio handoff even when the assigned editor has client-send permission.
 - Legacy deliveries include the Drive link and have no private feedback link, client review window, or free or paid revision rounds. The session completes once all its edits are sent.
-- Preserve the session's delivery and revision eligibility when its editor changes. A session unassigned at rollout enters the normal workflow when assigned. Make job creation safe to retry and avoid inferring per-edit delivery history or sending emails during rollout.
+- Preserve the session's delivery and revision eligibility when its editor changes. A session unassigned at rollout enters the normal workflow when assigned. Make edit creation safe to retry and avoid inferring per-edit delivery history or sending emails during rollout.
 
-### Jobs and dashboard
+### Edits and dashboard
 
-- Create one edit job per purchased unit of an editing add-on in a session. Label repeated units by episode. Each Clip Volume Pack unit is one edit. Each package session has its own jobs, deadlines and revision allowances.
-- Assign all edit jobs to the session's editor at the same time. The admin sets one original due date at assignment. The default is six days after the session. An actionable round is due by 11:59 pm Sydney time on the second business day after it reaches the editor. When an edit has multiple open rounds, show the earliest due date.
+- Create one edit per purchased unit of an editing add-on in a session. Label repeated units by episode. Each Clip Volume Pack unit is one edit. Each package session has its own edits, deadlines and revision allowances.
+- Assign all edits to the session's editor at the same time. The admin sets one original due date at assignment. The default is six days after the session. An actionable round is due by 11:59 pm Sydney time on the second business day after it reaches the editor. When an edit has multiple open rounds, show the earliest due date.
 - The editor's list has one expandable row per session. Show session date and time, Admin Notes, Editor Notes and Drive at the session level. Remove the Service column. Use a yellow **Edits due** badge, a blue revision count, and a muted **All sent** label when every edit has been sent and no revision work is pending.
 - The separate **Due** column shows the nearest unfinished due date in relative time. Keep urgency colours and sort by the underlying due date. The expanded edit table has its own headings for Status, Edit, Due, Client revisions and Feedback.
 - Use the next-step button to advance each edit from **Not started** through **Downloading**, **Editing** and **Uploading**. Starting **Downloading** opens the session's Drive folders. In the editor dashboard, use **Studio review** for a pending studio handoff, **Client review** while a delivered edit has an open revision window and no requested work, **Revision requested** for new revision work and **Sent** for delivered edits without an open window or requested work.
-- Derive the session status from its edits. Use `to_edit` when all are not started. Use `editing` when there is unfinished work after work has started, including a studio handoff, an open revision or a mix of sent and not-started edits. When all edits are delivered and no requested work remains, use `review` while a client window or eligible Checkout is open, then `completed` once they have closed.
+- Derive the session status from its edits. Use `to_edit` when all are not started. Use `editing` when there is unfinished work after work has started, including a studio handoff, an open revision or a mix of sent and not-started edits. Once all edits are delivered and no requested work remains, use `review` while a client review window or eligible Checkout is open. Otherwise, mark the session `completed` automatically. Sessions that do not allow revisions complete as soon as the last edit is delivered.
 - Preserve the session-level `editStatus` contract for existing dashboard, email and editor-count consumers. A studio review handoff and a client review window need distinct records even where existing consumers still read a session status.
 - Schedule a recheck when client review windows close. If an eligible Checkout is still open, recheck when it expires or payment is confirmed. Check current delivery times, outstanding rounds and eligibility again before completing the session.
 
@@ -84,6 +84,7 @@ The session-level workflow lets an approved editor choose **Send to client** to 
 
 - Send one edit at a time using its next-step button at **Uploading**. The editor uploads the finished files to Drive by hand before sending. Confirm the selected edit and offer optional notes.
 - For client delivery, check the actor's permission, assignment where applicable, edit identity, delivery eligibility and current status on the server. An approved editor uses **Send to client** on a non-legacy edit. The admin uses **Send deliverables** for the selected edit after studio review. Preserve the applicable Drive-link and delivery-email variant checks.
+- Remove the **Mark as sent** and **Keep editing** choices from the admin's per-edit delivery flow. When the email succeeds, record delivery for the selected edit and leave the other edits at their current statuses. The app updates the overall session status automatically.
 - The client email names the edit and includes the Drive link. For revision-eligible edits, include the timestamp format, private feedback link, revision rules, free allowance, price and cap.
 - An editor without client-send permission or working on a legacy edit uses **Send for review** for that edit. It emails the studio and shows **Studio review** to staff. For eligible edits, the client's page still shows **Not delivered yet** before the first client email. A studio handoff leaves the client delivery time and window unchanged.
 - Record delivery only after the client email succeeds. Start a client review window for revision-eligible edits. If the email fails, leave the delivery state unchanged and allow a retry. Editors can send again only by fulfilling a client-submitted revision.
@@ -125,7 +126,7 @@ The session-level workflow lets an approved editor choose **Send to client** to 
 ### Data and service boundaries
 
 - Use the booking's selected editing add-ons and quantities as the source for the edit list. Keep a stable identity per session, add-on and unit so delivery, payment and feedback attach to the same edit.
-- Record delivery and revision eligibility per session. Legacy and new assignments use the same edit job records. Enforce revision eligibility across delivery emails, feedback links, submissions and Checkout. Existing session-level statuses cannot establish delivery for an individual edit.
+- Record delivery and revision eligibility per session. Legacy and new assignments use the same edit records. Enforce revision eligibility across delivery emails, feedback links, submissions and Checkout. Existing session-level statuses cannot establish delivery for an individual edit.
 - Store each edit's status and last client delivery time. A revision round records its edit identity, timestamped feedback, optional clip number, request time, lifecycle and Checkout reference when applicable. Candidate round states are `awaiting_payment`, `requested` and `delivered`. Final persistence details belong in review of the relevant slice.
 - Share the allowance, deadline and eligibility rules across delivery, the client page, dashboard and payment flow. Enforce them on the server. Scope staff access to admins and the assigned editor, and scope the private link to its session.
 - Follow the project's Convex handler, service and library responsibilities. Reuse existing assignment, Drive, email and Stripe boundaries where they fit. Use the existing session and add-on vocabulary in both dashboards.
@@ -154,13 +155,14 @@ The customer and staff workflow and Stripe confirmation are the agreed places to
 
 Treat each slice as a complete, reviewable feature. Start each branch from `dev` after its dependencies land.
 
-1. **Per-edit jobs and delivery.** Add edit identities and editor dashboard rows. Deliver individual edits through the two permission paths, with studio review and client email handled separately. Enable feedback links and revision instructions when the client feedback page is available.
+1. **Individual edits and delivery.** Add edit identities and editor dashboard rows. Deliver individual edits through the two permission paths, with studio review and client email handled separately. Enable feedback links and revision instructions when the client feedback page is available.
 2. **Client free feedback intake.** Add the private feedback page, delivery windows, allowances, free submissions and editor emails. Offer paid submission once Checkout is ready.
 3. **Dashboard feedback, revision delivery and completion.** Give admins and assigned editors access to round history, add revision delivery and due dates, and complete sessions after the final client windows close.
 4. **Stripe payments.** Enable paid feedback with Checkout, confirmed-payment processing and the same editor work queue.
 
 ### Proposed follow-up
 
+- In the session-wide admin flow, clicking **Send deliverables** again should send another copy, even when the session is marked **Sent**. If the email went out and saving the status failed, retrying that attempt should only save the status. The dashboard should confirm what happened.
 - A dedicated **Cancel checkout** action could let a client discard pending feedback and start again before expiry. The initial release supports resuming the existing Checkout.
 
 ### Repository references
