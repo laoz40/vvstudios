@@ -104,13 +104,14 @@ export function patchBookingEditorAssignment(
 		assignedEditorDisplayName?: string;
 		assignedEditorTokenIdentifier?: string;
 		editStatusScope?: Doc<"bookings">["editStatusScope"];
+		editDeliveryMode?: Doc<"bookings">["editDeliveryMode"];
 		editStatus?: Doc<"bookings">["editStatus"];
 		searchBlobPatch: BookingSearchBlobPatch;
 	}
 ) {
 	const editStatusScope =
-		session.editStatusScope ??
 		patch.editStatusScope ??
+		session.editStatusScope ??
 		(session.assignedEditorTokenIdentifier === undefined ? undefined : "session");
 
 	return okOrThrow(
@@ -124,6 +125,7 @@ export function patchBookingEditorAssignment(
 				assignedEditorDisplayName: patch.assignedEditorDisplayName,
 				assignedEditorTokenIdentifier: patch.assignedEditorTokenIdentifier,
 				editStatusScope,
+				editDeliveryMode: patch.editDeliveryMode ?? session.editDeliveryMode,
 				editStatus: patch.editStatus ?? session.editStatus,
 				...patch.searchBlobPatch
 			})

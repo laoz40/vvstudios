@@ -110,10 +110,12 @@ import type * as editor_lib_editorAssignments from "../editor/lib/editorAssignme
 import type * as editor_lib_editorSessions from "../editor/lib/editorSessions.js";
 import type * as editor_lib_edits from "../editor/lib/edits.js";
 import type * as editor_lib_sessionEditStatusSteps from "../editor/lib/sessionEditStatusSteps.js";
+import type * as editor_migrations from "../editor/migrations.js";
 import type * as editor_services_deliverablesEmail from "../editor/services/deliverablesEmail.js";
 import type * as editor_services_deliverablesReviewReadyEmail from "../editor/services/deliverablesReviewReadyEmail.js";
 import type * as editor_services_editDelivery from "../editor/services/editDelivery.js";
 import type * as editor_services_editorAssignments from "../editor/services/editorAssignments.js";
+import type * as editor_services_legacyEdits from "../editor/services/legacyEdits.js";
 import type * as editor_services_loadSessionForDeliverables from "../editor/services/loadSessionForDeliverables.js";
 import type * as editor_services_sessionEditStatus from "../editor/services/sessionEditStatus.js";
 import type * as email_lib_bookingCustomerEmailsSteps from "../email/lib/bookingCustomerEmailsSteps.js";
@@ -465,10 +467,12 @@ declare const fullApi: ApiFromModules<{
   "editor/lib/editorSessions": typeof editor_lib_editorSessions;
   "editor/lib/edits": typeof editor_lib_edits;
   "editor/lib/sessionEditStatusSteps": typeof editor_lib_sessionEditStatusSteps;
+  "editor/migrations": typeof editor_migrations;
   "editor/services/deliverablesEmail": typeof editor_services_deliverablesEmail;
   "editor/services/deliverablesReviewReadyEmail": typeof editor_services_deliverablesReviewReadyEmail;
   "editor/services/editDelivery": typeof editor_services_editDelivery;
   "editor/services/editorAssignments": typeof editor_services_editorAssignments;
+  "editor/services/legacyEdits": typeof editor_services_legacyEdits;
   "editor/services/loadSessionForDeliverables": typeof editor_services_loadSessionForDeliverables;
   "editor/services/sessionEditStatus": typeof editor_services_sessionEditStatus;
   "email/lib/bookingCustomerEmailsSteps": typeof email_lib_bookingCustomerEmailsSteps;
@@ -740,4 +744,5 @@ export declare const internal: FilterApi<
 
 export declare const components: {
   rateLimiter: import("@convex-dev/rate-limiter/_generated/component.js").ComponentApi<"rateLimiter">;
+  migrations: import("@convex-dev/migrations/_generated/component.js").ComponentApi<"migrations">;
 };

@@ -11,7 +11,7 @@ import {
 	visibleEditorSessions
 } from "#convex/editor/lib/editorSessions";
 import { loadEditorSessionDriveFolders } from "#convex/drive/services/editorDriveFolders";
-import { loadEditorEditSummaries } from "#convex/editor/lib/edits";
+import { loadSessionEditSummaries } from "#convex/editor/lib/edits";
 import { requirePermission } from "#convex/shared/services/auth";
 
 export function listActiveEditorsForAdmin(ctx: QueryCtx) {
@@ -30,7 +30,7 @@ export function listActiveEditorsForAdmin(ctx: QueryCtx) {
 function loadEditorDashboardRow(ctx: QueryCtx, session: Doc<"bookings">) {
 	return ResultAsync.combine([
 		loadEditorSessionDriveFolders(ctx, session),
-		loadEditorEditSummaries(ctx, session)
+		loadSessionEditSummaries(ctx, session)
 	]).map(([driveFolders, edits]) => ({
 		_id: session._id,
 		name: session.name,
@@ -51,6 +51,7 @@ function loadEditorDashboardRow(ctx: QueryCtx, session: Doc<"bookings">) {
 		clipsPackageQuantity: session.clipsPackageQuantity,
 		handcraftedClipsQuantity: session.handcraftedClipsQuantity,
 		editStatus: session.editStatus,
+		editDeliveryMode: session.editDeliveryMode,
 		driveFolders,
 		edits
 	}));

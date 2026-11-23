@@ -44,9 +44,12 @@ export function saveEditorAssignment(
 	adminNotes: string,
 	editorDueDate: string | undefined,
 	searchBlobPatch: BookingSearchBlobPatch,
-	editStatusScope: Doc<"bookings">["editStatusScope"]
+	editing: {
+		editStatusScope: Doc<"bookings">["editStatusScope"];
+		editDeliveryMode?: Doc<"bookings">["editDeliveryMode"];
+	}
 ) {
-	const hasIndividualEdits = editStatusScope === "edit";
+	const hasIndividualEdits = editing.editStatusScope === "edit";
 	let dueDate = editorDueDate;
 
 	if (hasIndividualEdits) {
@@ -56,10 +59,11 @@ export function saveEditorAssignment(
 
 	return patchBookingEditorAssignment(ctx, session, {
 		adminNotes: adminNotes.trim() || undefined,
-		editorDueDate: editor === undefined ? undefined : dueDate,
+		editorDueDate: editor === undefined && !hasIndividualEdits ? undefined : dueDate,
 		assignedEditorTokenIdentifier: editor?.tokenIdentifier,
-		editStatusScope,
-		editStatus: hasIndividualEdits && session.editStatusScope === undefined ? "to_edit" : undefined,
+		editStatusScope: editing.editStatusScope,
+		editDeliveryMode: editing.editDeliveryMode,
+		editStatus: hasIndividualEdits && session.editStatusScope !== "edit" ? "to_edit" : undefined,
 		searchBlobPatch
 	});
 }

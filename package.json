@@ -37,6 +37,7 @@
 	},
 	"dependencies": {
 		"@clerk/clerk-react": "^5.61.8",
+		"@convex-dev/migrations": "^0.3.9",
 		"@convex-dev/rate-limiter": "^0.3.2",
 		"@fontsource-variable/gabarito": "^5.2.8",
 		"@fontsource/squada-one": "^5.2.8",

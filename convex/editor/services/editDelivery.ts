@@ -50,12 +50,18 @@ export function loadAssignedEdit(ctx: MutationCtx, args: EditIdentity, permissio
 
 export function authorizeAndLockDeliverablesEmail(
 	ctx: MutationCtx,
-	access: { identity: { tokenIdentifier: string }; edit: Doc<"edits"> },
+	access: { identity: { tokenIdentifier: string }; session: Doc<"bookings">; edit: Doc<"edits"> },
 	args: { recipient: DeliverablesEmailRecipient; lockId: string }
 ) {
 	return safeTry(async function* () {
 		const editor = yield* getEditorByToken(ctx, access.identity.tokenIdentifier);
-		const authorized = yield* requireDeliverablesEmailPermission(editor, args.recipient);
+
+		const authorized = yield* requireDeliverablesEmailPermission(
+			editor,
+			access.session,
+			args.recipient
+		);
+
 		yield* requireEditStatus(
 			access.edit,
 			args.recipient === "client" ? ["uploading", "review"] : ["uploading"]

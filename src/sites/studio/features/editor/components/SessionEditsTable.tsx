@@ -61,7 +61,7 @@ const statuses = {
 		icon: Upload
 	},
 	review: {
-		label: "Review",
+		label: "Studio review",
 		className: deliverableStatusBadgeClassNameMap.review,
 		icon: CircleCheck
 	},
@@ -225,7 +225,8 @@ export function SessionEditsTable({
 	const access = accessResult?.[1];
 
 	const canSendToClient = access
-		? hasPermission(access.permissions, "send:deliverables-email")
+		? session.editDeliveryMode !== "studio_review_only" &&
+			hasPermission(access.permissions, "send:deliverables-email")
 		: undefined;
 
 	const dueDate = formatShortMonthFullDate(dueAt);

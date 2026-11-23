@@ -61,7 +61,7 @@ function saveSessionEditorAssignmentWithAccess(
 			editorAssignmentSearchInput(session, editor, assignedEditorDisplayName)
 		);
 
-		const { editStatusScope, edits } = planEditingForAssignment(session, editor !== undefined);
+		const { edits, ...editing } = planEditingForAssignment(session, editor !== undefined);
 
 		yield* insertEdits(ctx, edits);
 		yield* saveEditorAssignment(
@@ -71,7 +71,7 @@ function saveSessionEditorAssignmentWithAccess(
 			adminNotes,
 			editorDueDate,
 			searchBlobPatch,
-			editStatusScope
+			editing
 		);
 		yield* patchLastAssignedIfEditor(ctx, editor);
 		yield* scheduleAdminNotesEmail(ctx, session, adminNotes, editor);

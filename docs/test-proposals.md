@@ -46,8 +46,8 @@ Check for an equivalent proposal before adding an entry. Keep unapproved entries
 
 ### Deliver purchased edits independently
 
-- Behavior: a new assignment with repeated edit and Clip Volume Pack units shows one edit per unit. The next-step button advances each edit through Downloading, Editing and Uploading. Entering Downloading opens the session's Drive folders. A failed client email leaves the selected edit available for retry. A successful email marks just that edit Sent, and repeating initial send cannot email the client again. A studio handoff shows Review for the selected edit and emails the studio.
-- Regression: a missing or duplicate edit, a skipped status or missing Drive dialog, a retry blocked after an email failure, or delivery recorded against another edit or package session.
+- Behavior: new and legacy assignments with repeated edit and Clip Volume Pack units show one edit per unit. The arrow controls move each edit through Downloading, Editing and Uploading. Entering Downloading opens the session's Drive folders. A failed client email leaves the selected edit available for retry. A successful email marks just that edit Sent, and repeating initial send cannot email the client again. A legacy editor with client-send permission can send each edit to Studio review for admin delivery. Retrying rollout preserves the created edits and leaves completed sessions in History.
+- Regression: a missing or duplicate edit, a skipped status or missing Drive dialog, a retry blocked after an email failure, delivery recorded against another edit or package session, or a legacy edit that bypasses studio review.
 - Risk: 8/10. An edit may never reach the client, or a client may be told that the wrong edit is ready.
 - Gap: existing editor dashboard and deliverables email coverage exercises the session-level flow.
 - Level: E2E through assignment and both editor permission paths with controlled studio and client inboxes. Keep the failure and duplicate-send checks at the email boundary if the provider cannot reproduce those conditions reliably from the browser.

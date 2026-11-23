@@ -21,3 +21,5 @@ See the [client revisions spec](spec.md) for the full workflow.
 ### Production rollout
 
 Release tickets 01 and 02 to production together. Verify direct client delivery on a new assignment and per-edit studio handoff through admin delivery on a legacy assignment. Tell editors that unfinished assignments will open in the new UI with their edits at **Not started**.
+
+After deploying the Convex functions, preview the migration on the target deployment with `bunx convex run editor/migrations:createLegacyEdits '{"dryRun":true}'`. Run it with `bunx convex run editor/migrations:createLegacyEdits '{}'` and wait for it to finish. Add `--prod` to target production.

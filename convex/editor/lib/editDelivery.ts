@@ -39,9 +39,13 @@ export function requireEditorIdentity(identity: UserIdentity) {
 
 export function requireDeliverablesEmailPermission(
 	editor: Doc<"editorProfiles"> | null,
+	session: Doc<"bookings">,
 	recipient: DeliverablesEmailRecipient
 ) {
-	if (editor === null || (editor.canSendDeliverables === true) !== (recipient === "client")) {
+	const canSendToClient =
+		editor?.canSendDeliverables === true && session.editDeliveryMode !== "studio_review_only";
+
+	if (editor === null || canSendToClient !== (recipient === "client")) {
 		return err({ reason: "NOT_AUTHORIZED" as const });
 	}
 

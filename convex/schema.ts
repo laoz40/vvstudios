@@ -280,6 +280,7 @@ export default defineSchema({
 		assignedEditorTokenIdentifier: v.optional(v.string()),
 		// Editors update one status for the session or a separate status for each edit.
 		editStatusScope: v.optional(v.union(v.literal("session"), v.literal("edit"))),
+		editDeliveryMode: v.optional(v.literal("studio_review_only")),
 		editorDueDate: v.optional(v.string()),
 		assignedEditorDisplayName: v.optional(v.string()),
 		adminNotes: v.optional(v.string()),
