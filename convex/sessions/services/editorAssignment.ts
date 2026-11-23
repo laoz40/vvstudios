@@ -2,6 +2,7 @@ import { ok, safeTry, type ResultAsync } from "neverthrow";
 import type { Doc } from "#convex/_generated/dataModel";
 import type { MutationCtx } from "#convex/_generated/server";
 import { loadDriveSessionRowByBookingId } from "#convex/drive/lib/driveBookingDriveClient";
+import { insertEdits, planEditingForAssignment } from "#convex/editor/lib/edits";
 import { searchBlobPatchForBookingAsync } from "#convex/shared/lib/adminSearch/adminSearchBlob";
 import { scheduleAdminNotesEmail } from "#convex/sessions/lib/notesNotification";
 import {
@@ -10,7 +11,7 @@ import {
 	loadEditorForSessionAssignment,
 	validateEditorDueDate,
 	requireSelectedAssignmentEditor,
-	patchEditorAssignmentAfterSearch,
+	saveEditorAssignment,
 	patchLastAssignedIfEditor,
 	scheduleDriveAccessRemovalIfNeeded,
 	scheduleFirstAssignmentDriveSetup
@@ -60,13 +61,17 @@ function saveSessionEditorAssignmentWithAccess(
 			editorAssignmentSearchInput(session, editor, assignedEditorDisplayName)
 		);
 
-		yield* patchEditorAssignmentAfterSearch(
+		const { editStatusScope, edits } = planEditingForAssignment(session, editor !== undefined);
+
+		yield* insertEdits(ctx, edits);
+		yield* saveEditorAssignment(
 			ctx,
 			session,
 			editor,
 			adminNotes,
 			editorDueDate,
-			searchBlobPatch
+			searchBlobPatch,
+			editStatusScope
 		);
 		yield* patchLastAssignedIfEditor(ctx, editor);
 		yield* scheduleAdminNotesEmail(ctx, session, adminNotes, editor);

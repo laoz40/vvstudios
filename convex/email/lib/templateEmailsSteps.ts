@@ -47,8 +47,12 @@ export function sendSessionDeliverablesEmailWithHtml(
 ) {
 	return sendEmail({
 		to: [args.email],
-		subject: `Your VV Studios Deliverables Folder - ${formatSessionDateShort(args.date)}`,
+		subject:
+			args.editLabel === undefined
+				? `Your VV Studios Deliverables Folder - ${formatSessionDateShort(args.date)}`
+				: `Your ${args.editLabel} is ready - ${formatSessionDateShort(args.date)}`,
 		html,
+		idempotencyKey: args.idempotencyKey,
 		logContext: { operation: "email.sendSessionDeliverables", bookingId: args.bookingId }
 	});
 }

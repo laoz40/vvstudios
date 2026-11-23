@@ -4,6 +4,12 @@ import type { sendEmail } from "#convex/shared/lib/email/emailSend";
 
 type RenderedDeliverablesReviewEmail = { html: string; recipients: string[] } | null;
 
+export function requireReviewRecipients(recipients: string[], editLabel: string | undefined) {
+	return editLabel !== undefined && recipients.length === 0
+		? err({ reason: "EMAIL_REQUEST_FAILED" as const })
+		: ok(recipients);
+}
+
 export function buildDeliverablesReviewReadyEmailRequest(
 	args: SendDeliverablesReviewReadyHostEmailArgs & { idempotencyKey: string },
 	email: RenderedDeliverablesReviewEmail
@@ -18,3 +24,5 @@ export function buildDeliverablesReviewReadyEmailRequest(
 				idempotencyKey: args.idempotencyKey
 			};
 }
+
+import { err, ok } from "neverthrow";

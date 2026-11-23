@@ -5,6 +5,7 @@ import { RecurringDeliverablesEmail } from "#studio/features/deliverables-email/
 export interface DeliverablesEmailProps {
 	bookingDate: string;
 	driveLink: string;
+	editLabel?: string;
 	editorNotes?: string;
 	emailVariant: DeliverablesEmailVariant;
 	name: string;
@@ -14,12 +15,13 @@ export interface DeliverablesEmailProps {
 export function DeliverablesEmail({
 	bookingDate,
 	driveLink,
+	editLabel,
 	editorNotes,
 	emailVariant,
 	name,
 	signoffName
 }: DeliverablesEmailProps) {
-	const props = { bookingDate, driveLink, editorNotes, name, signoffName };
+	const props = { bookingDate, driveLink, editLabel, editorNotes, name, signoffName };
 
 	if (emailVariant === "first-time") {
 		return <FirstTimeDeliverablesEmail {...props} />;

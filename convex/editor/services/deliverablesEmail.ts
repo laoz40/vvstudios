@@ -1,13 +1,6 @@
 "use node";
 
-import type { SendDeliverablesError as LibSendDeliverablesError } from "#convex/editor/lib/deliverablesEmailSteps";
-
-import {
-	queryDeliverablesSetup,
-	queryDeliverablesCustomerType
-} from "#convex/editor/lib/deliverablesEmailSteps";
-
-import { ok, okAsync, safeTry } from "neverthrow";
+import { ok, safeTry, type Result } from "neverthrow";
 
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { ActionCtx } from "#convex/_generated/server";
@@ -18,74 +11,85 @@ import { ensureAnyoneReaderPermission } from "#convex/drive/services/googleDrive
 
 import {
 	parseSavedDeliverablesFolderFromSetup,
-	requireNonEmptyDeliverablesFolder
+	queryDeliverablesSetup,
+	queryDeliverablesCustomerType,
+	requireNonEmptyDeliverablesFolder,
+	requestDeliverablesEmailLock,
+	submitDeliverablesEmailResult,
+	type DeliverablesEmailLock,
+	type SendDeliverablesError as LibSendDeliverablesError
 } from "#convex/editor/lib/deliverablesEmailSteps";
-
-export type SendSessionDeliverablesEmailArgs = { bookingId: Id<"bookings">; editorNotes?: string };
+import type { DeliverablesEmailOutcome } from "#convex/editor/lib/editDelivery";
 
 export type SendDeliverablesError = LibSendDeliverablesError;
 
-type DeliverablesFolder = { id: string; url: string };
-
-function grantGuestViewerLink(folder: DeliverablesFolder) {
-	return safeTry(async function* () {
-		const drive = yield* loadDriveClient();
-		yield* ensureAnyoneReaderPermission(drive, folder.id);
-
-		return ok(folder);
-	});
-}
-
-function requireSavedDeliverablesFolder(bookingId: Id<"bookings">, ctx: ActionCtx) {
+export function loadDeliverablesFolderWithFiles(ctx: ActionCtx, bookingId: Id<"bookings">) {
 	return safeTry(async function* () {
 		const setup = yield* queryDeliverablesSetup(ctx, bookingId);
 		const folder = yield* parseSavedDeliverablesFolderFromSetup(setup);
-
-		return ok(folder);
-	});
-}
-
-function requireDeliverablesFolderContents(folder: DeliverablesFolder) {
-	return safeTry(async function* () {
 		const drive = yield* loadDriveClient();
 		const children = yield* listDriveFolderChildren(drive, folder.id);
-		const populatedFolder = yield* requireNonEmptyDeliverablesFolder(folder, children);
 
-		return ok(populatedFolder);
+		return ok(yield* requireNonEmptyDeliverablesFolder(folder, children));
 	});
 }
 
-export function skipWhenDeliverablesEditAlreadyCompleted(session: Doc<"bookings">) {
-	return okAsync(session.editStatus === "completed" ? null : session);
-}
-
-export function loadDeliverablesFolderGuestReadLink(ctx: ActionCtx, bookingId: Id<"bookings">) {
-	return safeTry(async function* () {
-		const folder = yield* requireSavedDeliverablesFolder(bookingId, ctx);
-		const populatedFolder = yield* requireDeliverablesFolderContents(folder);
-
-		return ok(yield* grantGuestViewerLink(populatedFolder));
-	});
-}
-
-export function sendDeliverablesEmailForSession(
+export function sendClientDeliverablesEmail(
 	ctx: ActionCtx,
 	session: Doc<"bookings">,
-	folderUrl: string,
-	editorNotes: string | undefined
+	editorNotes: string | undefined,
+	edit?: { label: string; idempotencyKey: string }
 ) {
 	return safeTry(async function* () {
+		const folder = yield* loadDeliverablesFolderWithFiles(ctx, session._id);
+		const drive = yield* loadDriveClient();
+		yield* ensureAnyoneReaderPermission(drive, folder.id);
+
 		const emailVariant = yield* queryDeliverablesCustomerType(ctx, session);
 		yield* sendDeliverablesEmail({
 			bookingId: session._id,
 			date: session.date,
-			driveLink: folderUrl,
+			driveLink: folder.url,
+			editLabel: edit?.label,
 			editorNotes,
 			email: session.email,
 			emailVariant,
+			idempotencyKey: edit?.idempotencyKey,
 			name: session.name
 		});
 
 		return ok(null);
 	});
+}
+
+export function lockEditForEmail(
+	ctx: ActionCtx,
+	edit: Pick<DeliverablesEmailLock, "bookingId" | "editId">,
+	recipient: DeliverablesEmailLock["recipient"]
+) {
+	const lock = { ...edit, recipient, lockId: crypto.randomUUID() };
+
+	// Preserve the provider keys used by any earlier attempt.
+	const idempotencyKey =
+		recipient === "client"
+			? `initial-edit:client:${edit.editId}`
+			: `initial-edit:studio:${edit.editId}`;
+
+	return requestDeliverablesEmailLock(ctx, lock).map((delivery) => ({
+		...delivery,
+		lock,
+		idempotencyKey
+	}));
+}
+
+export function recordDeliverablesEmailResult(
+	ctx: ActionCtx,
+	lock: DeliverablesEmailLock,
+	sendResult: Result<null, SendDeliverablesError>
+) {
+	const outcome = sendResult
+		.map<DeliverablesEmailOutcome>(() => ({ kind: "sent", sentAt: Date.now() }))
+		.unwrapOr({ kind: "failed" } satisfies DeliverablesEmailOutcome);
+
+	return submitDeliverablesEmailResult(ctx, lock, outcome);
 }

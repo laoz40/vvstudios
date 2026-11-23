@@ -140,40 +140,6 @@ export function incrementEditorTotalEdits(
 	);
 }
 
-export function buildEditorSessionProjection(
-	session: Doc<"bookings">,
-	driveFolders: {
-		assets: { id: string; url: string };
-		deliverables: { id: string; url: string };
-		rawMedia: { id: string; url: string };
-		session: { id: string; url: string };
-		sessionFolderName: string;
-	} | null
-) {
-	return {
-		_id: session._id,
-		name: session.name,
-		accountName: session.accountName,
-		notes: session.notes,
-		adminNotes: session.adminNotes,
-		editorDueDate: session.editorDueDate,
-		editorNotes: session.editorNotes,
-		deliverablesClientNotes: session.deliverablesClientNotes,
-		deliverablesDriveLink: session.deliverablesDriveLink,
-		date: session.date,
-		time: session.time,
-		duration: session.duration,
-		service: session.service,
-		addons: session.addons,
-		essentialEditQuantity: session.essentialEditQuantity,
-		completeEditQuantity: session.completeEditQuantity,
-		clipsPackageQuantity: session.clipsPackageQuantity,
-		handcraftedClipsQuantity: session.handcraftedClipsQuantity,
-		editStatus: session.editStatus,
-		driveFolders
-	};
-}
-
 export function resetSessionForNextDeliverables(
 	ctx: MutationCtx,
 	session: Doc<"bookings">,

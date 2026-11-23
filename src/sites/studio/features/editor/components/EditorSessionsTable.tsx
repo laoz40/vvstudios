@@ -1,9 +1,16 @@
-import { CalendarClock } from "lucide-react";
+import { useState } from "react";
+import { ArrowDown, ArrowDownUp, ArrowUp, CalendarClock } from "lucide-react";
+import { Button } from "#/components/ui/button";
 import { FixedDataTable } from "#studio/components/FixedDataTable";
 import { EditorSessionTableRow } from "#studio/features/editor/components/EditorSessionTableRow";
-import type { EditorSession } from "#studio/features/editor/lib/editor-sessions";
+import {
+	getEditorSessionDue,
+	type EditorSession
+} from "#studio/features/editor/lib/editor-sessions";
 
 type EditorSessionsEmptyState = "edits" | "history";
+
+const dueSortIcons = { ascending: ArrowUp, descending: ArrowDown };
 
 const emptyStateCopy: Record<EditorSessionsEmptyState, { title: string; description: string }> = {
 	edits: { title: "Nothing in your queue", description: "Assigned edits will appear here." },
@@ -20,6 +27,8 @@ export function EditorSessionsTable({
 	sessions: EditorSession[];
 	emptyState: EditorSessionsEmptyState;
 }) {
+	const [dueSort, setDueSort] = useState<"ascending" | "descending" | null>(null);
+
 	if (sessions.length === 0) {
 		const copy = emptyStateCopy[emptyState];
 
@@ -39,6 +48,20 @@ export function EditorSessionsTable({
 		);
 	}
 
+	const rows = sessions.map((session) => ({ session, due: getEditorSessionDue(session) }));
+
+	if (dueSort !== null) {
+		rows.sort((a, b) => {
+			if (a.due.showDue !== b.due.showDue) return a.due.showDue ? -1 : 1;
+
+			if (!a.due.showDue) return 0;
+
+			return dueSort === "ascending" ? a.due.dueAt - b.due.dueAt : b.due.dueAt - a.due.dueAt;
+		});
+	}
+
+	const DueSortIcon = dueSort === null ? ArrowDownUp : dueSortIcons[dueSort];
+
 	return (
 		<section className="overflow-x-auto border-y">
 			<FixedDataTable
@@ -47,15 +70,31 @@ export function EditorSessionsTable({
 					{ key: "deliverables", colClassName: "w-48", header: "Deliverables" },
 					{ key: "customer", colClassName: "w-64", header: "Customer" },
 					{ key: "session", colClassName: "w-32 md:w-24", header: "Session" },
-					{ key: "service", colClassName: "w-60 md:w-48", header: "Service" },
+					{
+						key: "due",
+						colClassName: "w-32",
+						header: (
+							<Button
+								type="button"
+								variant="ghost"
+								size="sm"
+								className="-ml-2"
+								aria-label={dueSort ? `Due, sorted ${dueSort}` : "Sort by due date"}
+								onClick={() => setDueSort(dueSort === "ascending" ? "descending" : "ascending")}>
+								Due
+								<DueSortIcon aria-hidden />
+							</Button>
+						)
+					},
 					{ key: "admin-notes", colClassName: "w-84", header: "Admin notes" },
 					{ key: "editor-notes", colClassName: "w-84", header: "Editor notes" },
-					{ key: "drive", colClassName: "md:w-12", header: "Drive", headerClassName: "text-right" }
+					{ key: "drive", colClassName: "w-12", header: "Drive", headerClassName: "text-right" }
 				]}>
-				{sessions.map((session) => (
+				{rows.map(({ session, due }) => (
 					<EditorSessionTableRow
 						key={session._id}
 						session={session}
+						due={due}
 						view={emptyState}
 					/>
 				))}

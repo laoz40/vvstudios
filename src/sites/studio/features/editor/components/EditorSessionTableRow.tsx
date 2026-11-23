@@ -1,84 +1,81 @@
 import { useState } from "react";
-import { Pencil } from "lucide-react";
+import { ChevronDown, ChevronRight, Pencil } from "lucide-react";
 import { Button } from "#/components/ui/button";
 import { TableCell, TableRow } from "#/components/ui/table";
 import { cn } from "#/lib/utils";
 import { EditorDeliverableStatusBadge } from "#studio/features/editor/components/EditorDeliverableStatusBadge";
+import { SessionEditsTable } from "#studio/features/editor/components/SessionEditsTable";
 import { EditorSessionNotesPreview } from "#studio/features/editor/components/EditorSessionNotesPreview";
 import { EditorSessionDriveCell } from "#studio/features/editor/components/EditorSessionDriveCell";
 import { SessionEditorNotesDialog } from "#studio/features/editor/components/SessionEditorNotesDialog";
-import type { EditorSession } from "#studio/features/editor/lib/editor-sessions";
-import { SessionServiceCell } from "#studio/features/sessions/components/SessionServiceCell";
+import type {
+	EditorSession,
+	getEditorSessionDue
+} from "#studio/features/editor/lib/editor-sessions";
 import {
 	formatBookingDateMedium,
 	formatBookingTimeLabel,
 	formatEditorEditDueLabel,
-	getBookingDayDifference,
-	getBookingStartTimestamp,
-	getEditorEditDueDayDifference,
+	formatShortMonthFullDate,
 	getEditorEditDueSubtitleClassName,
 	isUpcomingBooking
 } from "#studio/lib/bookingdatetime";
 
 type EditorSessionsView = "edits" | "history";
 
-function getSessionDateSubtitle(
-	date: string,
-	time: string,
-	view: EditorSessionsView,
-	editStatus: EditorSession["editStatus"],
-	editorDueDate?: string
-) {
-	const dayDifference = getBookingDayDifference(date);
-
-	if (dayDifference === null || dayDifference >= 0) {
-		return { label: formatBookingTimeLabel(time), className: "text-muted-foreground" };
-	}
-
-	const sessionStartAt = getBookingStartTimestamp(date, time);
-	const daysUntilDue = getEditorEditDueDayDifference(sessionStartAt, new Date(), editorDueDate);
-
-	if (daysUntilDue === null) {
-		return { label: formatBookingTimeLabel(time), className: "text-muted-foreground" };
-	}
-
-	if (editStatus === "review" && daysUntilDue <= 0) return null;
-
-	return {
-		label: formatEditorEditDueLabel(daysUntilDue),
-		className: getEditorEditDueSubtitleClassName(daysUntilDue, view)
-	};
-}
-
 export function EditorSessionTableRow({
 	session,
+	due,
 	view
 }: {
 	session: EditorSession;
+	due: ReturnType<typeof getEditorSessionDue>;
 	view: EditorSessionsView;
 }) {
 	const [isEditorNotesOpen, setIsEditorNotesOpen] = useState(false);
 	const [isDriveDialogOpen, setIsDriveDialogOpen] = useState(false);
-
-	const dateSubtitle = getSessionDateSubtitle(
-		session.date,
-		session.time,
-		view,
-		session.editStatus,
-		session.editorDueDate
-	);
+	const [isExpanded, setIsExpanded] = useState(false);
+	const jobsRowId = `edits-${session._id}`;
+	const ExpandIcon = isExpanded ? ChevronDown : ChevronRight;
 
 	const isPastSession = !isUpcomingBooking(session.date, session.time);
 
 	return (
 		<>
-			<TableRow>
+			<TableRow
+				className={
+					due.editsDue === undefined
+						? undefined
+						: "relative isolate [&>td:not(:first-child)_button]:relative [&>td:not(:first-child)_button]:z-10"
+				}>
 				<TableCell className="text-left">
-					<EditorDeliverableStatusBadge
-						session={session}
-						canManageDeliverables={isPastSession}
-						onDownloadingStarted={() => setIsDriveDialogOpen(true)}
-					/>
+					{due.editsDue === undefined ? (
+						<EditorDeliverableStatusBadge
+							session={session}
+							canManageDeliverables={isPastSession}
+							onDownloadingStarted={() => setIsDriveDialogOpen(true)}
+						/>
+					) : (
+						<button
+							type="button"
+							className="inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-md px-2.5 font-medium after:absolute after:inset-0 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+							aria-expanded={isExpanded}
+							aria-controls={jobsRowId}
+							onClick={() => setIsExpanded((expanded) => !expanded)}>
+							<ExpandIcon
+								className="size-4"
+								aria-hidden
+							/>
+							{due.editsDue > 0 ? (
+								<span className="text-primary tabular-nums">
+									{due.editsDue} {due.editsDue === 1 ? "Deliverable" : "Deliverables"} due
+								</span>
+							) : (
+								<span className="text-muted-foreground">All sent</span>
+							)}
+							<span className="sr-only">for {session.name}</span>
+						</button>
+					)}
 				</TableCell>
 				<TableCell>
 					<div className="flex flex-col gap-1 whitespace-normal">
@@ -89,16 +86,24 @@ export function EditorSessionTableRow({
 				<TableCell>
 					<div className="flex flex-col gap-1 whitespace-normal">
 						<p className="font-medium">{formatBookingDateMedium(session.date)}</p>
-						{dateSubtitle !== null ? (
-							<p className={cn("text-sm", dateSubtitle.className)}>{dateSubtitle.label}</p>
-						) : null}
+						<p className="text-sm text-muted-foreground">{formatBookingTimeLabel(session.time)}</p>
 					</div>
 				</TableCell>
 				<TableCell>
-					<SessionServiceCell
-						duration={session.duration}
-						session={session}
-					/>
+					{due.showDue && due.daysUntilDue !== null ? (
+						<div className="flex flex-col gap-1">
+							<p className="font-medium">{formatShortMonthFullDate(due.dueAt)}</p>
+							<p
+								className={cn(
+									"text-sm",
+									getEditorEditDueSubtitleClassName(due.daysUntilDue, view)
+								)}>
+								{formatEditorEditDueLabel(due.daysUntilDue)}
+							</p>
+						</div>
+					) : (
+						<span className="text-muted-foreground">-</span>
+					)}
 				</TableCell>
 				<TableCell>
 					<EditorSessionNotesPreview
@@ -139,6 +144,25 @@ export function EditorSessionTableRow({
 					/>
 				</TableCell>
 			</TableRow>
+			{session.edits === undefined ? null : (
+				<TableRow
+					id={jobsRowId}
+					hidden={!isExpanded}>
+					<TableCell
+						colSpan={7}
+						className="bg-muted/50 px-4 py-3">
+						{isExpanded ? (
+							<SessionEditsTable
+								session={session}
+								edits={session.edits}
+								dueAt={due.dueAt}
+								canManageEdits={isPastSession}
+								onDownloadingStarted={() => setIsDriveDialogOpen(true)}
+							/>
+						) : null}
+					</TableCell>
+				</TableRow>
+			)}
 			{isEditorNotesOpen ? (
 				<SessionEditorNotesDialog
 					bookingId={session._id}

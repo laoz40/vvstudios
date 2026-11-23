@@ -138,7 +138,9 @@ export type SendPackageHostDetailsEmailArgs = {
 export type SendDeliverablesReviewReadyHostEmailArgs = {
 	clientName: string;
 	deliverablesFolderUrl?: string;
+	editLabel?: string;
 	editorName: string;
+	editorNotes?: string;
 	idempotencyKey?: string;
 	sessionDate: string;
 };
@@ -169,8 +171,10 @@ export type SendSessionDeliverablesEmailArgs = {
 	bookingId: Id<"bookings">;
 	date: string;
 	driveLink: string;
+	editLabel?: string;
 	editorNotes?: string;
 	emailVariant: DeliverablesEmailVariant;
+	idempotencyKey?: string;
 	name: string;
 };
 
@@ -279,10 +283,13 @@ export function renderDeliverablesReviewReadyHostEmailHtml(
 		try: () =>
 			render(
 				createElement(DeliverablesReviewReadyEmail, {
-					quoteIndex: Math.floor(Math.random() * hostBookingQuotes.length),
+					quoteIndex:
+						args.editLabel === undefined ? Math.floor(Math.random() * hostBookingQuotes.length) : 0,
 					clientName: args.clientName,
 					deliverablesFolderUrl: args.deliverablesFolderUrl,
+					editLabel: args.editLabel,
 					editorName: args.editorName,
+					editorNotes: args.editorNotes?.trim() || undefined,
 					sessionDateLabel
 				})
 			).then((html) => ({ html, recipients })),
@@ -473,6 +480,7 @@ export function renderSessionDeliverablesEmailHtml(args: SendSessionDeliverables
 				createElement(DeliverablesEmail, {
 					bookingDate: formatSessionDateWithoutYear(args.date),
 					driveLink: args.driveLink,
+					editLabel: args.editLabel,
 					editorNotes: args.editorNotes?.trim() || undefined,
 					emailVariant: args.emailVariant,
 					name: args.name,
@@ -504,7 +512,12 @@ export function packageHostDetailsEmailSubject(args: SendPackageHostDetailsEmail
 export function deliverablesReviewReadyHostEmailSubject(
 	args: SendDeliverablesReviewReadyHostEmailArgs & { sessionDate: string }
 ) {
-	return `Deliverables ready for review - ${args.clientName} - ${formatSessionDateShort(args.sessionDate)}`;
+	const subject =
+		args.editLabel === undefined
+			? "Deliverables ready for review"
+			: `${args.editLabel} ready for review`;
+
+	return `${subject} - ${args.clientName} - ${formatSessionDateShort(args.sessionDate)}`;
 }
 
 export function bookingRescheduledCustomerEmailSubject(args: { date: string }) {

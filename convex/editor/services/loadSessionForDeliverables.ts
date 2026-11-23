@@ -11,6 +11,7 @@ import {
 	requireDeliverablesOwnership
 } from "#convex/editor/lib/editorSessions";
 import { getSessionFromDb, getSessionFromQuery } from "#convex/sessions/services/lookup";
+import { requireSessionLevelEditing } from "#convex/editor/lib/editDelivery";
 
 export type LoadSessionForDeliverablesError =
 	| { reason: "NOT_AUTHENTICATED" }
@@ -61,14 +62,11 @@ export function loadDeliverablesCustomerTypeForBooking(
 	});
 }
 
-export function loadSessionForDeliverablesFromAction(
-	ctx: ActionCtx,
-	bookingId: Id<"bookings">
-): ResultAsync<Doc<"bookings">, LoadSessionForDeliverablesError> {
+export function loadSessionForSessionWideDelivery(ctx: ActionCtx, bookingId: Id<"bookings">) {
 	return safeTry(async function* () {
 		const identity = yield* requirePermissionActions(ctx, "send:deliverables-email");
 		const session = yield* withDeliverablesAccess(identity, getSessionFromQuery(ctx, bookingId));
 
-		return ok(session);
+		return ok(yield* requireSessionLevelEditing(session));
 	});
 }

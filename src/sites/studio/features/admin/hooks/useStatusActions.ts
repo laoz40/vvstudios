@@ -42,6 +42,9 @@ export function useStatusActions(session: SessionRecord) {
 				case "SESSION_NOT_IN_PAST":
 					toast.error("Deliverables can only be updated for completed sessions.");
 					break;
+				case "EDIT_REQUIRED":
+					toast.error("This session tracks the status of each edit individually.");
+					break;
 				case "UNEXPECTED_ERROR":
 					toast.error("Something went wrong while updating the deliverables status.");
 					break;

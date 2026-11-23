@@ -15,6 +15,7 @@ import type { EditorSession } from "#studio/features/editor/lib/editor-sessions"
 
 export function EditorSendForReviewDialog({
 	session,
+	editLabel,
 	canSendToClient,
 	isSending,
 	open,
@@ -22,13 +23,17 @@ export function EditorSendForReviewDialog({
 	onSend
 }: {
 	session: EditorSession;
+	editLabel?: string;
 	canSendToClient: boolean;
 	isSending: boolean;
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
 	onSend: (deliverablesClientNotes: string) => void;
 }) {
-	const [notes, setNotes] = useState(session.deliverablesClientNotes ?? "");
+	const [notes, setNotes] = useState(
+		editLabel === undefined ? (session.deliverablesClientNotes ?? "") : ""
+	);
+
 	const notesId = `send-for-review-notes-${session._id}`;
 	const sendLabel = canSendToClient ? "Send to client" : "Send for review";
 
@@ -44,7 +49,14 @@ export function EditorSendForReviewDialog({
 						{canSendToClient ? "Send deliverables to client?" : "Send deliverables for review?"}
 					</DialogTitle>
 					<DialogDescription>
-						Check every finished file is in the Deliverables folder.
+						{editLabel === undefined ? (
+							"Check every finished file is in the Deliverables folder."
+						) : (
+							<>
+								Check that the finished files for <strong>{editLabel}</strong> are in the
+								Deliverables folder for {session.name}.
+							</>
+						)}
 						{canSendToClient ? null : <> This notifies the admin to review your work.</>}
 					</DialogDescription>
 				</DialogHeader>
