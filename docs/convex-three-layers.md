@@ -2,6 +2,22 @@
 
 Group code by feature under `convex/`. Feature paths determine API paths: `convex/packages/scheduling.ts` exposes `api.packages.scheduling.*`. Put cross-cutting code in `convex/shared/`.
 
+## Session records
+
+The `bookings` table stores [sessions](../GLOSSARY.md#sessions-and-packages) and their reservation lifecycle. Convex retains the existing table name because renaming it would require a migration and backfill.
+
+### Package slots
+
+A package stores the number of slots the customer buys. Linked bookings track which slots are in use. This lets a customer cancel an upcoming session and reuse its slot while staff keep the cancelled booking in the session history. A confirmed session still uses a slot if its confirmation email fails. See the [capacity rules](../convex/packages/lib/sessionCapacity.ts).
+
+### Checkout confirmation
+
+After payment, Stripe sends a signed event to Convex. Convex verifies the event and runs the confirmation and email workflow for the session or package. The confirmation page reads the resulting status, so processing can finish if the customer closes the page while it loads. See the [Stripe event handler](../convex/http.ts) and [confirmation page](../src/sites/studio/features/booking-complete/components/BookingCompletePage.tsx).
+
+### Drive access after a contact edit
+
+Drive sharing for session folders uses the email saved for the Drive client. This keeps a routine edit to a booking's contact email from changing who can access existing files. Staff can share the folder with the new address manually in Google Drive. See the [Drive client identity rules](../convex/drive/lib/folderSetupDecisions.ts).
+
 ## Layer responsibilities
 
 - Handlers own validators, endpoint step order, and response conversion. Compose meaningful service steps, not domain logic or direct DB operations. Do not hide a multi-step endpoint behind one whole-workflow service.

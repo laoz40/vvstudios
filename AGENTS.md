@@ -5,6 +5,8 @@
 Booking website for a podcast studio, plus an internal dashboard for admins to manage bookings.
 Operational priorities: accessibility, fast first paint on marketing pages, SEO, mobile responsiveness
 
+Read the [glossary](./GLOSSARY.md) for project terminology.
+
 ## Stack
 
 - Bun
