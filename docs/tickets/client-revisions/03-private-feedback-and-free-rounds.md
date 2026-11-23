@@ -8,7 +8,7 @@
 
 See the [client revisions spec](spec.md) for the full workflow.
 
-- [ ] The delivery email includes the private feedback link, timestamp format, revision rules, free allowance, and the $50 AUD including GST price and five-paid-round cap. Apply the same feedback information to the admin delivery path when ticket 02 lands.
+- [ ] For revision-eligible edits, the delivery email includes the private feedback link, timestamp format, revision rules, free allowance, and the $50 AUD including GST price and five-paid-round cap. Apply the same feedback information to the admin delivery path when ticket 02 lands. Legacy deliveries have no feedback link or revision window, and the server rejects feedback requests for legacy edits.
 - [ ] The private link requires no login and only grants access to the associated session's purchased edits and Drive assets folder link. Group edits by add-on and identify repeated units by episode. Each edit keeps its own window and allowance, including across package sessions.
 - [ ] An unsent edit shows **Not delivered yet**, including when it is with the studio for review. Delivered edits show **Request changes by [date]** while open. The window ends at 11:59 pm Sydney time on the second business day after the latest successful client delivery. Count Monday through Friday and ignore public holidays.
 - [ ] Show the applicable **Free** or **Closed** state for free intake. The $50 action and paid eligibility display become available with ticket 06. Explain the round allowances and included changes in the page copy. Rough Cut and Clip Volume Pack include one free corrections round. Complete Edit and Handcrafted Clips include two free rounds and allow stylised changes.
