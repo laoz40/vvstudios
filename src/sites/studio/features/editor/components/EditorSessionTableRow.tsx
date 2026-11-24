@@ -45,7 +45,7 @@ export function EditorSessionTableRow({
 			<TableRow
 				data-expanded={isExpanded}
 				className={cn(
-					"bg-muted hover:bg-muted has-[+tr:last-child[data-session-edits]]:border-b-0 data-[expanded=true]:border-b-0",
+					"bg-background hover:bg-background has-[+tr:last-child[data-session-edits]]:border-b-0 data-[expanded=true]:border-b-0 data-[expanded=true]:bg-muted/15 data-[expanded=true]:hover:bg-muted/15",
 					due.editsDue !== undefined &&
 						"relative isolate [&>td:not(:first-child)_button]:relative [&>td:not(:first-child)_button]:z-10"
 				)}>
@@ -150,8 +150,7 @@ export function EditorSessionTableRow({
 				<SessionEditsInsetRow
 					id={jobsRowId}
 					colSpan={7}
-					isExpanded={isExpanded}
-					className="aria-[hidden=false]:[&+tr>td]:border-t aria-[hidden=false]:[&+tr>td]:border-t-foreground/30">
+					isExpanded={isExpanded}>
 					<SessionEditsTable
 						session={session}
 						edits={session.edits}
