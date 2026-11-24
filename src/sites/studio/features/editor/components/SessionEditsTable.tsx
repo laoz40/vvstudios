@@ -1,23 +1,15 @@
 import { useState } from "react";
 import { useAction, useMutation, useQuery } from "convex/react";
-import { ArrowLeft, ArrowRight, LoaderCircle } from "lucide-react";
+import { ArrowLeft, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
-import { Badge } from "#/components/ui/badge";
 import { Button } from "#/components/ui/button";
-import {
-	Table,
-	TableBody,
-	TableCaption,
-	TableCell,
-	TableHead,
-	TableHeader,
-	TableRow
-} from "#/components/ui/table";
+import { TableCell, TableHead, TableRow } from "#/components/ui/table";
 import type { EditWorkStatus } from "#/domain/booking/edit-status";
 import { hasPermission } from "#/lib/permissions";
 import { tryCatch } from "#/lib/result";
-import { cn } from "#/lib/utils";
 import { api } from "#convex/_generated/api";
+import { SessionEditsTableLayout } from "#studio/features/sessions/components/SessionEditsTableLayout";
+import { EditStatusBadge } from "#studio/features/sessions/components/EditStatusBadge";
 import { editStatuses } from "#studio/features/sessions/lib/edit-status-display";
 import { EditorSendForReviewDialog } from "#studio/features/editor/components/EditorSendForReviewDialog";
 import { deliverablesEmailErrorToast } from "#studio/features/editor/lib/deliverables-email-errors";
@@ -51,16 +43,13 @@ function EditStatusControl({
 	const sendEditForStudioReview = useAction(api.editor.deliverablesEmail.sendEditForStudioReview);
 	const [action, setAction] = useState<EditAction>({ kind: "idle" });
 
-	const { label, className, icon: StatusIcon } = editStatuses[edit.status];
-
-	const { currentStep, totalSteps, nextStatus, undoStatus, sendToClient } = getEditStatusActions({
+	const { nextStatus, undoStatus, sendToClient } = getEditStatusActions({
 		status: edit.status,
 		canManageEdits,
 		canSendToClient
 	});
 
 	const sendLabel = sendToClient ? "Send to client" : "Send for review";
-	const isUpdating = action.kind === "updating";
 
 	const nextLabel =
 		nextStatus === undefined ? sendLabel : `Set to ${editStatuses[nextStatus].label}`;
@@ -120,23 +109,10 @@ function EditStatusControl({
 					<ArrowLeft aria-hidden />
 				</Button>
 			)}
-			<Badge className={cn(className, "px-1.5 text-sm leading-tight [&>svg]:size-4")}>
-				{isUpdating ? (
-					<>
-						<LoaderCircle
-							className="animate-spin"
-							aria-hidden
-						/>
-						<span className="sr-only">Updating</span>
-					</>
-				) : (
-					<StatusIcon aria-hidden />
-				)}
-				<span className="tabular-nums opacity-70">
-					{currentStep}/{totalSteps}
-				</span>
-				{label}
-			</Badge>
+			<EditStatusBadge
+				status={edit.status}
+				isUpdating={action.kind === "updating"}
+			/>
 			{nextStatus !== undefined || sendToClient !== undefined ? (
 				<Button
 					type="button"
@@ -196,36 +172,31 @@ export function SessionEditsTable({
 	const dueDate = formatShortMonthFullDate(dueAt);
 
 	return (
-		<Table className="table-fixed">
-			<TableCaption className="sr-only">Edits for {session.name}</TableCaption>
-			<TableHeader>
-				<TableRow>
-					<TableHead className="w-56">Status</TableHead>
-					<TableHead className="w-64">Edit</TableHead>
-					<TableHead className="w-32">Due</TableHead>
+		<SessionEditsTableLayout
+			sessionName={session.name}
+			afterDue={
+				<>
 					<TableHead>Feedback</TableHead>
 					<TableHead>Notes</TableHead>
+				</>
+			}>
+			{edits.map((edit) => (
+				<TableRow key={edit._id}>
+					<TableCell>
+						<EditStatusControl
+							session={session}
+							edit={edit}
+							canManageEdits={canManageEdits}
+							canSendToClient={canSendToClient}
+							onDownloadingStarted={onDownloadingStarted}
+						/>
+					</TableCell>
+					<TableCell className="font-medium whitespace-normal">{edit.label}</TableCell>
+					<TableCell className="text-muted-foreground">{dueDate}</TableCell>
+					<TableCell className="text-muted-foreground">-</TableCell>
+					<TableCell className="text-muted-foreground">-</TableCell>
 				</TableRow>
-			</TableHeader>
-			<TableBody>
-				{edits.map((edit) => (
-					<TableRow key={edit._id}>
-						<TableCell>
-							<EditStatusControl
-								session={session}
-								edit={edit}
-								canManageEdits={canManageEdits}
-								canSendToClient={canSendToClient}
-								onDownloadingStarted={onDownloadingStarted}
-							/>
-						</TableCell>
-						<TableCell className="font-medium whitespace-normal">{edit.label}</TableCell>
-						<TableCell className="text-muted-foreground">{dueDate}</TableCell>
-						<TableCell className="text-muted-foreground">-</TableCell>
-						<TableCell className="text-muted-foreground">-</TableCell>
-					</TableRow>
-				))}
-			</TableBody>
-		</Table>
+			))}
+		</SessionEditsTableLayout>
 	);
 }

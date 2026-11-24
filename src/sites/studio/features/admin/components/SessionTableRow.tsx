@@ -398,18 +398,16 @@ function SessionEditsToggle({
 	return (
 		<button
 			type="button"
-			className="inline-flex cursor-pointer rounded-full focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+			className="inline-flex cursor-pointer items-center gap-1.5 rounded-md focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
 			aria-expanded={expanded}
 			aria-controls={rowId}
 			onClick={onToggle}>
-			<Badge className={summary.className}>
-				{summary.label}
-				<ChevronRight
-					aria-hidden
-					data-expanded={expanded}
-					className="transition-transform data-[expanded=true]:rotate-90 motion-reduce:transition-none"
-				/>
-			</Badge>
+			<ChevronRight
+				aria-hidden
+				data-expanded={expanded}
+				className="size-4 transition-transform duration-200 ease-in data-[expanded=true]:rotate-90 motion-reduce:transition-none"
+			/>
+			<Badge className={summary.className}>{summary.label}</Badge>
 			<span className="sr-only"> · Edits for {sessionName}</span>
 		</button>
 	);
@@ -475,7 +473,7 @@ export function SessionTableRow({ onReceiptSearch, session }: SessionTableRowPro
 	const assignedEditorDisplayName = session.assignedEditorDisplayName ?? null;
 	const deliverablesEmailAction = useDeliverablesEmailAction(session);
 
-	const pastCellClassName = isPastSession ? "opacity-70" : undefined;
+	const pastCellClassName = isPastSession && !edits ? "opacity-70" : undefined;
 	let assignedEditorContent: ReactNode = null;
 
 	if (assignedEditorDisplayName) {
@@ -501,9 +499,9 @@ export function SessionTableRow({ onReceiptSearch, session }: SessionTableRowPro
 			<TableRow
 				data-expanded={editsExpanded}
 				className={cn(
-					isPastSession && "text-muted-foreground",
+					isPastSession && !edits && "text-muted-foreground",
 					edits &&
-						"cursor-pointer has-[+tr:last-child[data-session-edits]]:border-b-0 data-[expanded=true]:border-b-0 data-[expanded=true]:bg-muted/30 data-[expanded=true]:hover:bg-muted/40"
+						"cursor-pointer bg-muted hover:bg-muted has-[+tr:last-child[data-session-edits]]:border-b-0 data-[expanded=true]:border-b-0"
 				)}
 				onClick={
 					edits

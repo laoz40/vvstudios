@@ -1,23 +1,15 @@
 import { useState } from "react";
 import { useAction, useQuery } from "convex/react";
 import { toast } from "sonner";
-import { Badge } from "#/components/ui/badge";
 import { Button } from "#/components/ui/button";
-import {
-	Table,
-	TableBody,
-	TableCaption,
-	TableCell,
-	TableHead,
-	TableHeader,
-	TableRow
-} from "#/components/ui/table";
+import { TableCell, TableHead, TableRow } from "#/components/ui/table";
 import { tryCatch } from "#/lib/result";
 import { api } from "#convex/_generated/api";
 import { DeliverablesEmailDialog } from "#studio/features/admin/components/DeliverablesEmailDialog";
 import type { SessionRecord } from "#studio/features/admin/lib/admin-sessions";
 import { deliverablesEmailErrorToast } from "#studio/features/editor/lib/deliverables-email-errors";
-import { editStatuses } from "#studio/features/sessions/lib/edit-status-display";
+import { SessionEditsTableLayout } from "#studio/features/sessions/components/SessionEditsTableLayout";
+import { EditStatusBadge } from "#studio/features/sessions/components/EditStatusBadge";
 import {
 	formatDriveSessionMediaFolderName,
 	formatShortMonthFullDate,
@@ -105,48 +97,37 @@ export function AdminSessionEditsTable({
 
 	return (
 		<>
-			<Table>
-				<TableCaption className="sr-only">Edits for {session.name}</TableCaption>
-				<TableHeader>
-					<TableRow>
-						<TableHead className="w-40">Status</TableHead>
-						<TableHead>Edit</TableHead>
-						<TableHead className="w-32">Due</TableHead>
+			<SessionEditsTableLayout
+				sessionName={session.name}
+				afterDue={
+					canSend ? (
+						<TableHead>
+							<span className="sr-only">Actions</span>
+						</TableHead>
+					) : null
+				}>
+				{edits.map((edit) => (
+					<TableRow key={edit._id}>
+						<TableCell>
+							<EditStatusBadge status={edit.status} />
+						</TableCell>
+						<TableCell className="font-medium whitespace-normal">{edit.label}</TableCell>
+						<TableCell className="text-muted-foreground">{dueDate}</TableCell>
 						{canSend ? (
-							<TableHead className="w-40">
-								<span className="sr-only">Actions</span>
-							</TableHead>
+							<TableCell className="text-right">
+								<Button
+									type="button"
+									size="xs"
+									variant="outline"
+									aria-label={`Send deliverables for ${edit.label}`}
+									onClick={() => setSelectedEdit(edit)}>
+									Send deliverables
+								</Button>
+							</TableCell>
 						) : null}
 					</TableRow>
-				</TableHeader>
-				<TableBody>
-					{edits.map((edit) => {
-						const { label, className } = editStatuses[edit.status];
-
-						return (
-							<TableRow key={edit._id}>
-								<TableCell>
-									<Badge className={className}>{label}</Badge>
-								</TableCell>
-								<TableCell className="font-medium whitespace-normal">{edit.label}</TableCell>
-								<TableCell className="text-muted-foreground">{dueDate}</TableCell>
-								{canSend ? (
-									<TableCell className="text-right">
-										<Button
-											type="button"
-											size="sm"
-											variant="outline"
-											aria-label={`Send deliverables for ${edit.label}`}
-											onClick={() => setSelectedEdit(edit)}>
-											Send deliverables
-										</Button>
-									</TableCell>
-								) : null}
-							</TableRow>
-						);
-					})}
-				</TableBody>
-			</Table>
+				))}
+			</SessionEditsTableLayout>
 			{selectedEdit ? (
 				<SendEditDialog
 					session={session}

@@ -7,6 +7,7 @@ import {
 	Upload,
 	type LucideIcon
 } from "lucide-react";
+import { EDIT_WORK_STATUSES } from "#/domain/booking/edit-status";
 import type { Doc } from "#convex/_generated/dataModel";
 import { deliverableStatusBadgeClassNameMap } from "#studio/features/admin/lib/session-edit-status";
 
@@ -38,3 +39,10 @@ export const editStatuses = {
 	},
 	sent: { label: "Sent", className: deliverableStatusBadgeClassNameMap.completed, icon: Send }
 } satisfies Record<Doc<"edits">["status"], { label: string; className: string; icon: LucideIcon }>;
+
+export function getEditWorkStep(status: Doc<"edits">["status"]) {
+	const stepIndex = EDIT_WORK_STATUSES.findIndex((step) => step === status);
+	const totalSteps = EDIT_WORK_STATUSES.length + 1;
+
+	return { currentStep: stepIndex === -1 ? totalSteps : stepIndex + 1, totalSteps };
+}

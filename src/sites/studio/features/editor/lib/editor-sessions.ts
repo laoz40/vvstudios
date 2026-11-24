@@ -24,8 +24,6 @@ export function getEditStatusActions({
 	canSendToClient: boolean | undefined;
 }) {
 	const stepIndex = EDIT_WORK_STATUSES.findIndex((step) => step === status);
-	const totalSteps = EDIT_WORK_STATUSES.length + 1;
-	const currentStep = stepIndex === -1 ? totalSteps : stepIndex + 1;
 
 	const canChangeStatus = canManageEdits && stepIndex >= 0;
 
@@ -33,8 +31,6 @@ export function getEditStatusActions({
 		canManageEdits && (status === "uploading" || (status === "review" && canSendToClient));
 
 	return {
-		currentStep,
-		totalSteps,
 		nextStatus: canChangeStatus ? EDIT_WORK_STATUSES.at(stepIndex + 1) : undefined,
 		undoStatus: canChangeStatus && stepIndex > 0 ? EDIT_WORK_STATUSES.at(stepIndex - 1) : undefined,
 		sendToClient: canSend ? canSendToClient : undefined
