@@ -402,12 +402,12 @@ function SessionEditsToggle({
 			aria-expanded={expanded}
 			aria-controls={rowId}
 			onClick={onToggle}>
+			<Badge className={summary.className}>{summary.label}</Badge>
 			<ChevronRight
 				aria-hidden
 				data-expanded={expanded}
 				className="size-4 transition-transform duration-200 ease-in data-[expanded=true]:rotate-90 motion-reduce:transition-none"
 			/>
-			<Badge className={summary.className}>{summary.label}</Badge>
 			<span className="sr-only"> · Edits for {sessionName}</span>
 		</button>
 	);
@@ -499,9 +499,10 @@ export function SessionTableRow({ onReceiptSearch, session }: SessionTableRowPro
 			<TableRow
 				data-expanded={editsExpanded}
 				className={cn(
+					"bg-muted hover:bg-muted",
 					isPastSession && !edits && "text-muted-foreground",
 					edits &&
-						"cursor-pointer bg-muted hover:bg-muted has-[+tr:last-child[data-session-edits]]:border-b-0 data-[expanded=true]:border-b-0"
+						"cursor-pointer has-[+tr:last-child[data-session-edits]]:border-b-0 data-[expanded=true]:border-b-0"
 				)}
 				onClick={
 					edits
