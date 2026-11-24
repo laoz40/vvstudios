@@ -137,6 +137,6 @@ export function getEditDeliverySummary(edits: ReadonlyArray<Pick<Doc<"edits">, "
 
 	return {
 		label: `${sent} of ${edits.length} sent`,
-		className: "bg-secondary text-secondary-foreground"
+		className: "bg-primary text-primary-foreground"
 	};
 }

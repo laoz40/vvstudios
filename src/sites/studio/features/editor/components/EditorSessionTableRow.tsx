@@ -150,7 +150,8 @@ export function EditorSessionTableRow({
 				<SessionEditsInsetRow
 					id={jobsRowId}
 					colSpan={7}
-					isExpanded={isExpanded}>
+					isExpanded={isExpanded}
+					className="aria-[hidden=false]:[&+tr>td]:border-t aria-[hidden=false]:[&+tr>td]:border-t-foreground/30">
 					<SessionEditsTable
 						session={session}
 						edits={session.edits}

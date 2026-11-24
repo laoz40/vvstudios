@@ -503,7 +503,7 @@ export function SessionTableRow({ onReceiptSearch, session }: SessionTableRowPro
 				className={cn(
 					isPastSession && "text-muted-foreground",
 					edits &&
-						"cursor-pointer has-[+tr:last-child[data-session-edits]]:border-b-0 data-[expanded=true]:border-b-0"
+						"cursor-pointer has-[+tr:last-child[data-session-edits]]:border-b-0 data-[expanded=true]:border-b-0 data-[expanded=true]:bg-muted/30 data-[expanded=true]:hover:bg-muted/40"
 				)}
 				onClick={
 					edits

@@ -1,17 +1,20 @@
 import type { ReactNode } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { TableCell, TableRow } from "#/components/ui/table";
+import { cn } from "#/lib/utils";
 
 export function SessionEditsInsetRow({
 	id,
 	colSpan,
 	isExpanded,
-	children
+	children,
+	className
 }: {
 	id: string;
 	colSpan: number;
 	isExpanded: boolean;
 	children: ReactNode;
+	className?: string;
 }) {
 	const reduceMotion = useReducedMotion();
 
@@ -21,7 +24,10 @@ export function SessionEditsInsetRow({
 			data-session-edits=""
 			aria-hidden={!isExpanded}
 			inert={!isExpanded}
-			className="border-0 bg-background hover:bg-background has-[+tr]:[&_[data-inset]]:after:block aria-[hidden=false]:[&+tr>td]:border-t aria-[hidden=false]:[&+tr>td]:border-t-foreground/30">
+			className={cn(
+				"border-0 bg-background hover:bg-background has-[+tr]:[&_[data-inset]]:after:block",
+				className
+			)}>
 			<TableCell
 				colSpan={colSpan}
 				className="p-0">
