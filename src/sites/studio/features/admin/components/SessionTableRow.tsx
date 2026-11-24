@@ -499,7 +499,7 @@ export function SessionTableRow({ onReceiptSearch, session }: SessionTableRowPro
 			<TableRow
 				data-expanded={editsExpanded}
 				className={cn(
-					"bg-muted hover:bg-muted",
+					"bg-muted/25 hover:bg-muted/25",
 					isPastSession && !edits && "text-muted-foreground",
 					edits &&
 						"cursor-pointer has-[+tr:last-child[data-session-edits]]:border-b-0 data-[expanded=true]:border-b-0"
