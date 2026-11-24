@@ -37,30 +37,47 @@ export function requireEditorIdentity(identity: UserIdentity) {
 	return isAdminIdentity(identity) ? err({ reason: "NOT_AUTHORIZED" as const }) : ok(identity);
 }
 
-export function requireDeliverablesEmailPermission(
+export function authorizeEditDelivery(
 	editor: Doc<"editorProfiles"> | null,
-	session: Doc<"bookings">,
+	access: { identity: UserIdentity; session: Doc<"bookings">; edit: Doc<"edits"> },
 	recipient: DeliverablesEmailRecipient
 ) {
+	if (isAdminIdentity(access.identity)) {
+		return recipient === "client"
+			? ok({
+					editorName: "",
+					previousDeliveryAt: access.edit.deliveredAt,
+					allowedStatuses: undefined
+				})
+			: err({ reason: "NOT_AUTHORIZED" as const });
+	}
+
 	const canSendToClient =
-		editor?.canSendDeliverables === true && session.editDeliveryMode !== "studio_review_only";
+		editor?.canSendDeliverables === true &&
+		access.session.editDeliveryMode !== "studio_review_only";
 
 	if (editor === null || canSendToClient !== (recipient === "client")) {
 		return err({ reason: "NOT_AUTHORIZED" as const });
 	}
 
-	return ok(editor);
+	return ok({
+		editorName: editor.displayName,
+		previousDeliveryAt: undefined,
+		allowedStatuses: (recipient === "client"
+			? ["uploading", "review"]
+			: ["uploading"]) satisfies Doc<"edits">["status"][]
+	});
 }
 
 export function requireEditStatus(
 	edit: Doc<"edits">,
-	allowedStatuses: readonly Doc<"edits">["status"][]
+	allowedStatuses: readonly Doc<"edits">["status"][] | undefined
 ) {
 	if (edit.pendingEmail !== undefined && edit.pendingEmail.expiresAt > Date.now()) {
 		return err({ reason: "EDIT_EMAIL_IN_PROGRESS" as const });
 	}
 
-	return allowedStatuses.includes(edit.status)
+	return allowedStatuses === undefined || allowedStatuses.includes(edit.status)
 		? ok(edit)
 		: err({ reason: "INVALID_EDIT_STATUS" as const });
 }

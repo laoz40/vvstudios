@@ -1,17 +1,6 @@
 import { useState } from "react";
 import { useAction, useMutation, useQuery } from "convex/react";
-import {
-	ArrowLeft,
-	ArrowRight,
-	CircleCheck,
-	CircleX,
-	Download,
-	LoaderCircle,
-	Pencil,
-	Send,
-	Upload,
-	type LucideIcon
-} from "lucide-react";
+import { ArrowLeft, ArrowRight, LoaderCircle } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "#/components/ui/badge";
 import { Button } from "#/components/ui/button";
@@ -29,7 +18,7 @@ import { hasPermission } from "#/lib/permissions";
 import { tryCatch } from "#/lib/result";
 import { cn } from "#/lib/utils";
 import { api } from "#convex/_generated/api";
-import { deliverableStatusBadgeClassNameMap } from "#studio/features/admin/lib/session-edit-status";
+import { editStatuses } from "#studio/features/sessions/lib/edit-status-display";
 import { EditorSendForReviewDialog } from "#studio/features/editor/components/EditorSendForReviewDialog";
 import { deliverablesEmailErrorToast } from "#studio/features/editor/lib/deliverables-email-errors";
 import {
@@ -38,35 +27,6 @@ import {
 	type EditorSession
 } from "#studio/features/editor/lib/editor-sessions";
 import { formatShortMonthFullDate } from "#studio/lib/bookingdatetime";
-
-const statuses = {
-	not_started: {
-		label: "Not started",
-		className: "bg-destructive text-primary-foreground",
-		icon: CircleX
-	},
-	downloading: {
-		label: "Downloading",
-		className: deliverableStatusBadgeClassNameMap.downloading,
-		icon: Download
-	},
-	editing: {
-		label: "Editing",
-		className: deliverableStatusBadgeClassNameMap.editing,
-		icon: Pencil
-	},
-	uploading: {
-		label: "Uploading",
-		className: deliverableStatusBadgeClassNameMap.uploading,
-		icon: Upload
-	},
-	review: {
-		label: "Studio review",
-		className: deliverableStatusBadgeClassNameMap.review,
-		icon: CircleCheck
-	},
-	sent: { label: "Sent", className: deliverableStatusBadgeClassNameMap.completed, icon: Send }
-} satisfies Record<Edit["status"], { label: string; className: string; icon: LucideIcon }>;
 
 type EditAction =
 	| { kind: "idle" }
@@ -91,7 +51,7 @@ function EditStatusControl({
 	const sendEditForStudioReview = useAction(api.editor.deliverablesEmail.sendEditForStudioReview);
 	const [action, setAction] = useState<EditAction>({ kind: "idle" });
 
-	const { label, className, icon: StatusIcon } = statuses[edit.status];
+	const { label, className, icon: StatusIcon } = editStatuses[edit.status];
 
 	const { currentStep, totalSteps, nextStatus, undoStatus, sendToClient } = getEditStatusActions({
 		status: edit.status,
@@ -101,8 +61,12 @@ function EditStatusControl({
 
 	const sendLabel = sendToClient ? "Send to client" : "Send for review";
 	const isUpdating = action.kind === "updating";
-	const nextLabel = nextStatus === undefined ? sendLabel : `Set to ${statuses[nextStatus].label}`;
+
+	const nextLabel =
+		nextStatus === undefined ? sendLabel : `Set to ${editStatuses[nextStatus].label}`;
+
 	const confirmation = "toClient" in action ? action : null;
+
 	const args = { bookingId: session._id, editId: edit._id };
 
 	async function updateStatus(status: EditWorkStatus) {
@@ -149,8 +113,8 @@ function EditStatusControl({
 					type="button"
 					variant="outline"
 					size="icon-xs"
-					aria-label={`Back to ${statuses[undoStatus].label} for ${edit.label}`}
-					title={`Back to ${statuses[undoStatus].label}`}
+					aria-label={`Back to ${editStatuses[undoStatus].label} for ${edit.label}`}
+					title={`Back to ${editStatuses[undoStatus].label}`}
 					disabled={action.kind !== "idle"}
 					onClick={() => void updateStatus(undoStatus)}>
 					<ArrowLeft aria-hidden />

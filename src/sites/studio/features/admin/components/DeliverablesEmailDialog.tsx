@@ -6,6 +6,7 @@ import {
 	Dialog,
 	DialogClose,
 	DialogContent,
+	DialogDescription,
 	DialogFooter,
 	DialogHeader,
 	DialogTitle
@@ -25,7 +26,17 @@ import type { Doc } from "#convex/_generated/dataModel";
 
 type DeliverablesRecipient = { visibility: "shown"; email: string } | { visibility: "hidden" };
 
-export type DeliverablesEmailDialogProps = {
+type SessionDeliveryOutcome = {
+	kind: "session";
+	markAsSentAfterSending: boolean;
+	editorDueDate: string;
+	onEditorDueDateChange: (date: string) => void;
+	isStatusRepair: boolean;
+	hasAssignedEditor: boolean;
+	onMarkAsSentAfterSendingChange: (markAsSentAfterSending: boolean) => void;
+};
+
+type DeliverablesEmailDialogProps = {
 	bookingId: Doc<"bookings">["_id"];
 	bookingName: string;
 	deliverablesFolderName: string;
@@ -33,13 +44,8 @@ export type DeliverablesEmailDialogProps = {
 	editorNotes: string;
 	isFolderStatusLoading: boolean;
 	isSending: boolean;
-	markAsSentAfterSending: boolean;
-	editorDueDate: string;
-	onEditorDueDateChange: (date: string) => void;
-	isStatusRepair: boolean;
-	hasAssignedEditor: boolean;
+	outcome: SessionDeliveryOutcome | { kind: "edit"; label: string };
 	onEditorNotesChange: (editorNotes: string) => void;
-	onMarkAsSentAfterSendingChange: (markAsSentAfterSending: boolean) => void;
 	onOpenChange: (open: boolean) => void;
 	onSend: () => void;
 	open: boolean;
@@ -48,10 +54,6 @@ export type DeliverablesEmailDialogProps = {
 
 export function DeliverablesEmailDialog({
 	bookingId,
-	editorDueDate,
-	onEditorDueDateChange,
-	isStatusRepair,
-	hasAssignedEditor,
 	bookingName,
 	deliverablesFolderName,
 	deliverablesFolderUrl,
@@ -59,20 +61,21 @@ export function DeliverablesEmailDialog({
 	isFolderStatusLoading,
 	isSending,
 	onEditorNotesChange,
-	onMarkAsSentAfterSendingChange,
+	outcome,
 	onOpenChange,
 	onSend,
 	open,
-	recipient,
-	markAsSentAfterSending
+	recipient
 }: DeliverablesEmailDialogProps) {
-	const sendButtonLabel = getSendButtonLabel({ isSending, isStatusRepair, markAsSentAfterSending });
+	const isStatusRepair = outcome.kind === "session" && outcome.isStatusRepair;
+	const sendButtonLabel = getSendButtonLabel(isSending, outcome);
 
 	const canSend =
 		deliverablesFolderUrl !== undefined &&
-		!isFolderStatusLoading &&
 		!isSending &&
-		(markAsSentAfterSending || (editorDueDate !== "" && hasAssignedEditor));
+		(outcome.kind === "edit" ||
+			outcome.markAsSentAfterSending ||
+			(outcome.editorDueDate !== "" && outcome.hasAssignedEditor));
 
 	return (
 		<Dialog
@@ -109,7 +112,15 @@ export function DeliverablesEmailDialog({
 				</DialogClose>
 
 				<DialogHeader className="text-left">
-					<DialogTitle>Deliver deliverables</DialogTitle>
+					<DialogTitle>
+						{outcome.kind === "edit" ? "Send deliverables?" : "Deliver deliverables"}
+					</DialogTitle>
+					{outcome.kind === "edit" ? (
+						<DialogDescription>
+							Check that the finished files for <strong>{outcome.label}</strong> are in the
+							Deliverables folder.
+						</DialogDescription>
+					) : null}
 				</DialogHeader>
 
 				{recipient.visibility === "shown" ? (
@@ -164,16 +175,13 @@ export function DeliverablesEmailDialog({
 						/>
 					</Field>
 
-					<DeliveryOutcomeFields
-						bookingId={bookingId}
-						markAsSentAfterSending={markAsSentAfterSending}
-						onMarkAsSentAfterSendingChange={onMarkAsSentAfterSendingChange}
-						editorDueDate={editorDueDate}
-						onEditorDueDateChange={onEditorDueDateChange}
-						isSending={isSending}
-						isStatusRepair={isStatusRepair}
-						hasAssignedEditor={hasAssignedEditor}
-					/>
+					{outcome.kind === "session" ? (
+						<DeliveryOutcomeFields
+							bookingId={bookingId}
+							isSending={isSending}
+							{...outcome}
+						/>
+					) : null}
 				</FieldGroup>
 
 				<DialogFooter>
@@ -206,17 +214,8 @@ function DeliveryOutcomeFields({
 	isSending,
 	isStatusRepair,
 	hasAssignedEditor
-}: Pick<
-	DeliverablesEmailDialogProps,
-	| "bookingId"
-	| "markAsSentAfterSending"
-	| "onMarkAsSentAfterSendingChange"
-	| "editorDueDate"
-	| "onEditorDueDateChange"
-	| "isSending"
-	| "isStatusRepair"
-	| "hasAssignedEditor"
->) {
+}: Omit<SessionDeliveryOutcome, "kind"> &
+	Pick<DeliverablesEmailDialogProps, "bookingId" | "isSending">) {
 	return (
 		<>
 			<FieldSet disabled={isSending || isStatusRepair}>
@@ -288,14 +287,12 @@ function DeliveryOutcomeFields({
 	);
 }
 
-function getSendButtonLabel({
-	isSending,
-	isStatusRepair,
-	markAsSentAfterSending
-}: Pick<DeliverablesEmailDialogProps, "isSending" | "isStatusRepair" | "markAsSentAfterSending">) {
+function getSendButtonLabel(isSending: boolean, outcome: DeliverablesEmailDialogProps["outcome"]) {
 	if (isSending) return "Sending";
 
-	if (isStatusRepair) return "Retry assignment update";
+	if (outcome.kind === "edit") return "Send deliverables";
 
-	return markAsSentAfterSending ? "Send and mark as sent" : "Send and restart editing";
+	if (outcome.isStatusRepair) return "Retry assignment update";
+
+	return outcome.markAsSentAfterSending ? "Send and mark as sent" : "Send and restart editing";
 }

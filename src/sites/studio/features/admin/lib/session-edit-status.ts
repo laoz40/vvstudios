@@ -121,3 +121,22 @@ export function isDeliverableSession(session: SessionRecord) {
 
 	return !isUpcomingBooking(session.date, session.time);
 }
+
+export function getEditDeliverySummary(edits: ReadonlyArray<Pick<Doc<"edits">, "status">>) {
+	const inReview = edits.filter((edit) => edit.status === "review").length;
+
+	if (inReview > 0) {
+		return { label: `${inReview} to review`, className: deliverableStatusBadgeClassNameMap.review };
+	}
+
+	const sent = edits.filter((edit) => edit.status === "sent").length;
+
+	if (sent === edits.length) {
+		return { label: "All sent", className: deliverableStatusBadgeClassNameMap.completed };
+	}
+
+	return {
+		label: `${sent} of ${edits.length} sent`,
+		className: "bg-secondary text-secondary-foreground"
+	};
+}

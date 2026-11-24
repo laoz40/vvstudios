@@ -95,7 +95,7 @@ The stage of post-production for a session or an individual edit. The session's 
 The post-production work for one purchased item of an editing add-on. For example, when a client buys Complete Edit for two episodes in one session, each episode has its own edit status and delivery.
 
 **Legacy edit**:
-An edit for a session that already had an editor and unfinished editing work when per-edit delivery rolled out. The editor sends it to the studio for review, an admin delivers it to the client, and the client receives no revision allowance.
+An edit for a session that already had an editor and unfinished editing work when per-edit delivery rolled out. An admin delivers it to the client, and the client receives no revision allowance.
 
 **Studio review**:
 The stage after an editor hands off an edit for studio approval and before an admin sends it to the client.

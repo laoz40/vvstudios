@@ -46,11 +46,19 @@ Check for an equivalent proposal before adding an entry. Keep unapproved entries
 
 ### Deliver purchased edits independently
 
-- Behavior: new and legacy assignments with repeated edit and Clip Volume Pack units show one edit per unit. The arrow controls move each edit through Downloading, Editing and Uploading. Entering Downloading opens the session's Drive folders. A failed client email leaves the selected edit available for retry. A successful email marks just that edit Sent, and repeating initial send cannot email the client again. A legacy editor with client-send permission can send each edit to Studio review for admin delivery. Retrying rollout preserves the created edits and leaves completed sessions in History.
+- Behavior: new and legacy assignments with repeated edit and Clip Volume Pack units show one edit per unit. The arrow controls move each edit through Downloading, Editing and Uploading. Entering Downloading opens the session's Drive folders. A failed client email leaves the selected edit available for retry. A successful email marks just that edit Sent, and an editor cannot repeat the initial send. A legacy editor with client-send permission can send each edit to Studio review for admin delivery. Retrying rollout preserves the created edits and leaves completed sessions in History.
 - Regression: a missing or duplicate edit, a skipped status or missing Drive dialog, a retry blocked after an email failure, delivery recorded against another edit or package session, or a legacy edit that bypasses studio review.
 - Risk: 8/10. An edit may never reach the client, or a client may be told that the wrong edit is ready.
 - Gap: existing editor dashboard and deliverables email coverage exercises the session-level flow.
 - Level: E2E through assignment and both editor permission paths with controlled studio and client inboxes. Keep the failure and duplicate-send checks at the email boundary if the provider cannot reproduce those conditions reliably from the browser.
+
+### Finish an editor handoff from the admin dashboard
+
+- Behavior: an editor without client-send permission hands off one edit. The admin sees the review count, sends that edit, and can send another edit before its editor updates the status. The last delivery completes the session. A resend is available in All sessions, and a failed resend preserves the earlier delivery.
+- Regression: an editor can bypass studio review, an admin is blocked by a stale status, a send marks the wrong edit as delivered, or a failed resend erases the prior delivery.
+- Risk: 8/10. Delivery can be blocked or recorded against the wrong customer work.
+- Gap: the independent edit proposal covers editor controls and delivery. Existing coverage does not exercise the admin's send override, session completion, or resend.
+- Level: E2E with a controlled studio and client inbox and a simulated email failure for the resend.
 
 ### Number Drive folders using confirmed bookings only
 

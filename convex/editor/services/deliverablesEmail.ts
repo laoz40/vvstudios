@@ -78,7 +78,11 @@ export function lockEditForEmail(
 	return requestDeliverablesEmailLock(ctx, lock).map((delivery) => ({
 		...delivery,
 		lock,
-		idempotencyKey
+		// A retry uses the same key until the next successful delivery is recorded.
+		idempotencyKey:
+			delivery.previousDeliveryAt === undefined
+				? idempotencyKey
+				: `${idempotencyKey}:${delivery.previousDeliveryAt}`
 	}));
 }
 

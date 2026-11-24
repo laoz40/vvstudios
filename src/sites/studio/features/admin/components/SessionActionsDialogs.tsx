@@ -186,15 +186,17 @@ export function SessionActionsDialogs({
 				editorNotes={deliverablesEmailAction.deliverablesEditorNotesDraft}
 				isFolderStatusLoading={deliverablesEmailAction.isFolderStatusLoading}
 				isSending={deliverablesEmailAction.isEmailingDeliverables}
-				markAsSentAfterSending={deliverablesEmailAction.markDeliverablesAsSentAfterSending}
-				editorDueDate={deliverablesEmailAction.editorDueDate}
-				onEditorDueDateChange={deliverablesEmailAction.setEditorDueDate}
-				isStatusRepair={deliverablesEmailAction.isStatusRepair}
-				hasAssignedEditor={session.assignedEditorTokenIdentifier !== undefined}
+				outcome={{
+					kind: "session",
+					markAsSentAfterSending: deliverablesEmailAction.markDeliverablesAsSentAfterSending,
+					editorDueDate: deliverablesEmailAction.editorDueDate,
+					onEditorDueDateChange: deliverablesEmailAction.setEditorDueDate,
+					isStatusRepair: deliverablesEmailAction.isStatusRepair,
+					hasAssignedEditor: session.assignedEditorTokenIdentifier !== undefined,
+					onMarkAsSentAfterSendingChange:
+						deliverablesEmailAction.setMarkDeliverablesAsSentAfterSending
+				}}
 				onEditorNotesChange={deliverablesEmailAction.setDeliverablesEditorNotesDraft}
-				onMarkAsSentAfterSendingChange={
-					deliverablesEmailAction.setMarkDeliverablesAsSentAfterSending
-				}
 				onOpenChange={deliverablesEmailAction.setIsDeliverablesEmailDialogOpen}
 				onSend={() => {
 					void deliverablesEmailAction.handleEmailDeliverables();

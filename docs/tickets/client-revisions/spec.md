@@ -24,7 +24,7 @@ Track each purchased edit separately within the session. Send the client a Drive
 12. As an admin, I want to see which editors have client-send permission on Contractors, so that I can check who can deliver.
 13. As an approved editor, I want to send one edit at a time after uploading it, so that the client can start reviewing as soon as it is ready.
 14. As an editor who needs studio review, I want to flag one edit as ready and notify the studio, so that an admin can check it.
-15. As an admin, I want to send the reviewed edit to the client, so that I can control the final delivery.
+15. As an admin, I want to send an individual edit when the files are ready, so that I can deliver it even if the editor has yet to update its status.
 16. As an editor or admin, I want to add optional notes when sending an edit, so that I can explain anything the client needs to know.
 17. As an editor or admin, I want a failed email to leave delivery pending, so that I can retry it.
 18. As a client, I want the email to name the edit and include its Drive link and revision rules, so that I know what arrived and how to review it.
@@ -65,7 +65,7 @@ The session-level workflow lets an approved editor choose **Send to client** to 
 
 - At rollout, create one edit per purchased editing add-on unit for sessions with a saved editor assignment and unfinished editing work. Use the same expandable editor row and per-edit arrow controls as for new assignments. Apply this per session, including sessions within a package.
 - Start each legacy edit at **Not started**. Carry over the session's assigned editor and due date, using the normal default if no due date is saved. Leave completed sessions in **History**. Keep the existing single-status flow for sessions without editing add-ons.
-- Legacy edits always go through **Send for review**. Each handoff notifies the studio for that edit and shows **Studio review**. An admin sends that edit to the client, after which it shows **Sent**. The server enforces the studio handoff even when the assigned editor has client-send permission.
+- Editors use **Send for review** for legacy edits, even if they have client-send permission. Each handoff notifies the studio for that edit and shows **Studio review**. An admin sends the edit to the client when the files are ready, after which it shows **Sent**.
 - Legacy deliveries include the Drive link and have no private feedback link, client review window, or free or paid revision rounds. The session completes once all its edits are sent.
 - Preserve the session's delivery and revision eligibility when its editor changes. A session unassigned at rollout enters the normal workflow when assigned. Make edit creation safe to retry and avoid inferring per-edit delivery history or sending emails during rollout.
 
@@ -74,6 +74,7 @@ The session-level workflow lets an approved editor choose **Send to client** to 
 - Create one edit per purchased unit of an editing add-on in a session. Label repeated units by episode. Each Clip Volume Pack unit is one edit. Each package session has its own edits, deadlines and revision allowances.
 - Assign all edits to the session's editor at the same time. The admin sets one original due date at assignment. The default is six days after the session. An actionable round is due by 11:59 pm Sydney time on the second business day after it reaches the editor. When an edit has multiple open rounds, show the earliest due date.
 - The editor's list has one expandable row per session. Show session date and time, Admin Notes, Editor Notes and Drive at the session level. Remove the Service column. Use a yellow **Edits due** badge, a blue revision count, and a muted **All sent** label when every edit has been sent and no revision work is pending.
+- In the admin Sessions table, click the Deliverables badge or an open area of a session row to expand its edits. Keep the editor name below the badge. Show the number of edits in studio review when any need review. Otherwise, show the sent count or **All sent**.
 - The separate **Due** column shows the nearest unfinished due date in relative time. Keep urgency colours and sort by the underlying due date. The expanded edit table has its own headings for Status, Edit, Due, Client revisions and Feedback.
 - Use the next-step button to advance each edit from **Not started** through **Downloading**, **Editing** and **Uploading**. Starting **Downloading** opens the session's Drive folders. In the editor dashboard, use **Studio review** for a pending studio handoff, **Client review** while a delivered edit has an open revision window and no requested work, **Revision requested** for new revision work and **Sent** for delivered edits without an open window or requested work.
 - Derive the session status from its edits. Use `to_edit` when all are not started. Use `editing` when there is unfinished work after work has started, including a studio handoff, an open revision or a mix of sent and not-started edits. Once all edits are delivered and no requested work remains, use `review` while a client review window or eligible Checkout is open. Otherwise, mark the session `completed` automatically. Sessions that do not allow revisions complete as soon as the last edit is delivered.
@@ -83,11 +84,11 @@ The session-level workflow lets an approved editor choose **Send to client** to 
 ### Initial delivery and studio review
 
 - Send one edit at a time using its next-step button at **Uploading**. The editor uploads the finished files to Drive by hand before sending. Confirm the selected edit and offer optional notes.
-- For client delivery, check the actor's permission, assignment where applicable, edit identity, delivery eligibility and current status on the server. An approved editor uses **Send to client** on a non-legacy edit. The admin uses **Send deliverables** for the selected edit after studio review. Preserve the applicable Drive-link and delivery-email variant checks.
+- For client delivery, check the actor's permission, assignment where applicable, edit identity and delivery eligibility on the server. An approved editor uses **Send to client** on a non-legacy edit. An admin uses **Send deliverables** when the files are ready, regardless of the status set by the editor. Admins can also resend an edit marked **Sent**, including after the session completes. Preserve the applicable Drive-link and delivery-email variant checks.
 - Remove the **Mark as sent** and **Keep editing** choices from the admin's per-edit delivery flow. When the email succeeds, record delivery for the selected edit and leave the other edits at their current statuses. The app updates the overall session status automatically.
 - The client email names the edit and includes the Drive link. For revision-eligible edits, include the timestamp format, private feedback link, revision rules, free allowance, price and cap.
 - An editor without client-send permission or working on a legacy edit uses **Send for review** for that edit. It emails the studio and shows **Studio review** to staff. For eligible edits, the client's page still shows **Not delivered yet** before the first client email. A studio handoff leaves the client delivery time and window unchanged.
-- Record delivery only after the client email succeeds. Start a client review window for revision-eligible edits. If the email fails, leave the delivery state unchanged and allow a retry. Editors can send again only by fulfilling a client-submitted revision.
+- Record delivery only after the client email succeeds. Start a client review window only for an eligible delivery that includes a working feedback link. Deliveries made before client feedback goes live stay final. If the email fails, leave the delivery state unchanged and allow a retry. Editors can send again only by fulfilling a client-submitted revision.
 
 ### Client feedback and allowances
 

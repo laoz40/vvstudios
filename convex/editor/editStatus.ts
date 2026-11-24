@@ -3,7 +3,7 @@ import { ok, safeTry } from "neverthrow";
 import { tupleErr, tupleOk } from "#/lib/result";
 import { internalMutation, mutation } from "#convex/_generated/server";
 import {
-	loadAssignedEdit,
+	loadEditAccess,
 	authorizeAndLockDeliverablesEmail,
 	saveEditingStatus,
 	saveEditDeliverablesEmailResult,
@@ -20,10 +20,10 @@ export const updateEditStatus = mutation({
 	args: { ...editIdentity, status: editWorkStatusValidator },
 	handler: (ctx, args) =>
 		safeTry(async function* () {
-			const { session, edit } = yield* loadAssignedEdit(ctx, args, "update:deliverables");
-			yield* saveEditingStatus(ctx, edit, args.status);
+			const access = yield* loadEditAccess(ctx, args, "update:deliverables");
+			yield* saveEditingStatus(ctx, access, args.status);
 
-			return ok(yield* updateSessionStatusFromEdits(ctx, session));
+			return ok(yield* updateSessionStatusFromEdits(ctx, access.session));
 		}).match(tupleOk, tupleErr)
 });
 
@@ -31,15 +31,15 @@ export const lockEditForDeliverablesEmail = internalMutation({
 	args: { ...editIdentity, recipient: emailRecipient, lockId: v.string() },
 	handler: (ctx, args) =>
 		safeTry(async function* () {
-			const access = yield* loadAssignedEdit(
+			const access = yield* loadEditAccess(
 				ctx,
 				args,
 				args.recipient === "client" ? "send:deliverables-email" : "update:deliverables"
 			);
 
-			const editorName = yield* authorizeAndLockDeliverablesEmail(ctx, access, args);
+			const sender = yield* authorizeAndLockDeliverablesEmail(ctx, access, args);
 
-			return ok({ session: access.session, editLabel: access.edit.label, editorName });
+			return ok({ session: access.session, editLabel: access.edit.label, ...sender });
 		}).match(tupleOk, tupleErr)
 });
 

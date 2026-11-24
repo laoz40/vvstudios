@@ -80,8 +80,9 @@ export function RecurringDeliverablesEmail({
 						</Section>
 					) : null}
 					<Text style={paragraph}>
-						Let me know if you need anything else, and feel free to leave any feedback once
-						you&apos;ve had a look.
+						{editLabel
+							? "Let me know if you have any questions about your files."
+							: "Let me know if you need anything else, and feel free to leave any feedback once you've had a look."}
 					</Text>
 					<Text style={signoff}>Cheers,</Text>
 					<Text style={signature}>{signoffName}</Text>

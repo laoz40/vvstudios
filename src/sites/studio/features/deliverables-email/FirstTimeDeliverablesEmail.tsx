@@ -108,7 +108,9 @@ export function FirstTimeDeliverablesEmail({
 					<Section style={section}>
 						<Text style={sectionTitle}>Contact</Text>
 						<Text style={contactParagraph}>
-							If you have any questions or need revisions, you can always reach me at{" "}
+							{editLabel
+								? "If you have any questions, you can reach me at"
+								: "If you have any questions or need revisions, you can always reach me at"}{" "}
 							{BOOKING_INVOICE_BUSINESS.contactEmail} or {BOOKING_INVOICE_BUSINESS.contactPhone}.
 						</Text>
 					</Section>

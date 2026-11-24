@@ -1,3 +1,4 @@
+import type { UserIdentity } from "convex/server";
 import { ok, safeTry } from "neverthrow";
 import { EDIT_WORK_STATUSES, type EditWorkStatus } from "#/domain/booking/edit-status";
 import type { Doc, Id } from "#convex/_generated/dataModel";
@@ -8,9 +9,9 @@ import {
 	loadEdit,
 	patchEditStatus,
 	saveDeliverablesEmailResult,
+	authorizeEditDelivery,
 	requireEditStatus,
 	requireEditorIdentity,
-	requireDeliverablesEmailPermission,
 	requireSessionEdit,
 	type DeliverablesEmailRecipient,
 	type DeliverablesEmailOutcome
@@ -35,13 +36,13 @@ function loadSessionEdit(ctx: MutationCtx, session: Doc<"bookings">, editId: Id<
 	});
 }
 
-export function loadAssignedEdit(ctx: MutationCtx, args: EditIdentity, permission: Permission) {
+export function loadEditAccess(ctx: MutationCtx, args: EditIdentity, permission: Permission) {
 	return safeTry(async function* () {
 		const identity = yield* requirePermission(ctx, permission);
 		const session = yield* getSessionFromDb(ctx, args.bookingId);
 		const access = yield* requireDeliverablesOwnership({ identity, session });
 		yield* requireDeliverablesEligibility(access);
-		yield* requireEditorIdentity(identity);
+
 		const edit = yield* loadSessionEdit(ctx, session, args.editId);
 
 		return ok({ identity, session, edit });
@@ -50,25 +51,22 @@ export function loadAssignedEdit(ctx: MutationCtx, args: EditIdentity, permissio
 
 export function authorizeAndLockDeliverablesEmail(
 	ctx: MutationCtx,
-	access: { identity: { tokenIdentifier: string }; session: Doc<"bookings">; edit: Doc<"edits"> },
+	access: { identity: UserIdentity; session: Doc<"bookings">; edit: Doc<"edits"> },
 	args: { recipient: DeliverablesEmailRecipient; lockId: string }
 ) {
 	return safeTry(async function* () {
 		const editor = yield* getEditorByToken(ctx, access.identity.tokenIdentifier);
 
-		const authorized = yield* requireDeliverablesEmailPermission(
+		const { editorName, previousDeliveryAt, allowedStatuses } = yield* authorizeEditDelivery(
 			editor,
-			access.session,
+			access,
 			args.recipient
 		);
 
-		yield* requireEditStatus(
-			access.edit,
-			args.recipient === "client" ? ["uploading", "review"] : ["uploading"]
-		);
+		yield* requireEditStatus(access.edit, allowedStatuses);
 		yield* saveDeliverablesEmailLock(ctx, access.edit, args.lockId);
 
-		return ok(authorized.displayName);
+		return ok({ editorName, previousDeliveryAt });
 	});
 }
 
@@ -85,11 +83,16 @@ export function updateSessionStatusFromEdits(ctx: MutationCtx, session: Doc<"boo
 	});
 }
 
-export function saveEditingStatus(ctx: MutationCtx, edit: Doc<"edits">, status: EditWorkStatus) {
+export function saveEditingStatus(
+	ctx: MutationCtx,
+	access: { identity: UserIdentity; edit: Doc<"edits"> },
+	status: EditWorkStatus
+) {
 	return safeTry(async function* () {
-		yield* requireEditStatus(edit, EDIT_WORK_STATUSES);
+		yield* requireEditorIdentity(access.identity);
+		yield* requireEditStatus(access.edit, EDIT_WORK_STATUSES);
 
-		return ok(yield* patchEditStatus(ctx, edit, { status }));
+		return ok(yield* patchEditStatus(ctx, access.edit, { status }));
 	});
 }
 
