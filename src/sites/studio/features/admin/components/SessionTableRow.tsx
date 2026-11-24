@@ -473,7 +473,7 @@ export function SessionTableRow({ onReceiptSearch, session }: SessionTableRowPro
 	const assignedEditorDisplayName = session.assignedEditorDisplayName ?? null;
 	const deliverablesEmailAction = useDeliverablesEmailAction(session);
 
-	const pastCellClassName = isPastSession && !edits ? "opacity-70" : undefined;
+	const pastCellClassName = isPastSession ? "opacity-70" : undefined;
 	let assignedEditorContent: ReactNode = null;
 
 	if (assignedEditorDisplayName) {
@@ -500,7 +500,7 @@ export function SessionTableRow({ onReceiptSearch, session }: SessionTableRowPro
 				data-expanded={editsExpanded}
 				className={cn(
 					"bg-background hover:bg-background data-[expanded=true]:bg-muted/15 data-[expanded=true]:hover:bg-muted/15",
-					isPastSession && !edits && "text-muted-foreground",
+					isPastSession && "text-muted-foreground",
 					edits &&
 						"cursor-pointer has-[+tr:last-child[data-session-edits]]:border-b-0 data-[expanded=true]:border-b-0"
 				)}
