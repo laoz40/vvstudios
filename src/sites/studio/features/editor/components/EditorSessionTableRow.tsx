@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { ChevronDown, ChevronRight, Pencil } from "lucide-react";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import { ChevronRight, Pencil } from "lucide-react";
 import { Button } from "#/components/ui/button";
 import { TableCell, TableRow } from "#/components/ui/table";
 import { cn } from "#/lib/utils";
@@ -36,18 +37,19 @@ export function EditorSessionTableRow({
 	const [isDriveDialogOpen, setIsDriveDialogOpen] = useState(false);
 	const [isExpanded, setIsExpanded] = useState(false);
 	const jobsRowId = `edits-${session._id}`;
-	const ExpandIcon = isExpanded ? ChevronDown : ChevronRight;
+	const reduceMotion = useReducedMotion();
 
 	const isPastSession = !isUpcomingBooking(session.date, session.time);
 
 	return (
 		<>
 			<TableRow
-				className={
-					due.editsDue === undefined
-						? undefined
-						: "relative isolate [&>td:not(:first-child)_button]:relative [&>td:not(:first-child)_button]:z-10"
-				}>
+				data-expanded={isExpanded}
+				className={cn(
+					"bg-muted hover:bg-muted has-[+tr:last-child[data-session-edits]]:border-b-0 data-[expanded=true]:border-b-0",
+					due.editsDue !== undefined &&
+						"relative isolate [&>td:not(:first-child)_button]:relative [&>td:not(:first-child)_button]:z-10"
+				)}>
 				<TableCell className="text-left">
 					{due.editsDue === undefined ? (
 						<EditorDeliverableStatusBadge
@@ -62,8 +64,9 @@ export function EditorSessionTableRow({
 							aria-expanded={isExpanded}
 							aria-controls={jobsRowId}
 							onClick={() => setIsExpanded((expanded) => !expanded)}>
-							<ExpandIcon
-								className="size-4"
+							<ChevronRight
+								data-expanded={isExpanded}
+								className="size-4 transition-transform duration-200 ease-in data-[expanded=true]:rotate-90 motion-reduce:transition-none"
 								aria-hidden
 							/>
 							{due.editsDue > 0 ? (
@@ -147,19 +150,35 @@ export function EditorSessionTableRow({
 			{session.edits === undefined ? null : (
 				<TableRow
 					id={jobsRowId}
-					hidden={!isExpanded}>
+					data-session-edits=""
+					aria-hidden={!isExpanded}
+					inert={!isExpanded}
+					className="border-0 bg-background hover:bg-background has-[+tr]:[&_[data-inset]]:after:block aria-[hidden=false]:[&+tr>td]:border-t aria-[hidden=false]:[&+tr>td]:border-t-foreground/30">
 					<TableCell
 						colSpan={7}
-						className="bg-muted/50 px-4 py-3">
-						{isExpanded ? (
-							<SessionEditsTable
-								session={session}
-								edits={session.edits}
-								dueAt={due.dueAt}
-								canManageEdits={isPastSession}
-								onDownloadingStarted={() => setIsDriveDialogOpen(true)}
-							/>
-						) : null}
+						className="p-0">
+						<AnimatePresence initial={false}>
+							{isExpanded ? (
+								<motion.div
+									initial={{ height: 0, opacity: 0 }}
+									animate={{ height: "auto", opacity: 1 }}
+									exit={{ height: 0, opacity: 0 }}
+									transition={{ duration: reduceMotion ? 0 : 0.2, ease: "easeIn" }}
+									className="overflow-hidden">
+									<div
+										data-inset=""
+										className="relative bg-muted/50 px-3 pt-1 pb-2 before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-1.5 before:bg-linear-to-b before:from-(--shadow-color)/45 before:to-transparent after:pointer-events-none after:absolute after:inset-x-0 after:bottom-0 after:z-10 after:hidden after:h-1.5 after:bg-linear-to-t after:from-(--shadow-color)/40 after:to-transparent">
+										<SessionEditsTable
+											session={session}
+											edits={session.edits}
+											dueAt={due.dueAt}
+											canManageEdits={isPastSession}
+											onDownloadingStarted={() => setIsDriveDialogOpen(true)}
+										/>
+									</div>
+								</motion.div>
+							) : null}
+						</AnimatePresence>
 					</TableCell>
 				</TableRow>
 			)}
