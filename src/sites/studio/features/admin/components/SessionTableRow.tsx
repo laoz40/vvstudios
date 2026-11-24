@@ -1,5 +1,5 @@
 import { useState, type ReactNode, type MouseEvent } from "react";
-import { ChevronRight, CircleAlert } from "lucide-react";
+import { CircleAlert } from "lucide-react";
 import { Badge } from "#/components/ui/badge";
 import { Button } from "#/components/ui/button";
 import { TableCell, TableRow } from "#/components/ui/table";
@@ -398,16 +398,11 @@ function SessionEditsToggle({
 	return (
 		<button
 			type="button"
-			className="inline-flex cursor-pointer items-center gap-1.5 rounded-md focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+			className="inline-flex cursor-pointer rounded-full focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
 			aria-expanded={expanded}
 			aria-controls={rowId}
 			onClick={onToggle}>
 			<Badge className={summary.className}>{summary.label}</Badge>
-			<ChevronRight
-				aria-hidden
-				data-expanded={expanded}
-				className="size-4 transition-transform duration-200 ease-in data-[expanded=true]:rotate-90 motion-reduce:transition-none"
-			/>
 			<span className="sr-only"> · Edits for {sessionName}</span>
 		</button>
 	);
