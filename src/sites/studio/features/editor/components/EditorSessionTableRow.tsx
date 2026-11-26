@@ -1,6 +1,10 @@
 import { useState } from "react";
 import { ChevronRight, Pencil } from "lucide-react";
-import { SessionEditsInsetRow } from "#studio/features/sessions/components/SessionEditsInsetRow";
+import {
+	isEditsRowClick,
+	SessionEditsInsetRow
+} from "#studio/features/sessions/components/SessionEditsInsetRow";
+import { SessionServiceCell } from "#studio/features/sessions/components/SessionServiceCell";
 import { Button } from "#/components/ui/button";
 import { TableCell, TableRow } from "#/components/ui/table";
 import { cn } from "#/lib/utils";
@@ -46,9 +50,15 @@ export function EditorSessionTableRow({
 				data-expanded={isExpanded}
 				className={cn(
 					"bg-background hover:bg-background has-[+tr:last-child[data-session-edits]]:border-b-0 data-[expanded=true]:border-b-0 data-[expanded=true]:bg-muted/15 data-[expanded=true]:hover:bg-muted/15",
-					due.editsDue !== undefined &&
-						"relative isolate [&>td:not(:first-child)_button]:relative [&>td:not(:first-child)_button]:z-10"
-				)}>
+					due.editsDue !== undefined && "cursor-pointer"
+				)}
+				onClick={
+					due.editsDue !== undefined
+						? (event) => {
+								if (isEditsRowClick(event)) setIsExpanded((expanded) => !expanded);
+							}
+						: undefined
+				}>
 				<TableCell className="text-left">
 					{due.editsDue === undefined ? (
 						<EditorDeliverableStatusBadge
@@ -59,7 +69,7 @@ export function EditorSessionTableRow({
 					) : (
 						<button
 							type="button"
-							className="inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-md px-2.5 font-medium after:absolute after:inset-0 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+							className="inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-md px-2.5 font-medium focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
 							aria-expanded={isExpanded}
 							aria-controls={jobsRowId}
 							onClick={() => setIsExpanded((expanded) => !expanded)}>
@@ -90,6 +100,12 @@ export function EditorSessionTableRow({
 						<p className="font-medium">{formatBookingDateMedium(session.date)}</p>
 						<p className="text-sm text-muted-foreground">{formatBookingTimeLabel(session.time)}</p>
 					</div>
+				</TableCell>
+				<TableCell>
+					<SessionServiceCell
+						duration={session.duration}
+						session={session}
+					/>
 				</TableCell>
 				<TableCell>
 					{due.showDue && due.daysUntilDue !== null ? (
@@ -149,7 +165,7 @@ export function EditorSessionTableRow({
 			{session.edits === undefined ? null : (
 				<SessionEditsInsetRow
 					id={jobsRowId}
-					colSpan={7}
+					colSpan={8}
 					isExpanded={isExpanded}>
 					<SessionEditsTable
 						session={session}

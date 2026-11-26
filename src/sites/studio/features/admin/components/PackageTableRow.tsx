@@ -1,4 +1,3 @@
-import { Badge } from "#/components/ui/badge";
 import { exhaustiveCheck } from "#/lib/result";
 import { Button } from "#/components/ui/button";
 import { TableCell, TableRow } from "#/components/ui/table";
@@ -8,7 +7,8 @@ import {
 	formatInstagramHandle
 } from "#studio/features/admin/components/AdminDashboardTableUtils";
 import { PrivacySensitiveText } from "#studio/features/admin/components/PrivacySensitiveText";
-import { formatDashboardAddonLabel } from "#studio/features/booking-form/lib/editing-addon-quantities";
+import { sortDashboardAddons } from "#studio/features/booking-form/lib/editing-addon-quantities";
+import { DashboardAddonBadge } from "#studio/features/sessions/components/SessionServiceCell";
 import { AdminTableInfoPopover } from "#studio/features/admin/components/AdminTableInfoPopover";
 import { PackageActions } from "#studio/features/admin/components/PackageActions";
 import { StatusIcon } from "#studio/features/admin/components/StatusIcon";
@@ -270,12 +270,12 @@ export function PackageTableRow({
 			<TableCell className={cn("min-w-48 whitespace-normal", inactiveCellClassName)}>
 				{packageRow.addons.length > 0 ? (
 					<div className="flex flex-wrap gap-1">
-						{packageRow.addons.map((addon) => (
-							<Badge
+						{sortDashboardAddons(packageRow.addons).map((addon) => (
+							<DashboardAddonBadge
 								key={addon}
-								variant="outline">
-								{formatDashboardAddonLabel(addon, packageRow)}
-							</Badge>
+								addon={addon}
+								quantities={packageRow}
+							/>
 						))}
 					</div>
 				) : (
