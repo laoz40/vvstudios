@@ -195,6 +195,7 @@ export function SessionEditsTable({
 			}>
 			{edits.map((edit) => (
 				<TableRow key={edit._id}>
+					<TableCell className="font-medium whitespace-normal">{edit.label}</TableCell>
 					<TableCell>
 						<EditStatusControl
 							session={session}
@@ -204,7 +205,6 @@ export function SessionEditsTable({
 							onDownloadingStarted={onDownloadingStarted}
 						/>
 					</TableCell>
-					<TableCell className="font-medium whitespace-normal">{edit.label}</TableCell>
 					<TableCell>
 						{edit.status === "sent" ? (
 							<span className="text-muted-foreground">-</span>

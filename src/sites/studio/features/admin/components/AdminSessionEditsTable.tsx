@@ -108,10 +108,10 @@ export function AdminSessionEditsTable({
 				}>
 				{edits.map((edit) => (
 					<TableRow key={edit._id}>
+						<TableCell className="font-medium whitespace-normal">{edit.label}</TableCell>
 						<TableCell>
 							<EditStatusBadge status={edit.status} />
 						</TableCell>
-						<TableCell className="font-medium whitespace-normal">{edit.label}</TableCell>
 						<TableCell className="text-muted-foreground">{dueDate}</TableCell>
 						{canSend ? (
 							<TableCell className="text-right">
