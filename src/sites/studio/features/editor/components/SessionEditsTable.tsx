@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useAction, useMutation, useQuery } from "convex/react";
-import { ArrowLeft, ArrowRight } from "lucide-react";
+import { ArrowRight, Undo2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "#/components/ui/button";
 import { TableCell, TableHead, TableRow } from "#/components/ui/table";
@@ -91,45 +91,46 @@ function EditStatusControl({
 	}
 
 	return (
-		<div className="flex items-center gap-1">
-			{undoStatus === undefined ? (
-				<span
-					aria-hidden
-					className="size-6 shrink-0"
-				/>
-			) : (
-				<Button
-					type="button"
-					variant="outline"
-					size="icon-xs"
-					aria-label={`Back to ${editStatuses[undoStatus].label} for ${edit.label}`}
-					title={`Back to ${editStatuses[undoStatus].label}`}
-					disabled={action.kind !== "idle"}
-					onClick={() => void updateStatus(undoStatus)}>
-					<ArrowLeft aria-hidden />
-				</Button>
-			)}
+		<div className="flex items-center gap-2">
 			<EditStatusBadge
 				status={edit.status}
 				isUpdating={action.kind === "updating"}
 			/>
-			{nextStatus !== undefined || sendToClient !== undefined ? (
-				<Button
-					type="button"
-					variant="outline"
-					size="icon-xs"
-					aria-label={`${nextLabel} for ${edit.label}`}
-					title={nextLabel}
-					disabled={action.kind !== "idle"}
-					onClick={() => {
-						if (nextStatus !== undefined) {
-							void updateStatus(nextStatus);
-						} else if (sendToClient !== undefined) {
-							setAction({ kind: "confirming", toClient: sendToClient });
-						}
-					}}>
-					<ArrowRight aria-hidden />
-				</Button>
+			{undoStatus !== undefined || nextStatus !== undefined || sendToClient !== undefined ? (
+				<div className="flex items-center gap-1">
+					{nextStatus !== undefined || sendToClient !== undefined ? (
+						<Button
+							type="button"
+							variant="outline"
+							size="xs"
+							aria-label={`${nextLabel} for ${edit.label}`}
+							title={nextLabel}
+							disabled={action.kind !== "idle"}
+							onClick={() => {
+								if (nextStatus !== undefined) {
+									void updateStatus(nextStatus);
+								} else if (sendToClient !== undefined) {
+									setAction({ kind: "confirming", toClient: sendToClient });
+								}
+							}}>
+							Next
+							<ArrowRight aria-hidden />
+						</Button>
+					) : null}
+					{undoStatus !== undefined ? (
+						<Button
+							type="button"
+							variant="ghost"
+							size="icon-xs"
+							className="text-muted-foreground"
+							aria-label={`Back to ${editStatuses[undoStatus].label} for ${edit.label}`}
+							title={`Back to ${editStatuses[undoStatus].label}`}
+							disabled={action.kind !== "idle"}
+							onClick={() => void updateStatus(undoStatus)}>
+							<Undo2 aria-hidden />
+						</Button>
+					) : null}
+				</div>
 			) : null}
 			{confirmation !== null ? (
 				<EditorSendForReviewDialog
