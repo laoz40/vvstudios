@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useState, type ReactNode, type MouseEvent } from "react";
 import { CircleAlert } from "lucide-react";
 import { Badge } from "#/components/ui/badge";
 import { Button } from "#/components/ui/button";
@@ -12,6 +12,8 @@ import {
 } from "#/components/ui/dropdown-menu";
 import { useTextOverflow } from "#studio/hooks/useTextOverflow";
 import { cn } from "#/lib/utils";
+import { AdminSessionEditsTable } from "#studio/features/admin/components/AdminSessionEditsTable";
+import { SessionEditsInsetRow } from "#studio/features/sessions/components/SessionEditsInsetRow";
 import { AdminTableInfoPopover } from "#studio/features/admin/components/AdminTableInfoPopover";
 import { SessionAmountPopover } from "#studio/features/admin/components/SessionAmountPopover";
 import { SessionActions } from "#studio/features/admin/components/SessionActions";
@@ -29,6 +31,7 @@ import {
 	deliverableStatusBadgeVariantMap,
 	deliverableStatusLabelMap,
 	getDeliverableStatus,
+	getEditDeliverySummary,
 	isDeliverableSession
 } from "#studio/features/admin/lib/session-edit-status";
 import { SessionServiceCell } from "#studio/features/sessions/components/SessionServiceCell";
@@ -377,7 +380,87 @@ function PackageSessionProgress({
 	);
 }
 
+function SessionEditsToggle({
+	sessionName,
+	edits,
+	expanded,
+	rowId,
+	onToggle
+}: {
+	sessionName: string;
+	edits: NonNullable<SessionRecord["edits"]>;
+	expanded: boolean;
+	rowId: string;
+	onToggle: () => void;
+}) {
+	const summary = getEditDeliverySummary(edits);
+
+	return (
+		<button
+			type="button"
+			className="inline-flex cursor-pointer rounded-full focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+			aria-expanded={expanded}
+			aria-controls={rowId}
+			onClick={onToggle}>
+			<Badge className={summary.className}>{summary.label}</Badge>
+			<span className="sr-only"> · Edits for {sessionName}</span>
+		</button>
+	);
+}
+
+function SessionDeliverableBadge({
+	session,
+	isDeliverable,
+	onReview
+}: {
+	session: SessionRecord;
+	isDeliverable: boolean;
+	onReview: () => void;
+}) {
+	if (!isDeliverable) return null;
+
+	const status = getDeliverableStatus(session);
+
+	const displayStatus =
+		status === "to_edit" && session.assignedEditorTokenIdentifier === undefined
+			? "unassigned"
+			: status;
+
+	const badge = (
+		<Badge
+			variant={deliverableStatusBadgeVariantMap[displayStatus]}
+			className={deliverableStatusBadgeClassNameMap[displayStatus]}>
+			{deliverableStatusLabelMap[displayStatus]}
+		</Badge>
+	);
+
+	return status === "review" ? (
+		<button
+			type="button"
+			onClick={onReview}>
+			{badge}
+		</button>
+	) : (
+		badge
+	);
+}
+
+function isEditsRowClick(event: MouseEvent<HTMLTableRowElement>) {
+	const { target, currentTarget } = event;
+
+	return (
+		target instanceof Element &&
+		currentTarget.contains(target) &&
+		!target.closest("button, a, input, select, textarea, [role=button]") &&
+		currentTarget.ownerDocument.getSelection()?.type !== "Range"
+	);
+}
+
 export function SessionTableRow({ onReceiptSearch, session }: SessionTableRowProps) {
+	const [editsExpanded, setEditsExpanded] = useState(false);
+	const edits = session.edits?.length ? session.edits : undefined;
+	const editsRowId = `admin-edits-${session._id}`;
+	const isDeliverable = isDeliverableSession(session);
 	const isPastSession = !isUpcomingBooking(session.date, session.time);
 	const relativeDateLabel = formatBookingRelativeDate(session.date);
 	const packageSessionProgressLabel = getPackageSessionProgressLabel(session);
@@ -385,38 +468,7 @@ export function SessionTableRow({ onReceiptSearch, session }: SessionTableRowPro
 	const assignedEditorDisplayName = session.assignedEditorDisplayName ?? null;
 	const deliverablesEmailAction = useDeliverablesEmailAction(session);
 
-	const editStatus = isDeliverableSession(session) ? getDeliverableStatus(session) : null;
-
-	const deliverableStatus =
-		editStatus === "to_edit" && session.assignedEditorTokenIdentifier === undefined
-			? "unassigned"
-			: editStatus;
-
 	const pastCellClassName = isPastSession ? "opacity-70" : undefined;
-	let deliverableStatusContent: ReactNode = null;
-
-	if (deliverableStatus === "review") {
-		deliverableStatusContent = (
-			<button
-				type="button"
-				onClick={() => deliverablesEmailAction.setIsDeliverablesEmailDialogOpen(true)}>
-				<Badge
-					variant={deliverableStatusBadgeVariantMap.review}
-					className={deliverableStatusBadgeClassNameMap.review}>
-					{deliverableStatusLabelMap.review}
-				</Badge>
-			</button>
-		);
-	} else if (deliverableStatus) {
-		deliverableStatusContent = (
-			<Badge
-				variant={deliverableStatusBadgeVariantMap[deliverableStatus]}
-				className={deliverableStatusBadgeClassNameMap[deliverableStatus]}>
-				{deliverableStatusLabelMap[deliverableStatus]}
-			</Badge>
-		);
-	}
-
 	let assignedEditorContent: ReactNode = null;
 
 	if (assignedEditorDisplayName) {
@@ -438,92 +490,134 @@ export function SessionTableRow({ onReceiptSearch, session }: SessionTableRowPro
 	}
 
 	return (
-		<TableRow
-			key={session._id}
-			className={isPastSession ? "text-muted-foreground" : undefined}>
-			<TableCell className={cn("text-center", pastCellClassName)}>
-				<div className="flex justify-center">
-					<StatusIcon
-						icon={sessionStatusIconMap[session.status]}
-						label={sessionStatusLabelMap[session.status]}
-						className={sessionStatusIconClassNameMap[session.status]}
+		<>
+			<TableRow
+				data-expanded={editsExpanded}
+				className={cn(
+					"bg-background hover:bg-background data-[expanded=true]:bg-muted/15 data-[expanded=true]:hover:bg-muted/15",
+					isPastSession && "text-muted-foreground",
+					edits &&
+						"cursor-pointer has-[+tr:last-child[data-session-edits]]:border-b-0 data-[expanded=true]:border-b-0"
+				)}
+				onClick={
+					edits
+						? (event) => {
+								if (isEditsRowClick(event)) setEditsExpanded((expanded) => !expanded);
+							}
+						: undefined
+				}>
+				<TableCell className={cn("text-center", pastCellClassName)}>
+					<div className="flex justify-center">
+						<StatusIcon
+							icon={sessionStatusIconMap[session.status]}
+							label={sessionStatusLabelMap[session.status]}
+							className={sessionStatusIconClassNameMap[session.status]}
+						/>
+					</div>
+				</TableCell>
+				<TableCell className={pastCellClassName}>
+					<SessionCustomerCell
+						onSearch={onReceiptSearch}
+						rowId={session._id}
+						session={session}
 					/>
-				</div>
-			</TableCell>
-			<TableCell className={pastCellClassName}>
-				<SessionCustomerCell
-					onSearch={onReceiptSearch}
-					rowId={session._id}
-					session={session}
-				/>
-			</TableCell>
-			<TableCell className={pastCellClassName}>
-				<AdminTableInfoPopover
-					content={relativeDateLabel}
-					className="flex w-full flex-col gap-1 whitespace-normal">
-					<p className="font-medium whitespace-nowrap">{formatBookingDateMedium(session.date)}</p>
-					<p className="text-sm text-muted-foreground">
-						{session.duration
-							? `${formatBookingTimeLabel(session.time)} · ${formatAdminDashboardDuration(session.duration)}`
-							: formatBookingTimeLabel(session.time)}
-					</p>
-				</AdminTableInfoPopover>
-			</TableCell>
-			<TableCell className={pastCellClassName}>
-				<SessionServiceCell
-					className="min-w-48"
-					session={session}
-				/>
-			</TableCell>
-			<TableCell className={pastCellClassName}>
-				<SessionContactCell
-					onSearch={onReceiptSearch}
-					rowId={session._id}
-					session={session}
-				/>
-			</TableCell>
-			<TableCell className={cn("text-center", pastCellClassName)}>
-				<PackageSessionProgress
-					label={packageSessionProgressLabel}
-					onReceiptSearch={onReceiptSearch}
-					receiptNumber={packageReceiptNumber}
-				/>
-			</TableCell>
-			<TableCell className={pastCellClassName}>
-				<SessionNotesCell
-					session={session}
-					isPastSession={isPastSession}
-				/>
-			</TableCell>
-			<TableCell className={cn("text-right tabular-nums", pastCellClassName)}>
-				<SessionAmountCell
-					rowId={session._id}
-					session={session}
-				/>
-			</TableCell>
-			<TableCell>
-				<div className="flex flex-col gap-1">
-					<div className="flex justify-center">{deliverableStatusContent}</div>
-					{assignedEditorContent}
-				</div>
-			</TableCell>
-			<TableCell className={pastCellClassName}>
-				<div className="flex flex-col gap-1 whitespace-normal">
-					<p className="font-medium whitespace-nowrap">
-						{formatShortMonthFullDate(session.pendingPaymentCreatedAt)}
-					</p>
-					<p className="text-sm text-muted-foreground">
-						{formatBookingTimestampTime(session.pendingPaymentCreatedAt)}
-					</p>
-				</div>
-			</TableCell>
-			<TableCell>
-				<SessionActions
-					deliverablesEmailAction={deliverablesEmailAction}
-					onReceiptSearch={onReceiptSearch}
-					session={session}
-				/>
-			</TableCell>
-		</TableRow>
+				</TableCell>
+				<TableCell className={pastCellClassName}>
+					<AdminTableInfoPopover
+						content={relativeDateLabel}
+						className="flex w-full flex-col gap-1 whitespace-normal">
+						<p className="font-medium whitespace-nowrap">{formatBookingDateMedium(session.date)}</p>
+						<p className="text-sm text-muted-foreground">
+							{session.duration
+								? `${formatBookingTimeLabel(session.time)} · ${formatAdminDashboardDuration(session.duration)}`
+								: formatBookingTimeLabel(session.time)}
+						</p>
+					</AdminTableInfoPopover>
+				</TableCell>
+				<TableCell className={pastCellClassName}>
+					<SessionServiceCell
+						className="min-w-48"
+						session={session}
+					/>
+				</TableCell>
+				<TableCell className={pastCellClassName}>
+					<SessionContactCell
+						onSearch={onReceiptSearch}
+						rowId={session._id}
+						session={session}
+					/>
+				</TableCell>
+				<TableCell className={cn("text-center", pastCellClassName)}>
+					<PackageSessionProgress
+						label={packageSessionProgressLabel}
+						onReceiptSearch={onReceiptSearch}
+						receiptNumber={packageReceiptNumber}
+					/>
+				</TableCell>
+				<TableCell className={pastCellClassName}>
+					<SessionNotesCell
+						session={session}
+						isPastSession={isPastSession}
+					/>
+				</TableCell>
+				<TableCell className={cn("text-right tabular-nums", pastCellClassName)}>
+					<SessionAmountCell
+						rowId={session._id}
+						session={session}
+					/>
+				</TableCell>
+				<TableCell>
+					<div className="flex flex-col gap-1">
+						<div className="flex justify-center">
+							{edits ? (
+								<SessionEditsToggle
+									sessionName={session.name}
+									edits={edits}
+									expanded={editsExpanded}
+									rowId={editsRowId}
+									onToggle={() => setEditsExpanded((expanded) => !expanded)}
+								/>
+							) : (
+								<SessionDeliverableBadge
+									session={session}
+									isDeliverable={isDeliverable}
+									onReview={() => deliverablesEmailAction.setIsDeliverablesEmailDialogOpen(true)}
+								/>
+							)}
+						</div>
+						{assignedEditorContent}
+					</div>
+				</TableCell>
+				<TableCell className={pastCellClassName}>
+					<div className="flex flex-col gap-1 whitespace-normal">
+						<p className="font-medium whitespace-nowrap">
+							{formatShortMonthFullDate(session.pendingPaymentCreatedAt)}
+						</p>
+						<p className="text-sm text-muted-foreground">
+							{formatBookingTimestampTime(session.pendingPaymentCreatedAt)}
+						</p>
+					</div>
+				</TableCell>
+				<TableCell>
+					<SessionActions
+						deliverablesEmailAction={deliverablesEmailAction}
+						onReceiptSearch={onReceiptSearch}
+						session={session}
+					/>
+				</TableCell>
+			</TableRow>
+			{edits ? (
+				<SessionEditsInsetRow
+					colSpan={11}
+					id={editsRowId}
+					isExpanded={editsExpanded}>
+					<AdminSessionEditsTable
+						session={session}
+						edits={edits}
+						canSend={isDeliverable}
+					/>
+				</SessionEditsInsetRow>
+			) : null}
+		</>
 	);
 }

@@ -99,17 +99,23 @@ import type * as drive_services_sessionFolderNames from "../drive/services/sessi
 import type * as drive_services_setup from "../drive/services/setup.js";
 import type * as editor_deliverablesEmail from "../editor/deliverablesEmail.js";
 import type * as editor_deliverablesReviewEmail from "../editor/deliverablesReviewEmail.js";
+import type * as editor_editStatus from "../editor/editStatus.js";
 import type * as editor_lib_activeJobs from "../editor/lib/activeJobs.js";
 import type * as editor_lib_deliverablesEmailSteps from "../editor/lib/deliverablesEmailSteps.js";
 import type * as editor_lib_deliverablesReviewEmail from "../editor/lib/deliverablesReviewEmail.js";
 import type * as editor_lib_deliverablesReviewNotification from "../editor/lib/deliverablesReviewNotification.js";
+import type * as editor_lib_editDelivery from "../editor/lib/editDelivery.js";
 import type * as editor_lib_editorAccess from "../editor/lib/editorAccess.js";
 import type * as editor_lib_editorAssignments from "../editor/lib/editorAssignments.js";
 import type * as editor_lib_editorSessions from "../editor/lib/editorSessions.js";
+import type * as editor_lib_edits from "../editor/lib/edits.js";
 import type * as editor_lib_sessionEditStatusSteps from "../editor/lib/sessionEditStatusSteps.js";
+import type * as editor_migrations from "../editor/migrations.js";
 import type * as editor_services_deliverablesEmail from "../editor/services/deliverablesEmail.js";
 import type * as editor_services_deliverablesReviewReadyEmail from "../editor/services/deliverablesReviewReadyEmail.js";
+import type * as editor_services_editDelivery from "../editor/services/editDelivery.js";
 import type * as editor_services_editorAssignments from "../editor/services/editorAssignments.js";
+import type * as editor_services_legacyEdits from "../editor/services/legacyEdits.js";
 import type * as editor_services_loadSessionForDeliverables from "../editor/services/loadSessionForDeliverables.js";
 import type * as editor_services_sessionEditStatus from "../editor/services/sessionEditStatus.js";
 import type * as email_lib_bookingCustomerEmailsSteps from "../email/lib/bookingCustomerEmailsSteps.js";
@@ -450,17 +456,23 @@ declare const fullApi: ApiFromModules<{
   "drive/services/setup": typeof drive_services_setup;
   "editor/deliverablesEmail": typeof editor_deliverablesEmail;
   "editor/deliverablesReviewEmail": typeof editor_deliverablesReviewEmail;
+  "editor/editStatus": typeof editor_editStatus;
   "editor/lib/activeJobs": typeof editor_lib_activeJobs;
   "editor/lib/deliverablesEmailSteps": typeof editor_lib_deliverablesEmailSteps;
   "editor/lib/deliverablesReviewEmail": typeof editor_lib_deliverablesReviewEmail;
   "editor/lib/deliverablesReviewNotification": typeof editor_lib_deliverablesReviewNotification;
+  "editor/lib/editDelivery": typeof editor_lib_editDelivery;
   "editor/lib/editorAccess": typeof editor_lib_editorAccess;
   "editor/lib/editorAssignments": typeof editor_lib_editorAssignments;
   "editor/lib/editorSessions": typeof editor_lib_editorSessions;
+  "editor/lib/edits": typeof editor_lib_edits;
   "editor/lib/sessionEditStatusSteps": typeof editor_lib_sessionEditStatusSteps;
+  "editor/migrations": typeof editor_migrations;
   "editor/services/deliverablesEmail": typeof editor_services_deliverablesEmail;
   "editor/services/deliverablesReviewReadyEmail": typeof editor_services_deliverablesReviewReadyEmail;
+  "editor/services/editDelivery": typeof editor_services_editDelivery;
   "editor/services/editorAssignments": typeof editor_services_editorAssignments;
+  "editor/services/legacyEdits": typeof editor_services_legacyEdits;
   "editor/services/loadSessionForDeliverables": typeof editor_services_loadSessionForDeliverables;
   "editor/services/sessionEditStatus": typeof editor_services_sessionEditStatus;
   "email/lib/bookingCustomerEmailsSteps": typeof email_lib_bookingCustomerEmailsSteps;
@@ -732,4 +744,5 @@ export declare const internal: FilterApi<
 
 export declare const components: {
   rateLimiter: import("@convex-dev/rate-limiter/_generated/component.js").ComponentApi<"rateLimiter">;
+  migrations: import("@convex-dev/migrations/_generated/component.js").ComponentApi<"migrations">;
 };

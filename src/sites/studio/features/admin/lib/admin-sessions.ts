@@ -1,3 +1,5 @@
+import type { FunctionReturnType } from "convex/server";
+import type { api } from "#convex/_generated/api";
 import type { Doc } from "#convex/_generated/dataModel";
 import { sessionConsumesPackageCapacity } from "#convex/packages/lib/sessionCapacity";
 import { DURATION_OPTIONS } from "#/domain/booking/catalog";
@@ -5,7 +7,10 @@ import { pickBookingAddonQuantities } from "#/domain/booking/addon-quantities";
 import { calculateBookingInvoiceAmounts } from "#studio/features/booking-invoice/lib/calculate-booking-invoice-amounts";
 import { type BookingFormValues } from "#studio/features/booking-form/lib/booking-form-model";
 
+type AdminSessionPage = FunctionReturnType<typeof api.sessions.admin.listSessions>;
+
 export type SessionRecord = Doc<"bookings"> & {
+	edits?: AdminSessionPage["page"][number]["edits"];
 	paidAmount?: number | null;
 	assignedEditorDisplayName?: string;
 	hasDriveWorkflowFailure?: boolean;

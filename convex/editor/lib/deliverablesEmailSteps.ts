@@ -7,8 +7,14 @@ import type { Result as ConvexResult } from "#/lib/result";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { DriveError, ListedDriveChild } from "#convex/drive/lib/googleDrive";
 import type { DriveSetupInfo } from "#convex/drive/lib/sessionFolders/driveSetupInfo";
+import type {
+	EditActionError,
+	DeliverablesEmailRecipient,
+	DeliverablesEmailOutcome
+} from "#convex/editor/lib/editDelivery";
 
 export type SendDeliverablesError =
+	| EditActionError
 	| { reason: "NOT_AUTHENTICATED" }
 	| { reason: "NOT_AUTHORIZED" }
 	| { reason: "BOOKING_NOT_FOUND" }
@@ -51,5 +57,28 @@ export function queryDeliverablesSetup(ctx: ActionCtx, bookingId: Id<"bookings">
 export function queryDeliverablesCustomerType(ctx: ActionCtx, session: Doc<"bookings">) {
 	return fromConvexTuple<Promise<ConvexResult<DeliverablesCustomerType, SendDeliverablesError>>>(
 		ctx.runQuery(internal.sessions.admin.detectDeliverablesCustomerType, { bookingId: session._id })
+	);
+}
+
+export type DeliverablesEmailLock = {
+	bookingId: Id<"bookings">;
+	editId: Id<"edits">;
+	recipient: DeliverablesEmailRecipient;
+	lockId: string;
+};
+
+export function requestDeliverablesEmailLock(ctx: ActionCtx, lock: DeliverablesEmailLock) {
+	return fromConvexTuple(
+		ctx.runMutation(internal.editor.editStatus.lockEditForDeliverablesEmail, lock)
+	);
+}
+
+export function submitDeliverablesEmailResult(
+	ctx: ActionCtx,
+	lock: DeliverablesEmailLock,
+	outcome: DeliverablesEmailOutcome
+) {
+	return fromConvexTuple(
+		ctx.runMutation(internal.editor.editStatus.recordDeliverablesEmailResult, { ...lock, outcome })
 	);
 }

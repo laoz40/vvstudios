@@ -1,4 +1,5 @@
 import { parseCalendarDate } from "#studio/lib/calendarDate";
+import { getEditorEditDueAt, getSydneyDateValue } from "#studio/lib/bookingdatetime";
 import { err, errAsync, ok, okAsync, type ResultAsync, type Result } from "neverthrow";
 import type { Doc } from "#convex/_generated/dataModel";
 import type { MutationCtx } from "#convex/_generated/server";
@@ -36,18 +37,33 @@ export function requireEditorAssignableSession(
 	return ok(session);
 }
 
-export function patchEditorAssignmentAfterSearch(
+export function saveEditorAssignment(
 	ctx: MutationCtx,
 	session: Doc<"bookings">,
 	editor: Doc<"editorProfiles"> | undefined,
 	adminNotes: string,
 	editorDueDate: string | undefined,
-	searchBlobPatch: BookingSearchBlobPatch
+	searchBlobPatch: BookingSearchBlobPatch,
+	editing: {
+		editStatusScope: Doc<"bookings">["editStatusScope"];
+		editDeliveryMode?: Doc<"bookings">["editDeliveryMode"];
+	}
 ) {
-	return patchBookingEditorAssignment(ctx, session._id, {
+	const hasIndividualEdits = editing.editStatusScope === "edit";
+	let dueDate = editorDueDate;
+
+	if (hasIndividualEdits) {
+		dueDate ??= session.editorDueDate;
+		dueDate ??= getSydneyDateValue(new Date(getEditorEditDueAt(session.sessionStartAt)));
+	}
+
+	return patchBookingEditorAssignment(ctx, session, {
 		adminNotes: adminNotes.trim() || undefined,
-		editorDueDate: editor === undefined ? undefined : editorDueDate,
+		editorDueDate: editor === undefined && !hasIndividualEdits ? undefined : dueDate,
 		assignedEditorTokenIdentifier: editor?.tokenIdentifier,
+		editStatusScope: editing.editStatusScope,
+		editDeliveryMode: editing.editDeliveryMode,
+		editStatus: hasIndividualEdits && session.editStatusScope !== "edit" ? "to_edit" : undefined,
 		searchBlobPatch
 	});
 }

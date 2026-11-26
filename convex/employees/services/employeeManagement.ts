@@ -71,7 +71,7 @@ function clearIncompleteBookingAssignment(ctx: MutationCtx, booking: Doc<"bookin
 	return safeTry(async function* () {
 		const searchBlobPatch = yield* buildUnassignedBookingSearchPatch(ctx, booking);
 
-		const updatedBooking = yield* patchBookingEditorAssignment(ctx, booking._id, {
+		const updatedBooking = yield* patchBookingEditorAssignment(ctx, booking, {
 			adminNotes: booking.adminNotes,
 			assignedEditorTokenIdentifier: undefined,
 			searchBlobPatch

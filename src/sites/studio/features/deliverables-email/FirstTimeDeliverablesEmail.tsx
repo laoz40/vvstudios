@@ -18,6 +18,7 @@ import { EmailFooter } from "#studio/components/email/EmailFooter";
 export interface FirstTimeDeliverablesEmailProps {
 	bookingDate: string;
 	driveLink: string;
+	editLabel?: string;
 	editorNotes?: string;
 	name: string;
 	signoffName: string;
@@ -26,6 +27,7 @@ export interface FirstTimeDeliverablesEmailProps {
 export function FirstTimeDeliverablesEmail({
 	bookingDate,
 	driveLink,
+	editLabel,
 	editorNotes,
 	name,
 	signoffName
@@ -38,7 +40,9 @@ export function FirstTimeDeliverablesEmail({
 					name="format-detection"
 				/>
 			</Head>
-			<Preview>Your final deliverables are ready.</Preview>
+			<Preview>
+				{editLabel ? `Your ${editLabel} is ready.` : "Your final deliverables are ready."}
+			</Preview>
 			<Body style={body}>
 				<Container style={container}>
 					<Img
@@ -51,11 +55,14 @@ export function FirstTimeDeliverablesEmail({
 					<Heading style={heading}>Hi {name},</Heading>
 					<Text style={paragraph}>
 						Congrats on your first booking with us! It was great working with you on the{" "}
-						{bookingDate}. Your final deliverables files are polished and ready to go.
+						{bookingDate}.{" "}
+						{editLabel
+							? `Your ${editLabel} is ready.`
+							: "Your final deliverables files are polished and ready to go."}
 					</Text>
 
 					<Section style={section}>
-						<Text style={sectionTitle}>Your deliverables</Text>
+						<Text style={sectionTitle}>{editLabel ?? "Your deliverables"}</Text>
 						<Text style={paragraph}>
 							Moving forward, all of your deliverables will be uploaded to your dedicated Google
 							Drive folder below:
@@ -101,7 +108,9 @@ export function FirstTimeDeliverablesEmail({
 					<Section style={section}>
 						<Text style={sectionTitle}>Contact</Text>
 						<Text style={contactParagraph}>
-							If you have any questions or need revisions, you can always reach me at{" "}
+							{editLabel
+								? "If you have any questions, you can reach me at"
+								: "If you have any questions or need revisions, you can always reach me at"}{" "}
 							{BOOKING_INVOICE_BUSINESS.contactEmail} or {BOOKING_INVOICE_BUSINESS.contactPhone}.
 						</Text>
 					</Section>

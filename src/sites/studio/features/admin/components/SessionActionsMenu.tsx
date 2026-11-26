@@ -65,8 +65,10 @@ type SessionActionsMenuProps = {
 	onReceiptSearch: (searchQuery: string) => void;
 };
 
-function canSetDeliverablesStatusToSent(details: SessionActionDetails) {
-	return details.canManageConfirmedSession && details.isPastSession;
+function canSetDeliverablesStatusToSent(details: SessionActionDetails, session: SessionRecord) {
+	return (
+		details.canManageConfirmedSession && details.isPastSession && session.editStatusScope !== "edit"
+	);
 }
 
 function getSessionArchiveActionLabel(isUpdatingArchive: boolean, isArchived: boolean) {
@@ -101,51 +103,53 @@ function DeliverablesControls({
 			<DropdownMenuLabel className="pb-1 text-sm text-muted-foreground">
 				Deliverables
 			</DropdownMenuLabel>
-			<div className="px-2 pb-2">
-				<Tabs value={statusActions.deliverableStatus}>
-					<TabsList className="h-auto w-full gap-0 bg-background/60 p-0.5">
-						{EDIT_STATUS_OPTIONS.map((option) => {
-							const Icon = deliverableStatusIconMap[option];
+			{session.editStatusScope !== "edit" ? (
+				<div className="px-2 pb-2">
+					<Tabs value={statusActions.deliverableStatus}>
+						<TabsList className="h-auto w-full gap-0 bg-background/60 p-0.5">
+							{EDIT_STATUS_OPTIONS.map((option) => {
+								const Icon = deliverableStatusIconMap[option];
 
-							const tabLabel =
-								option === statusActions.deliverableStatus
-									? deliverableStatusLabelMap[option]
-									: deliverableStatusTabLabelMap[option];
+								const tabLabel =
+									option === statusActions.deliverableStatus
+										? deliverableStatusLabelMap[option]
+										: deliverableStatusTabLabelMap[option];
 
-							const isDeliverAction = option === "completed";
+								const isDeliverAction = option === "completed";
 
-							const isDisabled =
-								statusActions.isUpdatingEditStatus ||
-								(isDeliverAction
-									? deliverablesEmailAction.isEmailingDeliverables
-									: statusActions.deliverableStatus === option);
+								const isDisabled =
+									statusActions.isUpdatingEditStatus ||
+									(isDeliverAction
+										? deliverablesEmailAction.isEmailingDeliverables
+										: statusActions.deliverableStatus === option);
 
-							return (
-								<TabsTrigger
-									key={option}
-									value={option}
-									className={cn(
-										deliverableStatusTabClassNameMap[option],
-										"h-7 gap-1 px-1.5 py-0 data-[state=active]:shadow-none"
-									)}
-									disabled={isDisabled}
-									onClick={() => {
-										if (isDeliverAction) {
-											deliverablesEmailAction.setIsDeliverablesEmailDialogOpen(true);
+								return (
+									<TabsTrigger
+										key={option}
+										value={option}
+										className={cn(
+											deliverableStatusTabClassNameMap[option],
+											"h-7 gap-1 px-1.5 py-0 data-[state=active]:shadow-none"
+										)}
+										disabled={isDisabled}
+										onClick={() => {
+											if (isDeliverAction) {
+												deliverablesEmailAction.setIsDeliverablesEmailDialogOpen(true);
 
-											return;
-										}
+												return;
+											}
 
-										void statusActions.handleUpdateEditStatus(option);
-									}}>
-									<Icon aria-hidden />
-									{tabLabel}
-								</TabsTrigger>
-							);
-						})}
-					</TabsList>
-				</Tabs>
-			</div>
+											void statusActions.handleUpdateEditStatus(option);
+										}}>
+										<Icon aria-hidden />
+										{tabLabel}
+									</TabsTrigger>
+								);
+							})}
+						</TabsList>
+					</Tabs>
+				</div>
+			) : null}
 			<div className="flex flex-col gap-2 px-2 pb-2">
 				<SessionEditorAssignment
 					isMenuOpen={isMenuOpen}
@@ -431,7 +435,7 @@ export function SessionActionsMenu({
 							</>
 						)}
 						<DropdownMenuSeparator />
-						{canSetDeliverablesStatusToSent(details) ? (
+						{canSetDeliverablesStatusToSent(details, session) ? (
 							<AnimatedDropdownMenuItem
 								className="hover:text-green focus:text-green"
 								disabled={

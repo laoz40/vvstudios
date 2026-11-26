@@ -14,7 +14,7 @@ export function EditorSessionDriveCell({
 }) {
 	const editStatus = session.editStatus ?? "to_edit";
 
-	if (editStatus === "to_edit") {
+	if (editStatus === "to_edit" && session.edits === undefined) {
 		return null;
 	}
 

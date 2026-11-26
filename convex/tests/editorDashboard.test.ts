@@ -177,6 +177,7 @@ describe("restricted editor session query", () => {
 					accountName: "Safe Projection Customer Pty Ltd",
 					notes: "Safe Projection Customer production notes",
 					adminNotes: "Use the wide camera angle",
+					editorDueDate: "2030-02-09",
 					editorNotes: "Editor-only context",
 					deliverablesClientNotes: "Client delivery context",
 					deliverablesDriveLink: "https://drive.google.com/drive/folders/test",
@@ -196,7 +197,7 @@ describe("restricted editor session query", () => {
 					clipsPackageQuantity: "3",
 					handcraftedClipsQuantity: "4",
 					driveFolders: null,
-					editStatus: "editing"
+					editStatus: "to_edit"
 				}
 			]
 		});
@@ -217,7 +218,9 @@ describe("restricted editor session query", () => {
 				"deliverablesDriveLink",
 				"driveFolders",
 				"duration",
+				"edits",
 				"editStatus",
+				"editorDueDate",
 				"editorNotes",
 				"essentialEditQuantity",
 				"handcraftedClipsQuantity",

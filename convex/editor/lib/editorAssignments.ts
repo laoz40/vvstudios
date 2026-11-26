@@ -74,7 +74,7 @@ export async function getEditorDisplayNamesByToken(ctx: QueryCtx, tokenIdentifie
 }
 
 // TODO(scale): This indexed lookup runs once per active editor; persist workload counters if that becomes inefficient at scale.
-export function buildActiveEditorProjection(ctx: QueryCtx, editor: Doc<"editorProfiles">) {
+export function loadEditorAssignmentOption(ctx: QueryCtx, editor: Doc<"editorProfiles">) {
 	return getEditorWorkStatus(ctx, editor.tokenIdentifier).map((workStatus) => ({
 		tokenIdentifier: editor.tokenIdentifier,
 		displayName: editor.displayName,
@@ -97,22 +97,36 @@ export function lookupEditorProfileByToken(ctx: MutationCtx, editorTokenIdentifi
 
 export function patchBookingEditorAssignment(
 	ctx: MutationCtx,
-	bookingId: Id<"bookings">,
+	session: Doc<"bookings">,
 	patch: {
 		adminNotes?: string;
 		editorDueDate?: string;
 		assignedEditorDisplayName?: string;
 		assignedEditorTokenIdentifier?: string;
+		editStatusScope?: Doc<"bookings">["editStatusScope"];
+		editDeliveryMode?: Doc<"bookings">["editDeliveryMode"];
+		editStatus?: Doc<"bookings">["editStatus"];
 		searchBlobPatch: BookingSearchBlobPatch;
 	}
 ) {
+	const editStatusScope =
+		patch.editStatusScope ??
+		session.editStatusScope ??
+		(session.assignedEditorTokenIdentifier === undefined ? undefined : "session");
+
 	return okOrThrow(
 		ctx.db
-			.patch("bookings", bookingId, {
+			.patch("bookings", session._id, {
 				adminNotes: patch.adminNotes,
-				editorDueDate: patch.editorDueDate,
+				editorDueDate:
+					editStatusScope === "edit"
+						? (patch.editorDueDate ?? session.editorDueDate)
+						: patch.editorDueDate,
 				assignedEditorDisplayName: patch.assignedEditorDisplayName,
 				assignedEditorTokenIdentifier: patch.assignedEditorTokenIdentifier,
+				editStatusScope,
+				editDeliveryMode: patch.editDeliveryMode ?? session.editDeliveryMode,
+				editStatus: patch.editStatus ?? session.editStatus,
 				...patch.searchBlobPatch
 			})
 			.then(() => null)

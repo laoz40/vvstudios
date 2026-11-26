@@ -19,7 +19,9 @@ export type DeliverablesReviewReadyEmailProps = {
 	quoteIndex: number;
 	clientName: string;
 	deliverablesFolderUrl?: string;
+	editLabel?: string;
 	editorName: string;
+	editorNotes?: string;
 	sessionDateLabel: string;
 };
 
@@ -27,10 +29,13 @@ export function DeliverablesReviewReadyEmail({
 	quoteIndex,
 	clientName,
 	deliverablesFolderUrl,
+	editLabel,
 	editorName,
+	editorNotes,
 	sessionDateLabel
 }: DeliverablesReviewReadyEmailProps) {
 	const selectedQuote = hostBookingQuotes[quoteIndex];
+	const reviewLabel = editLabel ?? "Deliverables";
 
 	if (selectedQuote === undefined) {
 		throw new Error("Expected host booking quote");
@@ -40,7 +45,8 @@ export function DeliverablesReviewReadyEmail({
 		<Html>
 			<Head />
 			<Preview>
-				{editorName} marked {clientName}&apos;s {sessionDateLabel} session ready for review.
+				{editorName} marked {clientName}&apos;s {editLabel ?? `${sessionDateLabel} session`} ready
+				for review.
 			</Preview>
 			<Body style={body}>
 				<Container style={container}>
@@ -51,11 +57,21 @@ export function DeliverablesReviewReadyEmail({
 						src={BOOKING_INVOICE_BUSINESS.logoUrl}
 						style={logo}
 					/>
-					<Heading style={heading}>Deliverables ready for review</Heading>
+					<Heading style={heading}>{reviewLabel} ready for review</Heading>
 					<Text style={paragraph}>
 						{editorName} marked <strong>{clientName}</strong>&apos;s{" "}
-						<strong>{sessionDateLabel}</strong> session as ready to review.
+						{editLabel ? (
+							<>
+								<strong>{editLabel}</strong> from the <strong>{sessionDateLabel}</strong> session as
+								ready to review.
+							</>
+						) : (
+							<>
+								<strong>{sessionDateLabel}</strong> session as ready to review.
+							</>
+						)}
 					</Text>
+					{editorNotes ? <Text style={editorNotesText}>{editorNotes}</Text> : null}
 					<Section style={buttonWrapper}>
 						<Section style={dashboardButtonSection}>
 							<Button
@@ -74,10 +90,12 @@ export function DeliverablesReviewReadyEmail({
 							</Section>
 						) : null}
 					</Section>
-					<Section style={quoteSection}>
-						<Text style={quote}>“{selectedQuote.text}”</Text>
-						<Text style={quoteAttribution}>{selectedQuote.attribution}</Text>
-					</Section>
+					{editLabel === undefined ? (
+						<Section style={quoteSection}>
+							<Text style={quote}>“{selectedQuote.text}”</Text>
+							<Text style={quoteAttribution}>{selectedQuote.attribution}</Text>
+						</Section>
+					) : null}
 					<EmailFooter />
 				</Container>
 			</Body>
@@ -111,6 +129,8 @@ const heading = {
 };
 
 const paragraph = { color: "#fafafa", fontSize: "15px", lineHeight: "24px", margin: "0 0 12px" };
+
+const editorNotesText = { ...paragraph, whiteSpace: "pre-line" as const };
 
 const buttonWrapper = { margin: "24px 0", textAlign: "center" as const };
 

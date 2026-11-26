@@ -1,3 +1,4 @@
+import { loadSessionEditSummaries } from "#convex/editor/lib/edits";
 import type { Doc } from "#convex/_generated/dataModel";
 import type { QueryCtx } from "#convex/_generated/server";
 import { exhaustiveCheck } from "#/lib/result";
@@ -455,12 +456,14 @@ async function paginateAdminSessionsWithoutSearch(
 async function loadAdminSessionListRows(ctx: QueryCtx, sessionsPage: Doc<"bookings">[]) {
 	return Promise.all(
 		sessionsPage.map(async (session) => {
-			const [hasDriveWorkflowFailure, stripeInvoicesResult] = await Promise.all([
+			const [hasDriveWorkflowFailure, stripeInvoicesResult, editsResult] = await Promise.all([
 				getDriveWorkflowFailureForBooking(ctx, session),
-				listStripeInvoicesForBooking(ctx, session._id)
+				listStripeInvoicesForBooking(ctx, session._id),
+				loadSessionEditSummaries(ctx, session)
 			]);
 
 			const invoices = stripeInvoicesResult.unwrapOr([]);
+			const edits = editsResult.unwrapOr(undefined);
 
 			const stripeInvoicesSummary = summarizeStripeInvoices(invoices);
 
@@ -473,13 +476,13 @@ async function loadAdminSessionListRows(ctx: QueryCtx, sessionsPage: Doc<"bookin
 			});
 
 			if (!session.packageId) {
-				return { ...session, hasDriveWorkflowFailure, stripeInvoicesSummary, paidAmount };
+				return { ...session, edits, hasDriveWorkflowFailure, stripeInvoicesSummary, paidAmount };
 			}
 
 			const packageRecord = await ctx.db.get("packages", session.packageId);
 
 			if (!packageRecord) {
-				return { ...session, hasDriveWorkflowFailure, stripeInvoicesSummary, paidAmount };
+				return { ...session, edits, hasDriveWorkflowFailure, stripeInvoicesSummary, paidAmount };
 			}
 
 			const packageSessionsResult = await getCapacityConsumingPackageSessions(
@@ -504,6 +507,7 @@ async function loadAdminSessionListRows(ctx: QueryCtx, sessionsPage: Doc<"bookin
 
 			return {
 				...session,
+				edits,
 				hasDriveWorkflowFailure,
 				stripeInvoicesSummary,
 				paidAmount: calculatePaidAmount({

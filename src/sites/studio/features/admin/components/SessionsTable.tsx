@@ -140,7 +140,7 @@ export function SessionsTable({
 						<col className="w-16" />
 						<col className="w-86 md:w-56" />
 						<col className="w-16 md:w-8" />
-						<col className="w-24 md:w-16" />
+						<col className="w-28" />
 						<col className="w-24 md:w-28 lg:w-16" />
 						<col className="w-6" />
 					</colgroup>

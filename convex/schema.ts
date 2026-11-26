@@ -2,10 +2,16 @@ import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 import { drivePermissionValidator } from "#convex/shared/lib/driveValidators";
 import { ADDON_OPTIONS, SERVICES } from "#/domain/booking/catalog";
+import { QUANTITY_TRACKED_ADDONS } from "#/domain/booking/addon-quantities";
+import { EDIT_WORK_STATUSES } from "#/domain/booking/edit-status";
 
 const bookingAddonValidator = v.union(...ADDON_OPTIONS.map((addon) => v.literal(addon)));
 
 export const bookingAddonsValidator = v.array(bookingAddonValidator);
+
+export const editWorkStatusValidator = v.union(
+	...EDIT_WORK_STATUSES.map((status) => v.literal(status))
+);
 
 const bookingInvoiceLineItemsValidator = v.array(
 	v.object({ amount: v.number(), description: v.string(), quantity: v.number(), rate: v.number() })
@@ -50,6 +56,17 @@ const stripeInvoiceLineItemsValidator = v.array(
 );
 
 export default defineSchema({
+	edits: defineTable({
+		bookingId: v.id("bookings"),
+		addOn: v.union(...QUANTITY_TRACKED_ADDONS.map((addOn) => v.literal(addOn))),
+		// One-based position within the session's purchased quantity for this add-on.
+		addOnItemNumber: v.number(),
+		label: v.string(),
+		status: v.union(editWorkStatusValidator, v.literal("review"), v.literal("sent")),
+		deliveredAt: v.optional(v.number()),
+		pendingEmail: v.optional(v.object({ id: v.string(), expiresAt: v.number() }))
+	}).index("by_bookingId", ["bookingId"]),
+
 	editorProfiles: defineTable({
 		tokenIdentifier: v.string(),
 		displayName: v.string(),
@@ -261,6 +278,9 @@ export default defineSchema({
 
 		// Editor assignment and internal editing instructions
 		assignedEditorTokenIdentifier: v.optional(v.string()),
+		// Editors update one status for the session or a separate status for each edit.
+		editStatusScope: v.optional(v.union(v.literal("session"), v.literal("edit"))),
+		editDeliveryMode: v.optional(v.literal("studio_review_only")),
 		editorDueDate: v.optional(v.string()),
 		assignedEditorDisplayName: v.optional(v.string()),
 		adminNotes: v.optional(v.string()),

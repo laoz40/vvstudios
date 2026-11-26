@@ -16,6 +16,7 @@ import { EmailFooter } from "#studio/components/email/EmailFooter";
 export interface RecurringDeliverablesEmailProps {
 	bookingDate: string;
 	driveLink: string;
+	editLabel?: string;
 	editorNotes?: string;
 	name: string;
 	signoffName: string;
@@ -24,6 +25,7 @@ export interface RecurringDeliverablesEmailProps {
 export function RecurringDeliverablesEmail({
 	bookingDate,
 	driveLink,
+	editLabel,
 	editorNotes,
 	name,
 	signoffName
@@ -36,7 +38,9 @@ export function RecurringDeliverablesEmail({
 					name="format-detection"
 				/>
 			</Head>
-			<Preview>Your final deliverables are ready.</Preview>
+			<Preview>
+				{editLabel ? `Your ${editLabel} is ready.` : "Your final deliverables are ready."}
+			</Preview>
 			<Body style={body}>
 				<Container style={container}>
 					<Img
@@ -48,8 +52,10 @@ export function RecurringDeliverablesEmail({
 					/>
 					<Heading style={heading}>Hi {name},</Heading>
 					<Text style={paragraph}>
-						Great working with you again on the {bookingDate}. Your final deliverables are polished
-						and ready to go:
+						Great working with you again on the {bookingDate}.{" "}
+						{editLabel
+							? `Your ${editLabel} is ready.`
+							: "Your final deliverables are polished and ready to go:"}
 					</Text>
 					<Text style={paragraph}>
 						Open the link below to view your files. You do not need a Google account.
@@ -74,8 +80,9 @@ export function RecurringDeliverablesEmail({
 						</Section>
 					) : null}
 					<Text style={paragraph}>
-						Let me know if you need anything else, and feel free to leave any feedback once
-						you&apos;ve had a look.
+						{editLabel
+							? "Let me know if you have any questions about your files."
+							: "Let me know if you need anything else, and feel free to leave any feedback once you've had a look."}
 					</Text>
 					<Text style={signoff}>Cheers,</Text>
 					<Text style={signature}>{signoffName}</Text>

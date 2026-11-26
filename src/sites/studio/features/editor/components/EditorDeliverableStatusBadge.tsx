@@ -6,6 +6,7 @@ import { Badge } from "#/components/ui/badge";
 import { Button } from "#/components/ui/button";
 import CheckedIcon from "#/components/ui/checked-icon";
 import KeyframesIcon from "#/components/ui/keyframes-icon";
+import { EDIT_IN_PROGRESS_STATUSES } from "#/domain/booking/edit-status";
 import { hasPermission } from "#/lib/permissions";
 import { cn } from "#/lib/utils";
 import { api } from "#convex/_generated/api";
@@ -20,7 +21,7 @@ import { deliverablesEmailErrorToast } from "#studio/features/editor/lib/deliver
 import { EditorSendForReviewDialog } from "#studio/features/editor/components/EditorSendForReviewDialog";
 import type { EditorSession } from "#studio/features/editor/lib/editor-sessions";
 
-const editorSteps = ["to_edit", "downloading", "editing", "uploading", "review"] as const;
+const editorSteps = ["to_edit", ...EDIT_IN_PROGRESS_STATUSES, "review"] as const;
 
 const deliverableBadgeClassName = "px-1.5 text-sm leading-tight [&>svg]:size-4";
 

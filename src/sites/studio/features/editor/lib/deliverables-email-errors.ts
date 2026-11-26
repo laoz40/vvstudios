@@ -10,6 +10,12 @@ export function deliverablesEmailErrorToast(reason: string) {
 			return "You do not have access to send deliverables emails.";
 		case "BOOKING_NOT_FOUND":
 			return "That session no longer exists.";
+		case "EDIT_NOT_FOUND":
+			return "That edit no longer exists.";
+		case "INVALID_EDIT_STATUS":
+			return "The status of this edit has changed. Check the edit before trying again.";
+		case "EDIT_EMAIL_IN_PROGRESS":
+			return "An email is already being sent for this edit.";
 		case "SESSION_NOT_ASSIGNED_TO_EDITOR":
 		case "SESSION_NOT_CONFIRMED":
 		case "SESSION_NOT_IN_PAST":

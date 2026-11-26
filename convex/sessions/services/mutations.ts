@@ -1,5 +1,6 @@
 import { validateEditorDueDate } from "#convex/sessions/lib/editorAssignmentSteps";
 import { resetSessionForNextDeliverables } from "#convex/editor/lib/editorSessions";
+import { requireSessionLevelEditing } from "#convex/editor/lib/editDelivery";
 import { resetEditorAssignmentEmail } from "#convex/drive/lib/driveEditor";
 import { loadDriveSessionRowByBookingId } from "#convex/drive/lib/driveBookingDriveClient";
 import { scheduleEditorDriveAccessSetup } from "#convex/editor/lib/editorAssignments";
@@ -143,6 +144,7 @@ export function writeSessionEditStatusFromEditor(
 		const ownedAccess = yield* requireDeliverablesOwnership(access);
 
 		yield* requireDeliverablesEligibility(ownedAccess);
+		yield* requireSessionLevelEditing(ownedAccess.session);
 
 		return ok(
 			yield* writeSessionEditStatusWithHostNotification(
@@ -186,6 +188,7 @@ export function restartSessionEditingAfterDelivery(
 			| "SESSION_NOT_ASSIGNED_TO_EDITOR"
 			| "SESSION_NOT_CONFIRMED"
 			| "SESSION_NOT_IN_PAST"
+			| "EDIT_REQUIRED"
 			| "INVALID_EDITOR_DUE_DATE";
 	}
 > {
@@ -195,6 +198,7 @@ export function restartSessionEditingAfterDelivery(
 		const ownedAccess = yield* requireDeliverablesOwnership(access);
 		const session = yield* requireDeliverablesEligibility(ownedAccess);
 
+		yield* requireSessionLevelEditing(session);
 		yield* validateEditorDueDate(args.editorDueDate);
 		yield* resetSessionForNextDeliverables(ctx, session, args.editorDueDate);
 
