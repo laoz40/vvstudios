@@ -1,4 +1,4 @@
-import { useState, type ReactNode, type MouseEvent } from "react";
+import { useState, type ReactNode } from "react";
 import { CircleAlert } from "lucide-react";
 import { Badge } from "#/components/ui/badge";
 import { Button } from "#/components/ui/button";
@@ -13,7 +13,10 @@ import {
 import { useTextOverflow } from "#studio/hooks/useTextOverflow";
 import { cn } from "#/lib/utils";
 import { AdminSessionEditsTable } from "#studio/features/admin/components/AdminSessionEditsTable";
-import { SessionEditsInsetRow } from "#studio/features/sessions/components/SessionEditsInsetRow";
+import {
+	isEditsRowClick,
+	SessionEditsInsetRow
+} from "#studio/features/sessions/components/SessionEditsInsetRow";
 import { AdminTableInfoPopover } from "#studio/features/admin/components/AdminTableInfoPopover";
 import { SessionAmountPopover } from "#studio/features/admin/components/SessionAmountPopover";
 import { SessionActions } from "#studio/features/admin/components/SessionActions";
@@ -442,17 +445,6 @@ function SessionDeliverableBadge({
 		</button>
 	) : (
 		badge
-	);
-}
-
-function isEditsRowClick(event: MouseEvent<HTMLTableRowElement>) {
-	const { target, currentTarget } = event;
-
-	return (
-		target instanceof Element &&
-		currentTarget.contains(target) &&
-		!target.closest("button, a, input, select, textarea, [role=button]") &&
-		currentTarget.ownerDocument.getSelection()?.type !== "Range"
 	);
 }
 

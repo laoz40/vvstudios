@@ -1,6 +1,17 @@
-import type { ReactNode } from "react";
+import type { MouseEvent, ReactNode } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { TableCell, TableRow } from "#/components/ui/table";
+
+export function isEditsRowClick(event: MouseEvent<HTMLTableRowElement>) {
+	const { target, currentTarget } = event;
+
+	return (
+		target instanceof Element &&
+		currentTarget.contains(target) &&
+		!target.closest("button, a, input, select, textarea, [role=button]") &&
+		currentTarget.ownerDocument.getSelection()?.type !== "Range"
+	);
+}
 
 export function SessionEditsInsetRow({
 	id,

@@ -1,6 +1,9 @@
-import { useState, type MouseEvent } from "react";
+import { useState } from "react";
 import { ChevronRight, Pencil } from "lucide-react";
-import { SessionEditsInsetRow } from "#studio/features/sessions/components/SessionEditsInsetRow";
+import {
+	isEditsRowClick,
+	SessionEditsInsetRow
+} from "#studio/features/sessions/components/SessionEditsInsetRow";
 import { SessionServiceCell } from "#studio/features/sessions/components/SessionServiceCell";
 import { Button } from "#/components/ui/button";
 import { TableCell, TableRow } from "#/components/ui/table";
@@ -24,17 +27,6 @@ import {
 } from "#studio/lib/bookingdatetime";
 
 type EditorSessionsView = "edits" | "history";
-
-function isEditsRowClick(event: MouseEvent<HTMLTableRowElement>) {
-	const { target, currentTarget } = event;
-
-	return (
-		target instanceof Element &&
-		currentTarget.contains(target) &&
-		!target.closest("button, a, input, select, textarea, [role=button]") &&
-		currentTarget.ownerDocument.getSelection()?.type !== "Range"
-	);
-}
 
 export function EditorSessionTableRow({
 	session,
