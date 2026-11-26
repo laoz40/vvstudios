@@ -18,6 +18,14 @@ import { getUtcDateForZonedParts } from "#studio/lib/zonedDateTime";
 
 const BOOKING_TIME_ZONE = "Australia/Sydney";
 
+const HOUR_MS = 60 * 60 * 1000;
+
+const DAY_MS = 24 * HOUR_MS;
+
+const EDITOR_EDIT_DUE_HOUR = 17;
+
+const EDITOR_EDIT_DUE_TIME = "17:00";
+
 export const EDITOR_EDIT_DUE_DAYS_AFTER_SESSION = 6;
 
 export interface BusyPeriod {
@@ -181,9 +189,32 @@ export function getSydneyTimeValue(date: Date | number) {
 	return `${partValue("hour")}:${partValue("minute")}`;
 }
 
+const editorEditDueSydneyFormatter = new Intl.DateTimeFormat("en-AU", {
+	day: "numeric",
+	hour: "numeric",
+	hour12: true,
+	minute: "2-digit",
+	month: "short",
+	timeZone: BOOKING_TIME_ZONE,
+	timeZoneName: "short",
+	year: "numeric"
+});
+
+const editorEditDueEmailFormatter = new Intl.DateTimeFormat("en-AU", {
+	day: "numeric",
+	hour: "numeric",
+	hour12: true,
+	minute: "2-digit",
+	month: "long",
+	timeZone: BOOKING_TIME_ZONE,
+	timeZoneName: "short",
+	weekday: "long",
+	year: "numeric"
+});
+
 export function getEditorEditDueAt(sessionStartAt: number, editorDueDate?: string) {
 	if (editorDueDate !== undefined && parseCalendarDate(editorDueDate) !== null) {
-		return getBookingStartTimestamp(editorDueDate, "12:00");
+		return getBookingStartTimestamp(editorDueDate, EDITOR_EDIT_DUE_TIME);
 	}
 
 	const { day, month, year } = getCalendarDateInSydney(new Date(sessionStartAt));
@@ -194,51 +225,82 @@ export function getEditorEditDueAt(sessionStartAt: number, editorDueDate?: strin
 
 	return getUtcDateForZonedParts({
 		day: dueCalendarDate.getUTCDate(),
-		hours: 12,
+		hours: EDITOR_EDIT_DUE_HOUR,
 		minutes: 0,
 		month: dueCalendarDate.getUTCMonth() + 1,
 		timeZone: BOOKING_TIME_ZONE,
 		year: dueCalendarDate.getUTCFullYear()
 	}).match(
 		(dueAt) => dueAt.getTime(),
-		() => sessionStartAt + EDITOR_EDIT_DUE_DAYS_AFTER_SESSION * 24 * 60 * 60 * 1000
+		() => sessionStartAt + EDITOR_EDIT_DUE_DAYS_AFTER_SESSION * DAY_MS
 	);
 }
 
-export function getEditorEditDueDayDifference(
-	sessionStartAt: number,
-	now = new Date(),
-	editorDueDate?: string
-) {
-	const dueDateValue = getSydneyDateValue(
-		new Date(getEditorEditDueAt(sessionStartAt, editorDueDate))
-	);
+export function formatEditorEditDueDateTime(dueAt: number, now = new Date()) {
+	const dueDate = new Date(dueAt);
 
-	return getBookingDayDifference(dueDateValue, now);
+	const options: Intl.DateTimeFormatOptions = {
+		day: "numeric",
+		hour: "numeric",
+		hour12: true,
+		minute: "2-digit",
+		month: "short",
+		timeZoneName: "short"
+	};
+
+	if (dueDate.getFullYear() !== now.getFullYear()) {
+		options.year = "numeric";
+	}
+
+	return new Intl.DateTimeFormat("en-AU", options).format(dueDate).replace(/:00\s?(am|pm)/i, "$1");
 }
 
-export function formatEditorEditDueLabel(daysUntilDue: number) {
-	if (daysUntilDue <= 0) {
+export function formatEditorEditDueDateTimeSydney(dueAt: number) {
+	return editorEditDueSydneyFormatter.format(dueAt);
+}
+
+export function formatEditorEditDueEmailLabel(dueAt: number) {
+	return editorEditDueEmailFormatter.format(dueAt);
+}
+
+export function formatEditorEditDueLabel(dueAt: number, now = new Date()) {
+	const msUntilDue = dueAt - now.getTime();
+
+	if (msUntilDue <= 0) {
 		return "Overdue";
 	}
 
-	if (daysUntilDue === 1) {
-		return "Due in 1 day";
+	if (msUntilDue < HOUR_MS) {
+		return "Due in <1 hour";
 	}
 
-	return `Due in ${daysUntilDue} days`;
+	if (msUntilDue < DAY_MS) {
+		const hoursUntilDue = Math.floor(msUntilDue / HOUR_MS);
+
+		return hoursUntilDue === 1 ? "Due in 1 hour" : `Due in ${hoursUntilDue} hours`;
+	}
+
+	const daysUntilDue = Math.floor(msUntilDue / DAY_MS);
+
+	return daysUntilDue === 1 ? "Due in 1 day" : `Due in ${daysUntilDue} days`;
 }
 
-export function getEditorEditDueSubtitleClassName(daysUntilDue: number, view: "edits" | "history") {
+export function getEditorEditDueSubtitleClassName(
+	dueAt: number,
+	view: "edits" | "history",
+	now = new Date()
+) {
 	if (view === "history") {
 		return "text-muted-foreground";
 	}
 
-	if (daysUntilDue >= 4) {
+	const msUntilDue = dueAt - now.getTime();
+
+	if (msUntilDue >= 4 * DAY_MS) {
 		return "text-primary";
 	}
 
-	if (daysUntilDue >= 2) {
+	if (msUntilDue >= 2 * DAY_MS) {
 		return "text-orange";
 	}
 

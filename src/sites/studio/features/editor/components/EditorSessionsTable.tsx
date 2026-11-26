@@ -67,26 +67,26 @@ export function EditorSessionsTable({
 			<FixedDataTable
 				minWidthClassName="min-w-6xl"
 				columns={[
-					{ key: "deliverables", colClassName: "w-48", header: "Deliverables" },
-					{ key: "customer", colClassName: "w-56", header: "Customer" },
-					{ key: "session", colClassName: "w-32 md:w-24", header: "Session" },
-					{ key: "service", colClassName: "w-60 md:w-48", header: "Service" },
+					{ key: "deliverables", colClassName: "w-40", header: "Deliverables" },
 					{
 						key: "due",
-						colClassName: "w-32",
+						colClassName: "w-36",
 						header: (
 							<Button
 								type="button"
 								variant="ghost"
 								size="sm"
 								className="-ml-2"
-								aria-label={dueSort ? `Due, sorted ${dueSort}` : "Sort by due date"}
+								aria-label={dueSort ? `Next Edit Due, sorted ${dueSort}` : "Sort by next edit due"}
 								onClick={() => setDueSort(dueSort === "ascending" ? "descending" : "ascending")}>
-								Due
+								Next Edit Due
 								<DueSortIcon aria-hidden />
 							</Button>
 						)
 					},
+					{ key: "customer", colClassName: "w-56", header: "Customer" },
+					{ key: "session", colClassName: "w-32 md:w-24", header: "Session" },
+					{ key: "service", colClassName: "w-60 md:w-48", header: "Service" },
 					{ key: "admin-notes", colClassName: "w-72", header: "Admin notes" },
 					{ key: "editor-notes", colClassName: "w-72", header: "Editor notes" },
 					{ key: "drive", colClassName: "w-12", header: "Drive", headerClassName: "text-right" }
