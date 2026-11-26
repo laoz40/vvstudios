@@ -1,4 +1,6 @@
 import { Badge } from "#/components/ui/badge";
+import { Tooltip, TooltipContent, TooltipTrigger } from "#/components/ui/tooltip";
+import { formatEditingAddonLabel } from "#/domain/booking/addon-quantities";
 import {
 	dashboardSetupBadgeClassName,
 	formatDashboardAddonLabel,
@@ -6,6 +8,27 @@ import {
 	type EditingAddonQuantities
 } from "#studio/features/booking-form/lib/editing-addon-quantities";
 import { cn } from "#/lib/utils";
+
+export function DashboardAddonBadge({
+	addon,
+	quantities
+}: {
+	addon: string;
+	quantities: EditingAddonQuantities;
+}) {
+	return (
+		<Tooltip>
+			<TooltipTrigger asChild>
+				<Badge
+					variant="outline"
+					className={getDashboardAddonBadgeClassName(addon)}>
+					{formatDashboardAddonLabel(addon, quantities)}
+				</Badge>
+			</TooltipTrigger>
+			<TooltipContent>{formatEditingAddonLabel(addon, quantities)}</TooltipContent>
+		</Tooltip>
+	);
+}
 
 type SessionServiceCellProps<TSession extends EditingAddonQuantities> = {
 	className?: string;
@@ -26,12 +49,11 @@ export function SessionServiceCell<TSession extends EditingAddonQuantities>({
 				{duration ? `${session.service} · ${duration}` : session.service}
 			</Badge>
 			{session.addons.map((addon) => (
-				<Badge
+				<DashboardAddonBadge
 					key={addon}
-					variant="outline"
-					className={getDashboardAddonBadgeClassName(addon)}>
-					{formatDashboardAddonLabel(addon, session)}
-				</Badge>
+					addon={addon}
+					quantities={session}
+				/>
 			))}
 		</div>
 	);
