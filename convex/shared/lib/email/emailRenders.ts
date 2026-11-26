@@ -10,6 +10,7 @@ import { PackageExpiryReminderEmail } from "#studio/features/package-reminder-em
 import { ReminderEmail } from "#studio/features/reminder-email/ReminderEmail";
 import { RescheduledBookingEmail } from "#studio/features/rescheduled-booking-email/RescheduledBookingEmail";
 import { ClientAssetsEmail } from "#studio/features/client-assets-email/ClientAssetsEmail";
+import type { DeliverablesRevisionInfo } from "#/domain/revisions/rules";
 import { DeliverablesEmail } from "#studio/features/deliverables-email/DeliverablesEmail";
 import { EditorAssignmentEmail } from "#studio/features/editor-assignment-email/EditorAssignmentEmail";
 import { SessionNotesEmail } from "#studio/features/session-notes-email/SessionNotesEmail";
@@ -180,6 +181,7 @@ export type SendSessionDeliverablesEmailArgs = {
 	emailVariant: DeliverablesEmailVariant;
 	idempotencyKey?: string;
 	name: string;
+	revisionInfo?: DeliverablesRevisionInfo;
 };
 
 function signoffName() {
@@ -488,6 +490,7 @@ export function renderSessionDeliverablesEmailHtml(args: SendSessionDeliverables
 					editorNotes: args.editorNotes?.trim() || undefined,
 					emailVariant: args.emailVariant,
 					name: args.name,
+					revisionInfo: args.revisionInfo,
 					signoffName: signoffName()
 				})
 			),

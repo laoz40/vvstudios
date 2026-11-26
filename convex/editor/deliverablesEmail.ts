@@ -38,18 +38,17 @@ export const sendEditToClient = action({
 	args: sendEditArgs,
 	handler: (ctx, { bookingId, editId, notes }): Promise<Result<null, SendDeliverablesError>> =>
 		safeTry(async function* () {
-			const { session, editLabel, lock, idempotencyKey } = yield* lockEditForEmail(
-				ctx,
-				{ bookingId, editId },
-				"client"
-			);
+			const { session, editAddOn, editLabel, feedbackToken, lock, idempotencyKey } =
+				yield* lockEditForEmail(ctx, { bookingId, editId }, "client");
 
 			const sendResult = await sendClientDeliverablesEmail(ctx, session, notes, {
+				addOn: editAddOn,
+				feedbackToken,
 				label: editLabel,
 				idempotencyKey
 			});
 
-			yield* recordDeliverablesEmailResult(ctx, lock, sendResult);
+			yield* recordDeliverablesEmailResult(ctx, lock, sendResult, feedbackToken);
 
 			return sendResult;
 		}).match(tupleOk, tupleErr)

@@ -9,6 +9,7 @@ import {
 	saveEditDeliverablesEmailResult,
 	updateSessionStatusFromEdits
 } from "#convex/editor/services/editDelivery";
+import { ensureSessionFeedbackToken } from "#convex/revisions/services/feedbackSession";
 import { getSessionFromDb } from "#convex/sessions/services/lookup";
 import { editWorkStatusValidator } from "#convex/schema";
 
@@ -39,7 +40,18 @@ export const lockEditForDeliverablesEmail = internalMutation({
 
 			const sender = yield* authorizeAndLockDeliverablesEmail(ctx, access, args);
 
-			return ok({ session: access.session, editLabel: access.edit.label, ...sender });
+			const feedbackToken =
+				args.recipient === "client"
+					? yield* ensureSessionFeedbackToken(ctx, access.session, access.edit)
+					: undefined;
+
+			return ok({
+				session: access.session,
+				editLabel: access.edit.label,
+				editAddOn: access.edit.addOn,
+				feedbackToken,
+				...sender
+			});
 		}).match(tupleOk, tupleErr)
 });
 
@@ -49,7 +61,11 @@ export const recordDeliverablesEmailResult = internalMutation({
 		recipient: emailRecipient,
 		lockId: v.string(),
 		outcome: v.union(
-			v.object({ kind: v.literal("sent"), sentAt: v.number() }),
+			v.object({
+				kind: v.literal("sent"),
+				sentAt: v.number(),
+				revisionWindowEndsAt: v.optional(v.number())
+			}),
 			v.object({ kind: v.literal("failed") })
 		)
 	},
