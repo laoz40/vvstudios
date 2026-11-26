@@ -7,6 +7,7 @@ import {
 	formatInstagramHandle
 } from "#studio/features/admin/components/AdminDashboardTableUtils";
 import { PrivacySensitiveText } from "#studio/features/admin/components/PrivacySensitiveText";
+import { sortDashboardAddons } from "#studio/features/booking-form/lib/editing-addon-quantities";
 import { DashboardAddonBadge } from "#studio/features/sessions/components/SessionServiceCell";
 import { AdminTableInfoPopover } from "#studio/features/admin/components/AdminTableInfoPopover";
 import { PackageActions } from "#studio/features/admin/components/PackageActions";
@@ -269,7 +270,7 @@ export function PackageTableRow({
 			<TableCell className={cn("min-w-48 whitespace-normal", inactiveCellClassName)}>
 				{packageRow.addons.length > 0 ? (
 					<div className="flex flex-wrap gap-1">
-						{packageRow.addons.map((addon) => (
+						{sortDashboardAddons(packageRow.addons).map((addon) => (
 							<DashboardAddonBadge
 								key={addon}
 								addon={addon}

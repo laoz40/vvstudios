@@ -5,6 +5,7 @@ import {
 	dashboardSetupBadgeClassName,
 	formatDashboardAddonLabel,
 	getDashboardAddonBadgeClassName,
+	sortDashboardAddons,
 	type EditingAddonQuantities
 } from "#studio/features/booking-form/lib/editing-addon-quantities";
 import { cn } from "#/lib/utils";
@@ -48,7 +49,7 @@ export function SessionServiceCell<TSession extends EditingAddonQuantities>({
 				className={dashboardSetupBadgeClassName}>
 				{duration ? `${session.service} · ${duration}` : session.service}
 			</Badge>
-			{session.addons.map((addon) => (
+			{sortDashboardAddons(session.addons).map((addon) => (
 				<DashboardAddonBadge
 					key={addon}
 					addon={addon}
