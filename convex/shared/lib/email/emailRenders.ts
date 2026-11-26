@@ -14,8 +14,12 @@ import { DeliverablesEmail } from "#studio/features/deliverables-email/Deliverab
 import { EditorAssignmentEmail } from "#studio/features/editor-assignment-email/EditorAssignmentEmail";
 import { SessionNotesEmail } from "#studio/features/session-notes-email/SessionNotesEmail";
 import type { DeliverablesEmailVariant } from "#studio/features/deliverables-email/lib/constants";
-import { formatBookingTimeRange } from "#studio/lib/bookingdatetime";
-import { formatDriveSessionMediaFolderName, getEditorEditDueAt } from "#studio/lib/bookingdatetime";
+import {
+	formatBookingTimeRange,
+	formatDriveSessionMediaFolderName,
+	formatEditorEditDueEmailLabel,
+	getEditorEditDueAt
+} from "#studio/lib/bookingdatetime";
 import type { BookingAddonQuantitiesArgs } from "#convex/booking/lib/addonQuantities";
 import { pickBookingAddonQuantities } from "#/domain/booking/addon-quantities";
 import { type BookingAddon } from "#/domain/booking/catalog";
@@ -441,7 +445,7 @@ export function renderClientAssetsEmailHtml(args: SendClientAssetsEmailArgs) {
 export function renderEditorAssignmentEmailHtml(args: SendEditorAssignmentEmailArgs) {
 	const sessionDate = formatTimestampDateLong(args.sessionStartAt);
 
-	const dueDateLabel = formatTimestampDateLong(
+	const dueDateLabel = formatEditorEditDueEmailLabel(
 		getEditorEditDueAt(args.sessionStartAt, args.editorDueDate)
 	);
 

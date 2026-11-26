@@ -7,6 +7,7 @@ import {
 import { SessionServiceCell } from "#studio/features/sessions/components/SessionServiceCell";
 import { Button } from "#/components/ui/button";
 import { TableCell, TableRow } from "#/components/ui/table";
+import { Tooltip, TooltipContent, TooltipTrigger } from "#/components/ui/tooltip";
 import { cn } from "#/lib/utils";
 import { EditorDeliverableStatusBadge } from "#studio/features/editor/components/EditorDeliverableStatusBadge";
 import { SessionEditsTable } from "#studio/features/editor/components/SessionEditsTable";
@@ -20,8 +21,9 @@ import type {
 import {
 	formatBookingDateMedium,
 	formatBookingTimeLabel,
+	formatEditorEditDueDateTime,
+	formatEditorEditDueDateTimeSydney,
 	formatEditorEditDueLabel,
-	formatShortMonthFullDate,
 	getEditorEditDueSubtitleClassName,
 	isUpcomingBooking
 } from "#studio/lib/bookingdatetime";
@@ -69,7 +71,7 @@ export function EditorSessionTableRow({
 					) : (
 						<button
 							type="button"
-							className="inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-md px-2.5 font-medium focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+							className="-ml-2 inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-md px-2 font-medium focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
 							aria-expanded={isExpanded}
 							aria-controls={jobsRowId}
 							onClick={() => setIsExpanded((expanded) => !expanded)}>
@@ -90,6 +92,23 @@ export function EditorSessionTableRow({
 					)}
 				</TableCell>
 				<TableCell>
+					{due.showDue ? (
+						<Tooltip>
+							<TooltipTrigger asChild>
+								<div className="flex w-fit cursor-pointer flex-col gap-1">
+									<p className="font-medium">{formatEditorEditDueDateTime(due.dueAt)}</p>
+									<p className={cn("text-sm", getEditorEditDueSubtitleClassName(due.dueAt, view))}>
+										{formatEditorEditDueLabel(due.dueAt)}
+									</p>
+								</div>
+							</TooltipTrigger>
+							<TooltipContent>{formatEditorEditDueDateTimeSydney(due.dueAt)}</TooltipContent>
+						</Tooltip>
+					) : (
+						<span className="text-muted-foreground">-</span>
+					)}
+				</TableCell>
+				<TableCell>
 					<div className="flex flex-col gap-1 whitespace-normal">
 						<p className="font-medium">{session.name}</p>
 						<p className="text-sm text-muted-foreground">{session.accountName}</p>
@@ -106,22 +125,6 @@ export function EditorSessionTableRow({
 						duration={session.duration}
 						session={session}
 					/>
-				</TableCell>
-				<TableCell>
-					{due.showDue && due.daysUntilDue !== null ? (
-						<div className="flex flex-col gap-1">
-							<p className="font-medium">{formatShortMonthFullDate(due.dueAt)}</p>
-							<p
-								className={cn(
-									"text-sm",
-									getEditorEditDueSubtitleClassName(due.daysUntilDue, view)
-								)}>
-								{formatEditorEditDueLabel(due.daysUntilDue)}
-							</p>
-						</div>
-					) : (
-						<span className="text-muted-foreground">-</span>
-					)}
 				</TableCell>
 				<TableCell>
 					<EditorSessionNotesPreview
@@ -171,6 +174,7 @@ export function EditorSessionTableRow({
 						session={session}
 						edits={session.edits}
 						dueAt={due.dueAt}
+						view={view}
 						canManageEdits={isPastSession}
 						onDownloadingStarted={() => setIsDriveDialogOpen(true)}
 					/>

@@ -11,6 +11,7 @@ import {
 	DialogTitle
 } from "#/components/ui/dialog";
 import { TableCell, TableRow } from "#/components/ui/table";
+import { Tooltip, TooltipContent, TooltipTrigger } from "#/components/ui/tooltip";
 import { cn } from "#/lib/utils";
 import { api } from "#convex/_generated/api";
 import { FixedDataTable } from "#studio/components/FixedDataTable";
@@ -26,10 +27,10 @@ import { SessionServiceCell } from "#studio/features/sessions/components/Session
 import {
 	formatBookingDateMedium,
 	formatBookingTimeLabel,
+	formatEditorEditDueDateTimeSydney,
 	formatEditorEditDueLabel,
 	formatShortMonthFullDate,
 	getEditorEditDueAt,
-	getEditorEditDueDayDifference,
 	getEditorEditDueSubtitleClassName
 } from "#studio/lib/bookingdatetime";
 
@@ -123,13 +124,7 @@ function ActiveJobsContent({ editor, open }: { editor: ManagedEditor; open: bool
 				]}>
 				{jobs.map((job) => {
 					const status: DeliverableStatus = job.editStatus ?? "to_edit";
-
-					const daysUntilDue = getEditorEditDueDayDifference(
-						job.sessionStartAt,
-						new Date(),
-						job.editorDueDate
-					);
-
+					const now = new Date();
 					const dueAt = getEditorEditDueAt(job.sessionStartAt, job.editorDueDate);
 
 					return (
@@ -178,22 +173,23 @@ function ActiveJobsContent({ editor, open }: { editor: ManagedEditor; open: bool
 								/>
 							</TableCell>
 							<TableCell className="align-top">
-								<div className="flex flex-col gap-1 whitespace-normal">
-									<p className="font-medium">{formatShortMonthFullDate(dueAt)}</p>
-									{status !== "review" || daysUntilDue === null || daysUntilDue > 0 ? (
-										<p
-											className={cn(
-												"text-sm",
-												daysUntilDue === null
-													? "text-muted-foreground"
-													: getEditorEditDueSubtitleClassName(daysUntilDue, "edits")
-											)}>
-											{daysUntilDue === null
-												? "Due timing unavailable"
-												: formatEditorEditDueLabel(daysUntilDue)}
-										</p>
-									) : null}
-								</div>
+								<Tooltip>
+									<TooltipTrigger asChild>
+										<div className="flex w-fit cursor-pointer flex-col gap-1 whitespace-normal">
+											<p className="font-medium">{formatShortMonthFullDate(dueAt)}</p>
+											{status !== "review" || dueAt > now.getTime() ? (
+												<p
+													className={cn(
+														"text-sm",
+														getEditorEditDueSubtitleClassName(dueAt, "edits", now)
+													)}>
+													{formatEditorEditDueLabel(dueAt, now)}
+												</p>
+											) : null}
+										</div>
+									</TooltipTrigger>
+									<TooltipContent>{formatEditorEditDueDateTimeSydney(dueAt)}</TooltipContent>
+								</Tooltip>
 							</TableCell>
 							<TableCell className="align-top [overflow-wrap:anywhere] whitespace-pre-wrap text-muted-foreground">
 								{job.adminNotes?.trim() || "-"}

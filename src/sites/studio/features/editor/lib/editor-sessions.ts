@@ -4,8 +4,7 @@ import { api } from "#convex/_generated/api";
 import {
 	getBookingDayDifference,
 	getBookingStartTimestamp,
-	getEditorEditDueAt,
-	getEditorEditDueDayDifference
+	getEditorEditDueAt
 } from "#studio/lib/bookingdatetime";
 
 export type EditorSession = FunctionReturnType<
@@ -40,7 +39,6 @@ export function getEditStatusActions({
 export function getEditorSessionDue(session: EditorSession, now = new Date()) {
 	const startAt = getBookingStartTimestamp(session.date, session.time);
 	const dueAt = getEditorEditDueAt(startAt, session.editorDueDate);
-	const daysUntilDue = getEditorEditDueDayDifference(startAt, now, session.editorDueDate);
 	const editsDue = session.edits?.filter((edit) => edit.status !== "sent").length;
 	const sessionDay = getBookingDayDifference(session.date, now);
 
@@ -49,7 +47,7 @@ export function getEditorSessionDue(session: EditorSession, now = new Date()) {
 			? editsDue > 0
 			: sessionDay !== null &&
 				sessionDay < 0 &&
-				(session.editStatus !== "review" || (daysUntilDue !== null && daysUntilDue > 0));
+				(session.editStatus !== "review" || dueAt > now.getTime());
 
-	return { dueAt, daysUntilDue, editsDue, showDue };
+	return { dueAt, editsDue, showDue };
 }

@@ -4,6 +4,8 @@ import { ArrowLeft, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "#/components/ui/button";
 import { TableCell, TableHead, TableRow } from "#/components/ui/table";
+import { Tooltip, TooltipContent, TooltipTrigger } from "#/components/ui/tooltip";
+import { cn } from "#/lib/utils";
 import type { EditWorkStatus } from "#/domain/booking/edit-status";
 import { hasPermission } from "#/lib/permissions";
 import { tryCatch } from "#/lib/result";
@@ -18,7 +20,12 @@ import {
 	type Edit,
 	type EditorSession
 } from "#studio/features/editor/lib/editor-sessions";
-import { formatShortMonthFullDate } from "#studio/lib/bookingdatetime";
+import {
+	formatEditorEditDueDateTime,
+	formatEditorEditDueDateTimeSydney,
+	formatEditorEditDueLabel,
+	getEditorEditDueSubtitleClassName
+} from "#studio/lib/bookingdatetime";
 
 type EditAction =
 	| { kind: "idle" }
@@ -152,12 +159,14 @@ export function SessionEditsTable({
 	session,
 	edits,
 	dueAt,
+	view,
 	canManageEdits,
 	onDownloadingStarted
 }: {
 	session: EditorSession;
 	edits: Edit[];
 	dueAt: number;
+	view: "edits" | "history";
 	canManageEdits: boolean;
 	onDownloadingStarted: () => void;
 }) {
@@ -169,7 +178,10 @@ export function SessionEditsTable({
 			hasPermission(access.permissions, "send:deliverables-email")
 		: undefined;
 
-	const dueDate = formatShortMonthFullDate(dueAt);
+	const dueDate = formatEditorEditDueDateTime(dueAt);
+	const dueDateSydney = formatEditorEditDueDateTimeSydney(dueAt);
+	const dueLabel = formatEditorEditDueLabel(dueAt);
+	const dueSubtitleClassName = getEditorEditDueSubtitleClassName(dueAt, view);
 
 	return (
 		<SessionEditsTableLayout
@@ -192,7 +204,21 @@ export function SessionEditsTable({
 						/>
 					</TableCell>
 					<TableCell className="font-medium whitespace-normal">{edit.label}</TableCell>
-					<TableCell className="text-muted-foreground">{dueDate}</TableCell>
+					<TableCell>
+						{edit.status === "sent" ? (
+							<span className="text-muted-foreground">-</span>
+						) : (
+							<Tooltip>
+								<TooltipTrigger asChild>
+									<div className="flex w-fit cursor-pointer flex-col gap-1">
+										<p className="font-medium">{dueDate}</p>
+										<p className={cn("text-sm", dueSubtitleClassName)}>{dueLabel}</p>
+									</div>
+								</TooltipTrigger>
+								<TooltipContent>{dueDateSydney}</TooltipContent>
+							</Tooltip>
+						)}
+					</TableCell>
 					<TableCell className="text-muted-foreground">-</TableCell>
 					<TableCell className="text-muted-foreground">-</TableCell>
 				</TableRow>
