@@ -22,7 +22,7 @@ export function SessionEditsTableLayout({
 			<TableCaption className="sr-only">Edits for {sessionName}</TableCaption>
 			<TableHeader>
 				<TableRow>
-					<TableHead className="w-56">Status</TableHead>
+					<TableHead className="w-64">Status</TableHead>
 					<TableHead className="w-64">Edit</TableHead>
 					<TableHead className="w-32">Due</TableHead>
 					{afterDue}
