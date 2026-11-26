@@ -527,10 +527,7 @@ export function SessionTableRow({ onReceiptSearch, session }: SessionTableRowPro
 					</AdminTableInfoPopover>
 				</TableCell>
 				<TableCell className={pastCellClassName}>
-					<SessionServiceCell
-						className="min-w-48"
-						session={session}
-					/>
+					<SessionServiceCell session={session} />
 				</TableCell>
 				<TableCell className={pastCellClassName}>
 					<SessionContactCell
