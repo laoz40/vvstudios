@@ -1,5 +1,5 @@
 import { Button } from "#/components/ui/button";
-import BrandGoogleIcon from "#/components/ui/brand-google-icon";
+import BrandGoogleDriveIcon from "#/components/ui/brand-google-drive-icon";
 import { EditorDriveFoldersDialog } from "#studio/features/editor/components/EditorDriveFoldersDialog";
 import type { EditorSession } from "#studio/features/editor/lib/editor-sessions";
 
@@ -25,7 +25,7 @@ export function EditorSessionDriveCell({
 				variant="ghost"
 				size="icon-sm"
 				onClick={() => onDriveDialogOpenChange(true)}>
-				<BrandGoogleIcon
+				<BrandGoogleDriveIcon
 					size={16}
 					aria-hidden
 				/>

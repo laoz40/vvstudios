@@ -3,7 +3,7 @@ import { Button } from "#/components/ui/button";
 import ClockIcon from "#/components/ui/clock-icon";
 import DownloadIcon from "#/components/ui/download-icon";
 import DotsHorizontalIcon from "#/components/ui/dots-horizontal-icon";
-import BrandGoogleIcon from "#/components/ui/brand-google-icon";
+import BrandGoogleDriveIcon from "#/components/ui/brand-google-drive-icon";
 import BrandStripeIcon from "#/components/ui/brand-stripe-icon";
 import MailFilledIcon from "#/components/ui/mail-filled-icon";
 import PenIcon from "#/components/ui/pen-icon";
@@ -476,7 +476,7 @@ export function SessionActionsMenu({
 					<AnimatedDropdownMenuItem
 						onSelect={onOpenDrive}
 						renderIcon={(iconRef) => (
-							<BrandGoogleIcon
+							<BrandGoogleDriveIcon
 								ref={iconRef}
 								size={16}
 								aria-hidden
