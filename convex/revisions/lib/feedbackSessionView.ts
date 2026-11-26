@@ -1,5 +1,6 @@
 import { err, ok, type Result } from "neverthrow";
 import {
+	formatEditingAddonItemLabel,
 	QUANTITY_TRACKED_ADDONS,
 	type QuantityTrackedAddon
 } from "#/domain/booking/addon-quantities";
@@ -134,7 +135,7 @@ export function buildFeedbackSessionView(input: {
 						addOn: edit.addOn,
 						addOnItemNumber: edit.addOnItemNumber,
 						label: edit.label,
-						episodeLabel: isRepeated ? `Episode ${edit.addOnItemNumber}` : null,
+						itemLabel: isRepeated ? formatEditingAddonItemLabel(addOn, edit.addOnItemNumber) : null,
 						deliveredAt: edit.deliveredAt ?? null,
 						freeRoundsUsed: consumed.free,
 						freeRoundsRemaining: revisionState.freeRoundsRemaining,
