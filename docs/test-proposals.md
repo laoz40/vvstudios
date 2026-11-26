@@ -91,3 +91,11 @@ Check for an equivalent proposal before adding an entry. Keep unapproved entries
 - Risk: 5/10. Missing editors can prevent admins from finding available staff and assigning work.
 - Gap: the existing retirement test checks access changes and workload, but not capped roster reads or pagination. Static checks cannot detect missing records.
 - Level: E2E through the contractor roster and its status filters. A mixed roster exceeding 200 profiles must be created through the UI, so the setup cost should be considered during approval rather than bypassed with backend seeding.
+
+### Deliver revision-eligible edits with private feedback links and token lookup
+
+- Behavior: eligible editor and admin edit deliveries mint or reuse one session-scoped private feedback token, include the feedback link, timestamp format, allowance, $50 AUD incl. GST price, and 5-paid-round cap in the delivery email, and start a two-business-day Sydney revision window. The public token query returns only that session's edits grouped by add-on (episode-labelled when repeated), the Drive assets folder link, per-edit status (`Not delivered yet` including studio review, `Request changes by [date]`, `Free`, or `Closed`), and allowance rules, while rejecting invalid tokens and legacy deliveries.
+- Regression: leaking another session's edits, minting a new token on a second edit delivery and breaking earlier email links, exposing feedback links or windows on legacy or pre-rollout deliveries, or miscalculating Sydney business-day deadlines across weekends or DST transitions.
+- Risk: 8/10. A broken or mis-scoped private link can expose another client's session or lock a client out of included revision rounds.
+- Gap: `convex/tests/deliverablesEmail.test.ts` covers session-level delivery permissions and email failures only; no existing tests cover private feedback tokens, revision windows, or the public token query.
+- Level: E2E through staff edit delivery and the client feedback page once PR 3B lands, supplemented by Convex endpoint integration checks for legacy rejection, token reuse across deliveries, and Sydney weekend/DST window boundaries where browser clock control is impractical.

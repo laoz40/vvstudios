@@ -103,6 +103,13 @@ The stage after an editor hands off an edit for studio approval and before an ad
 **Client review**:
 The status of a delivered edit while the client's revision window is open and no revision requests are outstanding.
 
+**Revisions**:
+Changes requested by a client on a delivered edit through their private revision link.
+_Avoid_: Feedback when referring to client revision requests
+
+**Revision round**:
+One batch of timestamped revision requests submitted for a single edit. Each edit includes free revision rounds based on its add-on, with additional paid revision rounds available up to the per-edit cap.
+
 **Raw media**:
 The original recordings from a session that editors use as source material.
 
