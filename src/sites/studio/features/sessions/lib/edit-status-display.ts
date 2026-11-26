@@ -2,6 +2,7 @@ import {
 	CircleCheck,
 	CircleX,
 	Download,
+	MessageSquare,
 	Pencil,
 	Send,
 	Upload,
@@ -40,6 +41,12 @@ export const editStatuses = {
 		className: "text-blue-400",
 		segmentClassName: "bg-blue-400",
 		icon: CircleCheck
+	},
+	revision_requested: {
+		label: "Revision requested",
+		className: "text-blue-400",
+		segmentClassName: "bg-blue-400",
+		icon: MessageSquare
 	},
 	sent: { label: "Sent", className: "text-green", segmentClassName: "bg-green", icon: Send }
 } satisfies Record<

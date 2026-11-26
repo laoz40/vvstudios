@@ -2,12 +2,14 @@
 
 import { ok, safeTry, type Result } from "neverthrow";
 
+import type { QuantityTrackedAddon } from "#/domain/booking/addon-quantities";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { ActionCtx } from "#convex/_generated/server";
 import { sendSessionDeliverablesEmail as sendDeliverablesEmail } from "#convex/email/services/templateEmails";
 import { loadDriveClient } from "#convex/drive/lib/googleDrive";
 import { listDriveFolderChildren } from "#convex/drive/services/googleDriveOperations";
 import { ensureAnyoneReaderPermission } from "#convex/drive/services/googleDrivePermissions";
+import { buildDeliverablesRevisionInfo } from "#convex/revisions/lib/feedbackLinks";
 
 import {
 	parseSavedDeliverablesFolderFromSetup,
@@ -19,7 +21,7 @@ import {
 	type DeliverablesEmailLock,
 	type SendDeliverablesError as LibSendDeliverablesError
 } from "#convex/editor/lib/deliverablesEmailSteps";
-import type { DeliverablesEmailOutcome } from "#convex/editor/lib/editDelivery";
+import { buildDeliverablesEmailOutcome } from "#convex/editor/lib/editDelivery";
 
 export type SendDeliverablesError = LibSendDeliverablesError;
 
@@ -38,7 +40,12 @@ export function sendClientDeliverablesEmail(
 	ctx: ActionCtx,
 	session: Doc<"bookings">,
 	editorNotes: string | undefined,
-	edit?: { label: string; idempotencyKey: string }
+	edit?: {
+		addOn: QuantityTrackedAddon;
+		feedbackToken?: string;
+		label: string;
+		idempotencyKey: string;
+	}
 ) {
 	return safeTry(async function* () {
 		const folder = yield* loadDeliverablesFolderWithFiles(ctx, session._id);
@@ -46,6 +53,7 @@ export function sendClientDeliverablesEmail(
 		yield* ensureAnyoneReaderPermission(drive, folder.id);
 
 		const emailVariant = yield* queryDeliverablesCustomerType(ctx, session);
+
 		yield* sendDeliverablesEmail({
 			bookingId: session._id,
 			date: session.date,
@@ -55,7 +63,8 @@ export function sendClientDeliverablesEmail(
 			email: session.email,
 			emailVariant,
 			idempotencyKey: edit?.idempotencyKey,
-			name: session.name
+			name: session.name,
+			revisionInfo: buildDeliverablesRevisionInfo(edit)
 		});
 
 		return ok(null);
@@ -89,11 +98,12 @@ export function lockEditForEmail(
 export function recordDeliverablesEmailResult(
 	ctx: ActionCtx,
 	lock: DeliverablesEmailLock,
-	sendResult: Result<null, SendDeliverablesError>
+	sendResult: Result<null, SendDeliverablesError>,
+	feedbackToken?: string
 ) {
-	const outcome = sendResult
-		.map<DeliverablesEmailOutcome>(() => ({ kind: "sent", sentAt: Date.now() }))
-		.unwrapOr({ kind: "failed" } satisfies DeliverablesEmailOutcome);
-
-	return submitDeliverablesEmailResult(ctx, lock, outcome);
+	return submitDeliverablesEmailResult(
+		ctx,
+		lock,
+		buildDeliverablesEmailOutcome(sendResult, feedbackToken)
+	);
 }

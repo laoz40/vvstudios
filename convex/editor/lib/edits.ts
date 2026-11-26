@@ -2,9 +2,9 @@ import { okAsync, ResultAsync } from "neverthrow";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
 import {
+	formatEditingAddonItemLabel,
 	getEditingAddonQuantity,
-	QUANTITY_TRACKED_ADDONS,
-	type QuantityTrackedAddon
+	QUANTITY_TRACKED_ADDONS
 } from "#/domain/booking/addon-quantities";
 import { getCustomerAddonDisplayLabel } from "#/domain/booking/catalog";
 import { okOrThrow } from "#convex/shared/lib/result";
@@ -74,25 +74,17 @@ export function planEditingForAssignment(session: Doc<"bookings">, assigning: bo
 	return { editStatusScope: edits.length > 0 ? "edit" : "session", edits } as const;
 }
 
-const EDIT_ITEM_UNIT_BY_ADDON: Record<QuantityTrackedAddon, string> = {
-	"Essential Edit": "Video",
-	"Complete Edit": "Video",
-	"Clip Volume Pack": "Pack",
-	"Handcrafted Clips": "Pack"
-};
-
 function purchasedEdits(session: Doc<"bookings">) {
 	return QUANTITY_TRACKED_ADDONS.filter((addOn) => session.addons.includes(addOn)).flatMap(
 		(addOn) => {
 			const quantity = getEditingAddonQuantity(addOn, session, 1);
 			const name = getCustomerAddonDisplayLabel(addOn);
-			const unit = EDIT_ITEM_UNIT_BY_ADDON[addOn];
 
 			return Array.from({ length: quantity }, (_, index) => ({
 				bookingId: session._id,
 				addOn,
 				addOnItemNumber: index + 1,
-				label: quantity > 1 ? `${name} (${unit} ${index + 1})` : name,
+				label: quantity > 1 ? `${name} (${formatEditingAddonItemLabel(addOn, index + 1)})` : name,
 				status: "not_started" as const
 			}));
 		}

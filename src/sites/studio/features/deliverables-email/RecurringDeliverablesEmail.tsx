@@ -10,7 +10,9 @@ import {
 	Section,
 	Text
 } from "@react-email/components";
+import type { DeliverablesRevisionInfo } from "#/domain/revisions/rules";
 import { BOOKING_INVOICE_BUSINESS } from "#studio/features/booking-invoice/lib/constants";
+import { DeliverablesRevisionSection } from "#studio/features/deliverables-email/DeliverablesRevisionSection";
 import { EmailFooter } from "#studio/components/email/EmailFooter";
 
 export interface RecurringDeliverablesEmailProps {
@@ -19,6 +21,7 @@ export interface RecurringDeliverablesEmailProps {
 	editLabel?: string;
 	editorNotes?: string;
 	name: string;
+	revisionInfo?: DeliverablesRevisionInfo;
 	signoffName: string;
 }
 
@@ -28,6 +31,7 @@ export function RecurringDeliverablesEmail({
 	editLabel,
 	editorNotes,
 	name,
+	revisionInfo,
 	signoffName
 }: RecurringDeliverablesEmailProps) {
 	return (
@@ -57,9 +61,6 @@ export function RecurringDeliverablesEmail({
 							? `Your ${editLabel} is ready.`
 							: "Your final deliverables are polished and ready to go:"}
 					</Text>
-					<Text style={paragraph}>
-						Open the link below to view your files. You do not need a Google account.
-					</Text>
 
 					<Section style={buttonWrapper}>
 						<Button
@@ -73,6 +74,7 @@ export function RecurringDeliverablesEmail({
 						Please note: Files are typically stored and available for 7 days after delivery, after
 						which they may be archived or removed as part of our storage cycle.
 					</Text>
+					<DeliverablesRevisionSection revisionInfo={revisionInfo} />
 					{editorNotes ? (
 						<Section style={section}>
 							<Text style={sectionTitle}>Editor notes</Text>

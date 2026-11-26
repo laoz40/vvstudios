@@ -1,5 +1,6 @@
 import type { UserIdentity } from "convex/server";
-import { err, errAsync, ok } from "neverthrow";
+import { err, errAsync, ok, type Result } from "neverthrow";
+import { getRevisionWindowEndsAt } from "#/domain/revisions/rules";
 import type { Doc, Id } from "#convex/_generated/dataModel";
 import type { MutationCtx } from "#convex/_generated/server";
 import { isAdminIdentity } from "#convex/shared/lib/auth";
@@ -7,7 +8,26 @@ import { okOrThrow } from "#convex/shared/lib/result";
 
 export type DeliverablesEmailRecipient = "client" | "admin_review";
 
-export type DeliverablesEmailOutcome = { kind: "sent"; sentAt: number } | { kind: "failed" };
+export type DeliverablesEmailOutcome =
+	| { kind: "sent"; sentAt: number; revisionWindowEndsAt?: number }
+	| { kind: "failed" };
+
+export function buildDeliverablesEmailOutcome(
+	sendResult: Result<null, unknown>,
+	feedbackToken?: string
+): DeliverablesEmailOutcome {
+	if (sendResult.isErr()) {
+		return { kind: "failed" };
+	}
+
+	const sentAt = Date.now();
+
+	return {
+		kind: "sent",
+		sentAt,
+		revisionWindowEndsAt: feedbackToken !== undefined ? getRevisionWindowEndsAt(sentAt) : undefined
+	};
+}
 
 export type EditActionError =
 	| { reason: "EDIT_NOT_FOUND" }
@@ -93,7 +113,7 @@ export function saveDeliverablesEmailLock(ctx: MutationCtx, edit: Doc<"edits">, 
 export function patchEditStatus(
 	ctx: MutationCtx,
 	edit: Doc<"edits">,
-	updates: Pick<Doc<"edits">, "status" | "deliveredAt">
+	updates: Pick<Doc<"edits">, "status" | "deliveredAt" | "revisionWindowEndsAt">
 ) {
 	return okOrThrow(ctx.db.patch("edits", edit._id, { ...updates, pendingEmail: undefined }));
 }
@@ -116,7 +136,11 @@ export function saveDeliverablesEmailResult(
 		ctx,
 		edit,
 		args.recipient === "client"
-			? { status: "sent", deliveredAt: args.outcome.sentAt }
+			? {
+					status: "sent",
+					deliveredAt: args.outcome.sentAt,
+					revisionWindowEndsAt: args.outcome.revisionWindowEndsAt ?? edit.revisionWindowEndsAt
+				}
 			: { status: "review" }
 	);
 }

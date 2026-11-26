@@ -233,6 +233,10 @@ import type * as packages_services_sessionScheduling from "../packages/services/
 import type * as packages_services_sessionSchedulingTypes from "../packages/services/sessionSchedulingTypes.js";
 import type * as packages_services_tokenScheduling from "../packages/services/tokenScheduling.js";
 import type * as packages_services_tokens from "../packages/services/tokens.js";
+import type * as revisions_lib_feedbackLinks from "../revisions/lib/feedbackLinks.js";
+import type * as revisions_lib_feedbackSessionView from "../revisions/lib/feedbackSessionView.js";
+import type * as revisions_public from "../revisions/public.js";
+import type * as revisions_services_feedbackSession from "../revisions/services/feedbackSession.js";
 import type * as sessions_admin from "../sessions/admin.js";
 import type * as sessions_checkout from "../sessions/checkout.js";
 import type * as sessions_drive from "../sessions/drive.js";
@@ -590,6 +594,10 @@ declare const fullApi: ApiFromModules<{
   "packages/services/sessionSchedulingTypes": typeof packages_services_sessionSchedulingTypes;
   "packages/services/tokenScheduling": typeof packages_services_tokenScheduling;
   "packages/services/tokens": typeof packages_services_tokens;
+  "revisions/lib/feedbackLinks": typeof revisions_lib_feedbackLinks;
+  "revisions/lib/feedbackSessionView": typeof revisions_lib_feedbackSessionView;
+  "revisions/public": typeof revisions_public;
+  "revisions/services/feedbackSession": typeof revisions_services_feedbackSession;
   "sessions/admin": typeof sessions_admin;
   "sessions/checkout": typeof sessions_checkout;
   "sessions/drive": typeof sessions_drive;

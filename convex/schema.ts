@@ -55,6 +55,12 @@ const stripeInvoiceLineItemsValidator = v.array(
 	v.object({ description: v.string(), amount: v.number() })
 );
 
+const revisionFeedbackRowValidator = v.object({
+	timestamp: v.string(),
+	note: v.string(),
+	clipNumber: v.optional(v.string())
+});
+
 export default defineSchema({
 	edits: defineTable({
 		bookingId: v.id("bookings"),
@@ -62,10 +68,40 @@ export default defineSchema({
 		// One-based position within the session's purchased quantity for this add-on.
 		addOnItemNumber: v.number(),
 		label: v.string(),
-		status: v.union(editWorkStatusValidator, v.literal("review"), v.literal("sent")),
+		status: v.union(
+			editWorkStatusValidator,
+			v.literal("review"),
+			v.literal("revision_requested"),
+			v.literal("sent")
+		),
 		deliveredAt: v.optional(v.number()),
+		revisionWindowEndsAt: v.optional(v.number()),
 		pendingEmail: v.optional(v.object({ id: v.string(), expiresAt: v.number() }))
 	}).index("by_bookingId", ["bookingId"]),
+
+	sessionFeedbackLinks: defineTable({
+		bookingId: v.id("bookings"),
+		token: v.string(),
+		createdAt: v.number()
+	})
+		.index("by_bookingId", ["bookingId"])
+		.index("by_token", ["token"]),
+
+	revisionRounds: defineTable({
+		bookingId: v.id("bookings"),
+		editId: v.id("edits"),
+		roundNumber: v.number(),
+		billingKind: v.union(v.literal("free"), v.literal("paid")),
+		status: v.union(v.literal("awaiting_payment"), v.literal("requested"), v.literal("delivered")),
+		feedbackRows: v.array(revisionFeedbackRowValidator),
+		requestedAt: v.number(),
+		dueAt: v.optional(v.number()),
+		deliveredAt: v.optional(v.number()),
+		stripeCheckoutSessionId: v.optional(v.string())
+	})
+		.index("by_editId", ["editId"])
+		.index("by_bookingId", ["bookingId"])
+		.index("by_stripeCheckoutSessionId", ["stripeCheckoutSessionId"]),
 
 	editorProfiles: defineTable({
 		tokenIdentifier: v.string(),

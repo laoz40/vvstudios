@@ -11,8 +11,10 @@ import {
 	Section,
 	Text
 } from "@react-email/components";
+import type { DeliverablesRevisionInfo } from "#/domain/revisions/rules";
 import { BOOKING_INVOICE_BUSINESS } from "#studio/features/booking-invoice/lib/constants";
 import { DELIVERABLES_REVIEW_URL } from "#studio/features/deliverables-email/lib/constants";
+import { DeliverablesRevisionSection } from "#studio/features/deliverables-email/DeliverablesRevisionSection";
 import { EmailFooter } from "#studio/components/email/EmailFooter";
 
 export interface FirstTimeDeliverablesEmailProps {
@@ -21,6 +23,7 @@ export interface FirstTimeDeliverablesEmailProps {
 	editLabel?: string;
 	editorNotes?: string;
 	name: string;
+	revisionInfo?: DeliverablesRevisionInfo;
 	signoffName: string;
 }
 
@@ -30,6 +33,7 @@ export function FirstTimeDeliverablesEmail({
 	editLabel,
 	editorNotes,
 	name,
+	revisionInfo,
 	signoffName
 }: FirstTimeDeliverablesEmailProps) {
 	return (
@@ -69,12 +73,6 @@ export function FirstTimeDeliverablesEmail({
 						</Text>
 					</Section>
 
-					<Section style={compactSection}>
-						<Text style={paragraph}>
-							Open the link below to view your files. You do not need a Google account.
-						</Text>
-					</Section>
-
 					<Section style={buttonWrapper}>
 						<Button
 							href={driveLink}
@@ -87,6 +85,13 @@ export function FirstTimeDeliverablesEmail({
 						Please note: Files are typically stored and available for 7 days after delivery, after
 						which they may be archived or removed as part of our storage cycle.
 					</Text>
+					<DeliverablesRevisionSection revisionInfo={revisionInfo} />
+					{editorNotes ? (
+						<Section style={section}>
+							<Text style={sectionTitle}>Editor notes</Text>
+							<Text style={editorNotesText}>{editorNotes}</Text>
+						</Section>
+					) : null}
 					<Section style={section}>
 						<Text style={sectionTitle}>ENJOYED YOUR EXPERIENCE?</Text>
 						<Text style={paragraph}>
@@ -99,12 +104,6 @@ export function FirstTimeDeliverablesEmail({
 							would help the studio a ton!
 						</Text>
 					</Section>
-					{editorNotes ? (
-						<Section style={section}>
-							<Text style={sectionTitle}>Editor notes</Text>
-							<Text style={editorNotesText}>{editorNotes}</Text>
-						</Section>
-					) : null}
 					<Section style={section}>
 						<Text style={sectionTitle}>Contact</Text>
 						<Text style={contactParagraph}>
@@ -160,8 +159,6 @@ const noteText = {
 };
 
 const section = { margin: "0 0 20px" };
-
-const compactSection = { margin: "0 0 16px" };
 
 const contactParagraph = { ...paragraph, margin: "4px 0 12px" };
 

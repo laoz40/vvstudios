@@ -20,6 +20,17 @@ export type BookingAddonQuantities = Partial<Record<BookingAddonQuantityFieldNam
 
 export const QUANTITY_TRACKED_ADDONS = ADDON_OPTIONS.filter(isQuantityTrackedAddon);
 
+const EDIT_ITEM_UNIT_BY_ADDON: Record<QuantityTrackedAddon, "Video" | "Pack"> = {
+	"Essential Edit": "Video",
+	"Complete Edit": "Video",
+	"Clip Volume Pack": "Pack",
+	"Handcrafted Clips": "Pack"
+};
+
+export function formatEditingAddonItemLabel(addon: QuantityTrackedAddon, itemNumber: number) {
+	return `${EDIT_ITEM_UNIT_BY_ADDON[addon]} ${itemNumber}`;
+}
+
 export const BOOKING_ADDON_QUANTITY_FIELD_NAMES = Object.values(
 	BOOKING_ADDON_QUANTITY_FIELD_BY_ADDON
 );
