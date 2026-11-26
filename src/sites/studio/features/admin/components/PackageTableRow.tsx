@@ -8,7 +8,10 @@ import {
 	formatInstagramHandle
 } from "#studio/features/admin/components/AdminDashboardTableUtils";
 import { PrivacySensitiveText } from "#studio/features/admin/components/PrivacySensitiveText";
-import { formatDashboardAddonLabel } from "#studio/features/booking-form/lib/editing-addon-quantities";
+import {
+	formatDashboardAddonLabel,
+	getDashboardAddonBadgeClassName
+} from "#studio/features/booking-form/lib/editing-addon-quantities";
 import { AdminTableInfoPopover } from "#studio/features/admin/components/AdminTableInfoPopover";
 import { PackageActions } from "#studio/features/admin/components/PackageActions";
 import { StatusIcon } from "#studio/features/admin/components/StatusIcon";
@@ -273,7 +276,8 @@ export function PackageTableRow({
 						{packageRow.addons.map((addon) => (
 							<Badge
 								key={addon}
-								variant="outline">
+								variant="outline"
+								className={getDashboardAddonBadgeClassName(addon)}>
 								{formatDashboardAddonLabel(addon, packageRow)}
 							</Badge>
 						))}

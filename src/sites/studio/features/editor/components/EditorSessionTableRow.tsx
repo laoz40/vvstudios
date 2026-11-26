@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { ChevronRight, Pencil } from "lucide-react";
 import { SessionEditsInsetRow } from "#studio/features/sessions/components/SessionEditsInsetRow";
+import { SessionServiceCell } from "#studio/features/sessions/components/SessionServiceCell";
 import { Button } from "#/components/ui/button";
 import { TableCell, TableRow } from "#/components/ui/table";
 import { cn } from "#/lib/utils";
@@ -92,6 +93,12 @@ export function EditorSessionTableRow({
 					</div>
 				</TableCell>
 				<TableCell>
+					<SessionServiceCell
+						duration={session.duration}
+						session={session}
+					/>
+				</TableCell>
+				<TableCell>
 					{due.showDue && due.daysUntilDue !== null ? (
 						<div className="flex flex-col gap-1">
 							<p className="font-medium">{formatShortMonthFullDate(due.dueAt)}</p>
@@ -149,7 +156,7 @@ export function EditorSessionTableRow({
 			{session.edits === undefined ? null : (
 				<SessionEditsInsetRow
 					id={jobsRowId}
-					colSpan={7}
+					colSpan={8}
 					isExpanded={isExpanded}>
 					<SessionEditsTable
 						session={session}

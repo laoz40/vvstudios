@@ -65,11 +65,12 @@ export function EditorSessionsTable({
 	return (
 		<section className="overflow-x-auto border-y">
 			<FixedDataTable
-				minWidthClassName="min-w-5xl"
+				minWidthClassName="min-w-6xl"
 				columns={[
 					{ key: "deliverables", colClassName: "w-48", header: "Deliverables" },
-					{ key: "customer", colClassName: "w-64", header: "Customer" },
+					{ key: "customer", colClassName: "w-56", header: "Customer" },
 					{ key: "session", colClassName: "w-32 md:w-24", header: "Session" },
+					{ key: "service", colClassName: "w-60 md:w-48", header: "Service" },
 					{
 						key: "due",
 						colClassName: "w-32",
@@ -86,8 +87,8 @@ export function EditorSessionsTable({
 							</Button>
 						)
 					},
-					{ key: "admin-notes", colClassName: "w-84", header: "Admin notes" },
-					{ key: "editor-notes", colClassName: "w-84", header: "Editor notes" },
+					{ key: "admin-notes", colClassName: "w-72", header: "Admin notes" },
+					{ key: "editor-notes", colClassName: "w-72", header: "Editor notes" },
 					{ key: "drive", colClassName: "w-12", header: "Drive", headerClassName: "text-right" }
 				]}>
 				{rows.map(({ session, due }) => (

@@ -1,6 +1,10 @@
 import { Badge } from "#/components/ui/badge";
-import type { EditingAddonQuantities } from "#studio/features/booking-form/lib/editing-addon-quantities";
-import { formatDashboardAddonLabel } from "#studio/features/booking-form/lib/editing-addon-quantities";
+import {
+	dashboardSetupBadgeClassName,
+	formatDashboardAddonLabel,
+	getDashboardAddonBadgeClassName,
+	type EditingAddonQuantities
+} from "#studio/features/booking-form/lib/editing-addon-quantities";
 import { cn } from "#/lib/utils";
 
 type SessionServiceCellProps<TSession extends EditingAddonQuantities> = {
@@ -15,22 +19,20 @@ export function SessionServiceCell<TSession extends EditingAddonQuantities>({
 	session
 }: SessionServiceCellProps<TSession>) {
 	return (
-		<div className={cn("flex flex-col gap-2 whitespace-normal", className)}>
-			<p className="font-medium">
-				{session.service}
-				{duration ? <span className="font-normal text-muted-foreground"> · {duration}</span> : null}
-			</p>
-			{session.addons.length > 0 ? (
-				<div className="flex flex-wrap gap-1">
-					{session.addons.map((addon) => (
-						<Badge
-							key={addon}
-							variant="outline">
-							{formatDashboardAddonLabel(addon, session)}
-						</Badge>
-					))}
-				</div>
-			) : null}
+		<div className={cn("flex flex-wrap gap-1 whitespace-normal", className)}>
+			<Badge
+				variant="outline"
+				className={dashboardSetupBadgeClassName}>
+				{duration ? `${session.service} · ${duration}` : session.service}
+			</Badge>
+			{session.addons.map((addon) => (
+				<Badge
+					key={addon}
+					variant="outline"
+					className={getDashboardAddonBadgeClassName(addon)}>
+					{formatDashboardAddonLabel(addon, session)}
+				</Badge>
+			))}
 		</div>
 	);
 }
