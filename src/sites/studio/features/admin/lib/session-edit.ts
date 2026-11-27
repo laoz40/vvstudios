@@ -117,14 +117,11 @@ export function buildSessionUpdateInput(session: SessionRecord, parsedValues: Pa
 }
 
 export async function performSessionEditSave(
-	session: SessionRecord,
-	parsedDraft: Extract<ParsedSessionEditDraft, { status: "ok" }>,
+	updateInput: SessionUpdateInput,
 	updateSession: (
-		input: ReturnType<typeof buildSessionUpdateInput>
+		input: SessionUpdateInput
 	) => Promise<Result<AdminSessionUpdateResult, UpdateSessionFromAdminError>>
 ): Promise<SessionEditSaveOutcome> {
-	const updateInput = buildSessionUpdateInput(session, parsedDraft.parsedValues);
-
 	const updateOutcome = await tryCatch(updateSession(updateInput));
 
 	if (updateOutcome[0] !== null) {

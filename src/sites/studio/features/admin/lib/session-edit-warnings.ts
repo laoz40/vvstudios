@@ -113,7 +113,6 @@ export function getSessionEditWarningState(session: SessionRecord, draft: Sessio
 		changedFieldLabels: changedFields.map((field) => sessionEditFieldLabels[field]),
 		driveIdentityFieldLabels,
 		googleEventFieldLabels,
-		manualPriceWillBeUsed: false,
 		pricingFieldLabels,
 		requiresConfirmation:
 			googleEventFieldLabels.length > 0 ||

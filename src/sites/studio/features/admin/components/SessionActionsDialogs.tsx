@@ -127,7 +127,7 @@ function SessionArchiveDialogHost({
 function ReplacementEventDialog({ editAction }: { editAction: ReturnType<typeof useEditAction> }) {
 	return (
 		<Dialog
-			open={editAction.isReplacementEventDialogOpen && !editAction.invoice.open}
+			open={editAction.isReplacementEventDialogOpen && !editAction.confirmation.isOpen}
 			onOpenChange={editAction.setIsReplacementEventDialogOpen}>
 			<DialogContent className="sm:max-w-md">
 				<DialogHeader>
@@ -255,32 +255,7 @@ export function SessionActionsDialogs({
 				isSaving={editAction.isSaving}
 			/>
 
-			<AdminEditConfirmationDialog
-				open={editAction.isEditConfirmationDialogOpen || editAction.invoice.open}
-				invoice={editAction.invoice}
-				isSaving={editAction.isSaving}
-				googleEventFieldLabels={editAction.pendingEditWarningState?.googleEventFieldLabels ?? []}
-				driveIdentityFieldLabels={
-					editAction.pendingEditWarningState?.driveIdentityFieldLabels ?? []
-				}
-				description={
-					editAction.pendingEditWarningState?.manualPriceWillBeUsed
-						? "Check what will change. Your manual balance due will be used, not the recalculated amount."
-						: undefined
-				}
-				onCancel={editAction.closeEditConfirmationDialog}
-				pricingFieldLabels={editAction.pendingEditWarningState?.pricingFieldLabels ?? []}
-				onConfirm={() => {
-					void editAction.handleConfirmEditBooking();
-				}}
-				onOpenChange={(nextOpen) => {
-					editAction.setIsEditConfirmationDialogOpen(nextOpen);
-
-					if (!nextOpen) {
-						editAction.closeEditConfirmationDialog();
-					}
-				}}
-			/>
+			<AdminEditConfirmationDialog confirmation={editAction.confirmation} />
 
 			<ReplacementEventDialog editAction={editAction} />
 		</>
