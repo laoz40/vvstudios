@@ -119,6 +119,12 @@ export function AdminSessionEditsTable({
 									type="button"
 									size="xs"
 									variant="outline"
+									disabled={edit.status === "revision_requested"}
+									title={
+										edit.status === "revision_requested"
+											? "Initial delivery is locked while a revision request is open."
+											: undefined
+									}
 									aria-label={`Send deliverables for ${edit.label}`}
 									onClick={() => setSelectedEdit(edit)}>
 									Send deliverables
