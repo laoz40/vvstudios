@@ -1,7 +1,6 @@
 import {
 	validateRevisionFeedbackField,
-	type RevisionFeedbackRowFieldErrors,
-	type RevisionFeedbackRowInput
+	type RevisionFeedbackRowFieldErrors
 } from "#/domain/revisions/rules";
 import { exhaustiveCheck } from "#/lib/result";
 
@@ -12,17 +11,12 @@ interface DraftRow {
 	clipNumber: string;
 }
 
-type FormSubmissionState =
-	| { kind: "editing" }
-	| { kind: "confirming"; validatedRows: RevisionFeedbackRowInput[] }
-	| { kind: "submitting"; validatedRows: RevisionFeedbackRowInput[] };
-
 export interface RevisionFormState {
 	nextRowId: number;
 	rows: DraftRow[];
 	rowErrors: RevisionFeedbackRowFieldErrors[];
 	formError: string | null;
-	submission: FormSubmissionState;
+	submissionStatus: "editing" | "submitting";
 }
 
 export type RevisionFormAction =
@@ -40,8 +34,6 @@ export type RevisionFormAction =
 			formError: string | null;
 			rowErrors: RevisionFeedbackRowFieldErrors[];
 	  }
-	| { type: "open_confirm"; validatedRows: RevisionFeedbackRowInput[] }
-	| { type: "close_confirm" }
 	| { type: "start_submit" }
 	| { type: "submit_failed" }
 	| { type: "reset" };
@@ -52,7 +44,7 @@ export function createInitialRevisionFormState(): RevisionFormState {
 		rows: [{ id: 1, timestamp: "", note: "", clipNumber: "" }],
 		rowErrors: [{}],
 		formError: null,
-		submission: { kind: "editing" }
+		submissionStatus: "editing"
 	};
 }
 
@@ -117,22 +109,6 @@ function validateBlurredRowField(
 	};
 }
 
-function transitionSubmission(
-	state: RevisionFormState,
-	from: FormSubmissionState["kind"],
-	to: FormSubmissionState["kind"]
-): RevisionFormState {
-	if (state.submission.kind !== from) return state;
-
-	if (to === "editing") {
-		return { ...state, submission: { kind: "editing" } };
-	}
-
-	if (state.submission.kind === "editing") return state;
-
-	return { ...state, submission: { kind: to, validatedRows: state.submission.validatedRows } };
-}
-
 export function revisionFormReducer(
 	state: RevisionFormState,
 	action: RevisionFormAction
@@ -161,25 +137,19 @@ export function revisionFormReducer(
 				...state,
 				formError: action.formError,
 				rowErrors: action.rowErrors,
-				submission: { kind: "editing" }
+				submissionStatus: "editing"
 			};
 
-		case "open_confirm":
+		case "start_submit":
 			return {
 				...state,
 				formError: null,
 				rowErrors: state.rows.map(() => ({})),
-				submission: { kind: "confirming", validatedRows: action.validatedRows }
+				submissionStatus: "submitting"
 			};
 
-		case "close_confirm":
-			return transitionSubmission(state, "confirming", "editing");
-
-		case "start_submit":
-			return transitionSubmission(state, "confirming", "submitting");
-
 		case "submit_failed":
-			return transitionSubmission(state, "submitting", "confirming");
+			return { ...state, submissionStatus: "editing" };
 
 		case "reset":
 			return createInitialRevisionFormState();

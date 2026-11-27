@@ -5,9 +5,8 @@ import { Button } from "#/components/ui/button";
 import { formatRevisionDeadline, validateRevisionFeedbackRows } from "#/domain/revisions/rules";
 import { exhaustiveCheck, tryCatch } from "#/lib/result";
 import { api } from "#convex/_generated/api";
-import { RevisionConfirmDialog } from "#studio/features/revisions/components/RevisionConfirmDialog";
-import { RevisionRequestForm } from "#studio/features/revisions/components/RevisionRequestForm";
-import { SubmittedRevisionsList } from "#studio/features/revisions/components/SubmittedRevisionsList";
+import { RevisionRequestDialog } from "#studio/features/revisions/components/RevisionRequestDialog";
+import { SubmittedRevisionsDialog } from "#studio/features/revisions/components/SubmittedRevisionsDialog";
 import {
 	formatClosedEditSummary,
 	formatEditCardTitle,
@@ -21,14 +20,25 @@ import {
 
 function renderEditCardHeaderContent(
 	edit: RevisionEditCardItem,
-	isFormOpen: boolean,
-	onToggleForm: () => void
+	onOpenRequestDialog: () => void,
+	onOpenHistoryDialog: () => void
 ) {
+	const historyButton =
+		edit.submittedRounds.length > 0 ? (
+			<Button
+				type="button"
+				variant="outline"
+				size="sm"
+				className="flex-1 sm:flex-initial"
+				onClick={onOpenHistoryDialog}>
+				View revisions ({edit.submittedRounds.length})
+			</Button>
+		) : null;
+
 	switch (edit.state.kind) {
 		case "not_delivered":
 			return {
 				subtitle: "Usually ready in around 6 days from your session",
-				alignClass: "sm:items-start",
 				trailing: (
 					<span className="inline-flex shrink-0 items-center gap-1.5 text-sm font-medium text-primary">
 						<span
@@ -43,19 +53,27 @@ function renderEditCardHeaderContent(
 		case "closed": {
 			const hasActiveRevision = edit.submittedRounds.some((round) => round.status === "requested");
 
+			const statusLabel = hasActiveRevision ? (
+				<span className="inline-flex shrink-0 items-center gap-1.5 text-sm font-medium text-primary">
+					<span
+						className="size-2 shrink-0 rounded-full bg-primary"
+						aria-hidden="true"
+					/>
+					<span>Revision in progress</span>
+				</span>
+			) : (
+				<span className="shrink-0 text-sm text-muted-foreground">Closed</span>
+			);
+
 			return {
 				subtitle: formatClosedEditSummary(edit.state),
-				alignClass: "sm:items-start",
-				trailing: hasActiveRevision ? (
-					<span className="inline-flex shrink-0 items-center gap-1.5 text-sm font-medium text-primary">
-						<span
-							className="size-2 shrink-0 rounded-full bg-primary"
-							aria-hidden="true"
-						/>
-						<span>Revision in progress</span>
-					</span>
+				trailing: historyButton ? (
+					<div className="flex items-center justify-between gap-3 sm:shrink-0 sm:justify-end">
+						{statusLabel}
+						{historyButton}
+					</div>
 				) : (
-					<span className="shrink-0 text-sm text-muted-foreground">Closed</span>
+					statusLabel
 				)
 			};
 		}
@@ -71,16 +89,17 @@ function renderEditCardHeaderContent(
 						</span>
 					</>
 				),
-				alignClass: "sm:items-center",
 				trailing: (
-					<Button
-						type="button"
-						variant={isFormOpen ? "outline" : "default"}
-						size="sm"
-						className="self-start sm:self-center"
-						onClick={onToggleForm}>
-						{isFormOpen ? "Close" : "Request revisions"}
-					</Button>
+					<div className="flex items-center gap-2 sm:shrink-0">
+						{historyButton}
+						<Button
+							type="button"
+							size="sm"
+							className="flex-1 sm:flex-initial"
+							onClick={onOpenRequestDialog}>
+							Request revisions
+						</Button>
+					</div>
 				)
 			};
 
@@ -90,7 +109,8 @@ function renderEditCardHeaderContent(
 }
 
 export function RevisionEditCard({ token, edit }: { token: string; edit: RevisionEditCardItem }) {
-	const [isFormOpen, setIsFormOpen] = useState(false);
+	const [isRequestDialogOpen, setIsRequestDialogOpen] = useState(false);
+	const [isHistoryDialogOpen, setIsHistoryDialogOpen] = useState(false);
 
 	const [formState, dispatch] = useReducer(
 		revisionFormReducer,
@@ -101,8 +121,10 @@ export function RevisionEditCard({ token, edit }: { token: string; edit: Revisio
 	const submitFreeRevision = useMutation(api.revisions.public.submitFreeRevisionRound);
 	const title = formatEditCardTitle(edit);
 
-	function handleRequestSubmit(event: FormEvent<HTMLFormElement>) {
+	async function handleRequestSubmit(event: FormEvent<HTMLFormElement>) {
 		event.preventDefault();
+
+		if (formState.submissionStatus === "submitting") return;
 
 		const validation = validateRevisionFeedbackRows(
 			formState.rows.map((row) => ({
@@ -129,17 +151,10 @@ export function RevisionEditCard({ token, edit }: { token: string; edit: Revisio
 			return;
 		}
 
-		dispatch({ type: "open_confirm", validatedRows: validation.rows });
-	}
-
-	async function handleConfirmSubmit() {
-		if (formState.submission.kind !== "confirming") return;
-		const { validatedRows } = formState.submission;
-
 		dispatch({ type: "start_submit" });
 
 		const [error, result] = await tryCatch(
-			submitFreeRevision({ token, editId: edit._id, feedbackRows: validatedRows })
+			submitFreeRevision({ token, editId: edit._id, feedbackRows: validation.rows })
 		);
 
 		if (error !== null) {
@@ -150,49 +165,47 @@ export function RevisionEditCard({ token, edit }: { token: string; edit: Revisio
 		}
 
 		dispatch({ type: "reset" });
-		setIsFormOpen(false);
+		setIsRequestDialogOpen(false);
 		toast.success(`Revision ${result.roundNumber} requested for ${title}.`);
 	}
 
-	const header = renderEditCardHeaderContent(edit, isFormOpen, () =>
-		setIsFormOpen((open) => !open)
+	const header = renderEditCardHeaderContent(
+		edit,
+		() => setIsRequestDialogOpen(true),
+		() => setIsHistoryDialogOpen(true)
 	);
 
 	return (
-		<section className="rounded-xl border border-border bg-card p-5">
-			<div className={`flex flex-col gap-3 sm:flex-row sm:justify-between ${header.alignClass}`}>
+		<div className="rounded-xl border border-border bg-card p-4 sm:p-5">
+			<div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
 				<div className="space-y-1">
-					<h2 className="text-base font-semibold text-foreground">{title}</h2>
-					<p className="text-sm text-muted-foreground">{header.subtitle}</p>
+					<h3 className="text-sm font-semibold text-foreground sm:text-base">{title}</h3>
+					<p className="text-sm leading-relaxed text-muted-foreground">{header.subtitle}</p>
 				</div>
 				{header.trailing}
 			</div>
 
-			{edit.state.kind !== "not_delivered" ? (
-				<SubmittedRevisionsList
+			{edit.submittedRounds.length > 0 ? (
+				<SubmittedRevisionsDialog
+					open={isHistoryDialogOpen}
+					title={title}
 					rounds={edit.submittedRounds}
 					requiresClipNumber={edit.requiresClipNumber}
+					onOpenChange={setIsHistoryDialogOpen}
 				/>
 			) : null}
 
-			{(edit.state.kind === "open_free" || edit.state.kind === "open_paid") && isFormOpen ? (
-				<RevisionRequestForm
+			{edit.state.kind === "open_free" || edit.state.kind === "open_paid" ? (
+				<RevisionRequestDialog
+					open={isRequestDialogOpen}
+					title={title}
 					edit={edit}
 					formState={formState}
 					dispatch={dispatch}
-					onSubmit={handleRequestSubmit}
+					onOpenChange={setIsRequestDialogOpen}
+					onSubmit={(event) => void handleRequestSubmit(event)}
 				/>
 			) : null}
-
-			{edit.state.kind === "open_free" ? (
-				<RevisionConfirmDialog
-					title={title}
-					remainingAfterSubmit={Math.max(0, edit.freeRoundsRemaining - 1)}
-					submission={formState.submission}
-					dispatch={dispatch}
-					onConfirm={() => void handleConfirmSubmit()}
-				/>
-			) : null}
-		</section>
+		</div>
 	);
 }
