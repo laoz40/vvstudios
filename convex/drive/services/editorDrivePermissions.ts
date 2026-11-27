@@ -180,7 +180,7 @@ function applyEditorDrivePermissionsForDrive(
 	});
 }
 
-function ensureEditorDrivePermissions(
+function grantEditorDrivePermissions(
 	ctx: ActionCtx,
 	setup: EditorDriveSetupRecord
 ): ResultAsync<null, DriveEditorPermissionsError> {
@@ -259,8 +259,8 @@ function recordEditorPermissionFailure(
 	});
 }
 
-function ensureEditorDrivePermissionsForSetup(ctx: ActionCtx, setup: EditorDriveSetupRecord) {
-	return ensureEditorDrivePermissions(ctx, setup)
+function grantEditorDrivePermissionsOrRecordFailure(ctx: ActionCtx, setup: EditorDriveSetupRecord) {
+	return grantEditorDrivePermissions(ctx, setup)
 		.orElse((error) => recordEditorPermissionFailure(ctx, setup, error))
 		.map(() => setup);
 }
@@ -271,7 +271,7 @@ export function setupEditorAccess(
 ): ResultAsync<null, DriveEditorPermissionsError> {
 	return safeTry(async function* () {
 		const setup = yield* loadEditorDriveSetup(ctx, args.bookingId);
-		const readySetup = yield* ensureEditorDrivePermissionsForSetup(ctx, setup);
+		const readySetup = yield* grantEditorDrivePermissionsOrRecordFailure(ctx, setup);
 		const claim = yield* claimEditorEmail(ctx, readySetup);
 
 		return ok(yield* sendClaimedEditorAssignmentEmail(ctx, claim));

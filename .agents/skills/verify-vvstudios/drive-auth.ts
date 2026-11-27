@@ -2,7 +2,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { chromium, expect } from "@playwright/test";
-import { prepareClerkTesting, signInAsAdmin } from "../../../e2e/helpers/admin-auth.ts";
+import { initClerkTesting, signInAsAdmin } from "../../../e2e/helpers/admin-auth.ts";
 import { BASE_URL, REPO_ROOT, missingEnvKeys } from "./lib.ts";
 
 const HELP = `verify-vvstudios drive-auth. Clerk /login then admin /dashboard
@@ -44,7 +44,7 @@ const outDir = path.join(REPO_ROOT, "tmp/verify-vvstudios", runId);
 
 fs.mkdirSync(outDir, { recursive: true });
 
-await prepareClerkTesting();
+await initClerkTesting();
 
 let runError: string | null = null;
 

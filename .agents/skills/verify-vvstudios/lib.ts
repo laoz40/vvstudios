@@ -36,7 +36,7 @@ export function loadProjectEnv() {
 	loadLocalEnvFiles(REPO_ROOT);
 }
 
-export function ensureStateDir() {
+export function createStateDir() {
 	fs.mkdirSync(STATE_DIR, { recursive: true });
 }
 
@@ -60,12 +60,12 @@ export function readRecordedPid(): number | null {
 }
 
 export function writeRecordedPid(pid: number) {
-	ensureStateDir();
+	createStateDir();
 	fs.writeFileSync(PID_FILE, String(pid));
 }
 
 export function writeSpawnPid(pid: number) {
-	ensureStateDir();
+	createStateDir();
 	fs.writeFileSync(SPAWN_PID_FILE, String(pid));
 }
 

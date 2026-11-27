@@ -137,13 +137,13 @@ export function loadEditablePackageSessionForReschedule(
 ) {
 	return safeTry(async function* () {
 		const details = yield* getEditablePackageSession(ctx, args);
-		const validatedDetails = yield* ensureRescheduleSlotAvailable(args, details);
+		const validatedDetails = yield* requireRescheduleSlotAvailable(args, details);
 
 		return ok(validatedDetails);
 	});
 }
 
-function ensureRescheduleSlotAvailable(
+function requireRescheduleSlotAvailable(
 	args: PackageRescheduleRequestArgs,
 	details: EditablePackageSessionDetails
 ) {

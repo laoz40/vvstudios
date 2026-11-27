@@ -14,7 +14,7 @@ import {
 	keepCompletedPackageSessions,
 	loadPackageWithoutAdjustment,
 	loadPackageAdjustmentSessions,
-	preparePackageAdjustment,
+	planPackageAdjustmentRecord,
 	evaluateLoadedPackageAdjustment,
 	insertPlannedPackageAdjustment,
 	deferExpiredAdjustment,
@@ -62,7 +62,7 @@ export function recordPackageAdjustment(
 	sessions: PackageAdjustmentSessions | null
 ) {
 	const evaluation = evaluateLoadedPackageAdjustment(sessions, args.createdAt);
-	const plan = preparePackageAdjustment(evaluation, args.packageId);
+	const plan = planPackageAdjustmentRecord(evaluation, args.packageId);
 
 	return safeTry(async function* () {
 		const plannedAdjustment = yield* insertPlannedPackageAdjustment(ctx, args, plan);

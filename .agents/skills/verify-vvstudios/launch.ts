@@ -4,7 +4,7 @@ import { spawn } from "node:child_process";
 import { setTimeout as delay } from "node:timers/promises";
 import {
 	BASE_URL,
-	ensureStateDir,
+	createStateDir,
 	fetchHomeTitle,
 	getPortListenerPid,
 	isProcessAlive,
@@ -48,7 +48,7 @@ if (missing.length > 0) {
 
 loadProjectEnv();
 
-ensureStateDir();
+createStateDir();
 
 const listenerPid = await getPortListenerPid();
 

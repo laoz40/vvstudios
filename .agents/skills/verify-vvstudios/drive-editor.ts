@@ -4,7 +4,7 @@ import path from "node:path";
 import { execFileSync } from "node:child_process";
 import { chromium, expect, type Page } from "@playwright/test";
 import {
-	prepareClerkTesting,
+	initClerkTesting,
 	signInAsAdmin,
 	signInWithEmail
 } from "../../../e2e/helpers/admin-auth.ts";
@@ -69,7 +69,7 @@ const outDir = path.join(REPO_ROOT, "tmp/verify-vvstudios", runId);
 
 fs.mkdirSync(outDir, { recursive: true });
 
-await prepareClerkTesting();
+await initClerkTesting();
 
 const browser = await chromium.launch();
 

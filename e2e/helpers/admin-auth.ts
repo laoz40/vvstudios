@@ -3,7 +3,7 @@ import { expect, type Page } from "@playwright/test";
 
 let clerkTestingReady = false;
 
-export function ensureClerkTestingEnv() {
+export function loadClerkTestingEnv() {
 	if (!process.env.CLERK_PUBLISHABLE_KEY && process.env.VITE_CLERK_PUBLISHABLE_KEY) {
 		process.env.CLERK_PUBLISHABLE_KEY = process.env.VITE_CLERK_PUBLISHABLE_KEY;
 	}
@@ -21,8 +21,8 @@ export function getE2eClerkSecretKey() {
 	return process.env.E2E_CLERK_SECRET_KEY ?? process.env.CLERK_SECRET_KEY;
 }
 
-export async function prepareClerkTesting() {
-	ensureClerkTestingEnv();
+export async function initClerkTesting() {
+	loadClerkTestingEnv();
 
 	if (!clerkTestingReady) {
 		await clerkSetup();

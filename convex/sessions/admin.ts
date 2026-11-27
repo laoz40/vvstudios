@@ -6,7 +6,7 @@ import { tupleErr, tupleOk } from "#/lib/result";
 import { loadDeliverablesCustomerTypeForBooking } from "#convex/editor/services/loadSessionForDeliverables";
 import { internalMutation, internalQuery, mutation, query } from "#convex/_generated/server";
 import { requirePermission } from "#convex/shared/services/auth";
-import { runArchivePastDeadCheckoutBatch } from "#convex/sessions/services/archive";
+import { archivePastDeadCheckoutBatch } from "#convex/sessions/services/archive";
 import { listSessionsService } from "#convex/sessions/services/adminList";
 import {
 	listActiveEditorsForAdmin,
@@ -126,11 +126,7 @@ export const archivePastDeadCheckoutSessions = mutation({
 		safeTry(async function* () {
 			yield* requirePermission(ctx, "archive:sessions");
 
-			const archivedSessions = yield* runArchivePastDeadCheckoutBatch(
-				ctx,
-				args.cursor,
-				args.numItems
-			);
+			const archivedSessions = yield* archivePastDeadCheckoutBatch(ctx, args.cursor, args.numItems);
 
 			return ok(archivedSessions);
 		}).match(tupleOk, tupleErr)

@@ -9,7 +9,7 @@ import {
 	saveEditDeliverablesEmailResult,
 	updateSessionStatusFromEdits
 } from "#convex/editor/services/editDelivery";
-import { ensureSessionFeedbackToken } from "#convex/revisions/services/feedbackSession";
+import { getOrCreateSessionFeedbackToken } from "#convex/revisions/services/feedbackSession";
 import { getSessionFromDb } from "#convex/sessions/services/lookup";
 import { editWorkStatusValidator } from "#convex/schema";
 
@@ -42,7 +42,7 @@ export const lockEditForDeliverablesEmail = internalMutation({
 
 			const feedbackToken =
 				args.recipient === "client"
-					? yield* ensureSessionFeedbackToken(ctx, access.session, access.edit)
+					? yield* getOrCreateSessionFeedbackToken(ctx, access.session, access.edit)
 					: undefined;
 
 			return ok({

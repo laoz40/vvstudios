@@ -2,6 +2,7 @@
 	"$schema": "./node_modules/oxlint/configuration_schema.json",
 	"jsPlugins": [
 		{ "name": "project", "specifier": "./tools/oxlint/project/index.ts" },
+		{ "name": "naming", "specifier": "./tools/oxlint/naming/index.ts" },
 		{ "name": "anti-slop", "specifier": "./tools/oxlint/anti-slop/index.ts" },
 		{ "name": "neverthrow", "specifier": "./tools/oxlint/neverthrow/index.ts" },
 		{ "name": "convex-layers", "specifier": "./tools/oxlint/convex-layers/index.ts" },
@@ -81,6 +82,7 @@
 		"no-undef": "error",
 		"no-unreachable": "error",
 		"project/no-em-dash": "error",
+		"naming/no-vague-function-names": "error",
 		"anti-slop/no-array-filter-map": "error",
 		"anti-slop/no-chained-type-assertions": "error",
 		"anti-slop/no-widen-then-assert": "error",

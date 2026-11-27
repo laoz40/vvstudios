@@ -96,7 +96,7 @@ export function resolveClaimedSessionCompletion(
 	return completion;
 }
 
-export function prepareClaimedCalendarEvent(
+export function buildClaimedCalendarEventOrFail(
 	ctx: ActionCtx,
 	session: Doc<"bookings">,
 	client: GoogleCalendarClient,

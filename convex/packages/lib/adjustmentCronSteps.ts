@@ -83,7 +83,7 @@ export function loadPackageAdjustmentSessions(
 	);
 }
 
-export function preparePackageAdjustment(
+export function planPackageAdjustmentRecord(
 	evaluation: ReturnType<typeof evaluatePackageAdjustment> | null,
 	packageId: Id<"packages">
 ): PackageAdjustmentRecordPlan {

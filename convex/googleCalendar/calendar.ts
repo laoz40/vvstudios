@@ -55,14 +55,14 @@ import {
 	type DriveClientPermissionsError
 } from "#convex/drive/services/clientDrivePermissions";
 import { syncBookingDriveClientIdForRetry } from "#convex/drive/services/driveClientPermissions";
-import { ensureSessionDriveFolders } from "#convex/drive/services/ensureSessionDriveFolders";
+import { setupSessionDriveFolders } from "#convex/drive/services/ensureSessionDriveFolders";
 import { requirePermissionActions } from "#convex/shared/services/requirePermissionActions";
 import {
 	claimSessionReminderSend,
 	sendSessionReminderWhenClaimed
 } from "#convex/booking/services/sessionReminderEmail";
 import {
-	runCompleteClaimedSession,
+	completeClaimedBookingSession,
 	type CompleteClaimedSessionError
 } from "#convex/booking/services/claimedSession";
 import type { CompleteClaimedSessionSuccess } from "#convex/booking/services/confirmation";
@@ -74,7 +74,7 @@ export const setupDrive = action({
 		safeTry(async function* () {
 			yield* requirePermissionActions(ctx, "edit:sessions");
 			const setup = yield* loadValidatedDriveSetup(ctx, args);
-			yield* ensureSessionDriveFolders(ctx, setup, true);
+			yield* setupSessionDriveFolders(ctx, setup, true);
 			yield* markDriveSetupSuccessful(ctx, args);
 			yield* sendClientAssetsEmailAfterSetup(ctx, args.bookingId);
 			yield* setupEditorAccessAfterSetup(ctx, args.bookingId);
@@ -91,7 +91,7 @@ export const retryDriveSetup = action({
 		safeTry(async function* () {
 			yield* requirePermissionActions(ctx, "edit:sessions");
 			const setup = yield* loadValidatedDriveSetup(ctx, args);
-			yield* ensureSessionDriveFolders(ctx, setup, true);
+			yield* setupSessionDriveFolders(ctx, setup, true);
 			yield* markDriveSetupSuccessful(ctx, args);
 			yield* sendClientAssetsEmailAfterSetup(ctx, args.bookingId);
 			yield* setupEditorAccessAfterSetup(ctx, args.bookingId);
@@ -134,7 +134,7 @@ export const runScheduledDriveSetup = internalAction({
 	handler: (ctx, args): Promise<Result<null, never>> =>
 		safeTry(async function* () {
 			const setup = yield* loadValidatedDriveSetup(ctx, args);
-			yield* ensureSessionDriveFolders(ctx, setup, false);
+			yield* setupSessionDriveFolders(ctx, setup, false);
 			yield* markDriveSetupSuccessful(ctx, args);
 			yield* sendClientAssetsEmailAfterSetup(ctx, args.bookingId);
 			yield* setupEditorAccessAfterSetup(ctx, args.bookingId);
@@ -306,7 +306,7 @@ export const completeClaimedSession = internalAction({
 		ctx,
 		args
 	): Promise<Result<CompleteClaimedSessionSuccess, CompleteClaimedSessionError>> =>
-		runCompleteClaimedSession(ctx, args.bookingId).match(tupleOk, tupleErr)
+		completeClaimedBookingSession(ctx, args.bookingId).match(tupleOk, tupleErr)
 });
 
 export const cleanupCancelledSessionDrive = internalAction({

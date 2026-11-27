@@ -14,7 +14,7 @@ import {
 	linkBookingDriveClient
 } from "#convex/drive/services/ensureSessionDriveFolderSteps";
 
-export function ensureSessionDriveFolders(
+export function setupSessionDriveFolders(
 	ctx: ActionCtx,
 	setupInfo: DriveSetupInfo,
 	replaceMissingFolders = false

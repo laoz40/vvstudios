@@ -20,7 +20,7 @@ import {
 	loadedClaimedSessionFromPending,
 	finishVerifyClaimedBookingSchedule,
 	finishReserveClaimedBookingSlot,
-	prepareClaimedCalendarEvent,
+	buildClaimedCalendarEventOrFail,
 	selectReadyClaimedCalendarPayloads,
 	resolveClaimedCalendarCreation,
 	selectConfirmedClaimedBookings,
@@ -117,15 +117,15 @@ export function createClaimedBookingCalendarEvent(
 	reservation: SessionReservation
 ): ResultAsync<InsertClaimedBookingCalendarEventResult, CompleteClaimedSessionError> {
 	return safeTry(async function* () {
-		const prepared = yield* prepareClaimedCalendarEvent(ctx, session, client, reservation);
+		const calendarEvent = yield* buildClaimedCalendarEventOrFail(ctx, session, client, reservation);
 
 		const creations = yield* ResultAsync.combine(
-			selectReadyClaimedCalendarPayloads(prepared).map((body) =>
+			selectReadyClaimedCalendarPayloads(calendarEvent).map((body) =>
 				insertAndHandleClaimedCalendarEvent(ctx, session, client, reservation, body)
 			)
 		);
 
-		return ok(resolveClaimedCalendarCreation(prepared, creations));
+		return ok(resolveClaimedCalendarCreation(calendarEvent, creations));
 	});
 }
 
@@ -276,7 +276,7 @@ function runClaimedSessionWithSettings(
 	});
 }
 
-function runCompleteClaimedSessionWhenPending(ctx: ActionCtx, session: Doc<"bookings">) {
+function completePendingClaimedSession(ctx: ActionCtx, session: Doc<"bookings">) {
 	const calendarClient = getGoogleCalendarClient();
 
 	return safeTry(async function* () {
@@ -291,7 +291,7 @@ function completeClaimedSessionFromLoaded(ctx: ActionCtx, loaded: LoadedClaimedS
 	return safeTry(async function* () {
 		const completions = yield* ResultAsync.combine(
 			selectPendingClaimedSessions(loaded).map((session) =>
-				runCompleteClaimedSessionWhenPending(ctx, session)
+				completePendingClaimedSession(ctx, session)
 			)
 		);
 
@@ -299,7 +299,7 @@ function completeClaimedSessionFromLoaded(ctx: ActionCtx, loaded: LoadedClaimedS
 	});
 }
 
-export function runCompleteClaimedSession(
+export function completeClaimedBookingSession(
 	ctx: ActionCtx,
 	bookingId: Id<"bookings">
 ): ResultAsync<CompleteClaimedSessionSuccess, CompleteClaimedSessionError> {

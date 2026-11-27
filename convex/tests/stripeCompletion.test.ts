@@ -242,7 +242,7 @@ describe("package payment completion", () => {
 
 async function seedBooking(t: TestClient, email = "customer@example.com") {
 	return await t.run(async (ctx) => {
-		await ensureBookingSettings(ctx);
+		await seedBookingSettingsIfMissing(ctx);
 
 		return await ctx.db.insert(
 			"bookings",
@@ -360,7 +360,7 @@ async function readPackagePaymentState(t: TestClient, packageId: Id<"packages">)
 	};
 }
 
-async function ensureBookingSettings(ctx: Parameters<Parameters<TestClient["run"]>[0]>[0]) {
+async function seedBookingSettingsIfMissing(ctx: Parameters<Parameters<TestClient["run"]>[0]>[0]) {
 	const existing = await ctx.db
 		.query("bookingSettings")
 		.withIndex("by_key", (query) => query.eq("key", "main"))
