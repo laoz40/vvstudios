@@ -20,7 +20,6 @@ export type RevisionRequestedEmailProps = {
 	sessionDateLabel: string;
 	sessionTimeLabel: string;
 	editLabel: string;
-	roundNumber: number;
 	dueDateLabel: string;
 	requiresClipNumber: boolean;
 	feedbackRows: ReadonlyArray<RevisionFeedbackRowInput>;
@@ -32,7 +31,6 @@ export function RevisionRequestedEmail({
 	sessionDateLabel,
 	sessionTimeLabel,
 	editLabel,
-	roundNumber,
 	dueDateLabel,
 	requiresClipNumber,
 	feedbackRows,
@@ -41,7 +39,7 @@ export function RevisionRequestedEmail({
 	return (
 		<Html>
 			<Head />
-			<Preview>{`Revision ${roundNumber} requested for ${editLabel} (${clientName}).`}</Preview>
+			<Preview>{`Revision requested for ${editLabel} (${clientName}).`}</Preview>
 			<Body style={body}>
 				<Container style={container}>
 					<Img
@@ -51,7 +49,7 @@ export function RevisionRequestedEmail({
 						src={BOOKING_INVOICE_BUSINESS.logoUrl}
 						style={logo}
 					/>
-					<Heading style={heading}>Revision {roundNumber} requested</Heading>
+					<Heading style={heading}>Revision requested</Heading>
 					{noActiveEditorAssigned ? (
 						<Section style={warningCard}>
 							<Text style={warningText}>
@@ -70,14 +68,18 @@ export function RevisionRequestedEmail({
 						<Text style={metaRow}>
 							<strong>Edit:</strong> {editLabel}
 						</Text>
-						<Text style={metaRow}>
-							<strong>Revision:</strong> Revision {roundNumber}
-						</Text>
 						<Text style={metaRowLast}>
 							<strong>Due by:</strong> {dueDateLabel}
 						</Text>
 					</Section>
-					<Section style={notesSection}>
+					<Section style={buttonWrapper}>
+						<Button
+							href={`${BOOKING_INVOICE_BUSINESS.websiteUrl}${studioSite.routes.dashboard}`}
+							style={button}>
+							Open Editor Dashboard
+						</Button>
+					</Section>
+					<Section style={notesCard}>
 						<Text style={sectionTitle}>Requested changes ({feedbackRows.length})</Text>
 						{withFeedbackRowKeys(feedbackRows).map(({ key, row }, index) => (
 							<Section
@@ -90,13 +92,6 @@ export function RevisionRequestedEmail({
 								<Text style={noteText}>{row.note}</Text>
 							</Section>
 						))}
-					</Section>
-					<Section style={buttonWrapper}>
-						<Button
-							href={`${BOOKING_INVOICE_BUSINESS.websiteUrl}${studioSite.routes.dashboard}`}
-							style={button}>
-							Open Editor Dashboard
-						</Button>
 					</Section>
 					<EmailFooter />
 				</Container>
@@ -152,7 +147,13 @@ const metaRow = { color: "#fafafa", fontSize: "14px", lineHeight: "22px", margin
 
 const metaRowLast = { ...metaRow, margin: "0" };
 
-const notesSection = { margin: "0 0 24px" };
+const notesCard = {
+	backgroundColor: "#383838",
+	border: "1px solid #454545",
+	borderRadius: "12px",
+	margin: "0 0 24px",
+	padding: "14px 16px"
+};
 
 const sectionTitle = { color: "#f5c400", fontSize: "13px", fontWeight: "600", margin: "0 0 12px" };
 

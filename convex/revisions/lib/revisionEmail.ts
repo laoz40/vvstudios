@@ -113,7 +113,6 @@ export function renderRevisionRequestedEmailHtml(
 						emailData.sessionDuration
 					),
 					editLabel: emailData.editLabel,
-					roundNumber: emailData.roundNumber,
 					dueDateLabel: formatRevisionDeadline(emailData.dueAt),
 					requiresClipNumber: rule.requiresClipNumber,
 					feedbackRows: emailData.feedbackRows,
