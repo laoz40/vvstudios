@@ -88,6 +88,10 @@ A session or package removed from the Inbox and retained in the corresponding Al
 **Editor assignment**:
 Assigning one editor to a session's post-production, including all of its edits.
 
+**Studio editing voice**:
+In customer-facing UI and emails, refer to the studio doing the edits (for example, "our studio" or "VV Studios").
+_Avoid_: Referring to "editors" or "your editor" in customer-facing copy
+
 **Edit status**:
 The stage of post-production for a session or an individual edit. The session's overall edit status shows whether work has started, is still underway, or is complete.
 
