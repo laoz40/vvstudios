@@ -3,6 +3,7 @@ import { useQuery } from "convex/react";
 import { buildNoIndexHead } from "#/lib/seo";
 import { api } from "#convex/_generated/api";
 import { StudioLoadingState } from "#studio/components/StudioLoadingState";
+import { BookingStatusLayout } from "#studio/features/booking-complete/components/BookingStatusLayout";
 import { RevisionsPageContent } from "#studio/features/revisions/components/RevisionsPageContent";
 import { getFeedbackLinkInvalidMessage } from "#studio/features/revisions/lib/revision-errors";
 
@@ -21,9 +22,11 @@ function RevisionsPage() {
 
 	if (sessionResult === undefined) {
 		return (
-			<main className="mx-auto flex min-h-screen w-full max-w-3xl flex-1 flex-col justify-center px-4 py-10 sm:px-6">
+			<BookingStatusLayout
+				showActions={false}
+				devPanel={null}>
 				<StudioLoadingState label="Loading your edits" />
-			</main>
+			</BookingStatusLayout>
 		);
 	}
 
@@ -33,14 +36,14 @@ function RevisionsPage() {
 		const invalidMessage = getFeedbackLinkInvalidMessage(sessionError);
 
 		return (
-			<main className="mx-auto flex min-h-screen w-full max-w-3xl flex-1 flex-col justify-center px-4 py-10 sm:px-6">
-				<div className="space-y-3 rounded-xl border border-border bg-card p-6">
-					<h1 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
-						{invalidMessage.title}
-					</h1>
-					<p className="text-sm text-muted-foreground sm:text-base">{invalidMessage.description}</p>
+			<BookingStatusLayout
+				showActions={false}
+				devPanel={null}>
+				<div>
+					<h1 className="text-4xl font-semibold tracking-tight">{invalidMessage.title}</h1>
+					<p className="mt-4 text-muted-foreground">{invalidMessage.description}</p>
 				</div>
-			</main>
+			</BookingStatusLayout>
 		);
 	}
 

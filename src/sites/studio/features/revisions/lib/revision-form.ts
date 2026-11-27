@@ -1,6 +1,7 @@
-import type {
-	RevisionFeedbackRowFieldErrors,
-	RevisionFeedbackRowInput
+import {
+	validateRevisionFeedbackField,
+	type RevisionFeedbackRowFieldErrors,
+	type RevisionFeedbackRowInput
 } from "#/domain/revisions/rules";
 import { exhaustiveCheck } from "#/lib/result";
 
@@ -28,6 +29,12 @@ export type RevisionFormAction =
 	| { type: "add_row" }
 	| { type: "remove_row"; id: number }
 	| { type: "update_field"; id: number; field: "timestamp" | "note" | "clipNumber"; value: string }
+	| {
+			type: "blur_field";
+			id: number;
+			field: "timestamp" | "note" | "clipNumber";
+			requiresClipNumber: boolean;
+	  }
 	| {
 			type: "validation_failed";
 			formError: string | null;
@@ -84,6 +91,32 @@ function updateDraftRowField(
 	};
 }
 
+function validateBlurredRowField(
+	state: RevisionFormState,
+	action: Extract<RevisionFormAction, { type: "blur_field" }>
+): RevisionFormState {
+	const index = state.rows.findIndex((row) => row.id === action.id);
+
+	if (index === -1) return state;
+
+	const row = state.rows[index];
+
+	if (row === undefined) return state;
+
+	const fieldError = validateRevisionFeedbackField(
+		action.field,
+		row[action.field],
+		action.requiresClipNumber
+	);
+
+	return {
+		...state,
+		rowErrors: state.rowErrors.map((rowError, idx) =>
+			idx === index ? { ...rowError, [action.field]: fieldError } : rowError
+		)
+	};
+}
+
 function transitionSubmission(
 	state: RevisionFormState,
 	from: FormSubmissionState["kind"],
@@ -119,6 +152,9 @@ export function revisionFormReducer(
 
 		case "update_field":
 			return updateDraftRowField(state, action);
+
+		case "blur_field":
+			return validateBlurredRowField(state, action);
 
 		case "validation_failed":
 			return {

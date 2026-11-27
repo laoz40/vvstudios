@@ -40,12 +40,6 @@ export function formatEditCardTitle(edit: Pick<RevisionEditCardItem, "displayNam
 	return edit.itemLabel !== null ? `${edit.displayName} - ${edit.itemLabel}` : edit.displayName;
 }
 
-export function formatFreeAllowanceIncluded(freeRoundsAllowed: number) {
-	return freeRoundsAllowed === 1
-		? "1 free revision included"
-		: `${freeRoundsAllowed} free revisions included`;
-}
-
 export function formatClosedEditSummary(
 	state: Extract<RevisionEditCardItem["state"], { kind: "closed" }>
 ) {
@@ -55,7 +49,7 @@ export function formatClosedEditSummary(
 		case "window_expired":
 			return `Revision window closed ${formatRevisionShortDate(state.windowEndsAt)}`;
 		case "allowance_exhausted":
-			return "All free revisions used";
+			return "All revisions used";
 		case "pre_rollout":
 			return "Revisions are not available for this delivery";
 		default:

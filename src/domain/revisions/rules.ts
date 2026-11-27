@@ -4,6 +4,7 @@ import {
 	type QuantityTrackedAddon
 } from "#/domain/booking/addon-quantities";
 import type { BookingAddon } from "#/domain/booking/catalog";
+import { exhaustiveCheck } from "#/lib/result";
 
 const REVISION_TIME_ZONE = "Australia/Sydney";
 
@@ -74,28 +75,75 @@ function isValidRevisionTimestamp(raw: string): boolean {
 	return false;
 }
 
+export function validateRevisionFeedbackField(
+	field: keyof RevisionFeedbackRowFieldErrors,
+	rawValue: string,
+	requiresClipNumber: boolean
+): string | undefined {
+	const value = rawValue.trim();
+
+	switch (field) {
+		case "timestamp":
+			return isValidRevisionTimestamp(value)
+				? undefined
+				: "Use MM:SS, H:MM:SS, or a range like 01:23-01:45.";
+
+		case "note":
+			if (value.length === 0) {
+				return "Describe the change needed.";
+			}
+
+			if (value.length > MAX_REVISION_NOTE_LENGTH) {
+				return `Keep each note under ${MAX_REVISION_NOTE_LENGTH} characters.`;
+			}
+
+			return undefined;
+
+		case "clipNumber":
+			if (!requiresClipNumber) {
+				return undefined;
+			}
+
+			if (value.length === 0) {
+				return "Enter a clip number.";
+			}
+
+			if (value.length > MAX_REVISION_CLIP_NUMBER_LENGTH) {
+				return `Keep clip numbers under ${MAX_REVISION_CLIP_NUMBER_LENGTH} characters.`;
+			}
+
+			return undefined;
+
+		default:
+			return exhaustiveCheck(field);
+	}
+}
+
 function validateSingleRevisionRow(row: RevisionFeedbackRowInput, requiresClipNumber: boolean) {
 	const errors: RevisionFeedbackRowFieldErrors = {};
 	const timestamp = row.timestamp.trim();
 	const note = row.note.trim();
 	const clipNumber = row.clipNumber?.trim() ?? "";
 
-	if (!isValidRevisionTimestamp(timestamp)) {
-		errors.timestamp = "Use MM:SS, H:MM:SS, or a range like 01:23-01:45.";
+	const timestampError = validateRevisionFeedbackField("timestamp", timestamp, requiresClipNumber);
+	const noteError = validateRevisionFeedbackField("note", note, requiresClipNumber);
+
+	const clipNumberError = validateRevisionFeedbackField(
+		"clipNumber",
+		clipNumber,
+		requiresClipNumber
+	);
+
+	if (timestampError !== undefined) {
+		errors.timestamp = timestampError;
 	}
 
-	if (note.length === 0) {
-		errors.note = "Describe the change needed.";
-	} else if (note.length > MAX_REVISION_NOTE_LENGTH) {
-		errors.note = `Keep each note under ${MAX_REVISION_NOTE_LENGTH} characters.`;
+	if (noteError !== undefined) {
+		errors.note = noteError;
 	}
 
-	if (requiresClipNumber) {
-		if (clipNumber.length === 0) {
-			errors.clipNumber = "Enter a clip number.";
-		} else if (clipNumber.length > MAX_REVISION_CLIP_NUMBER_LENGTH) {
-			errors.clipNumber = `Keep clip numbers under ${MAX_REVISION_CLIP_NUMBER_LENGTH} characters.`;
-		}
+	if (clipNumberError !== undefined) {
+		errors.clipNumber = clipNumberError;
 	}
 
 	const hasError =
@@ -330,6 +378,7 @@ type EditRevisionClosedReason = "pre_rollout" | "window_expired" | "allowance_ex
 type EditRevisionState =
 	| { kind: "not_delivered"; statusLabel: "Editing in progress" }
 	| { kind: "open_free"; badge: "Free"; windowEndsAt: number; statusLabel: string }
+	| { kind: "open_paid"; badge: "Paid"; windowEndsAt: number; statusLabel: string }
 	| {
 			kind: "closed";
 			badge: "Closed";
@@ -398,6 +447,19 @@ export function getEditRevisionState(input: {
 			state: {
 				kind: "open_free",
 				badge: "Free",
+				windowEndsAt,
+				statusLabel: `Request changes by ${formatRevisionDeadline(windowEndsAt)}`
+			} satisfies EditRevisionState
+		};
+	}
+
+	if (paidRoundsRemaining > 0) {
+		return {
+			freeRoundsRemaining,
+			paidRoundsRemaining,
+			state: {
+				kind: "open_paid",
+				badge: "Paid",
 				windowEndsAt,
 				statusLabel: `Request changes by ${formatRevisionDeadline(windowEndsAt)}`
 			} satisfies EditRevisionState

@@ -1,5 +1,10 @@
 import { err, ok, okAsync, type Result, type ResultAsync } from "neverthrow";
 import {
+	formatEditingAddonItemLabel,
+	getEditingAddonQuantity
+} from "#/domain/booking/addon-quantities";
+import { getCustomerAddonDisplayLabel } from "#/domain/booking/catalog";
+import {
 	getEditRevisionState,
 	getRevisionAddonRule,
 	getRevisionWindowEndsAt,
@@ -75,6 +80,8 @@ export function requireSubmittableFreeRevisionEdit(input: {
 	switch (state.kind) {
 		case "not_delivered":
 			return err({ reason: "EDIT_NOT_DELIVERED" });
+		case "open_paid":
+			return err({ reason: "NO_FREE_REVISIONS_LEFT" });
 		case "closed":
 			return err({
 				reason:
@@ -196,12 +203,20 @@ export function buildRevisionRequestedEmailData(input: {
 			? trimmedEmail
 			: null;
 
+	const addOnDisplayName = getCustomerAddonDisplayLabel(input.edit.addOn);
+	const addOnQuantity = getEditingAddonQuantity(input.edit.addOn, input.session, 1);
+
+	const editLabel =
+		addOnQuantity > 1
+			? `${addOnDisplayName} (${formatEditingAddonItemLabel(input.edit.addOn, input.edit.addOnItemNumber)})`
+			: addOnDisplayName;
+
 	return ok({
 		roundId: input.round._id,
 		roundNumber: input.round.roundNumber,
 		dueAt: input.round.dueAt ?? input.round.requestedAt,
 		feedbackRows: input.round.feedbackRows,
-		editLabel: input.edit.label,
+		editLabel,
 		editAddOn: input.edit.addOn,
 		clientName: input.session.name,
 		accountName: input.session.accountName,

@@ -2,7 +2,7 @@ import { useReducer, useState, type FormEvent } from "react";
 import { useMutation } from "convex/react";
 import { toast } from "sonner";
 import { Button } from "#/components/ui/button";
-import { validateRevisionFeedbackRows } from "#/domain/revisions/rules";
+import { formatRevisionDeadline, validateRevisionFeedbackRows } from "#/domain/revisions/rules";
 import { exhaustiveCheck, tryCatch } from "#/lib/result";
 import { api } from "#convex/_generated/api";
 import { RevisionConfirmDialog } from "#studio/features/revisions/components/RevisionConfirmDialog";
@@ -11,7 +11,6 @@ import { SubmittedRevisionsList } from "#studio/features/revisions/components/Su
 import {
 	formatClosedEditSummary,
 	formatEditCardTitle,
-	formatFreeAllowanceIncluded,
 	getSubmitRevisionErrorMessage,
 	type RevisionEditCardItem
 } from "#studio/features/revisions/lib/revision-errors";
@@ -28,7 +27,7 @@ function renderEditCardHeaderContent(
 	switch (edit.state.kind) {
 		case "not_delivered":
 			return {
-				subtitle: `${formatFreeAllowanceIncluded(edit.freeRoundsAllowed)} · Usually ready in around 6 days from your session`,
+				subtitle: "Usually ready in around 6 days from your session",
 				alignClass: "sm:items-start",
 				trailing: (
 					<span className="inline-flex shrink-0 items-center gap-1.5 text-sm font-medium text-primary">
@@ -41,30 +40,47 @@ function renderEditCardHeaderContent(
 				)
 			};
 
-		case "closed":
+		case "closed": {
+			const hasActiveRevision = edit.submittedRounds.some((round) => round.status === "requested");
+
 			return {
 				subtitle: formatClosedEditSummary(edit.state),
 				alignClass: "sm:items-start",
-				trailing: <span className="shrink-0 text-sm text-muted-foreground">Closed</span>
+				trailing: hasActiveRevision ? (
+					<span className="inline-flex shrink-0 items-center gap-1.5 text-sm font-medium text-primary">
+						<span
+							className="size-2 shrink-0 rounded-full bg-primary"
+							aria-hidden="true"
+						/>
+						<span>Revision in progress</span>
+					</span>
+				) : (
+					<span className="shrink-0 text-sm text-muted-foreground">Closed</span>
+				)
 			};
+		}
 
 		case "open_free":
+		case "open_paid":
 			return {
-				subtitle: edit.state.statusLabel,
+				subtitle: (
+					<>
+						Request changes by{" "}
+						<span className="font-medium text-foreground">
+							{formatRevisionDeadline(edit.state.windowEndsAt)}
+						</span>
+					</>
+				),
 				alignClass: "sm:items-center",
 				trailing: (
-					<div className="flex items-center gap-3 self-start sm:self-center">
-						<span className="text-sm font-medium text-green">
-							Free · {edit.freeRoundsRemaining} left
-						</span>
-						<Button
-							type="button"
-							variant={isFormOpen ? "outline" : "default"}
-							size="sm"
-							onClick={onToggleForm}>
-							{isFormOpen ? "Close" : "Request revisions"}
-						</Button>
-					</div>
+					<Button
+						type="button"
+						variant={isFormOpen ? "outline" : "default"}
+						size="sm"
+						className="self-start sm:self-center"
+						onClick={onToggleForm}>
+						{isFormOpen ? "Close" : "Request revisions"}
+					</Button>
 				)
 			};
 
@@ -103,6 +119,12 @@ export function RevisionEditCard({ token, edit }: { token: string; edit: Revisio
 				formError: validation.formError ?? null,
 				rowErrors: validation.rowErrors
 			});
+
+			return;
+		}
+
+		if (edit.state.kind === "open_paid") {
+			toast.info("Paid revision checkout is not connected yet.");
 
 			return;
 		}
@@ -153,7 +175,7 @@ export function RevisionEditCard({ token, edit }: { token: string; edit: Revisio
 				/>
 			) : null}
 
-			{edit.state.kind === "open_free" && isFormOpen ? (
+			{(edit.state.kind === "open_free" || edit.state.kind === "open_paid") && isFormOpen ? (
 				<RevisionRequestForm
 					edit={edit}
 					formState={formState}

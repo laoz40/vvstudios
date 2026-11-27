@@ -1,5 +1,6 @@
 import { ExternalLink } from "lucide-react";
 import { Button } from "#/components/ui/button";
+import { BookingStatusLayout } from "#studio/features/booking-complete/components/BookingStatusLayout";
 import { RevisionEditCard } from "#studio/features/revisions/components/RevisionEditCard";
 import { RevisionOverviewCard } from "#studio/features/revisions/components/RevisionOverviewCard";
 import {
@@ -16,8 +17,8 @@ function RevisionAssetsCard({ url }: { url: string }) {
 					Want to include logos, brand guidelines, or custom files?
 				</h2>
 				<p className="text-sm text-muted-foreground">
-					You have a dedicated Google Drive folder where you can upload any custom files for your
-					editor to use.
+					You have a dedicated Google Drive folder where you can upload any custom files for our
+					studio to use.
 				</p>
 			</div>
 			<Button
@@ -52,12 +53,15 @@ export function RevisionsPageContent({
 	const sessionTimeLabel = formatBookingTimeRange(data.session.time, data.session.duration);
 
 	return (
-		<main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 px-4 py-10 sm:gap-8 sm:px-6 sm:py-12">
-			<header className="space-y-2">
-				<h1 className="text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
+		<BookingStatusLayout
+			showActions={false}
+			devPanel={null}
+			className="max-w-4xl justify-start pt-16 sm:pt-20">
+			<header className="space-y-3">
+				<h1 className="font-brand text-left text-5xl leading-none uppercase md:text-center md:text-6xl">
 					Request revisions
 				</h1>
-				<p className="text-sm text-muted-foreground sm:text-base">
+				<p className="text-sm text-muted-foreground sm:text-base md:text-center">
 					{data.session.name} · {sessionDateLabel} · {sessionTimeLabel}
 				</p>
 			</header>
@@ -85,6 +89,6 @@ export function RevisionsPageContent({
 			{data.session.assetsFolderUrl ? (
 				<RevisionAssetsCard url={data.session.assetsFolderUrl} />
 			) : null}
-		</main>
+		</BookingStatusLayout>
 	);
 }

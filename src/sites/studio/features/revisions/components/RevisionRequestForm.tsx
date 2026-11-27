@@ -4,6 +4,7 @@ import { Button } from "#/components/ui/button";
 import { Input } from "#/components/ui/input";
 import { Separator } from "#/components/ui/separator";
 import { Textarea } from "#/components/ui/textarea";
+import { PAID_REVISION_PRICE_AUD } from "#/domain/revisions/rules";
 import type { RevisionEditCardItem } from "#studio/features/revisions/lib/revision-errors";
 import type {
 	RevisionFormAction,
@@ -86,6 +87,14 @@ export function RevisionRequestForm({
 												value: event.target.value
 											})
 										}
+										onBlur={() =>
+											dispatch({
+												type: "blur_field",
+												id: row.id,
+												field: "clipNumber",
+												requiresClipNumber: edit.requiresClipNumber
+											})
+										}
 										placeholder="1"
 										aria-invalid={errors.clipNumber !== undefined}
 									/>
@@ -108,6 +117,14 @@ export function RevisionRequestForm({
 											value: event.target.value
 										})
 									}
+									onBlur={() =>
+										dispatch({
+											type: "blur_field",
+											id: row.id,
+											field: "timestamp",
+											requiresClipNumber: edit.requiresClipNumber
+										})
+									}
 									placeholder="01:23 or 01:23-01:45"
 									aria-invalid={errors.timestamp !== undefined}
 								/>
@@ -126,7 +143,8 @@ export function RevisionRequestForm({
 									className="flex-1">
 									<Textarea
 										id={noteId}
-										rows={2}
+										rows={1}
+										className="min-h-9 resize-none py-1.5"
 										value={row.note}
 										onChange={(event) =>
 											dispatch({
@@ -134,6 +152,14 @@ export function RevisionRequestForm({
 												id: row.id,
 												field: "note",
 												value: event.target.value
+											})
+										}
+										onBlur={() =>
+											dispatch({
+												type: "blur_field",
+												id: row.id,
+												field: "note",
+												requiresClipNumber: edit.requiresClipNumber
 											})
 										}
 										placeholder="Describe the change at this timestamp"
@@ -182,9 +208,15 @@ export function RevisionRequestForm({
 			<Separator className="my-4" />
 
 			<div className="flex flex-wrap items-center justify-end gap-3">
-				<span className="text-sm font-medium text-green">
-					Free · {edit.freeRoundsRemaining} of {edit.freeRoundsAllowed} left
-				</span>
+				{edit.state.kind === "open_free" ? (
+					<span className="text-sm font-medium text-green">
+						Free · {edit.freeRoundsRemaining} of {edit.freeRoundsAllowed} left
+					</span>
+				) : (
+					<span className="text-sm font-medium text-foreground">
+						${PAID_REVISION_PRICE_AUD} AUD (incl. GST)
+					</span>
+				)}
 				<Button
 					type="submit"
 					size="sm">

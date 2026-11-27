@@ -24,7 +24,9 @@ function isMinimalLayoutPath(pathname: string): boolean {
 		return true;
 	}
 
-	return ["/package-schedule/", "/reschedule/"].some((prefix) => pathname.startsWith(prefix));
+	return ["/package-schedule/", "/reschedule/", "/revisions/"].some((prefix) =>
+		pathname.startsWith(prefix)
+	);
 }
 
 export function StudioLayout({ children, pathname }: StudioLayoutProps) {
