@@ -88,26 +88,26 @@ The session-level workflow lets an approved editor choose **Send to client** to 
 - For client delivery, check the actor's permission, assignment where applicable, edit identity and delivery eligibility on the server. An approved editor uses **Send to client** on a non-legacy edit. An admin uses **Send deliverables** when the files are ready, regardless of the status set by the editor. Admins can also resend an edit marked **Sent**, including after the session completes. Preserve the applicable Drive-link and delivery-email variant checks.
 - Remove the **Mark as sent** and **Keep editing** choices from the admin's per-edit delivery flow. When the email succeeds, record delivery for the selected edit and leave the other edits at their current statuses. The app updates the overall session status automatically.
 - The client email names the edit and includes the Drive link. For revision-eligible edits, include the timestamp format, private feedback link, revision rules, free allowance, price and cap.
-- An editor without client-send permission or working on a legacy edit uses **Send for review** for that edit. It emails the studio and shows **Studio review** to staff. For eligible edits, the client's page still shows **Not delivered yet** before the first client email. A studio handoff leaves the client delivery time and window unchanged.
+- An editor without client-send permission or working on a legacy edit uses **Send for review** for that edit. It emails the studio and shows **Studio review** to staff. For eligible edits, the client's page still shows **Editing in progress** before the first client email. A studio handoff leaves the client delivery time and window unchanged.
 - Record delivery only after the client email succeeds. Start a client review window only for an eligible delivery that includes a working feedback link. Deliveries made before client feedback goes live stay final. If the email fails, leave the delivery state unchanged and allow a retry. Editors can send again only by fulfilling a client-submitted revision.
 
 ### Client feedback and allowances
 
-- The private link opens the session's feedback page without an account. Show only purchased edits, grouped by add-on and identified by unit or episode when repeated. Include the Drive assets folder link.
-- Show **Not delivered yet** for unsent edits. For an open edit, show **Request changes by [date]** and the **Free** or **$50** badge that applies to the next request. Show **Closed** for new requests after expiry or when the allowance is exhausted. Keep **Resume payment** available for any eligible Checkout still open. The editor's turnaround belongs in the dashboard.
-- The client can start a request through 11:59 pm Sydney time on the second business day after the most recent successful delivery of that edit, including a revision delivery. Count Monday to Friday and ignore public holidays. A revision already requested on time can still be fulfilled and starts a new window if the edit has rounds left.
+- The private link opens the session's revision page without an account. Use customer-facing **Free revisions** and **Extra revisions** terminology (avoiding "rounds" in customer copy). Show each purchased edit as its own card ordered by add-on and item number (identifying repeated units as Video or Pack). Include the Drive assets folder link.
+- Show **Editing in progress** for unsent edits alongside their free revision allowance and the ~6-day initial editing turnaround expectation. For an open edit, show **Request changes by [date]** and the applicable **Free** or **$50** availability (plus prior submitted revisions collapsed by default with their 2-business-day estimated ready date). Show **Closed** for new requests after expiry or when the allowance is exhausted. Keep **Resume payment** available for any eligible Checkout still open.
+- The client can start a request through 11:59 pm Sydney time on the second business day after the most recent successful delivery of that edit, including a revision delivery. Count Monday to Friday and ignore public holidays. A revision already requested on time can still be fulfilled and starts a new window if the edit has revisions left.
 
-| Purchased edit | Free rounds | Included changes |
+| Purchased edit | Free revisions | Included changes |
 | --- | ---: | --- |
-| Rough Cut (internal add-on key Essential Edit) | 1 | Corrections to cuts, timing and text errors |
-| Clip Volume Pack | 1 | Corrections to cuts, timing and text errors |
-| Complete Edit | 2 | Stylised changes allowed |
-| Handcrafted Clips | 2 | Stylised changes allowed |
+| Rough Cut (internal add-on key Essential Edit) | 1 | Corrections to cuts, timing and text errors (shown only on Rough Cut & Clip Volume Pack forms) |
+| Clip Volume Pack | 1 | Corrections to cuts, timing and text errors (shown only on Rough Cut & Clip Volume Pack forms) |
+| Complete Edit | 2 | Standard creative revisions (no "Stylised changes allowed" copy shown) |
+| Handcrafted Clips | 2 | Standard creative revisions (no "Stylised changes allowed" copy shown) |
 
-- Each edit can have five paid rounds after its free allowance. Each paid round costs $50 AUD including GST. This matches the booking terms on `dev`.
-- Submit feedback for one edit per round. Each row contains a timestamp and note, plus a clip number for clip add-ons. **Add another** adds a row. Group the clip pack's changes into the same round. Explain correction-only rules in the copy.
-- Allow multiple rounds during an open window, even while earlier rounds are pending. Count each accepted round separately. The server validates the token, purchased edit, delivery and window, remaining allowance and feedback fields. A client cannot submit on an unsent, expired or exhausted edit.
-- A valid free submission records an actionable round, sets the edit to **Revision requested**, and emails the assigned editor with the client, session, edit, feedback rows and dashboard link. Admins follow revision requests and deliveries in the dashboard. The studio review email remains a separate notification.
+- Each edit can have five extra paid revisions after its free allowance. Each extra revision costs $50 AUD including GST. This matches the booking terms on `dev`.
+- Submit one revision request for one edit at a time. Each row contains a timestamp (`MM:SS`, `H:MM:SS`, or range) and note, plus a clip number for clip add-ons. **+ Add another** adds a row. Group the clip pack's changes into the same request. Show the corrections-only note only on Rough Cut and Clip Volume Pack forms.
+- Allow multiple submissions during an open window, even while earlier revisions are pending. Count each accepted submission separately. The server validates the token, purchased edit, delivery and window, remaining allowance and row fields. A client cannot submit on an unsent, expired or exhausted edit.
+- A valid free submission records an actionable round, sets the edit to **Revision requested**, and emails the assigned editor (or falls back to the studio address if no active editor is assigned) with the client, session, edit, revision number, timestamped rows and dashboard link. Admins follow revision requests and deliveries in the dashboard. The studio review email remains a separate notification.
 
 ### Paid rounds
 

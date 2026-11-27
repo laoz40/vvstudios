@@ -15,10 +15,8 @@ export function DeliverablesRevisionSection({
 		return null;
 	}
 
-	const freeRoundLabel =
-		revisionInfo.freeRounds === 1
-			? "1 free revision round"
-			: `${revisionInfo.freeRounds} free revision rounds`;
+	const freeRevisionLabel =
+		revisionInfo.freeRounds === 1 ? "1 free revision" : `${revisionInfo.freeRounds} free revisions`;
 
 	return (
 		<Section style={section}>
@@ -35,16 +33,16 @@ export function DeliverablesRevisionSection({
 				</Button>
 			</Section>
 			<Text style={detailText}>
-				<strong>Included:</strong> {freeRoundLabel}
+				<strong>Included:</strong> {freeRevisionLabel}
 				{revisionInfo.scopeSummary ? ` (${revisionInfo.scopeSummary})` : ""}.
 			</Text>
 			<Text style={detailText}>
-				<strong>How to submit:</strong> Include a timestamp
+				<strong>How to submit:</strong> Include a timestamp (e.g. 01:23 or 01:23-01:45)
 				{revisionInfo.requiresClipNumber ? ", clip number," : ""} and note for each change.
 			</Text>
 			<Text style={detailText}>
-				<strong>Additional revision rounds:</strong> ${PAID_REVISION_PRICE_AUD} each, up to{" "}
-				{MAX_PAID_REVISION_ROUNDS} paid rounds per edit.
+				<strong>Extra revisions:</strong> ${PAID_REVISION_PRICE_AUD} AUD (incl. GST) each, up to{" "}
+				{MAX_PAID_REVISION_ROUNDS} extra revisions per edit.
 			</Text>
 		</Section>
 	);

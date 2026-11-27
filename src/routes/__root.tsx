@@ -56,9 +56,24 @@ export const Route = createRootRoute({
 	shellComponent: RootDocument
 });
 
+function filterPrivateTelemetryEvent<T extends { url: string }>(event: T): T | null {
+	try {
+		if (new URL(event.url).pathname.startsWith("/revisions/")) {
+			return null;
+		}
+	} catch {
+		if (event.url.includes("/revisions/")) {
+			return null;
+		}
+	}
+
+	return event;
+}
+
 function RootDocument({ children }: { children: ReactNode }) {
 	const pathname = useRouterState({ select: (state) => state.location.pathname });
 	const isDashboardPage = pathname === studioSite.routes.dashboard;
+	const isPrivateRevisionRoute = pathname.startsWith("/revisions/");
 
 	return (
 		<html
@@ -70,8 +85,12 @@ function RootDocument({ children }: { children: ReactNode }) {
 			<body className={isDashboardPage ? "studio-site studio-site-admin" : "studio-site"}>
 				{children}
 				<Toaster />
-				<Analytics />
-				<SpeedInsights />
+				{isPrivateRevisionRoute ? null : (
+					<>
+						<Analytics beforeSend={filterPrivateTelemetryEvent} />
+						<SpeedInsights beforeSend={filterPrivateTelemetryEvent} />
+					</>
+				)}
 				<Scripts />
 			</body>
 		</html>

@@ -2,7 +2,7 @@ import type { UserIdentity } from "convex/server";
 import { err, errAsync, ok, type Result } from "neverthrow";
 import { getRevisionWindowEndsAt } from "#/domain/revisions/rules";
 import type { Doc, Id } from "#convex/_generated/dataModel";
-import type { MutationCtx } from "#convex/_generated/server";
+import type { MutationCtx, QueryCtx } from "#convex/_generated/server";
 import { isAdminIdentity } from "#convex/shared/lib/auth";
 import { okOrThrow } from "#convex/shared/lib/result";
 
@@ -43,7 +43,7 @@ export function requireSessionLevelEditing(session: Doc<"bookings">) {
 		: ok(session);
 }
 
-export function loadEdit(ctx: MutationCtx, editId: Id<"edits">) {
+export function loadEdit(ctx: QueryCtx, editId: Id<"edits">) {
 	return okOrThrow(ctx.db.get("edits", editId));
 }
 
@@ -67,7 +67,14 @@ export function authorizeEditDelivery(
 			? ok({
 					editorName: "",
 					previousDeliveryAt: access.edit.deliveredAt,
-					allowedStatuses: undefined
+					allowedStatuses: [
+						"not_started",
+						"downloading",
+						"editing",
+						"uploading",
+						"review",
+						"sent"
+					] satisfies Doc<"edits">["status"][]
 				})
 			: err({ reason: "NOT_AUTHORIZED" as const });
 	}
@@ -128,7 +135,7 @@ export function saveDeliverablesEmailResult(
 		return errAsync({ reason: "INVALID_EDIT_STATUS" as const });
 	}
 
-	if (args.outcome.kind === "failed") {
+	if (args.outcome.kind === "failed" || edit.status === "revision_requested") {
 		return okOrThrow(ctx.db.patch("edits", edit._id, { pendingEmail: undefined }));
 	}
 
