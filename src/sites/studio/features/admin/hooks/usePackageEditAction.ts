@@ -1,10 +1,10 @@
-import { useEditInvoice } from "#studio/features/admin/hooks/useEditInvoice";
-import { useState } from "react";
 import { useMutation } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { toast } from "sonner";
 import { api } from "#convex/_generated/api";
+import type { EditInvoiceDraft } from "#convex/stripe/editInvoiceValidators";
 import { tryCatch, type UnexpectedError } from "#/lib/result";
+import { useAdminEditConfirmation } from "#studio/features/admin/hooks/useAdminEditConfirmation";
 import type { PackageEditDraft } from "#studio/features/admin/lib/package-edit-draft-store";
 import type { AdminPackageRow } from "#studio/features/admin/lib/admin-packages";
 import { getPackageEditWarningState } from "#studio/features/admin/lib/package-edit-warnings";
@@ -17,6 +17,8 @@ type UpdatePackageFromAdminResult = FunctionReturnType<
 >;
 
 type ParsedPackageValues = ReturnType<typeof packageFormSchema.parse>;
+
+type PackageEditInvoiceDraft = Extract<EditInvoiceDraft, { kind: "package" }>;
 
 type PackageUpdateInput = {
 	packageId: AdminPackageRow["id"];
@@ -113,124 +115,49 @@ function showPackageUpdateError(error: PackageUpdateError) {
 
 export function usePackageEditAction(packageRow: AdminPackageRow) {
 	const updatePackage = useMutation(api.packages.admin.updatePackageFromAdmin);
-	const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 
-	const [isEditConfirmationDialogOpen, setIsEditConfirmationDialogOpen] = useState(false);
+	const edit = useAdminEditConfirmation<PackageEditInvoiceDraft>({
+		target: { kind: "package", packageId: packageRow.id },
+		saveOrdinary: async (draft) => {
+			const [error] = await tryCatch(updatePackage(draft.values));
 
-	const invoice = useEditInvoice({ kind: "package", packageId: packageRow.id }, () => {
-		setIsEditDialogOpen(false);
-		setIsEditConfirmationDialogOpen(false);
+			if (error !== null) {
+				showPackageUpdateError(error);
+
+				return false;
+			}
+
+			toast.success("Package updated.");
+
+			return true;
+		}
 	});
 
-	const [pendingEditDraft, setPendingEditDraft] = useState<PackageEditDraft | null>(null);
-
-	const [pendingEditWarningState, setPendingEditWarningState] = useState<ReturnType<
-		typeof getPackageEditWarningState
-	> | null>(null);
-
-	const [isSaving, setIsSaving] = useState(false);
-
-	async function reviewPackageChanges(
-		values: PackageEditDraft,
-		parsedValues: ParsedPackageValues,
-		warningState: ReturnType<typeof getPackageEditWarningState>
-	) {
-		setPendingEditDraft(values);
-		setPendingEditWarningState(warningState);
-		setIsEditConfirmationDialogOpen(true);
-
-		if (warningState.pricingFieldLabels.length > 0) {
-			setIsSaving(true);
-			await invoice.reviewInvoice({
-				kind: "package",
-				values: buildPackageUpdateInput(packageRow, values, parsedValues)
-			});
-			setIsSaving(false);
-		}
-	}
-
-	async function saveEditPackage(
-		values: PackageEditDraft,
-		options?: { skipConfirmation?: boolean }
-	) {
+	async function handleEditPackage(values: PackageEditDraft) {
 		const parsedValues = parsePackageEditValues(values);
 
 		if (!parsedValues) {
 			return;
 		}
 
-		if (!options?.skipConfirmation) {
-			const warningState = getPackageEditWarningState(packageRow, values);
+		const warningState = getPackageEditWarningState(packageRow, values);
 
-			if (warningState.requiresConfirmation) {
-				await reviewPackageChanges(values, parsedValues, warningState);
-
-				return;
-			}
-		}
-
-		setIsSaving(true);
-
-		const updateInput = buildPackageUpdateInput(packageRow, values, parsedValues);
-
-		if (getPackageEditWarningState(packageRow, values).pricingFieldLabels.length > 0) {
-			const draft = { kind: "package" as const, values: updateInput };
-
-			await invoice.saveNonbillable(draft);
-			setIsSaving(false);
-
-			return;
-		}
-
-		const [error] = await tryCatch(updatePackage(updateInput));
-
-		if (error !== null) {
-			showPackageUpdateError(error);
-			setIsSaving(false);
-
-			return;
-		}
-
-		setIsEditDialogOpen(false);
-		toast.success("Package updated.");
-
-		setIsSaving(false);
-	}
-
-	async function handleEditPackage(values: PackageEditDraft) {
-		await saveEditPackage(values);
-	}
-
-	function closeEditConfirmationDialog() {
-		setPendingEditDraft(null);
-		setPendingEditWarningState(null);
-		setIsEditConfirmationDialogOpen(false);
-	}
-
-	async function handleConfirmEditPackage() {
-		if (!pendingEditDraft) {
-			closeEditConfirmationDialog();
-
-			return;
-		}
-
-		const draftToSave = pendingEditDraft;
-		setIsEditConfirmationDialogOpen(false);
-		await saveEditPackage(draftToSave, { skipConfirmation: true });
-		setPendingEditWarningState(null);
-		setPendingEditDraft(null);
+		await edit.submitEdit({
+			draft: { kind: "package", values: buildPackageUpdateInput(packageRow, values, parsedValues) },
+			warnings: {
+				primaryFieldLabels: warningState.changedFieldLabels,
+				driveIdentityFieldLabels: [],
+				pricingFieldLabels: warningState.pricingFieldLabels
+			},
+			requiresConfirmation: warningState.requiresConfirmation
+		});
 	}
 
 	return {
-		invoice,
-		isEditDialogOpen,
-		closeEditConfirmationDialog,
-		handleConfirmEditPackage,
+		confirmation: edit.confirmation,
 		handleEditPackage,
-		isEditConfirmationDialogOpen,
-		isSaving: isSaving || invoice.open,
-		pendingEditWarningState,
-		setIsEditConfirmationDialogOpen,
-		setIsEditDialogOpen
+		isEditDialogOpen: edit.isEditDialogOpen,
+		isSaving: edit.isSaving,
+		setIsEditDialogOpen: edit.setIsEditDialogOpen
 	};
 }

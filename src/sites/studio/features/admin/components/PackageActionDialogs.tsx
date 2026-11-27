@@ -32,25 +32,9 @@ export function PackageActionDialogs({ actions, packageRow }: PackageActionDialo
 			/>
 
 			<AdminEditConfirmationDialog
-				open={editAction.isEditConfirmationDialogOpen || editAction.invoice.open}
-				invoice={editAction.invoice}
-				isSaving={editAction.isSaving}
-				googleEventFieldLabels={editAction.pendingEditWarningState?.changedFieldLabels ?? []}
+				confirmation={editAction.confirmation}
 				nonPricingTitle="Package Info Changes"
 				title="Confirm package changes"
-				description="Check what will change before saving."
-				onCancel={editAction.closeEditConfirmationDialog}
-				pricingFieldLabels={editAction.pendingEditWarningState?.pricingFieldLabels ?? []}
-				onConfirm={() => {
-					void editAction.handleConfirmEditPackage();
-				}}
-				onOpenChange={(nextOpen) => {
-					editAction.setIsEditConfirmationDialogOpen(nextOpen);
-
-					if (!nextOpen) {
-						editAction.closeEditConfirmationDialog();
-					}
-				}}
 			/>
 			<PackageEmailConfirmationDialog
 				open={actions.isAdjustmentInvoiceDialogOpen}

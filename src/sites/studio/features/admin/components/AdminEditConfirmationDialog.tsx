@@ -1,7 +1,12 @@
 import { LoaderCircle } from "lucide-react";
 
+import { exhaustiveCheck } from "#/lib/result";
 import { EditInvoicePreview } from "#studio/features/admin/components/EditInvoicePreview";
-import type { useEditInvoice } from "#studio/features/admin/hooks/useEditInvoice";
+import type { AdminEditConfirmationController } from "#studio/features/admin/hooks/useAdminEditConfirmation";
+import {
+	isAdminEditPhaseBusy,
+	type AdminEditPhase
+} from "#studio/features/admin/lib/admin-edit-machine";
 
 import { Button } from "#/components/ui/button";
 import {
@@ -15,21 +20,11 @@ import {
 
 type ChangedFieldListProps = { fields: string[]; title: string; description?: string };
 
-const EMPTY_FIELD_LABELS: string[] = [];
-
 export type AdminEditConfirmationDialogProps = {
-	open: boolean;
-	googleEventFieldLabels: string[];
-	driveIdentityFieldLabels?: string[];
-	isSaving: boolean;
-	pricingFieldLabels: string[];
+	confirmation: AdminEditConfirmationController;
 	nonPricingTitle?: string;
 	title?: string;
-	invoice?: ReturnType<typeof useEditInvoice>;
 	description?: string;
-	onCancel: () => void;
-	onConfirm: () => void;
-	onOpenChange: (open: boolean) => void;
 };
 
 function ChangedFieldList({ fields, title, description }: ChangedFieldListProps) {
@@ -55,42 +50,20 @@ function ChangedFieldList({ fields, title, description }: ChangedFieldListProps)
 }
 
 export function AdminEditConfirmationDialog({
-	open,
-	googleEventFieldLabels,
-	driveIdentityFieldLabels = EMPTY_FIELD_LABELS,
-	isSaving,
-	pricingFieldLabels,
+	confirmation,
 	nonPricingTitle = "Calendar Event Changes",
 	title = "Confirm session changes",
-	invoice,
-	description = "Check what will change before saving.",
-	onCancel,
-	onConfirm,
-	onOpenChange
+	description = "Check what will change before saving."
 }: AdminEditConfirmationDialogProps) {
-	const activeInvoice = invoice?.open ? invoice : null;
-	const isBusy = activeInvoice ? activeInvoice.isLoading || activeInvoice.isSending : isSaving;
-
-	const close = () => {
-		activeInvoice?.close();
-		onCancel();
-	};
+	const { phase, isOpen, dismiss } = confirmation;
+	const isBusy = isAdminEditPhaseBusy(phase);
 
 	return (
 		<Dialog
-			open={open}
+			open={isOpen}
 			onOpenChange={(nextOpen) => {
-				if (isBusy && !nextOpen) {
-					return;
-				}
-
-				if (activeInvoice) {
-					if (!nextOpen) {
-						activeInvoice.close();
-						onOpenChange(false);
-					}
-				} else {
-					onOpenChange(nextOpen);
+				if (!nextOpen && !isBusy) {
+					dismiss();
 				}
 			}}>
 			<DialogContent className="sm:max-w-md">
@@ -99,145 +72,247 @@ export function AdminEditConfirmationDialog({
 					<DialogDescription>{description}</DialogDescription>
 				</DialogHeader>
 				<ConfirmationChanges
-					googleEventFieldLabels={googleEventFieldLabels}
-					driveIdentityFieldLabels={driveIdentityFieldLabels}
+					phase={phase}
 					nonPricingTitle={nonPricingTitle}
-					pricingFieldLabels={pricingFieldLabels}
-					activeInvoice={activeInvoice}
 				/>
-				<ConfirmationFooter
-					activeInvoice={activeInvoice}
-					isSaving={isSaving}
-					onCancel={close}
-					onConfirm={onConfirm}
-				/>
+				<ConfirmationFooter confirmation={confirmation} />
 			</DialogContent>
 		</Dialog>
 	);
 }
 
-type Invoice = ReturnType<typeof useEditInvoice>;
-
 function ConfirmationChanges({
-	googleEventFieldLabels,
-	driveIdentityFieldLabels,
-	nonPricingTitle,
-	pricingFieldLabels,
-	activeInvoice
-}: Pick<AdminEditConfirmationDialogProps, "googleEventFieldLabels" | "pricingFieldLabels"> & {
-	driveIdentityFieldLabels: string[];
+	phase,
+	nonPricingTitle
+}: {
+	phase: AdminEditPhase;
 	nonPricingTitle: string;
-	activeInvoice: Invoice | null;
 }) {
+	if (phase.kind === "idle" || phase.kind === "savingDirect") {
+		return null;
+	}
+
+	const { warnings } = phase;
+
 	return (
 		<div className="grid gap-3">
 			<ChangedFieldList
 				title={nonPricingTitle}
-				fields={googleEventFieldLabels}
+				fields={warnings.primaryFieldLabels}
 			/>
 			<ChangedFieldList
 				title="Drive folder won't rename"
-				fields={driveIdentityFieldLabels}
+				fields={warnings.driveIdentityFieldLabels}
 				description="Folder name and sharing stay as-is. Update in Google Drive if needed."
 			/>
-			{activeInvoice?.isLoading ? (
+			<ConfirmationPhaseDetails phase={phase} />
+		</div>
+	);
+}
+
+function ConfirmationPhaseDetails({
+	phase
+}: {
+	phase: Exclude<AdminEditPhase, { kind: "idle" } | { kind: "savingDirect" }>;
+}) {
+	switch (phase.kind) {
+		case "checkingInvoice":
+			return (
 				<p
 					role="status"
 					className="flex items-center gap-2 text-sm">
 					<LoaderCircle className="size-4 animate-spin" /> Generating invoice preview…
 				</p>
-			) : null}
-			{activeInvoice?.quote ? (
+			);
+		case "invoiceCheckFailed":
+			return (
+				<p
+					role="alert"
+					className="text-sm text-destructive">
+					{phase.error}
+				</p>
+			);
+		case "readyToConfirm":
+		case "savingConfirmed":
+			return phase.warnings.pricingFieldLabels.length > 0 ? (
+				<p className="text-sm text-muted-foreground">
+					No additional invoice is needed for these changes.
+				</p>
+			) : null;
+		case "invoiceConfirm":
+			return (
 				<>
-					<EditInvoicePreview quote={activeInvoice.quote} />
+					<EditInvoicePreview quote={phase.quote} />
 					<p className="text-sm text-muted-foreground">
-						{activeInvoice.invoiceSent ? (
+						{phase.invoiceSent ? (
 							"The invoice has been sent. These changes are still unsaved."
 						) : (
 							<>
 								Nothing has been saved. The invoice will be emailed to{" "}
-								<span className="break-all">{activeInvoice.quote.customerEmail}</span> before these
-								changes are saved.
+								<span className="break-all">{phase.quote.customerEmail}</span> before these changes
+								are saved.
+							</>
+						)}
+					</p>
+					{phase.error ? (
+						<p
+							role="alert"
+							className="text-sm text-destructive">
+							{phase.error}
+						</p>
+					) : null}
+				</>
+			);
+		case "sendingInvoice":
+			return (
+				<>
+					<EditInvoicePreview quote={phase.quote} />
+					<p className="text-sm text-muted-foreground">
+						{phase.invoiceSent ? (
+							"The invoice has been sent. These changes are still unsaved."
+						) : (
+							<>
+								Nothing has been saved. The invoice will be emailed to{" "}
+								<span className="break-all">{phase.quote.customerEmail}</span> before these changes
+								are saved.
 							</>
 						)}
 					</p>
 				</>
-			) : null}
-			{!activeInvoice && pricingFieldLabels.length > 0 ? (
-				<p className="text-sm text-muted-foreground">
-					No additional invoice is needed for these changes.
-				</p>
-			) : null}
-			{activeInvoice?.error ? (
-				<p
-					role="alert"
-					className="text-sm text-destructive">
-					{activeInvoice.error}
-				</p>
-			) : null}
-		</div>
-	);
+			);
+		default:
+			return exhaustiveCheck(phase);
+	}
 }
 
-function ConfirmationFooter({
-	activeInvoice,
-	isSaving,
-	onCancel,
-	onConfirm
-}: {
-	activeInvoice: Invoice | null;
-	isSaving: boolean;
-	onCancel: () => void;
-	onConfirm: () => void;
-}) {
-	const isBusy = activeInvoice ? activeInvoice.isLoading || activeInvoice.isSending : isSaving;
-	const close = onCancel;
-
-	const confirmLabel = getConfirmationLabel(activeInvoice, isSaving);
-
-	return (
-		<DialogFooter>
-			<Button
-				type="button"
-				variant="outline"
-				disabled={isBusy}
-				onClick={close}>
-				{activeInvoice?.hasConfirmed ? "Back to edit" : "Cancel"}
-			</Button>
-			{activeInvoice?.error && !activeInvoice.hasConfirmed ? (
-				<Button
-					variant="outline"
-					disabled={isBusy}
-					onClick={() => void activeInvoice.reviewInvoice()}>
-					Check invoice again
-				</Button>
-			) : null}
-			{!activeInvoice || activeInvoice.quote ? (
-				<Button
-					type="button"
-					variant={activeInvoice ? "default" : "destructive"}
-					disabled={isBusy}
-					onClick={activeInvoice ? () => void activeInvoice.confirmInvoice() : onConfirm}>
-					{isBusy ? <LoaderCircle className="size-4 animate-spin" /> : null}
-					{confirmLabel}
-				</Button>
-			) : null}
-		</DialogFooter>
-	);
-}
-
-function getConfirmationLabel(activeInvoice: Invoice | null, isSaving: boolean) {
-	if (!activeInvoice) return isSaving ? "Saving" : "Save changes";
-
-	if (activeInvoice.isSending) {
-		if (activeInvoice.invoiceSent) return "Saving changes";
-
-		return "Sending invoice and saving";
+function getInvoiceConfirmLabel(
+	phase: Extract<AdminEditPhase, { kind: "invoiceConfirm" }>
+): string {
+	if (phase.invoiceSent) {
+		return "Retry saving changes";
 	}
 
-	if (activeInvoice.invoiceSent) return "Retry saving changes";
-
-	if (activeInvoice.hasConfirmed) return "Retry invoice and save";
+	if (phase.hasConfirmed) {
+		return "Retry invoice and save";
+	}
 
 	return "Send invoice and save changes";
+}
+
+function ConfirmationFooter({ confirmation }: { confirmation: AdminEditConfirmationController }) {
+	const { phase, confirm, dismiss, retryInvoiceCheck } = confirmation;
+
+	switch (phase.kind) {
+		case "idle":
+		case "savingDirect":
+			return null;
+		case "checkingInvoice":
+			return (
+				<DialogFooter>
+					<Button
+						type="button"
+						variant="outline"
+						disabled>
+						Cancel
+					</Button>
+				</DialogFooter>
+			);
+		case "invoiceCheckFailed":
+			return (
+				<DialogFooter>
+					<Button
+						type="button"
+						variant="outline"
+						onClick={dismiss}>
+						Cancel
+					</Button>
+					<Button
+						type="button"
+						variant="outline"
+						onClick={retryInvoiceCheck}>
+						Check invoice again
+					</Button>
+				</DialogFooter>
+			);
+		case "readyToConfirm":
+			return (
+				<DialogFooter>
+					<Button
+						type="button"
+						variant="outline"
+						onClick={dismiss}>
+						Cancel
+					</Button>
+					<Button
+						type="button"
+						variant="destructive"
+						onClick={confirm}>
+						Save changes
+					</Button>
+				</DialogFooter>
+			);
+		case "savingConfirmed":
+			return (
+				<DialogFooter>
+					<Button
+						type="button"
+						variant="outline"
+						disabled>
+						Cancel
+					</Button>
+					<Button
+						type="button"
+						variant="destructive"
+						disabled>
+						<LoaderCircle className="size-4 animate-spin" />
+						Saving
+					</Button>
+				</DialogFooter>
+			);
+		case "invoiceConfirm":
+			return (
+				<DialogFooter>
+					<Button
+						type="button"
+						variant="outline"
+						onClick={dismiss}>
+						{phase.hasConfirmed ? "Back to edit" : "Cancel"}
+					</Button>
+					{phase.error && !phase.hasConfirmed ? (
+						<Button
+							type="button"
+							variant="outline"
+							onClick={retryInvoiceCheck}>
+							Check invoice again
+						</Button>
+					) : null}
+					<Button
+						type="button"
+						variant="default"
+						onClick={confirm}>
+						{getInvoiceConfirmLabel(phase)}
+					</Button>
+				</DialogFooter>
+			);
+		case "sendingInvoice":
+			return (
+				<DialogFooter>
+					<Button
+						type="button"
+						variant="outline"
+						disabled>
+						Back to edit
+					</Button>
+					<Button
+						type="button"
+						variant="default"
+						disabled>
+						<LoaderCircle className="size-4 animate-spin" />
+						{phase.invoiceSent ? "Saving changes" : "Sending invoice and saving"}
+					</Button>
+				</DialogFooter>
+			);
+		default:
+			return exhaustiveCheck(phase);
+	}
 }
