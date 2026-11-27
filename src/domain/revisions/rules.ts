@@ -13,6 +13,128 @@ export const PAID_REVISION_PRICE_AUD = 50;
 
 export const MAX_PAID_REVISION_ROUNDS = 5;
 
+const MAX_REVISION_ROWS = 50;
+
+const MAX_REVISION_NOTE_LENGTH = 1000;
+
+const MAX_REVISION_CLIP_NUMBER_LENGTH = 40;
+
+export interface RevisionFeedbackRowInput {
+	timestamp: string;
+	note: string;
+	clipNumber?: string;
+}
+
+export interface RevisionFeedbackRowFieldErrors {
+	timestamp?: string;
+	note?: string;
+	clipNumber?: string;
+}
+
+const SINGLE_TIMESTAMP_PATTERN = /^(?:(\d{1,2}):([0-5]\d):([0-5]\d)|(\d{1,3}):([0-5]\d))$/;
+
+function parseSingleTimestampSeconds(value: string): number | null {
+	const match = SINGLE_TIMESTAMP_PATTERN.exec(value);
+
+	if (match === null) {
+		return null;
+	}
+
+	if (match[1] !== undefined && match[2] !== undefined && match[3] !== undefined) {
+		return Number(match[1]) * 3600 + Number(match[2]) * 60 + Number(match[3]);
+	}
+
+	if (match[4] !== undefined && match[5] !== undefined) {
+		return Number(match[4]) * 60 + Number(match[5]);
+	}
+
+	return null;
+}
+
+function isValidRevisionTimestamp(raw: string): boolean {
+	const trimmed = raw.trim();
+
+	if (trimmed.length === 0) {
+		return false;
+	}
+
+	const rangeParts = trimmed.split(/\s*[-–]\s*/);
+
+	if (rangeParts.length === 1) {
+		return parseSingleTimestampSeconds(trimmed) !== null;
+	}
+
+	if (rangeParts.length === 2 && rangeParts[0] !== undefined && rangeParts[1] !== undefined) {
+		const start = parseSingleTimestampSeconds(rangeParts[0]);
+		const end = parseSingleTimestampSeconds(rangeParts[1]);
+
+		return start !== null && end !== null && end >= start;
+	}
+
+	return false;
+}
+
+function validateSingleRevisionRow(row: RevisionFeedbackRowInput, requiresClipNumber: boolean) {
+	const errors: RevisionFeedbackRowFieldErrors = {};
+	const timestamp = row.timestamp.trim();
+	const note = row.note.trim();
+	const clipNumber = row.clipNumber?.trim() ?? "";
+
+	if (!isValidRevisionTimestamp(timestamp)) {
+		errors.timestamp = "Use MM:SS, H:MM:SS, or a range like 01:23-01:45.";
+	}
+
+	if (note.length === 0) {
+		errors.note = "Describe the change needed.";
+	} else if (note.length > MAX_REVISION_NOTE_LENGTH) {
+		errors.note = `Keep each note under ${MAX_REVISION_NOTE_LENGTH} characters.`;
+	}
+
+	if (requiresClipNumber) {
+		if (clipNumber.length === 0) {
+			errors.clipNumber = "Enter a clip number.";
+		} else if (clipNumber.length > MAX_REVISION_CLIP_NUMBER_LENGTH) {
+			errors.clipNumber = `Keep clip numbers under ${MAX_REVISION_CLIP_NUMBER_LENGTH} characters.`;
+		}
+	}
+
+	const hasError =
+		errors.timestamp !== undefined || errors.note !== undefined || errors.clipNumber !== undefined;
+
+	return {
+		errors,
+		hasError,
+		sanitized: requiresClipNumber ? { timestamp, note, clipNumber } : { timestamp, note }
+	};
+}
+
+export function validateRevisionFeedbackRows(
+	rows: ReadonlyArray<RevisionFeedbackRowInput>,
+	requiresClipNumber: boolean
+):
+	| { ok: true; rows: RevisionFeedbackRowInput[] }
+	| { ok: false; formError?: string; rowErrors: RevisionFeedbackRowFieldErrors[] } {
+	if (rows.length === 0) {
+		return { ok: false, formError: "Add at least one timestamped change.", rowErrors: [] };
+	}
+
+	if (rows.length > MAX_REVISION_ROWS) {
+		return {
+			ok: false,
+			formError: `You can include up to ${MAX_REVISION_ROWS} notes per revision request.`,
+			rowErrors: []
+		};
+	}
+
+	const checked = rows.map((row) => validateSingleRevisionRow(row, requiresClipNumber));
+
+	if (checked.some((item) => item.hasError)) {
+		return { ok: false, rowErrors: checked.map((item) => item.errors) };
+	}
+
+	return { ok: true, rows: checked.map((item) => item.sanitized) };
+}
+
 export interface DeliverablesRevisionInfo {
 	feedbackUrl: string;
 	freeRounds: number;
@@ -188,14 +310,25 @@ export function getRevisionWindowEndsAt(
 	return guessUtcMs + 999;
 }
 
-function formatRevisionDeadline(windowEndsAt: number) {
+const revisionShortDateFormatter = new Intl.DateTimeFormat("en-AU", {
+	timeZone: REVISION_TIME_ZONE,
+	weekday: "short",
+	day: "numeric",
+	month: "short"
+});
+
+export function formatRevisionDeadline(windowEndsAt: number) {
 	return revisionDeadlineFormatter.format(windowEndsAt);
+}
+
+export function formatRevisionShortDate(timestamp: number) {
+	return revisionShortDateFormatter.format(timestamp);
 }
 
 type EditRevisionClosedReason = "pre_rollout" | "window_expired" | "allowance_exhausted";
 
 type EditRevisionState =
-	| { kind: "not_delivered"; statusLabel: "Not delivered yet" }
+	| { kind: "not_delivered"; statusLabel: "Editing in progress" }
 	| { kind: "open_free"; badge: "Free"; windowEndsAt: number; statusLabel: string }
 	| {
 			kind: "closed";
@@ -221,7 +354,10 @@ export function getEditRevisionState(input: {
 		return {
 			freeRoundsRemaining,
 			paidRoundsRemaining,
-			state: { kind: "not_delivered", statusLabel: "Not delivered yet" } satisfies EditRevisionState
+			state: {
+				kind: "not_delivered",
+				statusLabel: "Editing in progress"
+			} satisfies EditRevisionState
 		};
 	}
 
@@ -279,4 +415,19 @@ export function getEditRevisionState(input: {
 			statusLabel: "Closed"
 		} satisfies EditRevisionState
 	};
+}
+
+export function withFeedbackRowKeys<T extends RevisionFeedbackRowInput>(
+	rows: ReadonlyArray<T>,
+	prefix = ""
+) {
+	const counts = new Map<string, number>();
+
+	return rows.map((row) => {
+		const baseKey = `${prefix}:${row.clipNumber ?? ""}:${row.timestamp}:${row.note}`;
+		const occurrence = (counts.get(baseKey) ?? 0) + 1;
+		counts.set(baseKey, occurrence);
+
+		return { key: `${baseKey}#${occurrence}`, row };
+	});
 }

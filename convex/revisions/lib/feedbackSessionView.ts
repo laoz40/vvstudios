@@ -58,8 +58,20 @@ export function requireEligibleFeedbackSession(
 	return ok(session);
 }
 
-function countConsumedRoundsByEdit(rounds: ReadonlyArray<Doc<"revisionRounds">>) {
+function groupSubmittedRoundsByEdit(rounds: ReadonlyArray<Doc<"revisionRounds">>) {
 	const counts = new Map<Id<"edits">, { free: number; paid: number }>();
+
+	const byEdit = new Map<
+		Id<"edits">,
+		Array<{
+			_id: Id<"revisionRounds">;
+			roundNumber: number;
+			requestedAt: number;
+			dueAt: number | null;
+			status: "requested" | "delivered";
+			feedbackRows: Doc<"revisionRounds">["feedbackRows"];
+		}>
+	>();
 
 	for (const round of rounds) {
 		if (round.status === "awaiting_payment") continue;
@@ -73,9 +85,24 @@ function countConsumedRoundsByEdit(rounds: ReadonlyArray<Doc<"revisionRounds">>)
 		}
 
 		counts.set(round.editId, current);
+
+		const list = byEdit.get(round.editId) ?? [];
+		list.push({
+			_id: round._id,
+			roundNumber: round.roundNumber,
+			requestedAt: round.requestedAt,
+			dueAt: round.dueAt ?? null,
+			status: round.status,
+			feedbackRows: round.feedbackRows
+		});
+		byEdit.set(round.editId, list);
 	}
 
-	return counts;
+	for (const list of byEdit.values()) {
+		list.sort((a, b) => a.roundNumber - b.roundNumber);
+	}
+
+	return { counts, byEdit };
 }
 
 export function buildFeedbackSessionView(input: {
@@ -85,7 +112,10 @@ export function buildFeedbackSessionView(input: {
 	assetsFolderUrl: string | null;
 	now: number;
 }) {
-	const countsByEdit = countConsumedRoundsByEdit(input.rounds);
+	const { counts: countsByEdit, byEdit: submittedRoundsByEdit } = groupSubmittedRoundsByEdit(
+		input.rounds
+	);
+
 	const editsByAddon = new Map<QuantityTrackedAddon, Doc<"edits">[]>();
 
 	for (const edit of input.edits) {
@@ -141,7 +171,8 @@ export function buildFeedbackSessionView(input: {
 						freeRoundsRemaining: revisionState.freeRoundsRemaining,
 						paidRoundsUsed: consumed.paid,
 						paidRoundsRemaining: revisionState.paidRoundsRemaining,
-						state: revisionState.state
+						state: revisionState.state,
+						submittedRounds: submittedRoundsByEdit.get(edit._id) ?? []
 					};
 				})
 			}
@@ -153,6 +184,7 @@ export function buildFeedbackSessionView(input: {
 			name: input.session.name,
 			date: input.session.date,
 			time: input.session.time,
+			duration: input.session.duration,
 			assetsFolderUrl: input.assetsFolderUrl
 		},
 		pricing: {

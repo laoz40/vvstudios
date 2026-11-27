@@ -97,7 +97,8 @@ export default defineSchema({
 		requestedAt: v.number(),
 		dueAt: v.optional(v.number()),
 		deliveredAt: v.optional(v.number()),
-		stripeCheckoutSessionId: v.optional(v.string())
+		stripeCheckoutSessionId: v.optional(v.string()),
+		notificationEmailStatus: v.optional(v.union(v.literal("sent"), v.literal("failed")))
 	})
 		.index("by_editId", ["editId"])
 		.index("by_bookingId", ["bookingId"])
