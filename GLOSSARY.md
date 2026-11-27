@@ -104,11 +104,17 @@ The stage after an editor hands off an edit for studio approval and before an ad
 The status of a delivered edit while the client's revision window is open and no revision requests are outstanding.
 
 **Revisions**:
-Changes requested by a client on a delivered edit through their private revision link.
-_Avoid_: Feedback when referring to client revision requests
+Changes requested by a client on a delivered edit through their private revision link. Use **Free revisions** and **Extra revisions** in customer-facing copy.
+_Avoid_: Feedback or rounds in customer-facing copy
+
+**Free revisions**:
+The customer-facing term for the revisions included with an edit based on its add-on (1 free for Rough Cut and Clip Volume Pack; 2 free for Complete Edit and Handcrafted Clips).
+
+**Extra revisions**:
+The customer-facing term for additional paid revisions available after free revisions are used ($50 AUD incl. GST each, up to 5 extra revisions per edit).
 
 **Revision round**:
-One batch of timestamped revision requests submitted for a single edit. Each edit includes free revision rounds based on its add-on, with additional paid revision rounds available up to the per-edit cap.
+The internal term for one batch of timestamped revision requests submitted for a single edit. Each edit includes free revision rounds based on its add-on, with additional paid revision rounds available up to the per-edit cap.
 
 **Raw media**:
 The original recordings from a session that editors use as source material.
