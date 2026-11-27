@@ -1,19 +1,9 @@
 "use client";
 
-import DownChevron from "#/components/ui/down-chevron";
-import type { HTMLMotionProps, Transition } from "motion/react";
-import { motion } from "motion/react";
 import * as React from "react";
 import { Accordion as AccordionPrimitive } from "radix-ui";
 
 import { cn } from "#/lib/utils";
-import type { AnimatedIconHandle } from "#/components/ui/types";
-
-const defaultAccordionContentTransition: Transition = {
-	type: "spring",
-	stiffness: 150,
-	damping: 22
-};
 
 function Accordion({ ...props }: React.ComponentProps<typeof AccordionPrimitive.Root>) {
 	return (
@@ -47,17 +37,6 @@ function AccordionTrigger({
 	showArrow = true,
 	...props
 }: AccordionTriggerProps) {
-	// Stores the animated icon handle so hovering or focusing the whole trigger can animate it.
-	const iconRef = React.useRef<AnimatedIconHandle | null>(null);
-
-	const startIconAnimation = () => {
-		iconRef.current?.startAnimation();
-	};
-
-	const stopIconAnimation = () => {
-		iconRef.current?.stopAnimation();
-	};
-
 	return (
 		<AccordionPrimitive.Header className="flex">
 			<AccordionPrimitive.Trigger
@@ -66,72 +45,56 @@ function AccordionTrigger({
 					"group flex flex-1 items-start justify-between gap-4 py-5 text-left text-base font-semibold text-foreground transition-colors duration-150 hover:text-primary focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background md:items-center md:py-6",
 					className
 				)}
-				{...props}
-				// Existing trigger event handlers run first so custom behavior is not replaced.
-				onPointerEnter={(event) => {
-					props.onPointerEnter?.(event);
-					startIconAnimation();
-				}}
-				onPointerLeave={(event) => {
-					props.onPointerLeave?.(event);
-					stopIconAnimation();
-				}}
-				onFocus={(event) => {
-					props.onFocus?.(event);
-					startIconAnimation();
-				}}
-				onBlur={(event) => {
-					props.onBlur?.(event);
-					stopIconAnimation();
-				}}>
+				{...props}>
 				<span className="w-full leading-snug">{children}</span>
-				{/* The icon keeps its own Motion animation. The trigger only starts and stops it. */}
 				{showArrow ? (
-					<DownChevron
-						ref={iconRef}
+					<span
 						aria-hidden
-						className="mt-0.5 shrink-0 text-muted-foreground transition-transform duration-200 group-data-[state=open]:rotate-180 group-data-[state=open]:text-foreground md:mt-0"
-					/>
+						data-slot="accordion-chevron"
+						className="mt-0.5 inline-flex shrink-0 items-center justify-center text-muted-foreground transition-transform duration-200 group-data-[state=open]:rotate-180 group-data-[state=open]:text-foreground md:mt-0">
+						<svg
+							xmlns="http://www.w3.org/2000/svg"
+							width={24}
+							height={24}
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							strokeWidth={2}
+							strokeLinecap="round"
+							strokeLinejoin="round"
+							className="accordion-chevron-icon">
+							<path
+								stroke="none"
+								d="M0 0h24v24H0z"
+								fill="none"
+							/>
+							<path d="M6 9l6 6l6 -6" />
+						</svg>
+					</span>
 				) : null}
 			</AccordionPrimitive.Trigger>
 		</AccordionPrimitive.Header>
 	);
 }
 
-type AccordionContentProps = Omit<
-	React.ComponentProps<typeof AccordionPrimitive.Content>,
-	"asChild" | "forceMount"
-> &
-	HTMLMotionProps<"div"> & {
-		keepRendered?: boolean;
-		layout?: boolean;
-		transition?: Transition;
-	};
-
 function AccordionContent({
 	className,
 	children,
-	layout = true,
-	transition = defaultAccordionContentTransition,
-	keepRendered = false,
 	...props
-}: AccordionContentProps) {
+}: React.ComponentProps<typeof AccordionPrimitive.Content>) {
 	return (
 		<AccordionPrimitive.Content
 			data-slot="accordion-content"
-			forceMount={keepRendered || undefined}
-			className="overflow-hidden data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down">
-			<motion.div
+			className="overflow-hidden data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down motion-reduce:animate-none"
+			{...props}>
+			<div
 				data-slot="accordion-content-inner"
-				layout={layout}
-				transition={transition}
 				className={cn(
 					"max-w-5xl pb-5 text-sm leading-7 text-pretty text-muted-foreground md:pb-6 md:text-base",
 					className
-				)}
-				{...props}>
+				)}>
 				{children}
-			</motion.div>
+			</div>
 		</AccordionPrimitive.Content>
 	);
 }

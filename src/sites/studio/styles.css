@@ -167,7 +167,7 @@
 /* page background */
 .page-spotlight-background {
 	position: relative;
-	overflow: hidden;
+	overflow: clip;
 	background-color: var(--background);
 }
 
@@ -244,6 +244,106 @@
 	}
 }
 
+/* landing hero scroll animations */
+
+@keyframes landing-hero-video-parallax {
+	from {
+		transform: translateY(0);
+	}
+
+	to {
+		transform: translateY(-300px);
+	}
+}
+
+@keyframes landing-hero-text-fade {
+	from {
+		opacity: 1;
+	}
+
+	to {
+		opacity: 0;
+	}
+}
+
+@keyframes landing-hero-text-scroll-away {
+	from {
+		opacity: 1;
+		transform: translateY(0);
+		filter: blur(0px);
+	}
+
+	to {
+		opacity: 0;
+		transform: translateY(-180px);
+		filter: blur(10px);
+	}
+}
+
+@supports (animation-timeline: view()) and (animation-range: exit-crossing 0% exit-crossing 50%) {
+	@media (prefers-reduced-motion: no-preference) {
+		.landing-hero-scroll-space {
+			view-timeline: --landing-hero block;
+		}
+
+		.landing-hero-text-scroll {
+			animation: landing-hero-text-fade linear both;
+			animation-timeline: --landing-hero;
+			animation-range: exit-crossing 0% exit-crossing 20%;
+		}
+
+		@media (min-width: 768px) {
+			.landing-hero-video-parallax {
+				animation: landing-hero-video-parallax linear both;
+				animation-timeline: --landing-hero;
+				animation-range: exit-crossing 0% exit-crossing 50%;
+			}
+
+			.landing-hero-text-scroll {
+				animation-name: landing-hero-text-scroll-away;
+			}
+		}
+	}
+}
+
+/* landing setup parallax */
+
+.landing-setup-parallax-window {
+	aspect-ratio: 16 / 9;
+}
+
+@keyframes landing-setup-parallax {
+	from {
+		transform: translateY(-90px);
+	}
+
+	to {
+		transform: translateY(90px);
+	}
+}
+
+@supports (animation-timeline: view()) and (animation-range: cover 0% cover 100%) {
+	@media (prefers-reduced-motion: no-preference) and (min-width: 768px) {
+		.landing-setup-parallax-panel {
+			view-timeline: --setup-panel block;
+		}
+
+		.landing-setup-parallax-window {
+			aspect-ratio: auto;
+			height: calc(100cqw * 9 / 16 - 180px);
+		}
+
+		.landing-setup-parallax-image {
+			position: absolute;
+			inset-inline: 0;
+			top: -90px;
+			animation: landing-setup-parallax linear both;
+			animation-timeline: --setup-panel;
+			animation-range: cover 0% cover 100%;
+		}
+	}
+}
+
 /* footer image reveal */
 
 .footer-image-reveal__image {
@@ -271,6 +371,46 @@
 	transform-origin: center;
 }
 
+@keyframes footer-image-reveal-parallax {
+	0%,
+	75% {
+		transform: translateY(120px) scale(1.2);
+	}
+
+	100% {
+		transform: translateY(-30px) scale(1.2);
+	}
+}
+
+@keyframes footer-image-reveal-cta-scale {
+	from {
+		transform: scale(0.8);
+	}
+
+	to {
+		transform: scale(1);
+	}
+}
+
+@supports (animation-timeline: scroll()) and (animation-timeline: view()) {
+	@media (prefers-reduced-motion: no-preference) {
+		.footer-image-reveal__image {
+			animation: footer-image-reveal-parallax linear both;
+			animation-timeline: scroll(root block);
+		}
+
+		.footer-image-reveal {
+			view-timeline: --footer-reveal block;
+		}
+
+		.footer-image-reveal__cta {
+			animation: footer-image-reveal-cta-scale linear both;
+			animation-timeline: --footer-reveal;
+			animation-range: entry-crossing 0% entry-crossing 100%;
+		}
+	}
+}
+
 @media (max-width: 767px) {
 	.footer-image-reveal__image {
 		background-position: center bottom;
@@ -283,6 +423,46 @@
 
 	.footer-image-reveal__cta {
 		top: calc(100svh - (min(42svh, 94.1938vw) * 0.38));
+	}
+}
+
+/* booking addon quantity reveal */
+
+.booking-reveal-grid {
+	display: grid;
+	grid-template-rows: 0fr;
+	visibility: hidden;
+	transition:
+		grid-template-rows 200ms ease-out,
+		visibility 200ms ease-out;
+}
+
+.booking-reveal-grid[data-state="open"] {
+	grid-template-rows: 1fr;
+	visibility: visible;
+}
+
+.booking-reveal-panel {
+	opacity: 0;
+	transform: translateY(-8px);
+	transition:
+		opacity 200ms ease-out,
+		transform 200ms ease-out;
+}
+
+.booking-reveal-grid[data-state="open"] .booking-reveal-panel {
+	opacity: 1;
+	transform: translateY(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.booking-reveal-grid,
+	.booking-reveal-panel {
+		transition: none;
+	}
+
+	.booking-reveal-panel {
+		transform: none;
 	}
 }
 
