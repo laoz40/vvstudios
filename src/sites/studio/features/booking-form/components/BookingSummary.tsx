@@ -10,8 +10,6 @@ import { calculatePackageAmounts, getBookingTotal, isPackageSize } from "#/domai
 import { formatBookingPriceWithCents } from "#studio/features/booking-form/lib/booking-pricing";
 import { getBookingAddonQuantityForForm as getBookingAddonQuantity } from "#/domain/booking/addon-quantities";
 import { useBookingPricingValues } from "#studio/features/booking-form/hooks/useBookingPricingValues";
-import { BOOKING_ADDON_QUANTITY_FIELD_CONFIG } from "#studio/features/booking-form/lib/booking-form-model";
-import { isQuantityTrackedAddon } from "#/domain/booking/addon-quantities";
 import { getCustomerAddonDisplayLabel } from "#/domain/booking/catalog";
 import { sectionHeadingClassName } from "#studio/features/booking-form/lib/booking-form-styles";
 
@@ -129,11 +127,7 @@ export function BookingSummary() {
 									<div
 										key={addon}
 										className="flex items-start justify-between gap-4">
-										<p>
-											{isQuantityTrackedAddon(addon)
-												? `${getCustomerAddonDisplayLabel(addon)} for ${totalQuantity} ${totalQuantity === 1 ? BOOKING_ADDON_QUANTITY_FIELD_CONFIG[addon].unitLabels.single : BOOKING_ADDON_QUANTITY_FIELD_CONFIG[addon].unitLabels.plural}`
-												: formatQuantityLabel(totalQuantity, getCustomerAddonDisplayLabel(addon))}
-										</p>
+										<p>{formatQuantityLabel(totalQuantity, getCustomerAddonDisplayLabel(addon))}</p>
 										<p>{formatBookingPriceWithCents(lineTotal)}</p>
 									</div>
 								);
