@@ -3,7 +3,7 @@ import type { Id } from "#convex/_generated/dataModel";
 import type { ActionCtx } from "#convex/_generated/server";
 import { fromConvexTuple } from "#convex/shared/lib/result";
 
-export function runReserveSessionReservation(
+export function reserveSessionReservation(
 	ctx: ActionCtx,
 	args: {
 		bookingId: Id<"bookings">;

@@ -84,7 +84,7 @@ Playwright uses `baseURL` `http://localhost:3000`, starts `bun run dev` via `web
 - Confirm: heading **Your booking is confirmed!** (single session) or `{N}-Session Package confirmed`; URL `/booking-complete` with `session_id=`.
 - Package schedule page: heading **Schedule your package sessions**; **SAVE SESSION**; success copy **Calendar event created. Check your email for the invitation.**
 - Reschedule: heading **Reschedule your booking**; **UPDATE BOOKING**; confirm dialog **Update Booking**; complete page heading **Booking updated** on `/reschedule-complete`.
-- Login (`/login`): heading **Administrator login**; link **booking page**; title `Login | VV Studios`. Sign-in via `prepareClerkTesting` + `signInAsAdmin` (`e2e/helpers/admin-auth.ts`), not typed passwords.
+- Login (`/login`): heading **Administrator login**; link **booking page**; title `Login | VV Studios`. Sign-in via `initClerkTesting` + `signInAsAdmin` (`e2e/helpers/admin-auth.ts`), not typed passwords.
 - Admin dashboard (`/dashboard`): tabs **Sessions**, **Packages**, **Contractors**; **Sign out**; search `Search sessions...`. Fail on **Dashboard access required.** or **Backend connection failed.** Editor UI (**Edits** / **History**) is a separate feature (`drive-editor.ts`).
 - Editor dashboard (`/dashboard` as editor): a **named assigned session** on **Edits** or **History** after admin assignment. Empty **Nothing in your queue** is not proof.
 

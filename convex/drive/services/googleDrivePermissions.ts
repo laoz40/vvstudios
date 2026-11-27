@@ -9,7 +9,7 @@ import {
 } from "#convex/drive/services/googleDriveOperations";
 import { useExistingOrCreateDrivePermission } from "#convex/drive/lib/googleDrive";
 
-export function ensureAnyonePermission(
+export function getOrCreateAnyonePermission(
 	drive: DriveClient,
 	fileId: string,
 	role: "reader" | "writer"
@@ -25,9 +25,9 @@ export function ensureAnyonePermission(
 	});
 }
 
-export function ensureAnyoneReaderPermission(drive: DriveClient, fileId: string) {
+export function grantAnyoneReaderPermission(drive: DriveClient, fileId: string) {
 	return safeTry(async function* () {
-		yield* ensureAnyonePermission(drive, fileId, "reader");
+		yield* getOrCreateAnyonePermission(drive, fileId, "reader");
 
 		return ok(null);
 	});

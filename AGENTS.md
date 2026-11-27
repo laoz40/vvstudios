@@ -48,7 +48,7 @@ Read the [glossary](./GLOSSARY.md) for project terminology.
   - Do not to add unecessary fields to the db schema
   - Use YAGNI and DRY principles
   - Check for a similar existing helper before adding one.
-  - Function names must be clear and simple what they do
+  - Name functions for their exact action and side effects, and types/variables for the data they hold (e.g. `emailData`, not `Context`).
   - Put pure calculations, formatting, draft transformations, and checks on supplied values in the nearest appropriate `lib/` file instead of components, routes, or backend functions.
 
 ## React

@@ -62,7 +62,7 @@ describe("package adjustment closeout", () => {
 		const packageId = await seedPaidPackage(t);
 		await seedPackageSession(t, packageId, []);
 
-		await processExpiredPackage(t, packageId);
+		await triggerExpiredPackageAdjustment(t, packageId);
 		const adjustments = await readAdjustments(t, packageId);
 
 		expect(adjustments).toHaveLength(1);
@@ -81,7 +81,7 @@ describe("package adjustment closeout", () => {
 		const packageId = await seedPaidPackage(t);
 		const bookingId = await seedPackageSession(t, packageId, ["Remote Podcast"]);
 
-		await processExpiredPackage(t, packageId);
+		await triggerExpiredPackageAdjustment(t, packageId);
 		const [adjustment] = await readAdjustments(t, packageId);
 
 		expect(adjustment).toMatchObject({
@@ -111,7 +111,7 @@ describe("package adjustment closeout", () => {
 		await seedPackageSession(t, packageId, ["Remote Podcast"], { status: "cancelled" });
 		await seedPackageSession(t, otherPackageId, ["Remote Podcast"]);
 
-		await processExpiredPackage(t, packageId);
+		await triggerExpiredPackageAdjustment(t, packageId);
 		const [adjustment] = await readAdjustments(t, packageId);
 
 		expect(adjustment).toMatchObject({
@@ -128,12 +128,12 @@ describe("package adjustment closeout", () => {
 		const remoteBookingId = await seedPackageSession(t, packageId, ["Remote Podcast"]);
 		await Promise.all([seedPackageSession(t, packageId, []), seedPackageSession(t, packageId, [])]);
 
-		await processCompletedPackage(t, packageId);
+		await triggerCompletedPackageAdjustment(t, packageId);
 
 		expect(await readAdjustments(t, packageId)).toEqual([]);
 
 		await seedPackageSession(t, packageId, []);
-		await processCompletedPackage(t, packageId);
+		await triggerCompletedPackageAdjustment(t, packageId);
 
 		const [adjustment] = await readAdjustments(t, packageId);
 		expect(adjustment).toMatchObject({
@@ -163,13 +163,13 @@ describe("package adjustment closeout", () => {
 
 		await Promise.all([seedPackageSession(t, packageId, []), seedPackageSession(t, packageId, [])]);
 
-		await processCompletedPackage(t, packageId);
+		await triggerCompletedPackageAdjustment(t, packageId);
 
 		expect(await readAdjustments(t, packageId)).toEqual([]);
 		expect(await readScheduledJobs(t)).toHaveLength(1);
 
 		vi.setSystemTime(now + 2 * 60 * 60 * 1000);
-		await processCompletedPackage(t, packageId);
+		await triggerCompletedPackageAdjustment(t, packageId);
 
 		const [adjustment] = await readAdjustments(t, packageId);
 		expect(adjustment).toMatchObject({
@@ -205,7 +205,7 @@ describe("package adjustment closeout", () => {
 		expect(await readAdjustments(t, packageId)).toEqual([]);
 		expect(scheduledJobs).toEqual([]);
 
-		await processExpiredPackage(t, packageId);
+		await triggerExpiredPackageAdjustment(t, packageId);
 
 		const [adjustment] = await readAdjustments(t, packageId);
 		expect(adjustment).toMatchObject({
@@ -231,8 +231,8 @@ describe("package adjustment closeout", () => {
 		const packageId = await seedPaidPackage(t);
 		const bookingId = await seedPackageSession(t, packageId, ["Remote Podcast"]);
 
-		await processExpiredPackage(t, packageId);
-		await processExpiredPackage(t, packageId);
+		await triggerExpiredPackageAdjustment(t, packageId);
+		await triggerExpiredPackageAdjustment(t, packageId);
 
 		const adjustments = await readAdjustments(t, packageId);
 
@@ -251,7 +251,10 @@ describe("package adjustment closeout", () => {
 		const packageId = await seedPaidPackage(t);
 		await seedPackageSession(t, packageId, ["Remote Podcast"]);
 
-		await Promise.all([processExpiredPackage(t, packageId), processExpiredPackage(t, packageId)]);
+		await Promise.all([
+			triggerExpiredPackageAdjustment(t, packageId),
+			triggerExpiredPackageAdjustment(t, packageId)
+		]);
 
 		expect(await readAdjustments(t, packageId)).toHaveLength(1);
 	});
@@ -270,15 +273,15 @@ describe("package adjustment closeout", () => {
 
 		expect(
 			await Promise.all([
-				processExpiredPackage(t, packageId),
-				processCompletedPackage(t, packageId)
+				triggerExpiredPackageAdjustment(t, packageId),
+				triggerCompletedPackageAdjustment(t, packageId)
 			])
 		).toEqual([
 			[null, null],
 			[null, null]
 		]);
-		await processExpiredPackage(t, packageId);
-		await processCompletedPackage(t, packageId);
+		await triggerExpiredPackageAdjustment(t, packageId);
+		await triggerCompletedPackageAdjustment(t, packageId);
 
 		const adjustments = await readAdjustments(t, packageId);
 		expect(adjustments).toHaveLength(1);
@@ -306,7 +309,7 @@ describe("package adjustment closeout", () => {
 		await seedPackageSession(t, packageId, [], { sessionStartAt: now });
 		const finalSessionEndAt = now + 60 * 60 * 1000;
 
-		expect(await processExpiredPackage(t, packageId)).toEqual([null, null]);
+		expect(await triggerExpiredPackageAdjustment(t, packageId)).toEqual([null, null]);
 		expect(await readAdjustments(t, packageId)).toEqual([]);
 		expect(await readScheduledJobs(t)).toEqual([
 			expect.objectContaining({
@@ -319,8 +322,8 @@ describe("package adjustment closeout", () => {
 		});
 
 		vi.setSystemTime(finalSessionEndAt);
-		expect(await processExpiredPackage(t, packageId)).toEqual([null, null]);
-		await processExpiredPackage(t, packageId);
+		expect(await triggerExpiredPackageAdjustment(t, packageId)).toEqual([null, null]);
+		await triggerExpiredPackageAdjustment(t, packageId);
 
 		expect(await readAdjustments(t, packageId)).toEqual([
 			expect.objectContaining({ outcome: "no_charge", quantity: 0, totalAmount: 0 })
@@ -340,12 +343,12 @@ describe("package adjustment closeout", () => {
 		});
 
 		const extendedExpiryAt = now + 86_400_000;
-		await processExpiredPackage(t, packageId);
+		await triggerExpiredPackageAdjustment(t, packageId);
 
 		await t.run((ctx) => ctx.db.patch("packages", packageId, { expiresAt: extendedExpiryAt }));
 		vi.setSystemTime(now + 60 * 60 * 1000);
 
-		expect(await processExpiredPackage(t, packageId)).toEqual([null, null]);
+		expect(await triggerExpiredPackageAdjustment(t, packageId)).toEqual([null, null]);
 		expect(await readAdjustments(t, packageId)).toEqual([]);
 		expect(await readScheduledJobs(t)).toHaveLength(1);
 		expect(await t.run((ctx) => ctx.db.get("packages", packageId))).toMatchObject({
@@ -654,14 +657,14 @@ async function seedPackageSession(
 	);
 }
 
-async function processExpiredPackage(t: TestClient, packageId: Id<"packages">) {
+async function triggerExpiredPackageAdjustment(t: TestClient, packageId: Id<"packages">) {
 	return await t.mutation(internal.packages.scheduling.processPackageAdjustmentAtExpiry, {
 		packageId: packageId,
 		expectedExpiresAt: now
 	});
 }
 
-async function processCompletedPackage(t: TestClient, packageId: Id<"packages">) {
+async function triggerCompletedPackageAdjustment(t: TestClient, packageId: Id<"packages">) {
 	return await t.mutation(
 		internal.packages.scheduling.processPackageAdjustmentWhenSessionsComplete,
 		{ packageId: packageId }

@@ -20,7 +20,7 @@ import {
 	validateFeedbackTokenInput
 } from "#convex/revisions/lib/feedbackSessionView";
 
-export function ensureSessionFeedbackToken(
+export function getOrCreateSessionFeedbackToken(
 	ctx: MutationCtx,
 	session: Doc<"bookings">,
 	edit: Doc<"edits">

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { ensureClerkTestingEnv, getE2eClerkSecretKey } from "../../../e2e/helpers/admin-auth.ts";
+import { loadClerkTestingEnv, getE2eClerkSecretKey } from "../../../e2e/helpers/admin-auth.ts";
 
 const CLERK_USERS_URL = "https://api.clerk.com/v1/users";
 
@@ -27,7 +27,7 @@ async function clerkJson(response: Response) {
 }
 
 export async function createTempClerkEditor(): Promise<TempClerkEditor> {
-	ensureClerkTestingEnv();
+	loadClerkTestingEnv();
 	const stamp = Date.now();
 	const email = `vv-verify-editor-${stamp}+clerk_test@example.com`;
 	const displayName = `VVVerify ${stamp}`;
@@ -55,7 +55,7 @@ export async function createTempClerkEditor(): Promise<TempClerkEditor> {
 }
 
 export async function deleteTempClerkEditor(userId: string) {
-	ensureClerkTestingEnv();
+	loadClerkTestingEnv();
 
 	const response = await fetch(`${CLERK_USERS_URL}/${userId}`, {
 		method: "DELETE",

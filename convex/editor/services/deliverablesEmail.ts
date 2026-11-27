@@ -8,7 +8,7 @@ import type { ActionCtx } from "#convex/_generated/server";
 import { sendSessionDeliverablesEmail as sendDeliverablesEmail } from "#convex/email/services/templateEmails";
 import { loadDriveClient } from "#convex/drive/lib/googleDrive";
 import { listDriveFolderChildren } from "#convex/drive/services/googleDriveOperations";
-import { ensureAnyoneReaderPermission } from "#convex/drive/services/googleDrivePermissions";
+import { grantAnyoneReaderPermission } from "#convex/drive/services/googleDrivePermissions";
 import { buildDeliverablesRevisionInfo } from "#convex/revisions/lib/feedbackLinks";
 
 import {
@@ -50,7 +50,7 @@ export function sendClientDeliverablesEmail(
 	return safeTry(async function* () {
 		const folder = yield* loadDeliverablesFolderWithFiles(ctx, session._id);
 		const drive = yield* loadDriveClient();
-		yield* ensureAnyoneReaderPermission(drive, folder.id);
+		yield* grantAnyoneReaderPermission(drive, folder.id);
 
 		const emailVariant = yield* queryDeliverablesCustomerType(ctx, session);
 

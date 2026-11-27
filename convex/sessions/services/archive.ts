@@ -45,7 +45,7 @@ export function archiveSessionWhenFullyDone(
 	}).orElse(() => okAsync(null));
 }
 
-export function runArchivePastDeadCheckoutBatch(
+export function archivePastDeadCheckoutBatch(
 	ctx: MutationCtx,
 	cursor: string | null,
 	numItems?: number

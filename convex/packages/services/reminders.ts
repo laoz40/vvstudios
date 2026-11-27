@@ -75,7 +75,7 @@ function deliverEligibleExpiryReminder(ctx: ActionCtx, now: number, record: DueE
 	}).orElse(() => okAsync(null));
 }
 
-function processPackageExpiryReminder(
+function deliverPackageExpiryReminders(
 	ctx: ActionCtx,
 	now: number,
 	record: PackageExpiryReminderCandidate
@@ -94,14 +94,16 @@ function processPackageExpiryReminder(
 	);
 }
 
-function processExpiryCandidates(
+function deliverExpiryReminderCandidates(
 	ctx: ActionCtx,
 	nowDate: Date,
 	records: PackageExpiryReminderCandidate[]
 ): ResultAsync<null, never> {
 	return safeTry(async function* () {
 		yield* ResultAsync.combine(
-			records.map((record) => processPackageExpiryReminder(ctx, reminderTimestamp(nowDate), record))
+			records.map((record) =>
+				deliverPackageExpiryReminders(ctx, reminderTimestamp(nowDate), record)
+			)
 		);
 
 		return ok(null);
@@ -112,7 +114,7 @@ function processExpiryCandidates(
 export function sendDuePackageReminders(ctx: ActionCtx, nowDate: Date): ResultAsync<null, never> {
 	return safeTry(async function* () {
 		const dueCandidates = yield* queryDueExpiryCandidates(ctx, nowDate);
-		const result = yield* processExpiryCandidates(ctx, nowDate, dueCandidates);
+		const result = yield* deliverExpiryReminderCandidates(ctx, nowDate, dueCandidates);
 
 		return ok(result);
 	});

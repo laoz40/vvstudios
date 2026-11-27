@@ -4,7 +4,7 @@ import type { Id } from "#convex/_generated/dataModel";
 import type { ActionCtx } from "#convex/_generated/server";
 import type { SessionCalendarEventRecord } from "#convex/sessions/lib/calendarEventPayload";
 import { fromConvexTuple } from "#convex/shared/lib/result";
-import { runReserveSessionReservation } from "#convex/sessions/lib/slotReservationAction";
+import { reserveSessionReservation } from "#convex/sessions/lib/slotReservationAction";
 import type { SaveClientSessionRescheduleArgs } from "#convex/sessions/lib/schedulingArgs";
 import type { SessionReservation } from "#convex/sessions/lib/reservations";
 import type {
@@ -92,7 +92,7 @@ export function reservePackageSessionSlot(
 		sessionStartAt: number;
 	}
 ) {
-	return runReserveSessionReservation(ctx, args);
+	return reserveSessionReservation(ctx, args);
 }
 
 export function clearPackageSessionReservation(

@@ -12,7 +12,7 @@ import {
 	type SavedDrivePermission
 } from "#convex/drive/lib/googleDrive";
 import { findDrivePermission } from "#convex/drive/services/googleDriveOperations";
-import { ensureAnyonePermission } from "#convex/drive/services/googleDrivePermissions";
+import { getOrCreateAnyonePermission } from "#convex/drive/services/googleDrivePermissions";
 import { dismissedClientFolderPermission } from "#convex/drive/lib/driveClientAccess";
 import { sendClientAssetsEmail } from "#convex/email/services/templateEmails";
 import {
@@ -85,7 +85,7 @@ function applySkippedClientDrivePermissions(
 	drive: DriveClient
 ): ResultAsync<ReadyBookingDriveFolders, DriveClientPermissionsError> {
 	return safeTry(async function* () {
-		const permission = yield* ensureAnyonePermission(
+		const permission = yield* getOrCreateAnyonePermission(
 			drive,
 			setup.driveClient.assetsFolder.id,
 			"writer"
@@ -144,7 +144,7 @@ function applyActiveClientDrivePermissions(
 	drive: DriveClient
 ): ResultAsync<ReadyBookingDriveFolders, DriveClientPermissionsError> {
 	const grantPermissions = safeTry(async function* () {
-		const assetsPermission = yield* ensureAnyonePermission(
+		const assetsPermission = yield* getOrCreateAnyonePermission(
 			drive,
 			setup.driveClient.assetsFolder.id,
 			"writer"

@@ -27,7 +27,7 @@ export function recordReceiptNumberMutation(
 	);
 }
 
-export function ensureReceiptNumberMutation(ctx: ActionCtx, session: Doc<"bookings">) {
+export function assignReceiptNumberMutation(ctx: ActionCtx, session: Doc<"bookings">) {
 	return fromConvexTuple(
 		ctx.runMutation(internal.booking.confirmation.ensureStandaloneBookingReceiptNumber, {
 			bookingId: session._id

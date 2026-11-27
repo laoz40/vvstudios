@@ -14,7 +14,7 @@ import { getSessionFromQuery } from "#convex/sessions/services/lookup";
 import type { BookingAvailabilitySettings } from "#studio/lib/bookingAvailabilitySettings";
 import {
 	recordReceiptNumberMutation,
-	ensureReceiptNumberMutation,
+	assignReceiptNumberMutation,
 	markReceiptResendSent
 } from "#convex/booking/lib/receiptResendSteps";
 
@@ -49,7 +49,7 @@ export function writeStandaloneBookingReceiptNumber(
 	session: Doc<"bookings">
 ): ResultAsync<Doc<"bookings">, { reason: string }> {
 	return safeTry(async function* () {
-		yield* ensureReceiptNumberMutation(ctx, session);
+		yield* assignReceiptNumberMutation(ctx, session);
 
 		return ok(session);
 	});
