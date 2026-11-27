@@ -27,6 +27,7 @@ import { Route as PublicConvexPackageCompleteRouteImport } from './routes/_publi
 import { Route as PublicConvexRescheduleCompleteRouteImport } from './routes/_public/_convex/reschedule-complete'
 import { Route as PublicConvexPackageScheduleTokenRouteImport } from './routes/_public/_convex/package-schedule.$token'
 import { Route as PublicConvexRescheduleTokenRouteImport } from './routes/_public/_convex/reschedule.$token'
+import { Route as PublicConvexRevisionsTokenRouteImport } from './routes/_public/_convex/revisions.$token'
 
 const AuthRoute = AuthRouteImport.update({
   id: '/_auth',
@@ -122,6 +123,12 @@ const PublicConvexRescheduleTokenRoute =
     path: '/reschedule/$token',
     getParentRoute: () => PublicConvexRoute,
   } as any)
+const PublicConvexRevisionsTokenRoute =
+  PublicConvexRevisionsTokenRouteImport.update({
+    id: '/revisions/$token',
+    path: '/revisions/$token',
+    getParentRoute: () => PublicConvexRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof PublicIndexRoute
@@ -139,6 +146,7 @@ export interface FileRoutesByFullPath {
   '/reschedule-complete': typeof PublicConvexRescheduleCompleteRoute
   '/package-schedule/$token': typeof PublicConvexPackageScheduleTokenRoute
   '/reschedule/$token': typeof PublicConvexRescheduleTokenRoute
+  '/revisions/$token': typeof PublicConvexRevisionsTokenRoute
 }
 export interface FileRoutesByTo {
   '/': typeof PublicIndexRoute
@@ -156,6 +164,7 @@ export interface FileRoutesByTo {
   '/reschedule-complete': typeof PublicConvexRescheduleCompleteRoute
   '/package-schedule/$token': typeof PublicConvexPackageScheduleTokenRoute
   '/reschedule/$token': typeof PublicConvexRescheduleTokenRoute
+  '/revisions/$token': typeof PublicConvexRevisionsTokenRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -177,6 +186,7 @@ export interface FileRoutesById {
   '/_public/_convex/reschedule-complete': typeof PublicConvexRescheduleCompleteRoute
   '/_public/_convex/package-schedule/$token': typeof PublicConvexPackageScheduleTokenRoute
   '/_public/_convex/reschedule/$token': typeof PublicConvexRescheduleTokenRoute
+  '/_public/_convex/revisions/$token': typeof PublicConvexRevisionsTokenRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -196,6 +206,7 @@ export interface FileRouteTypes {
     | '/reschedule-complete'
     | '/package-schedule/$token'
     | '/reschedule/$token'
+    | '/revisions/$token'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -213,6 +224,7 @@ export interface FileRouteTypes {
     | '/reschedule-complete'
     | '/package-schedule/$token'
     | '/reschedule/$token'
+    | '/revisions/$token'
   id:
     | '__root__'
     | '/_auth'
@@ -233,6 +245,7 @@ export interface FileRouteTypes {
     | '/_public/_convex/reschedule-complete'
     | '/_public/_convex/package-schedule/$token'
     | '/_public/_convex/reschedule/$token'
+    | '/_public/_convex/revisions/$token'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -368,6 +381,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PublicConvexRescheduleTokenRouteImport
       parentRoute: typeof PublicConvexRoute
     }
+    '/_public/_convex/revisions/$token': {
+      id: '/_public/_convex/revisions/$token'
+      path: '/revisions/$token'
+      fullPath: '/revisions/$token'
+      preLoaderRoute: typeof PublicConvexRevisionsTokenRouteImport
+      parentRoute: typeof PublicConvexRoute
+    }
   }
 }
 
@@ -391,6 +411,7 @@ interface PublicConvexRouteChildren {
   PublicConvexRescheduleCompleteRoute: typeof PublicConvexRescheduleCompleteRoute
   PublicConvexPackageScheduleTokenRoute: typeof PublicConvexPackageScheduleTokenRoute
   PublicConvexRescheduleTokenRoute: typeof PublicConvexRescheduleTokenRoute
+  PublicConvexRevisionsTokenRoute: typeof PublicConvexRevisionsTokenRoute
 }
 
 const PublicConvexRouteChildren: PublicConvexRouteChildren = {
@@ -401,6 +422,7 @@ const PublicConvexRouteChildren: PublicConvexRouteChildren = {
   PublicConvexRescheduleCompleteRoute: PublicConvexRescheduleCompleteRoute,
   PublicConvexPackageScheduleTokenRoute: PublicConvexPackageScheduleTokenRoute,
   PublicConvexRescheduleTokenRoute: PublicConvexRescheduleTokenRoute,
+  PublicConvexRevisionsTokenRoute: PublicConvexRevisionsTokenRoute,
 }
 
 const PublicConvexRouteWithChildren = PublicConvexRoute._addFileChildren(
