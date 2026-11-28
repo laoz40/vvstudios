@@ -168,3 +168,26 @@ textarea {
 	font: inherit;
 	touch-action: manipulation;
 }
+
+@keyframes accordion-chevron-bounce {
+	0%,
+	100% {
+		transform: translateY(0);
+	}
+
+	50% {
+		transform: translateY(6px);
+	}
+}
+
+@media (prefers-reduced-motion: no-preference) {
+	[data-slot="accordion-trigger"]:is(:hover, :focus-visible) .accordion-chevron-icon {
+		animation: accordion-chevron-bounce 800ms ease-in-out;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	[data-slot="accordion-trigger"] [data-slot="accordion-chevron"] {
+		transition: none;
+	}
+}

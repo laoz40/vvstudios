@@ -75,9 +75,7 @@ export function SubmittedRevisionsDialog({
 									</div>
 								</AccordionTrigger>
 
-								<AccordionContent
-									layout={false}
-									className="max-w-none pb-3 text-sm leading-normal md:pb-3 md:text-sm">
+								<AccordionContent className="max-w-none pb-3 text-sm leading-normal md:pb-3 md:text-sm">
 									<ul className="space-y-2 border-t border-border pt-3 text-sm">
 										{withFeedbackRowKeys(round.feedbackRows, round._id).map(({ key, row }) => (
 											<li

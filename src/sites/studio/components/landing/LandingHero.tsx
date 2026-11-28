@@ -1,19 +1,16 @@
-import { useRef, type CSSProperties } from "react";
+import type { CSSProperties } from "react";
 import { Link } from "@tanstack/react-router";
 import ArrowNarrowRightIcon from "#/components/ui/arrow-narrow-right-icon";
 import { AnimatedIconButton } from "#/components/AnimatedIconButton";
 import { studioSite } from "#/config/sites";
 import { Button } from "#/components/ui/button";
 import { MapPin } from "lucide-react";
-import { motion, useReducedMotion, useScroll, useTransform } from "motion/react";
 import heroVideoMp4 from "#studio/assets/bg/landing.mp4";
 import heroVideoWebm from "#studio/assets/bg/landing.webm";
 import heroPoster from "#studio/assets/bg/landing-poster.webp";
 import heroMobile from "#studio/assets/bg/mobile.webp";
 import { FreeTourModalButton } from "#studio/components/FreeTourModal";
 import { STUDIO_ADDRESS_URL } from "#/config/contact";
-import { cn } from "#/lib/utils";
-import { useIsDesktopViewport } from "#studio/hooks/useIsDesktopViewport";
 
 const heroCopy = {
 	eyebrow: "Brought to you by Vertigo Visuals.",
@@ -30,23 +27,8 @@ const mobileBackgroundStyle: CSSProperties & { "--landing-hero-mobile-background
 };
 
 export function LandingHero() {
-	const heroRef = useRef<HTMLElement>(null);
-	const prefersReducedMotion = useReducedMotion();
-	const isDesktopViewport = useIsDesktopViewport();
-
-	const { scrollYProgress } = useScroll({
-		target: heroRef,
-		offset: ["start start", "center start"]
-	});
-
-	const heroVideoY = useTransform(scrollYProgress, [0, 1], [0, -300]);
-	const heroTextOpacity = useTransform(scrollYProgress, [0, 0.4], [1, 0]);
-	const heroTextY = useTransform(scrollYProgress, [0, 0.4], [0, -180]);
-	const heroTextBlur = useTransform(scrollYProgress, [0, 0.4], ["blur(0px)", "blur(10px)"]);
-
 	return (
 		<section
-			ref={heroRef}
 			aria-labelledby="landing-hero-title"
 			className="landing-hero-scroll-space relative isolate w-full">
 			<div className="sticky top-0 isolate h-svh overflow-hidden md:h-dvh">
@@ -55,10 +37,9 @@ export function LandingHero() {
 					className="landing-hero-mobile-background absolute inset-0 -z-20 brightness-65 md:hidden"
 					style={mobileBackgroundStyle}
 				/>
-				<motion.div
+				<div
 					aria-hidden
-					className="absolute inset-0 -z-20 hidden md:block"
-					style={{ y: prefersReducedMotion || !isDesktopViewport ? 0 : heroVideoY }}>
+					className="landing-hero-video-parallax absolute inset-0 -z-20 hidden md:block">
 					<video
 						aria-label="Studio showcase background"
 						className="h-full w-full object-cover brightness-65"
@@ -79,18 +60,12 @@ export function LandingHero() {
 							type="video/mp4"
 						/>
 					</video>
-				</motion.div>
+				</div>
 
 				<div className="absolute inset-0 -z-10 bg-linear-to-br from-background/60 via-background/40 to-background/80" />
 
 				<div className="absolute inset-0 z-10">
-					<motion.div
-						className="absolute inset-x-4 bottom-6 max-w-xl will-change-transform sm:bottom-12 md:right-auto md:bottom-32 md:left-10 md:max-w-3xl lg:left-12 xl:bottom-60 xl:left-25"
-						style={{
-							filter: prefersReducedMotion || !isDesktopViewport ? "blur(0px)" : heroTextBlur,
-							opacity: prefersReducedMotion ? 1 : heroTextOpacity,
-							y: prefersReducedMotion || !isDesktopViewport ? 0 : heroTextY
-						}}>
+					<div className="landing-hero-text-scroll absolute inset-x-4 bottom-6 max-w-xl will-change-transform sm:bottom-12 md:right-auto md:bottom-32 md:left-10 md:max-w-3xl lg:left-12 xl:bottom-60 xl:left-25">
 						<div className="landing-hero-reveal flex flex-col">
 							<h1
 								id="landing-hero-title"
@@ -140,29 +115,22 @@ export function LandingHero() {
 								</Button>
 							</div>
 						</div>
-					</motion.div>
+					</div>
 
-					<motion.div
-						className={cn(
-							"absolute right-4 bottom-8 left-auto hidden items-center gap-2 py-2 text-sm text-muted-foreground md:inline-flex md:text-base", // Hero reveal animation
-							"landing-hero-reveal landing-hero-reveal--delayed"
-						)}
-						style={{
-							filter: prefersReducedMotion ? "blur(0px)" : heroTextBlur,
-							opacity: prefersReducedMotion ? 1 : heroTextOpacity,
-							y: prefersReducedMotion || !isDesktopViewport ? 0 : heroTextY
-						}}>
-						<MapPin
-							className="text-primary"
-							aria-hidden
-						/>
-						<Button
-							asChild
-							variant="link"
-							className="px-0 text-muted-foreground hover:text-foreground">
-							<a href={STUDIO_ADDRESS_URL}>{heroCopy.addressLabel}</a>
-						</Button>
-					</motion.div>
+					<div className="landing-hero-text-scroll absolute right-4 bottom-8 left-auto hidden py-2 text-sm text-muted-foreground md:block md:text-base">
+						<div className="landing-hero-reveal landing-hero-reveal--delayed inline-flex items-center gap-2">
+							<MapPin
+								className="text-primary"
+								aria-hidden
+							/>
+							<Button
+								asChild
+								variant="link"
+								className="px-0 text-muted-foreground hover:text-foreground">
+								<a href={STUDIO_ADDRESS_URL}>{heroCopy.addressLabel}</a>
+							</Button>
+						</div>
+					</div>
 				</div>
 			</div>
 		</section>

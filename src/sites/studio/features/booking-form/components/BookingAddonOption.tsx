@@ -1,5 +1,4 @@
 import { useSelector } from "@tanstack/react-store";
-import { AnimatePresence } from "motion/react";
 import { BookingAddonCard } from "#studio/features/booking-form/components/BookingAddonCard";
 import { BookingAddonQuantityField } from "#studio/features/booking-form/components/BookingAddonQuantityField";
 import { useBookingFormContext } from "#studio/features/booking-form/lib/booking-form-context";
@@ -44,16 +43,14 @@ export function BookingAddonOption({
 			checked={isChecked}
 			disabled={isPackageBooking && isPackageUnavailableAddon(addon)}
 			onCheckedChange={handleCheckedChange}>
-			<AnimatePresence initial={false}>
-				{isQuantityTrackedAddon(addon) && isChecked ? (
-					<BookingAddonQuantityField
-						key={addon}
-						addon={addon}
-						isPackageBooking={isPackageBooking}
-						shouldShowFieldError={shouldShowFieldError}
-					/>
-				) : null}
-			</AnimatePresence>
+			{isQuantityTrackedAddon(addon) ? (
+				<BookingAddonQuantityField
+					addon={addon}
+					isOpen={isChecked}
+					isPackageBooking={isPackageBooking}
+					shouldShowFieldError={shouldShowFieldError}
+				/>
+			) : null}
 		</BookingAddonCard>
 	);
 }

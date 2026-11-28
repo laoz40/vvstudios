@@ -108,9 +108,7 @@ export function BookingSummary() {
 							</span>
 						</span>
 					</AccordionTrigger>
-					<AccordionContent
-						layout={false}
-						className="border-b border-border pb-2 text-sm md:pb-2 md:text-sm">
+					<AccordionContent className="border-b border-border pb-2 text-sm md:pb-2 md:text-sm">
 						<div className="space-y-2">
 							{showBookingLine && !isWaitingForPackage ? (
 								<div className="flex items-start justify-between gap-4">

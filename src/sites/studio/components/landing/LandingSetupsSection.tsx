@@ -1,6 +1,5 @@
-import { useRef } from "react";
 import { Image } from "@unpic/react";
-import { motion, useReducedMotion, useScroll, useTransform } from "motion/react";
+import { motion } from "motion/react";
 import { cn } from "#/lib/utils";
 import { ContactActions } from "#studio/components/contact/ContactActions";
 import {
@@ -14,15 +13,12 @@ import {
 	type PhotoGalleryImage
 } from "#studio/content/photos";
 import { useFadeInAnimation } from "#studio/hooks/useFadeInAnimation";
-import { useIsDesktopViewport } from "#studio/hooks/useIsDesktopViewport";
 import {
 	landingContactActionsClassName,
 	landingSectionHeadingClassName,
 	landingSectionLeadClassName,
 	marketingPageHorizontalPaddingClassName
 } from "#studio/lib/landing-styles";
-
-const setupParallaxTravelPx = 90;
 
 const setupPanelTitleClassName =
 	"font-brand text-2xl leading-none tracking-tight uppercase text-balance md:text-8xl";
@@ -38,35 +34,12 @@ function SetupShowcasePanel({
 	loading: "eager" | "lazy";
 	onPreview: (image: PhotoGalleryImage) => void;
 }) {
-	const panelRef = useRef<HTMLElement>(null);
-	const prefersReducedMotion = useReducedMotion();
-	const isDesktopViewport = useIsDesktopViewport();
-	const { scrollYProgress } = useScroll({ target: panelRef, offset: ["start end", "end start"] });
-
-	const imageY = useTransform(
-		scrollYProgress,
-		[0, 1],
-		[-setupParallaxTravelPx, setupParallaxTravelPx]
-	);
-
-	const shouldParallax = isDesktopViewport && prefersReducedMotion === false;
-	const parallaxWindowHeight = `calc(100cqw * ${image.height} / ${image.width} - ${2 * setupParallaxTravelPx}px)`;
-
 	return (
 		<motion.figure
-			ref={panelRef}
 			{...fadeInAnimation}
-			className="group @container relative w-full px-4 md:px-0">
-			<div
-				className="relative w-full overflow-hidden rounded-2xl md:rounded-none"
-				style={
-					shouldParallax
-						? { height: parallaxWindowHeight }
-						: { aspectRatio: `${image.width} / ${image.height}` }
-				}>
-				<motion.div
-					className={shouldParallax ? "absolute inset-x-0" : undefined}
-					style={shouldParallax ? { y: imageY, top: -setupParallaxTravelPx } : undefined}>
+			className="landing-setup-parallax-panel group @container relative w-full px-4 md:px-0">
+			<div className="landing-setup-parallax-window relative w-full overflow-hidden rounded-2xl md:rounded-none">
+				<div className="landing-setup-parallax-image">
 					<Image
 						src={image.src}
 						alt={image.alt}
@@ -77,7 +50,7 @@ function SetupShowcasePanel({
 						loading={loading}
 						className="block h-auto w-full"
 					/>
-				</motion.div>
+				</div>
 				<div
 					aria-hidden
 					className="absolute inset-0 bg-linear-to-t from-background/90 via-background/25 to-background/10"

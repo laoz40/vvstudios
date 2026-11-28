@@ -1,5 +1,4 @@
 import { type ReactNode } from "react";
-import { motion, useReducedMotion, useScroll, useTransform } from "motion/react";
 import { studioSite } from "#/config/sites";
 import { cn } from "#/lib/utils";
 import footerRevealImage from "#studio/assets/bg/landing-full.webp";
@@ -33,22 +32,14 @@ export function StudioLayout({ children, pathname }: StudioLayoutProps) {
 	const useMinimalLayout = isMinimalLayoutPath(pathname);
 	const showFooterRevealCta = pathname !== studioSite.routes.book;
 	const isHomePage = pathname === studioSite.routes.home;
-	const prefersReducedMotion = useReducedMotion();
-	const { scrollYProgress } = useScroll();
-	const footerImageY = useTransform(scrollYProgress, [0.75, 1], [120, -30]);
-	const footerImageScale = useTransform(scrollYProgress, [0.75, 1], [1.2, 1.2]);
 
 	return (
 		<>
 			{useMinimalLayout ? null : (
-				<motion.div
+				<div
 					aria-hidden
 					className="footer-image-reveal__image brightness-55"
-					style={{
-						backgroundImage: `url(${footerRevealImage})`,
-						scale: prefersReducedMotion ? 1 : footerImageScale,
-						y: prefersReducedMotion ? 0 : footerImageY
-					}}
+					style={{ backgroundImage: `url(${footerRevealImage})` }}
 				/>
 			)}
 			{useMinimalLayout ? null : <SiteNavbar />}
